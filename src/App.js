@@ -1,46 +1,46 @@
-import axios from 'axios';
 import React, { useEffect, useState } from 'react';
-import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
-import PrivateRoute from './Compartidos/PrivateRoute.jsx';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import axios from 'axios';
+import PrivateRoute from './components/Tools/PrivateRoute';
 
 //Inicio
-import LayoutConEncabezado from './Compartidos/LayoutConEncabezado';
-import Acerca from './Inicio/AcerdaDe.jsx';
-import Agendar from './Inicio/Agendar.jsx';
-import Reset from './Inicio/CambiarContrasena.jsx';
-import Contactanos from './Inicio/Contactanos.jsx';
-import Home from './Inicio/Home';
-import Login from './Inicio/Login.jsx';
-import Preguntas from './Inicio/Preguntas.jsx';
-import Recuperacion from './Inicio/Recuperacion.jsx';
-import Register from './Inicio/Register';
+import Home from './pages/_home/pages/Home';
+import Register from './pages/_home/pages/Register';
+import Login from './pages/_home/pages/Login';
+import LayoutConEncabezado from './components/Layout/LayoutConEncabezado';
+import Recuperacion from './pages/_home/pages/Recuperacion';
+import Reset from './pages/_home/pages/CambiarContrasena';
+import Preguntas from './pages/_home/pages/Preguntas';
+import Contactanos from './pages/_home/pages/Contactanos';
+import Agendar from './pages/_home/pages/Agendar';
+import Acerca from './pages/_home/pages/AcerdaDe';
 
 //Paciente
-import LayoutPaciente from './Usuarios/Paciente/LayoutPaciente';
-import Perfil from './Usuarios/Paciente/Perfil.jsx';
-import Principal from './Usuarios/Paciente/Principal.jsx';
+import Principal from './pages/paciente/pages/Principal';
+import LayoutPaciente from './pages/paciente/compartidos/LayoutPaciente';
+import Perfil from './pages/paciente/pages/Perfil';
 
 //Administrador
-import Configuracion from './Usuarios/Administrador/Configuracion.jsx';
-import Pacientes from './Usuarios/Administrador/Configuracion/PatientsReport.jsx';
-import PerfilEmpresa from './Usuarios/Administrador/Configuracion/PerfilEmpresa.jsx';
-import Reportes from './Usuarios/Administrador/Configuracion/reportes.jsx';
-import LayoutAdmin from './Usuarios/Administrador/LayoutAdmin.jsx';
-import PrincipalAdmin from './Usuarios/Administrador/Principal.jsx';
+import LayoutAdmin from './pages/administrador/assets/compartidos/LayoutAdmin';
+import PrincipalAdmin from './pages/administrador/pages/Principal';
+import Configuracion from './pages/administrador/pages/Configuracion';
+import Reportes from './pages/administrador/pages/reportes';
+import PerfilEmpresa from './pages/administrador/pages/PerfilEmpresa';
+import Pacientes from './pages/administrador/pages/PatientsReport.jsx';
 
 function App() {
-  const [tituloPagina, setTituloPagina] = useState('Mi Empresa');
+  const [tituloPagina, setTituloPagina] = useState('_'); // Valor inicial predeterminado
   const [logo, setLogo] = useState('');
   const [fetchErrors, setFetchErrors] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Estado para gestionar la carga inicial
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('http://localhost:3001/api/perfilEmpresa/getTitleAndLogo');
+      const response = await axios.get('https://localhost:4000/api/perfilEmpresa/getTitleAndLogo');
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
-        document.title = nombre_empresa;
+        document.title = nombre_empresa; 
         setTituloPagina(nombre_empresa);
       }
       if (logo) {

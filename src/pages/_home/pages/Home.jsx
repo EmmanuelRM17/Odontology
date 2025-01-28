@@ -21,8 +21,8 @@ import {
   NavigateNext
 } from '@mui/icons-material';
 import { Suspense, lazy } from 'react';
-// Importar imágenes locales
 
+// Importar imágenes locales
 import img1 from '../../../assets/imagenes/img1_1.jpeg';
 import img2 from '../../../assets/imagenes/img2_1.jpg';
 import img3 from '../../../assets/imagenes/img3_1.png';
@@ -59,43 +59,93 @@ const Home = () => {
   const [activeService, setActiveService] = useState(0);
   const [currentTitle, setCurrentTitle] = useState(0);
 
-  
-  // Memoizar datos estáticos
-  const titles = useMemo(() => [
-    "Odontología Carol",
-    "Sonrisas Perfectas",
-    "Tu Clínica de Confianza"
-  ], []);
-
-  const colors = useMemo(() => ({
-    background: isDarkMode
-      ? 'linear-gradient(135deg, #1A2A3A 30%, #1D2A38 100%)'
-      : 'linear-gradient(135deg, #FFFFFF 30%, #E3F2FD 100%)',
-    primaryText: isDarkMode ? '#82B1FF' : '#03427C',
-    secondaryText: isDarkMode ? '#B0BEC5' : '#616161',
-    cardBackground: isDarkMode ? '#2A3A4A' : '#FFFFFF',
-  }), [isDarkMode]);
-
+  // Servicios filtrados (tratamientos especificados)
   const services = useMemo(() => [
     {
-      title: 'Limpieza Dental',
-      icon: <CleaningServices sx={{ fontSize: 40, color: colors.primaryText }} />,
+      title: 'Consulta Dental General',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
       img: img1,
-      description: 'Mantenemos tu sonrisa limpia y saludable.',
+      description: 'Consulta básica para revisar tu salud bucal.',
     },
     {
-      title: 'Ortodoncia',
-      icon: <MedicalServices sx={{ fontSize: 40, color: colors.primaryText }} />,
+      title: 'Limpieza Dental por Ultrasonido',
+      icon: <CleaningServices sx={{ fontSize: 40, color: '#03427C' }} />,
       img: img2,
-      description: 'Corrige la posición de tus dientes.',
+      description: 'Eliminación de placa dental usando tecnología de ultrasonido.',
     },
     {
-      title: 'Implantes Dentales',
-      icon: <LocalHospital sx={{ fontSize: 40, color: colors.primaryText }} />,
+      title: 'Curetaje (Limpieza Profunda)',
+      icon: <CleaningServices sx={{ fontSize: 40, color: '#03427C' }} />,
       img: img3,
-      description: 'Reemplaza tus dientes faltantes con implantes de calidad.',
+      description: 'Limpieza profunda para encías y dientes en mal estado.',
     },
-  ], [colors.primaryText]);
+    {
+      title: 'Asesoría sobre Diseño de Sonrisa',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img1,
+      description: 'Te ayudamos a diseñar la sonrisa perfecta para ti.',
+    },
+    {
+      title: 'Cirugía Estética de Encía',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img2,
+      description: 'Procedimiento estético para mejorar la forma de tus encías.',
+    },
+    {
+      title: 'Obturación con Resina',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img3,
+      description: 'Restauración de dientes dañados por caries con resina.',
+    },
+    {
+      title: 'Incrustación Estética y de Metal',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img1,
+      description: 'Colocación de incrustaciones estéticas o metálicas en dientes.',
+    },
+    {
+      title: 'Coronas Fijas Estéticas o de Metal',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img2,
+      description: 'Coronas fijas para dientes dañados o perdidos.',
+    },
+    {
+      title: 'Placas Removibles Parciales',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img3,
+      description: 'Placas removibles para dientes faltantes.',
+    },
+    {
+      title: 'Placas Totales Removibles',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img1,
+      description: 'Placas removibles para prótesis dentales completas.',
+    },
+    {
+      title: 'Guardas Dentales',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img2,
+      description: 'Protección dental para evitar daño durante la noche.',
+    },
+    {
+      title: 'Placas Hawley',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img3,
+      description: 'Placas ortodónticas para mantener los dientes en su lugar.',
+    },
+    {
+      title: 'Extracción Dental',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img1,
+      description: 'Extracción de dientes problemáticos o innecesarios.',
+    },
+    {
+      title: 'Ortodoncia y Ortopedia Maxilar',
+      icon: <MedicalServices sx={{ fontSize: 40, color: '#03427C' }} />,
+      img: img2,
+      description: 'Tratamientos para corregir la alineación de los dientes y maxilares.',
+    },
+  ], []);
 
   // Handlers optimizados
   const handlePrevService = useCallback(() => {
@@ -115,22 +165,6 @@ const Home = () => {
     matchDarkTheme.addEventListener('change', handleThemeChange);
     return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
   }, []);
-
-  // Efecto para rotación de títulos con cleanup
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentTitle(prev => (prev + 1) % titles.length);
-    }, TITLE_ROTATION_INTERVAL);
-    return () => clearInterval(interval);
-  }, [titles.length]);
-
-  // Efecto para rotación de servicios con cleanup
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveService(prev => (prev + 1) % services.length);
-    }, SERVICE_ROTATION_INTERVAL);
-    return () => clearInterval(interval);
-  }, [services.length]);
 
   // Fetch de datos optimizado
   useEffect(() => {
@@ -174,7 +208,7 @@ const Home = () => {
           boxShadow: index === activeService ? 8 : 3,
           borderRadius: '16px',
           height: '100%',
-          backgroundColor: colors.cardBackground,
+          backgroundColor: '#ffffff',
           transition: 'all 0.3s ease-in-out',
         }}
       >
@@ -194,7 +228,7 @@ const Home = () => {
           <Typography 
             variant="h5" 
             sx={{ 
-              color: colors.secondaryText, 
+              color: '#616161', 
               mb: 2,
               fontFamily: 'Montserrat, sans-serif'
             }}
@@ -204,7 +238,7 @@ const Home = () => {
           <Typography 
             variant="body2" 
             sx={{ 
-              color: colors.secondaryText,
+              color: '#616161',
               fontFamily: 'Roboto, sans-serif'
             }}
           >
@@ -213,7 +247,7 @@ const Home = () => {
         </CardContent>
       </Card>
     </motion.div>
-  ), [activeService, colors.cardBackground, colors.secondaryText]);
+  ), [activeService]);
 
   if (isLoading) {
     return (
@@ -222,7 +256,7 @@ const Home = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        background: colors.background
+        background: isDarkMode ? '#1A2A3A' : '#F9FDFF'
       }}>
         <CircularProgress />
       </Box>
@@ -236,7 +270,7 @@ const Home = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '100vh',
-        background: colors.background
+        background: isDarkMode ? '#1A2A3A' : '#F9FDFF'
       }}>
         <Typography color="error">{error}</Typography>
       </Box>
@@ -246,7 +280,7 @@ const Home = () => {
   return (
     <Box 
       sx={{ 
-        background: colors.background, 
+        background: isDarkMode ? '#1A2A3A' : '#F9FDFF', 
         minHeight: '100vh',
         margin: 0,
         padding: 0,
@@ -254,7 +288,6 @@ const Home = () => {
       }}
     >
       <Container maxWidth="lg" sx={{ py: 10 }} disableGutters>
-        {/* Header con animación de títulos */}
         <AnimatePresence mode="wait">
           <motion.div
             key={currentTitle}
@@ -266,16 +299,16 @@ const Home = () => {
                 component="h1"
                 sx={{
                   fontWeight: 'bold',
-                  color: colors.primaryText,
+                  color: '#03427C',
                   fontFamily: 'Montserrat, sans-serif',
                 }}
               >
-                {titles[currentTitle]}
+                Odontología Carol
               </Typography>
               <Typography
                 variant="subtitle1"
                 sx={{
-                  color: colors.secondaryText,
+                  color: '#616161',
                   mt: 2,
                   fontFamily: 'Roboto, sans-serif',
                 }}
@@ -291,7 +324,7 @@ const Home = () => {
           <Typography
             variant="h4"
             sx={{
-              color: colors.primaryText,
+              color: '#03427C',
               fontWeight: 'bold',
               textAlign: 'center',
               mb: 6,
@@ -302,7 +335,6 @@ const Home = () => {
           </Typography>
 
           <Box sx={{ position: 'relative' }}>
-            {/* Botones de navegación */}
             <IconButton
               onClick={handlePrevService}
               sx={{
@@ -341,7 +373,6 @@ const Home = () => {
               <NavigateNext />
             </IconButton>
 
-            {/* Grid de servicios */}
             <AnimatePresence mode="wait">
               <Grid container spacing={4} justifyContent="center">
                 {services.map((service, index) => (
