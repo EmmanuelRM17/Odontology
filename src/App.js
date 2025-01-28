@@ -1,40 +1,46 @@
-import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
-import PrivateRoute from './components/Tools/PrivateRoute';
+import React, { useEffect, useState } from 'react';
+import { Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import PrivateRoute from './Compartidos/PrivateRoute.jsx';
 
 //Inicio
-import Home from './pages/1- home/pages/Home.js';
-import Register from './pages/1- home/pages/Register.js';
-import Login from './pages/1- home/pages/Login.js';
-import LayoutConEncabezado from './components/Layout/LayoutConEncabezado';
-import Recuperacion from './pages/1- home/pages/Recuperacion.js';
-import Reset from './pages/1- home/pages/CambiarContrasena.js';
+import LayoutConEncabezado from './Compartidos/LayoutConEncabezado';
+import Acerca from './Inicio/AcerdaDe.jsx';
+import Agendar from './Inicio/Agendar.jsx';
+import Reset from './Inicio/CambiarContrasena.jsx';
+import Contactanos from './Inicio/Contactanos.jsx';
+import Home from './Inicio/Home';
+import Login from './Inicio/Login.jsx';
+import Preguntas from './Inicio/Preguntas.jsx';
+import Recuperacion from './Inicio/Recuperacion.jsx';
+import Register from './Inicio/Register';
 
 //Paciente
-import Principal from './pages/4- paciente/pages/Principal.js';
-import LayoutPaciente from './pages/4- paciente/compartidos/LayoutPaciente.jsx';
+import LayoutPaciente from './Usuarios/Paciente/LayoutPaciente';
+import Perfil from './Usuarios/Paciente/Perfil.jsx';
+import Principal from './Usuarios/Paciente/Principal.jsx';
 
 //Administrador
-import LayoutAdmin from './pages/2- administrador/assets/compartidos/LayoutAdmin.js';
-import PrincipalAdmin from './pages/2- administrador/pages/Principal.js';
-import Configuracion from './pages/2- administrador/pages/Configuracion.js';
-import Reportes from './pages/2- administrador/pages/reportes.jsx';
-import PerfilEmpresa from './pages/2- administrador/pages/PerfilEmpresa.js';
+import Configuracion from './Usuarios/Administrador/Configuracion.jsx';
+import Pacientes from './Usuarios/Administrador/Configuracion/PatientsReport.jsx';
+import PerfilEmpresa from './Usuarios/Administrador/Configuracion/PerfilEmpresa.jsx';
+import Reportes from './Usuarios/Administrador/Configuracion/reportes.jsx';
+import LayoutAdmin from './Usuarios/Administrador/LayoutAdmin.jsx';
+import PrincipalAdmin from './Usuarios/Administrador/Principal.jsx';
 
 function App() {
-  const [tituloPagina, setTituloPagina] = useState('_'); // Valor inicial predeterminado
+  const [tituloPagina, setTituloPagina] = useState('Mi Empresa');
   const [logo, setLogo] = useState('');
   const [fetchErrors, setFetchErrors] = useState(0);
-  const [loading, setLoading] = useState(true); // Estado para gestionar la carga inicial
+  const [loading, setLoading] = useState(true);
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('https://localhost:4000/api/perfilEmpresa/getTitleAndLogo');
+      const response = await axios.get('http://localhost:3001/api/perfilEmpresa/getTitleAndLogo');
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
-        document.title = nombre_empresa; 
+        document.title = nombre_empresa;
         setTituloPagina(nombre_empresa);
       }
       if (logo) {
@@ -48,6 +54,7 @@ function App() {
       setFetchErrors(0);
       setLoading(false); // Carga completa
     } catch (error) {
+      // Mostrar en consola los errores
       if (error.response) {
         console.error("Error en la respuesta del servidor:", error.response.status);
       } else if (error.request) {
@@ -78,49 +85,39 @@ function App() {
     return () => clearInterval(interval);
   }, [fetchErrors]);
 
+  useEffect(() => {
+    if (loading) {
+      console.log("Cargando configuración de empresa...");
+    }
+  }, [loading]);
+
   return (
-    <>
+    <Router>
       <Routes>
         {/* Rutas públicas */}
-        <Route path="/" element={<LayoutConEncabezado><Home /></LayoutConEncabezado>} />
+        <Route path="/" element={<LayoutConEncabezado><Home /><Preguntas /></LayoutConEncabezado>} />
+        <Route path="/FAQ" element={<LayoutConEncabezado> <Preguntas /></LayoutConEncabezado>} />
+        <Route path="/Contact" element={<LayoutConEncabezado> <Contactanos /></LayoutConEncabezado>} />
         <Route path="/register" element={<LayoutConEncabezado><Register /></LayoutConEncabezado>} />
         <Route path="/login" element={<Login />} />
+        <Route path="/agendar-cita" element={<Agendar />} />
+        <Route path="/about" element={<LayoutConEncabezado><Acerca /></LayoutConEncabezado>} />
         <Route path="/recuperacion" element={<Recuperacion />} />
         <Route path="/resetContra" element={<Reset />} />
 
-        {/* Rutas protegidas del paciente */}
-        <Route path="/Paciente/principal" element={
-          <PrivateRoute>
-            <LayoutPaciente><Principal /></LayoutPaciente>
-          </PrivateRoute>
-        } />
+        {/* Rutas protegidas de pacientes */}
+        <Route path="/Paciente/principal" element={<PrivateRoute><LayoutPaciente><Principal /></LayoutPaciente></PrivateRoute>} />
+        <Route path="/Paciente/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
 
         {/* Rutas protegidas del administrador */}
-        <Route path="/Administrador/principal" element={
-          <PrivateRoute>
-            <LayoutAdmin><PrincipalAdmin /></LayoutAdmin>
-          </PrivateRoute>
-        } />
-        <Route path="/Administrador/configuracion" element={
-          <PrivateRoute>
-            <LayoutAdmin><Configuracion /></LayoutAdmin>
-          </PrivateRoute>
-        } />
-        <Route path="/Administrador/reportes" element={
-          <PrivateRoute>
-            <LayoutAdmin><Reportes /></LayoutAdmin>
-          </PrivateRoute>
-        } />
-        <Route path="/Administrador/PerfilEmpresa" element={
-          <PrivateRoute>
-            <LayoutAdmin><PerfilEmpresa /></LayoutAdmin>
-          </PrivateRoute>
-        } />
+        <Route path="/Administrador/principal" element={<PrivateRoute><LayoutAdmin><PrincipalAdmin /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/configuracion" element={<PrivateRoute><LayoutAdmin><Configuracion /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/reportes" element={<PrivateRoute><LayoutAdmin><Reportes /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/pacientes" element={<PrivateRoute><LayoutAdmin><Pacientes /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
       </Routes>
-      {!loading ? null : <div>Cargando configuración de empresa...</div>} {/* Mensaje de carga opcional */}
-    </>
+    </Router>
   );
 }
 
 export default App;
-
