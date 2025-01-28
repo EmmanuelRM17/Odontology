@@ -16,7 +16,7 @@ import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
-import Captcha from '../Compartidos/Herramientas/captcha';
+import Captcha from '../../../components/Tools/Captcha';
 
 // Validation Regex
 const nameRegex = /^[A-Za-zÀ-ÿñÑà-ü\s]+$/;

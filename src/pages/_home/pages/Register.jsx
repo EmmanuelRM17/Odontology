@@ -12,6 +12,7 @@ import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 
 
+
 const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
