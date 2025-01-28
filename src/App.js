@@ -1,40 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
-import PrivateRoute from './Compartidos/PrivateRoute.jsx';
+import PrivateRoute from './components/Tools/PrivateRoute';
 
 //Inicio
-import Home from './Inicio/Home';
-import Register from './Inicio/Register';
-import Login from './Inicio/Login';
-import LayoutConEncabezado from './Compartidos/LayoutConEncabezado';
-import Recuperacion from './Inicio/Recuperacion.jsx';
-import Reset from './Inicio/CambiarContrasena.jsx';
+import Home from './pages/_home/pages/Home';
+import Register from './pages/_home/pages/Register';
+import Login from './pages/_home/pages/Login';
+import LayoutConEncabezado from './components/Layout/LayoutConEncabezado';
+import Recuperacion from './pages/_home/pages/Recuperacion';
+import Reset from './pages/_home/pages/CambiarContrasena';
 
 //Paciente
-import Principal from './Paciente/Principal.jsx';
-import LayoutPaciente from './Paciente/LayoutPaciente';
+import Principal from './pages/paciente/pages/Principal';
+import LayoutPaciente from './pages/paciente/compartidos/LayoutPaciente.jsx';
 
 //Administrador
-import LayoutAdmin from './Administrador/LayoutAdmin.jsx';
-import PrincipalAdmin from './Administrador/Principal.jsx';
-import Configuracion from './Administrador/Configuracion.jsx';
-import Reportes from './Administrador/Configuracion/reportes.jsx';
-import PerfilEmpresa from './Administrador/Configuracion/PerfilEmpresa.jsx';
+import LayoutAdmin from './pages/administrador/assets/compartidos/LayoutAdmin.jsx';
+import PrincipalAdmin from './pages/administrador/pages/Principal';
+import Configuracion from './pages/administrador/pages/Configuracion';
+import Reportes from './pages/administrador/pages/reportes';
+import PerfilEmpresa from './pages/administrador/pages/PerfilEmpresa.jsx';
 
 function App() {
-  const [tituloPagina, setTituloPagina] = useState('Mi Empresa'); // Valor inicial predeterminado
+  const [tituloPagina, setTituloPagina] = useState('_'); // Valor inicial predeterminado
   const [logo, setLogo] = useState('');
   const [fetchErrors, setFetchErrors] = useState(0);
   const [loading, setLoading] = useState(true); // Estado para gestionar la carga inicial
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('https://backendodontologia.onrender.com/api/perfilEmpresa/getTitleAndLogo');
+      const response = await axios.get('https://localhost:4000/api/perfilEmpresa/getTitleAndLogo');
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
-        document.title = nombre_empresa; // Cambia dinámicamente el título
+        document.title = nombre_empresa; 
         setTituloPagina(nombre_empresa);
       }
       if (logo) {
@@ -79,7 +79,7 @@ function App() {
   }, [fetchErrors]);
 
   return (
-    <Router>
+    <>
       <Routes>
         {/* Rutas públicas */}
         <Route path="/" element={<LayoutConEncabezado><Home /></LayoutConEncabezado>} />
@@ -118,9 +118,9 @@ function App() {
         } />
       </Routes>
       {!loading ? null : <div>Cargando configuración de empresa...</div>} {/* Mensaje de carga opcional */}
-    </Router>
+    </>
   );
 }
 
 export default App;
-//ULTIMA CONFIGURACION
+
