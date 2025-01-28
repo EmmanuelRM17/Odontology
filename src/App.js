@@ -4,23 +4,23 @@ import axios from 'axios';
 import PrivateRoute from './components/Tools/PrivateRoute';
 
 //Inicio
-import Home from './pages/_home/pages/Home';
-import Register from './pages/_home/pages/Register';
-import Login from './pages/_home/pages/Login';
+import Home from './pages/1- home/pages/Home.js';
+import Register from './pages/1- home/pages/Register.js';
+import Login from './pages/1- home/pages/Login.js';
 import LayoutConEncabezado from './components/Layout/LayoutConEncabezado';
-import Recuperacion from './pages/_home/pages/Recuperacion';
-import Reset from './pages/_home/pages/CambiarContrasena';
+import Recuperacion from './pages/1- home/pages/Recuperacion.js';
+import Reset from './pages/1- home/pages/CambiarContrasena.js';
 
 //Paciente
-import Principal from './pages/paciente/pages/Principal';
-import LayoutPaciente from './pages/paciente/compartidos/LayoutPaciente.jsx';
+import Principal from './pages/4- paciente/pages/Principal.js';
+import LayoutPaciente from './pages/4- paciente/compartidos/LayoutPaciente.jsx';
 
 //Administrador
-import LayoutAdmin from './pages/administrador/assets/compartidos/LayoutAdmin.jsx';
-import PrincipalAdmin from './pages/administrador/pages/Principal';
-import Configuracion from './pages/administrador/pages/Configuracion';
-import Reportes from './pages/administrador/pages/reportes';
-import PerfilEmpresa from './pages/administrador/pages/PerfilEmpresa.jsx';
+import LayoutAdmin from './pages/2- administrador/assets/compartidos/LayoutAdmin.js';
+import PrincipalAdmin from './pages/2- administrador/pages/Principal.js';
+import Configuracion from './pages/2- administrador/pages/Configuracion.js';
+import Reportes from './pages/2- administrador/pages/reportes.jsx';
+import PerfilEmpresa from './pages/2- administrador/pages/PerfilEmpresa.js';
 
 function App() {
   const [tituloPagina, setTituloPagina] = useState('_'); // Valor inicial predeterminado
