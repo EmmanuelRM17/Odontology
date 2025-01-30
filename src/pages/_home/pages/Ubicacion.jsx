@@ -167,12 +167,11 @@ const Ubicacion = () => {
         component="section"
         sx={{
           backgroundColor: colors.cardBackground,
-          py: 8,
+          py: 4,
           borderRadius: '16px',
           boxShadow: isDarkMode
-            ? '0 4px 20px rgba(0, 0, 0, 0.5)'
-            : '0 4px 20px rgba(0, 0, 0, 0.1)',
-          mb: 5,
+            ? '0 4px 00px rgba(0, 0, 0, 0.5)'
+            : '0 4px 00px rgba(0, 0, 0, 0.1)',
           px: 3,
           transition: 'all 0.3s ease',
         }}

@@ -106,7 +106,6 @@ const BarraPaciente = () => {
         return () => clearInterval(interval);
     }, [navigate]);
 
-    // Función mejorada de checkAuthStatus para el frontend
     const checkAuthStatus = async () => {
         try {
             const response = await fetch('http://localhost:3001/api/users/check-auth', {
@@ -122,7 +121,7 @@ const BarraPaciente = () => {
                 if (response.status === 401) {
                     console.log('🔴 Sesión no válida o expirada');
                     setIsAuthenticated(false);
-                    navigate('/', { replace: true });
+                    navigate('/error', { state: { errorCode: 401, errorMessage: 'No autorizado' } });
                     return;
                 }
                 throw new Error('Error en el servidor');
@@ -135,10 +134,9 @@ const BarraPaciente = () => {
                     nombre: data.user.nombre,
                     email: data.user.email,
                     tipo: data.user.tipo,
-                    dispositivo: data.user.dispositivo // Asumiendo que el backend envía esta info
+                    dispositivo: data.user.dispositivo
                 });
 
-                // Si hay mensaje de sesión en otro dispositivo
                 if (data.sesionPrevia) {
                     console.log('⚠️ Se cerró sesión en dispositivo anterior:', data.sesionPrevia.dispositivo);
                 }
@@ -155,18 +153,17 @@ const BarraPaciente = () => {
                 localStorage.removeItem('userName');
                 localStorage.removeItem('userType');
                 localStorage.removeItem('userId');
-                navigate('/', { replace: true });
+                navigate('/error', { state: { errorCode: 403, errorMessage: 'No tienes acceso a esta página.' } });
             }
         } catch (error) {
             console.error('🔴 Error al verificar autenticación:', error);
             setNotificationMessage('Error al verificar la autenticación');
             setOpenNotification(true);
             setIsAuthenticated(false);
-            navigate('/', { replace: true });
+            navigate('/error', { state: { errorCode: 500, errorMessage: 'Error en el servidor' } });
         }
     };
 
-    // Función mejorada de handleLogout para el frontend
     const handleLogout = async () => {
         handleMenuClose();
         try {

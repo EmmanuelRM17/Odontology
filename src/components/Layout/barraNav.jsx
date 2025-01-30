@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -11,13 +11,44 @@ import {
   List,
   ListItem,
   ListItemText,
-  IconButton
+  IconButton,
+  Skeleton
 } from '@mui/material';
-import { FaSignInAlt, FaCalendarAlt, FaPhoneAlt } from 'react-icons/fa';
+import { FaSignInAlt, FaCalendarAlt } from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 
-const ResponsiveNavbar = () => {
+const LoadingNavBar = ({ isDarkTheme }) => (
+  <AppBar
+    position="static"
+    sx={{
+      backgroundColor: isDarkTheme ? '#2A3A4A' : '#f0f0f0',
+      boxShadow: 'none',
+      borderBottom: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e0e0e0'}`,
+    }}
+  >
+    <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
+      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Skeleton variant="circular" width={40} height={40} />
+        <Skeleton variant="text" width={200} sx={{ ml: 2, display: { xs: 'none', sm: 'block' } }} />
+      </Box>
+      <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+        <Skeleton variant="text" width={60} />
+        <Skeleton variant="text" width={80} />
+        <Skeleton variant="rectangular" width={140} height={36} />
+        <Skeleton variant="rectangular" width={120} height={36} />
+      </Box>
+      <Skeleton 
+        variant="circular" 
+        width={40} 
+        height={40} 
+        sx={{ display: { xs: 'block', md: 'none' } }}
+      />
+    </Toolbar>
+  </AppBar>
+);
+
+const BarraNav = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [logo, setLogo] = useState(null);
@@ -153,7 +184,7 @@ const ResponsiveNavbar = () => {
   );
 
   if (loading) {
-    return null; // O un spinner de carga
+    return <LoadingNavBar isDarkTheme={isDarkTheme} />;
   }
 
   return (
@@ -315,4 +346,4 @@ const ResponsiveNavbar = () => {
   );
 };
 
-export default ResponsiveNavbar;
+export default memo(BarraNav);

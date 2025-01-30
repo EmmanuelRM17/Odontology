@@ -38,7 +38,7 @@ const LayoutConEncabezado = ({ children }) => {
         component="main"
         sx={{
           flex: 1, // Hace que el main ocupe todo el espacio disponible
-          p: 3, // Espaciado alrededor del contenido
+          p: .5, // Espaciado alrededor del contenido
           backgroundColor: isDarkMode ? '#1d2a38' : '#ffffff', // Cambia el color del padding según el tema
         }}
       >

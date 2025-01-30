@@ -214,14 +214,14 @@ const Login = () => {
     // Manejar el envío del formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+    
         // Validación de email
         const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
         if (!emailRegex.test(formData.email)) {
             setErrorMessage('Por favor, ingrese un correo electrónico válido');
             return;
         }
-
+    
         // Validación de captcha
         if (!captchaValue) {
             setErrorMessage('Por favor, completa el captcha.');
@@ -230,14 +230,14 @@ const Login = () => {
             }
             return;
         }
-
+    
         // Guardar email si rememberMe está activo
         if (rememberMe) {
             localStorage.setItem('savedEmail', formData.email);
         }
-
+    
         setIsLoading(true);
-
+    
         try {
             const response = await fetch('http://localhost:3001/api/users/login', {
                 method: 'POST',
@@ -251,11 +251,12 @@ const Login = () => {
                     captchaValue
                 })
             });
-
+    
+            // Procesar la respuesta
             const data = await response.json();
-
+    
             if (response.ok) {
-                // Enviar código de verificación
+                // Si la respuesta es correcta, procede con el siguiente paso
                 try {
                     const sendCodeResponse = await fetchWithTimeout(
                         'http://localhost:3001/api/send-verification-code',
@@ -271,7 +272,7 @@ const Login = () => {
                         },
                         15000
                     );
-
+    
                     if (sendCodeResponse.ok) {
                         setNotificationMessage('Se ha enviado un código de verificación a su correo electrónico.');
                         setOpenNotification(true);
@@ -286,7 +287,7 @@ const Login = () => {
                     setErrorMessage('Error al enviar el código de verificación. Por favor, intenta nuevamente.');
                 }
             } else {
-                // Manejar diferentes tipos de errores
+                // Manejar los casos de error cuando response.ok es falso
                 if (data.failedAttempts !== undefined) {
                     setNotificationMessage(`Intentos fallidos: ${data.failedAttempts}`);
                     setOpenNotification(true);
@@ -314,6 +315,7 @@ const Login = () => {
             setCaptchaValue(null);
         }
     };
+   
 
     // Función para reenviar el código
     const handleResendCode = async () => {
