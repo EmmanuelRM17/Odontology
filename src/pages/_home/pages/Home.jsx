@@ -101,7 +101,7 @@ const Home = () => {
       setCurrentImageIndex((prevIndex) =>
         prevIndex === images.length - 1 ? 0 : prevIndex + 1
       );
-    }, 6000);
+    }, 12000);
 
     return () => clearInterval(timer);
   }, []);
@@ -118,7 +118,7 @@ const Home = () => {
 
   // Auto-rotación de servicios
   useEffect(() => {
-    const timer = setInterval(nextService, 5000);
+    const timer = setInterval(nextService, 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -256,14 +256,23 @@ const Home = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              perspective: '1500px'
+              perspective: '1500px',
+              overflow: 'hidden'
             }}
           >
-            {Array.from({ length: services.length * 2 }).map((_, index) => {
-              const serviceIndex = index % services.length;
-              const service = services[serviceIndex];
-              const offset = index - currentServiceIndex;
+            {services.map((_, index) => {
+              // Calculamos las posiciones para crear el efecto circular
+              const totalServices = services.length;
+              const normalizedIndex = ((index - currentServiceIndex) % totalServices + totalServices) % totalServices;
+              const offset = normalizedIndex <= totalServices / 2 ? normalizedIndex : normalizedIndex - totalServices;
+              const service = services[(index + currentServiceIndex) % totalServices];
               const isCenter = offset === 0;
+
+              // Calculamos la posición visual y la opacidad
+              const position = offset * (isMobile ? 120 : 180);
+              const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
+              const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;
+              const rotation = offset * -25;
 
               return (
                 <motion.div
@@ -273,11 +282,11 @@ const Home = () => {
                     width: isMobile ? '280px' : '320px',
                   }}
                   animate={{
-                    x: `${offset * (isMobile ? 120 : 180)}%`,
-                    scale: isCenter ? 1 : 0.8,
-                    opacity: Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0,
-                    zIndex: isCenter ? 3 : 1,
-                    rotateY: offset * -25,
+                    x: `${position}%`,
+                    scale: scale,
+                    opacity: opacity,
+                    zIndex: isCenter ? 3 : 2 - Math.abs(offset),
+                    rotateY: rotation,
                   }}
                   transition={{
                     type: 'spring',
@@ -286,7 +295,10 @@ const Home = () => {
                   }}
                 >
                   <Box
-                    onClick={() => setCurrentServiceIndex(serviceIndex)}
+                    onClick={() => {
+                      const newIndex = (currentServiceIndex + index) % totalServices;
+                      setCurrentServiceIndex(newIndex);
+                    }}
                     sx={{
                       backgroundColor: 'rgba(255, 255, 255, 0.15)',
                       backdropFilter: 'blur(10px)',
@@ -297,7 +309,7 @@ const Home = () => {
                       transition: 'all 0.3s ease',
                       boxShadow: isCenter
                         ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
-                        : 'none',
+                        : '0 0 15px rgba(3, 66, 124, 0.2)',
                       '&:hover': {
                         backgroundColor: 'rgba(255, 255, 255, 0.25)',
                         transform: 'translateY(-5px)',
@@ -331,7 +343,6 @@ const Home = () => {
               );
             })}
           </Box>
-
           <IconButton
             onClick={nextService}
             sx={{
