@@ -1,42 +1,57 @@
 import React from 'react';
-import { Box, Typography, Button, Container, Paper } from '@mui/material';
-import { Link, useLocation } from 'react-router-dom'; // Usamos useLocation para obtener el estado
+import { 
+  Box, 
+  Typography, 
+  Button, 
+  Container, 
+  Paper,
+  useTheme,
+  SvgIcon
+} from '@mui/material';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+
+// Dental Tooth Icon component
+const ToothIcon = (props) => (
+  <SvgIcon {...props} viewBox="0 0 512 512" sx={{ width: '120px', height: '120px' }}>
+    <path d="M256 0c-62.4 0-115.4 21.9-157.6 64C56.2 106.1 34.3 159.1 34.3 221.5c0 35.2 5.3 66.8 15.8 94.9 10.5 28.1 23.8 52.5 39.7 73.2 15.9 20.7 32.2 39.5 48.9 56.3 16.7 16.8 31.8 33.5 45.3 50 13.5 16.5 24 34.4 31.5 53.6 2.9 7.5 6.5 11.2 10.7 11.2 4.2 0 7.7-3.7 10.7-11.2 7.5-19.2 18-37 31.5-53.6 13.5-16.5 28.6-33.2 45.3-50 16.7-16.8 33-35.6 48.9-56.3 15.9-20.7 29.2-45.1 39.7-73.2 10.5-28.1 15.8-59.7 15.8-94.9 0-62.4-21.9-115.4-64-157.6C371.4 21.9 318.4 0 256 0zm0 384c-44.2 0-81.6-15.6-112.2-46.2C113.2 307.2 97.6 269.8 97.6 225.6c0-44.2 15.6-81.6 46.2-112.2C174.4 82.8 211.8 67.2 256 67.2c44.2 0 81.6 15.6 112.2 46.2 30.6 30.6 46.2 68 46.2 112.2 0 44.2-15.6 81.6-46.2 112.2C337.6 368.4 300.2 384 256 384z"/>
+  </SvgIcon>
+);
 
 const errorTypes = {
   400: {
     title: 'Bad Request',
     description: 'Lo sentimos, la solicitud no pudo ser procesada.',
-    color: '#FF9800'
+    color: '#FF9800' // Naranja para advertencias de formato
   },
   401: {
     title: 'No Autorizado',
     description: 'No tienes permiso para acceder a esta página.',
-    color: '#F44336'
+    color: '#E91E63' // Rosa/Rojo para errores de autorización
   },
   403: {
     title: 'Acceso Prohibido',
     description: 'No tienes los permisos necesarios para acceder a este recurso.',
-    color: '#E91E63'
+    color: '#F44336' // Rojo para prohibiciones
   },
   404: {
     title: 'Página No Encontrada',
     description: 'La página que buscas no existe o ha sido movida.',
-    color: '#2196F3'
+    color: '#3F51B5' // Índigo para errores de navegación
   },
   500: {
     title: 'Error del Servidor',
     description: 'Ocurrió un error interno en el servidor. Por favor, inténtalo más tarde.',
-    color: '#F44336'
+    color: '#795548' // Marrón para errores del servidor
   }
 };
 
 const ErrorPage = () => {
-  const location = useLocation(); // Usamos useLocation para acceder al estado de la ruta
-  const { errorCode = 404, errorMessage } = location.state || {}; // Usamos el estado de la ruta, si existe
+  const theme = useTheme();
+  const location = useLocation();
+  const { errorCode = 404, errorMessage } = location.state || {};
+  const errorInfo = errorTypes[errorCode] || errorTypes[404];
 
-  const errorInfo = errorTypes[errorCode] || errorTypes[404]; // Si no hay un errorCode válido, se usará el 404 por defecto
-  
   const containerVariants = {
     initial: { opacity: 0, y: 20 },
     animate: { 
@@ -58,14 +73,16 @@ const ErrorPage = () => {
     }
   };
 
-  const buttonVariants = {
-    initial: { scale: 0.9 },
-    animate: { scale: 1 },
-    hover: { 
-      scale: 1.05,
-      transition: { duration: 0.2 }
-    },
-    tap: { scale: 0.95 }
+  const iconVariants = {
+    initial: { rotate: 0 },
+    animate: { 
+      rotate: 360,
+      transition: {
+        duration: 20,
+        repeat: Infinity,
+        ease: "linear"
+      }
+    }
   };
 
   return (
@@ -80,7 +97,8 @@ const ErrorPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          py: 4
+          py: 4,
+          background: theme.palette.background.default
         }}
       >
         <Paper
@@ -95,9 +113,40 @@ const ErrorPage = () => {
             overflow: 'hidden'
           }}
         >
-          <motion.div
-            variants={numberVariants}
+          {/* Background Tooth Icons */}
+          <Box
+            component={motion.div}
+            variants={iconVariants}
+            initial="initial"
+            animate="animate"
+            sx={{
+              position: 'absolute',
+              top: -60,
+              right: -60,
+              opacity: 0.1
+            }}
           >
+            <ToothIcon />
+          </Box>
+
+          <Box
+            component={motion.div}
+            variants={iconVariants}
+            initial="initial"
+            animate="animate"
+            sx={{
+              position: 'absolute',
+              bottom: -60,
+              left: -60,
+              opacity: 0.1,
+              transform: 'rotate(180deg)'
+            }}
+          >
+            <ToothIcon />
+          </Box>
+
+          {/* Error Content */}
+          <motion.div variants={numberVariants}>
             <Typography 
               variant="h1" 
               sx={{
@@ -132,7 +181,7 @@ const ErrorPage = () => {
               mx: 'auto'
             }}
           >
-            {errorMessage || errorInfo.description}
+            {errorMessage ||errorInfo.description}
           </Typography>
 
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -140,9 +189,6 @@ const ErrorPage = () => {
               component={Link}
               to="/"
               variant="contained"
-              variants={buttonVariants}
-              whileHover="hover"
-              whileTap="tap"
               sx={{
                 bgcolor: errorInfo.color,
                 color: 'white',
@@ -150,9 +196,11 @@ const ErrorPage = () => {
                 py: 1.5,
                 borderRadius: 2,
                 fontSize: '1.1rem',
+                transition: 'all 0.3s ease',
                 '&:hover': {
                   bgcolor: errorInfo.color,
-                  filter: 'brightness(90%)'
+                  filter: 'brightness(90%)',
+                  transform: 'scale(1.05)'
                 }
               }}
             >

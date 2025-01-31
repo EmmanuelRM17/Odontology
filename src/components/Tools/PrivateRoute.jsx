@@ -34,7 +34,7 @@ const PrivateRoute = ({ children }) => {
                 } else {
                     // Si el backend responde con un error (ej. 401), redirige a la página de error
                     setIsAuthenticated(false);
-                    navigate('/error', { state: { errorCode: 401, errorMessage: 'No autorizado' } });
+                    navigate('/error', { state: { errorCode: 401, errorMessage: 'No autorizado, verifique su autenticidad.' } });
                 }
             } catch (error) {
                 // Si ocurre un error al realizar la solicitud al backend

@@ -18,6 +18,13 @@ import img10 from '../../../assets/imagenes/img_10.jpg';
 import img11 from '../../../assets/imagenes/img_11.jpg';
 import img12 from '../../../assets/imagenes/img_12.jpg';
 
+const rotatingTexts = [
+  "Cuidamos tu sonrisa",
+  "Tu salud bucal, nuestra prioridad",
+  "Sonrisas saludables, vidas felices",
+  "Excelencia en odontología",
+  "Confía en los expertos en salud dental"
+];
 
 const Ubicacion = lazy(() => import('./Ubicacion'));
 const Home = () => {
@@ -26,6 +33,21 @@ const Home = () => {
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const isMobile = useMediaQuery('(max-width:600px)');
+  const isSmallScreen = useMediaQuery('(max-width:600px)');
+  const [currentText, setCurrentText] = useState(rotatingTexts[0]);
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prevIndex) => (prevIndex + 1) % rotatingTexts.length);
+    }, 15000); // Cambia cada 3 segundos
+
+    return () => clearInterval(interval); // Limpia el intervalo al desmontar
+  }, []);
+
+  useEffect(() => {
+    setCurrentText(rotatingTexts[index]);
+  }, [index]);
 
   const images = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
@@ -177,22 +199,22 @@ const Home = () => {
           style={{ textAlign: 'center', marginTop: '4rem', marginBottom: '3rem' }} // 🔹 Ajustamos márgenes
         >
           <Typography
-            variant={isMobile ? "h3" : "h2"}
+            variant={isSmallScreen ? 'h4' : 'h2'}
             sx={{
               color: '#03427C',
-              fontWeight: 'bold',
+              fontWeight: 700,
               fontFamily: 'Montserrat, sans-serif',
-              textTransform: 'uppercase',
-              letterSpacing: '3px', // 🔹 Espaciado entre letras
+              textTransform: 'capitalize',
+              letterSpacing: '1.5px',
               position: 'relative',
               display: 'inline-block',
-              paddingBottom: '0.5rem',
-              textShadow: '8px 8px 10px rgba(255,255,255,0.5)', // 🔹 Sombra difusa para resaltar
-              borderBottom: '4px solid #03427C', // 🔹 Línea decorativa inferior
-              WebkitTextStroke: '.5px rgba(255,255,255,0.8)', // 🔹 Contorno blanco desvanecido
+              paddingBottom: '0.3rem',
+              borderBottom: '3px solid #03427C',
+              textShadow: '4px 4px 6px rgba(0,0,0,0.3)', // Sombra oscura para resaltar
+              WebkitTextStroke: '.5px rgba(255,255,255,0.8)',
             }}
           >
-            BIENVENIDO
+            {currentText}
           </Typography>
         </motion.div>
 

@@ -489,6 +489,16 @@ const Register = () => {
         }
       );
 
+      // Agregar aquí la verificación del error 500
+      if (response.status === 500) {
+        navigate('/error', {
+          state: {
+            errorCode: 500,
+            errorMessage: 'Error interno del servidor. Por favor, inténtalo más tarde.'
+          }
+        });
+        return;
+      }
       // Manejar respuesta exitosa
       if (response.status === 200 || response.status === 201) {
         setNotificationMessage('¡Registro exitoso! Redirigiendo...');
@@ -502,7 +512,27 @@ const Register = () => {
       }
 
     } catch (error) {
-      // Manejar errores
+      // Manejar específicamente errores de red o del servidor
+      if (error.response?.status === 500) {
+        navigate('/error', {
+          state: {
+            errorCode: 500,
+            errorMessage: 'Error interno del servidor. Por favor, inténtalo más tarde.'
+          }
+        });
+        return;
+      }
+
+      // Para errores de red (sin respuesta del servidor)
+      if (!error.response) {
+        navigate('/error', {
+          state: {
+            errorCode: 500,
+            errorMessage: 'Error de conexión con el servidor. Por favor, verifica tu conexión a internet.'
+          }
+        });
+        return;
+      }
       let errorMessage = 'Error en el registro. Intenta nuevamente.';
 
       if (error.response?.data?.message) {

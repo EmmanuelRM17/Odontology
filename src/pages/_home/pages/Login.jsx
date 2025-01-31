@@ -214,14 +214,14 @@ const Login = () => {
     // Manejar el envío del formulario
     const handleSubmit = async (e) => {
         e.preventDefault();
-    
+
         // Validación de email
         const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
         if (!emailRegex.test(formData.email)) {
             setErrorMessage('Por favor, ingrese un correo electrónico válido');
             return;
         }
-    
+
         // Validación de captcha
         if (!captchaValue) {
             setErrorMessage('Por favor, completa el captcha.');
@@ -230,14 +230,14 @@ const Login = () => {
             }
             return;
         }
-    
+
         // Guardar email si rememberMe está activo
         if (rememberMe) {
             localStorage.setItem('savedEmail', formData.email);
         }
-    
+
         setIsLoading(true);
-    
+
         try {
             const response = await fetch('http://localhost:3001/api/users/login', {
                 method: 'POST',
@@ -251,10 +251,20 @@ const Login = () => {
                     captchaValue
                 })
             });
-    
+
             // Procesar la respuesta
             const data = await response.json();
-    
+
+            // Agregar aquí la verificación del error 500
+            if (response.status === 500) {
+                navigate('/error', {
+                    state: {
+                        errorCode: 500,
+                        errorMessage: 'Error interno del servidor. Por favor, inténtalo más tarde.'
+                    }
+                });
+                return;
+            }
             if (response.ok) {
                 // Si la respuesta es correcta, procede con el siguiente paso
                 try {
@@ -272,7 +282,7 @@ const Login = () => {
                         },
                         15000
                     );
-    
+
                     if (sendCodeResponse.ok) {
                         setNotificationMessage('Se ha enviado un código de verificación a su correo electrónico.');
                         setOpenNotification(true);
@@ -303,9 +313,19 @@ const Login = () => {
         } catch (error) {
             console.error('Error en login:', error);
             if (error.message === 'La solicitud tardó demasiado tiempo en responder') {
-                setErrorMessage('El servidor está tardando en responder. Por favor, intenta nuevamente.');
+                navigate('/error', {
+                    state: {
+                        errorCode: 500,
+                        errorMessage: 'El servidor está tardando en responder. Por favor, intenta nuevamente.'
+                    }
+                });
             } else {
-                setErrorMessage('Error de conexión. Inténtalo de nuevo más tarde.');
+                navigate('/error', {
+                    state: {
+                        errorCode: 500,
+                        errorMessage: 'Error de conexión. Inténtalo de nuevo más tarde.'
+                    }
+                });
             }
         } finally {
             setIsLoading(false);
@@ -315,7 +335,7 @@ const Login = () => {
             setCaptchaValue(null);
         }
     };
-   
+
 
     // Función para reenviar el código
     const handleResendCode = async () => {
