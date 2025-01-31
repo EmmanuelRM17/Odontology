@@ -54,37 +54,47 @@ const BarraNav = () => {
   const [logo, setLogo] = useState(null);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
-
+  const [error, setError] = useState(null); 
+  
   const navigate = useNavigate();
 
-  // Función para obtener logo y nombre de la empresa
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('http://localhost:3001/api/perfilEmpresa/getTitleAndLogo');
+      const response = await axios.get('http://localhost:3001/api/perfilEmpresa/getTitleAndLogo', {
+        timeout: 5000, // ⏳ Tiempo máximo de espera (5 segundos)
+      });
+  
       const { nombre_empresa, logo } = response.data;
-
+  
       if (nombre_empresa) {
         document.title = nombre_empresa;
         setCompanyName(nombre_empresa);
       }
-
+  
       if (logo) {
         setLogo(`data:image/png;base64,${logo}`);
       }
-
+  
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching logo and title:', error);
-
+      if (axios.isCancel(error)) {
+        console.warn("La petición fue cancelada:", error.message);
+      } else if (error.code === 'ECONNABORTED') {
+        console.error("⏳ Timeout: El servidor tardó demasiado en responder.");
+      } else {
+        console.error("Error al obtener logo y título:", error.message);
+      }
+  
       if (retries > 0) {
         await new Promise((res) => setTimeout(res, 1000));
         fetchTitleAndLogo(retries - 1);
       } else {
+        setError("No se pudo cargar la configuración de la empresa.");
         setLoading(false);
       }
     }
   };
-
+  
   // Detectar el tema del sistema
   useEffect(() => {
     setIsDarkTheme(false);

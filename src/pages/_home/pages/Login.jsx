@@ -106,42 +106,50 @@ const Login = () => {
         }
     }, []);
 
-    //recaptcha
     useEffect(() => {
         let timeoutId;
         let checkInterval;
-
+        let retries = 0;
+        const MAX_RETRIES = 50; // 🔹 Máximo de intentos (cada 100ms = 5s)
+    
         const loadRecaptcha = () => {
             setIsCaptchaLoading(true);
-
-            // Solo establecemos el timeout si realmente es necesario
+    
             if (!window.grecaptcha) {
+                // Timeout para marcar error si no carga en 2 segundos
                 timeoutId = setTimeout(() => {
                     setIsCaptchaLoading(false);
+                    console.error("❌ reCAPTCHA no se cargó en el tiempo esperado.");
                 }, 2000);
-
-                // Verificación periódica
+    
+                // Revisión periódica con límite de intentos
                 checkInterval = setInterval(() => {
                     if (window.grecaptcha) {
                         setIsCaptchaLoading(false);
                         clearTimeout(timeoutId);
                         clearInterval(checkInterval);
+                        console.log("✅ reCAPTCHA cargado correctamente.");
+                    } else if (retries >= MAX_RETRIES) {
+                        clearTimeout(timeoutId);
+                        clearInterval(checkInterval);
+                        setIsCaptchaLoading(false);
+                        console.error("⚠ reCAPTCHA no se pudo cargar después de varios intentos.");
                     }
+                    retries++;
                 }, 100);
             } else {
-                // Si ya existe grecaptcha, simplemente quitamos el loading
                 setIsCaptchaLoading(false);
             }
         };
-
+    
         loadRecaptcha();
-
+    
         return () => {
             if (timeoutId) clearTimeout(timeoutId);
             if (checkInterval) clearInterval(checkInterval);
         };
     }, []);
-
+    
     // Función helper para manejar el timeout en fetch
     const fetchWithTimeout = async (url, options, timeout = 10000) => {
         const controller = new AbortController();

@@ -83,12 +83,13 @@ const Profile = () => {
         }
     };
 
-    // Función para actualizar el perfil
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateFields()) return;
-
+    
         setLoading(true);
+        setError(null); // 🔹 Reinicia errores previos
+    
         try {
             const response = await fetch('http://localhost:3001/api/profile/updateProfile', {
                 method: 'PUT',
@@ -98,25 +99,34 @@ const Profile = () => {
                 body: JSON.stringify(profileData),
                 credentials: 'include'
             });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar el perfil');
+    
+            let data;
+            try {
+                data = await response.json(); // Intenta parsear JSON
+            } catch (jsonError) {
+                throw new Error("Error en la respuesta del servidor. No se pudo leer JSON.");
             }
-
+    
+            if (!response.ok) {
+                throw new Error(data?.message || 'Error al actualizar el perfil');
+            }
+    
+            if (!data?.updatedProfile) {
+                throw new Error("Respuesta inesperada: faltan datos del perfil.");
+            }
+    
             setSuccess(true);
             setIsEditing(false);
-            // Actualizar los datos del perfil con la respuesta del servidor
             setProfileData(data.updatedProfile);
             setTimeout(() => setSuccess(false), 3000);
         } catch (err) {
             setError(err.message || 'Error al actualizar los datos');
-            console.error('Error:', err);
+            console.error('❌ Error al actualizar perfil:', err);
         } finally {
             setLoading(false);
         }
     };
+    
 
     // En el frontend faltan validaciones para campos requeridos que están en el backend
     const validateFields = () => {

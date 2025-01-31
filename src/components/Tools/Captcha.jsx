@@ -24,13 +24,14 @@ const CustomRecaptcha = ({ onCaptchaChange, isDarkMode = false }) => {
     const resetCaptcha = useCallback(() => {
         setLoadError(false);
         setIsCaptchaLoading(true);
-        
+
         if (recaptchaRef.current) {
             recaptchaRef.current.reset();
         }
-        
+
         initializeCaptcha();
     }, []);
+
 
     const initializeCaptcha = useCallback(() => {
         cleanupTimers();
@@ -40,18 +41,28 @@ const CustomRecaptcha = ({ onCaptchaChange, isDarkMode = false }) => {
                 if (!window.grecaptcha) {
                     setLoadError(true);
                     setIsCaptchaLoading(false);
+                    console.error("⏳ reCAPTCHA no se pudo cargar dentro del tiempo límite.");
                 }
             }
         }, LOAD_TIMEOUT);
+
+        const MAX_RETRIES = 50; // 🔹 Límite de intentos (cada 100ms = 5s)
+        let recaptchaRetries = 0;
 
         const checkRecaptchaLoad = () => {
             if (window.grecaptcha && window.grecaptcha.render) {
                 if (mountedRef.current) {
                     setIsCaptchaLoading(false);
                     cleanupTimers();
+                    console.log("✅ reCAPTCHA cargado correctamente.");
                 }
-            } else if (mountedRef.current) {
+            } else if (mountedRef.current && recaptchaRetries < MAX_RETRIES) {
+                recaptchaRetries++;
                 setTimeout(checkRecaptchaLoad, 100);
+            } else {
+                console.error("❌ Error: No se pudo cargar reCAPTCHA después de varios intentos.");
+                setLoadError(true);
+                setIsCaptchaLoading(false);
             }
         };
 
@@ -92,7 +103,7 @@ const CustomRecaptcha = ({ onCaptchaChange, isDarkMode = false }) => {
     }, [onCaptchaChange]);
 
     return (
-        <Box 
+        <Box
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -119,8 +130,8 @@ const CustomRecaptcha = ({ onCaptchaChange, isDarkMode = false }) => {
 
             {/* Botón de recarga solo visible cuando hay error */}
             {loadError && (
-                <Box 
-                    sx={{ 
+                <Box
+                    sx={{
                         display: 'flex',
                         alignItems: 'center',
                         width: '100%',
