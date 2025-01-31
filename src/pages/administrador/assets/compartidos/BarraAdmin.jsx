@@ -63,6 +63,7 @@ const BarraAdmin = () => {
     const menuItems = [
         { icon: FaHome, text: 'Panel Principal', path: '/Administrador/principal', divider: false },
         { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes', divider: false },
+        { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios', divider: false },
         { icon: FaCalendarAlt, text: 'Agenda', path: '/Administrador/agenda', divider: false },
         { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/estadisticas', divider: false },
         { icon: FaFileAlt, text: 'Reportes', path: '/Administrador/reportes', divider: false },
