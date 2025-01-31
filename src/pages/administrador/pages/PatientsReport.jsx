@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogTitle, FormControl, Grid, IconButton, InputAdornment, InputLabel, MenuItem,
   Paper, Select, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, TextField, Typography
+  TableRow, TextField, Typography, Tooltip
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import axios from 'axios';
@@ -40,6 +40,20 @@ const PatientsReport = () => {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('success');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [formData, setFormData] = useState({
+    lugar: 'todos',  // Valor por defecto para el lugar
+    estado: 'todos',
+    searchTerm: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+    filterPatients(formData.searchTerm, formData.estado, value);
+  };
 
   // Configuración del tema oscuro
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -54,21 +68,20 @@ const PatientsReport = () => {
   }, []);
 
   // Definición de colores
-// Definición de colores
-const colors = {
-  background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
-  paper: isDarkTheme ? '#243447' : '#ffffff',
-  tableBackground: isDarkTheme ? '#1E2A3A' : '#e3f2fd',
-  text: isDarkTheme ? '#FFFFFF' : '#333333',
-  secondaryText: isDarkTheme ? '#E8F1FF' : '#666666',
-  primary: isDarkTheme ? '#4B9FFF' : '#1976d2',
-  hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
-  inputBorder: isDarkTheme ? '#4B9FFF' : '#1976d2',
-  inputLabel: isDarkTheme ? '#E8F1FF' : '#666666',
-  cardBackground: isDarkTheme ? '#1D2B3A' : '#F8FAFC',
-  divider: isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
-  titleColor: isDarkTheme ? '#4B9FFF' : '#0052A3'
-};
+  const colors = {
+    background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
+    paper: isDarkTheme ? '#243447' : '#ffffff',
+    tableBackground: isDarkTheme ? '#1E2A3A' : '#e3f2fd',
+    text: isDarkTheme ? '#FFFFFF' : '#333333',
+    secondaryText: isDarkTheme ? '#E8F1FF' : '#666666',
+    primary: isDarkTheme ? '#4B9FFF' : '#1976d2',
+    hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
+    inputBorder: isDarkTheme ? '#4B9FFF' : '#1976d2',
+    inputLabel: isDarkTheme ? '#E8F1FF' : '#666666',
+    cardBackground: isDarkTheme ? '#1D2B3A' : '#F8FAFC',
+    divider: isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+    titleColor: isDarkTheme ? '#4B9FFF' : '#0052A3'
+  };
   useEffect(() => {
     const fetchPatients = async () => {
       try {
@@ -121,16 +134,14 @@ const colors = {
   const handleSearch = (event) => {
     const searchValue = event.target.value.toLowerCase();
     setSearchTerm(searchValue);
-    filterPatients(searchValue, statusFilter);
+    filterPatients(searchValue, statusFilter, formData.lugar);
   };
-
   // Función para manejar el filtro de estado
   const handleStatusFilter = (event) => {
     const status = event.target.value;
     setStatusFilter(status);
-    filterPatients(searchTerm, status);
+    filterPatients(searchTerm, status, formData.lugar);
   };
-
   // Estado chip colors
   const getStatusColor = (status) => {
     const statusColors = {
@@ -158,25 +169,25 @@ const colors = {
     };
   };
 
-// Función para normalizar texto (mantener esta parte)
-const normalizeText = (text) => {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-};
+  // Función para normalizar texto (mantener esta parte)
+  const normalizeText = (text) => {
+    return text
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  };
 
-// Función para cambiar estado (mantener esta parte)
-const handleStatusChange = async (patient) => {
-  if (!patient) {
-    console.error('No se proporcionó información del paciente');
-    return;
-  }
-  setPatientToUpdate(patient);
-  setOpenConfirmDialog(true);
-};
+  // Función para cambiar estado (mantener esta parte)
+  const handleStatusChange = async (patient) => {
+    if (!patient) {
+      console.error('No se proporcionó información del paciente');
+      return;
+    }
+    setPatientToUpdate(patient);
+    setOpenConfirmDialog(true);
+  };
 
   //handleConfirmStatusChange actual por esta:
   const handleConfirmStatusChange = async () => {
@@ -232,31 +243,33 @@ const handleStatusChange = async (patient) => {
   };
 
   // Función para filtrar pacientes
-  const filterPatients = (search, status) => {
+  const filterPatients = (search, status, location) => {
     let filtered = patients.filter(patient => {
+      // Filtro por búsqueda (palabra clave)
       const matchesSearch =
         patient.nombre.toLowerCase().includes(search) ||
         patient.aPaterno.toLowerCase().includes(search) ||
         patient.aMaterno.toLowerCase().includes(search) ||
         patient.email.toLowerCase().includes(search) ||
         patient.telefono.includes(search);
-
       const matchesStatus = status === 'todos' || patient.estado === status;
+      const matchesLocation = location === 'todos' || patient.lugar === location;
 
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesLocation; // Filtra por todos los criterios
     });
 
     setFilteredPatients(filtered);
   };
 
+
   return (
-<Card
+    <Card
       sx={{
         minHeight: '100vh',
         backgroundColor: colors.background, // Usar el color del tema
         borderRadius: '16px',
-        boxShadow: isDarkTheme ? 
-          '0 2px 12px rgba(0,0,0,0.3)' : 
+        boxShadow: isDarkTheme ?
+          '0 2px 12px rgba(0,0,0,0.3)' :
           '0 2px 12px rgba(0,0,0,0.08)',
         transition: 'all 0.3s ease' // Agregar transición suave
       }}
@@ -276,8 +289,9 @@ const handleStatusChange = async (patient) => {
         </Typography>
 
         {/* Filtros y Búsqueda */}
-        <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {/* Filtro de Búsqueda */}
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
               label="Buscar paciente"
@@ -293,8 +307,10 @@ const handleStatusChange = async (patient) => {
               }}
               sx={{
                 backgroundColor: colors.paper,
+                borderRadius: '8px', // Bordes redondeados
                 '& .MuiOutlinedInput-root': {
                   color: colors.text,
+                  borderRadius: '8px', // Bordes redondeados
                   '& fieldset': {
                     borderColor: colors.inputBorder,
                   },
@@ -311,11 +327,11 @@ const handleStatusChange = async (patient) => {
               }}
             />
           </Grid>
-          <Grid item xs={12} md={6}>
+
+          {/* Filtro por Estado */}
+          <Grid item xs={12} md={4}>
             <FormControl fullWidth>
-              <InputLabel sx={{ color: colors.inputLabel }}>
-                Filtrar por estado
-              </InputLabel>
+              <InputLabel sx={{ color: colors.inputLabel }}>Filtrar por estado</InputLabel>
               <Select
                 value={statusFilter}
                 label="Filtrar por estado"
@@ -323,6 +339,7 @@ const handleStatusChange = async (patient) => {
                 sx={{
                   backgroundColor: colors.paper,
                   color: colors.text,
+                  borderRadius: '8px', // Bordes redondeados
                   '& .MuiOutlinedInput-notchedOutline': {
                     borderColor: colors.inputBorder,
                   },
@@ -341,8 +358,73 @@ const handleStatusChange = async (patient) => {
               </Select>
             </FormControl>
           </Grid>
-        </Grid>
 
+          {/* Filtro por Lugar */}
+          <Grid item xs={12} md={4}>
+            <FormControl fullWidth>
+              <InputLabel sx={{ color: colors.inputLabel }}>Filtrar por lugar</InputLabel>
+              <Select
+                value={formData.lugar}
+                label="Filtrar por lugar"
+                onChange={handleChange}
+                name="lugar"
+                sx={{
+                  backgroundColor: colors.paper,
+                  color: colors.text,
+                  borderRadius: '8px', // Bordes redondeados
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: colors.inputBorder,
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: colors.primary,
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: colors.primary,
+                  },
+                }}
+              >
+                <MenuItem value="todos">Todos</MenuItem>
+                <MenuItem value="Ixcatlan">Ixcatlan</MenuItem>
+                <MenuItem value="Tepemaxac">Tepemaxac</MenuItem>
+                <MenuItem value="Pastora">Pastora</MenuItem>
+                <MenuItem value="Ahuacatitla">Ahuacatitla</MenuItem>
+                <MenuItem value="Tepeica">Tepeica</MenuItem>
+                <MenuItem value="Axcaco">Axcaco</MenuItem>
+                <MenuItem value="Otro">Otro</MenuItem>
+              </Select>
+            </FormControl>
+            {formData.lugar === 'Otro' && (
+              <TextField
+                fullWidth
+                label="Especifica el lugar"
+                variant="outlined"
+                value={formData.lugarEspecifico}
+                onChange={(e) => setFormData({ ...formData, lugarEspecifico: e.target.value })}
+                sx={{
+                  marginTop: 2,
+                  backgroundColor: colors.paper,
+                  borderRadius: '8px',
+                  '& .MuiOutlinedInput-root': {
+                    color: colors.text,
+                    borderRadius: '8px', // Bordes redondeados
+                    '& fieldset': {
+                      borderColor: colors.inputBorder,
+                    },
+                    '&:hover fieldset': {
+                      borderColor: colors.primary,
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: colors.primary,
+                    },
+                  },
+                  '& .MuiInputLabel-root': {
+                    color: colors.inputLabel,
+                  },
+                }}
+              />
+            )}
+          </Grid>
+        </Grid>
         <TableContainer
           component={Paper}
           sx={{
@@ -403,36 +485,45 @@ const handleStatusChange = async (patient) => {
                   </TableCell>
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Button
-                        variant="contained"
-                        startIcon={<FaInfoCircle />}
-                        onClick={() => handleOpenModal(patient)}
-                        sx={{
-                          backgroundColor: colors.primary,
-                          '&:hover': {
-                            backgroundColor: colors.hover
-                          }
-                        }}
-                      >
-                        Ver detalles
-                      </Button>
-                      {patient.estado === 'Activo' && (
-                        <Button
-                          variant="contained"
-                          color="error"
-                          onClick={() => handleStatusChange(patient)}
+                      {/* Botón de detalles con tooltip */}
+                      <Tooltip title="Ver detalles" arrow>
+                        <IconButton
+                          onClick={() => handleOpenModal(patient)}
                           sx={{
-                            backgroundColor: '#f44336',
+                            backgroundColor: colors.primary,
                             '&:hover': {
-                              backgroundColor: '#d32f2f'
-                            }
+                              backgroundColor: colors.hover,
+                            },
+                            padding: '8px',  // Tamaño adecuado para que el icono se vea claro
+                            borderRadius: '50%', // Asegura que sea circular
                           }}
                         >
-                          Dar de baja
-                        </Button>
+                          <FaInfoCircle style={{ fontSize: '20px', color: 'white' }} />
+                        </IconButton>
+                      </Tooltip>
+
+                      {/* Botón de dar de baja con tooltip */}
+                      {patient.estado === 'Activo' && (
+                        <Tooltip title="Dar de baja" arrow>
+                          <IconButton
+                            onClick={() => handleStatusChange(patient)}
+                            sx={{
+                              backgroundColor: '#f44336',
+                              '&:hover': {
+                                backgroundColor: '#d32f2f',
+                              },
+                              padding: '8px',
+                              borderRadius: '50%',
+                            }}
+                          >
+                            <FaTimes style={{ fontSize: '20px', color: 'white' }} />
+                          </IconButton>
+                        </Tooltip>
                       )}
                     </Box>
                   </TableCell>
+
+
                 </TableRow>
               ))}
             </TableBody>

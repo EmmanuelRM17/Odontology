@@ -25,6 +25,7 @@ import Notificaciones from '../../../../components/Layout/Notificaciones';
 
 const BarraAdmin = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
+    const [notificationType, setNotificationType] = useState('info'); // Se agregó estado para notificationType
     const [isDarkTheme, setIsDarkTheme] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const [openNotification, setOpenNotification] = useState(false);
@@ -48,15 +49,14 @@ const BarraAdmin = () => {
     // Colores mejorados para mejor contraste
     const colors = {
         background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
-        primary: isDarkTheme ? '#4B9FFF' : '#03427c', // Color primario más claro para modo oscuro
-        text: isDarkTheme ? '#E8F1FF' : '#333333', // Texto más claro para modo oscuro
+        primary: isDarkTheme ? '#4B9FFF' : '#03427c',
+        text: isDarkTheme ? '#E8F1FF' : '#333333',
         secondaryText: isDarkTheme ? '#B8C7D9' : '#666666',
         hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(3,66,124,0.1)',
         menuBg: isDarkTheme ? '#243447' : '#FFFFFF',
         iconColor: isDarkTheme ? '#E8F1FF' : '#03427c',
     };
 
-    // Configuración responsiva del menú
     const menuWidth = isMobile ? '100%' : '220px';
 
     const menuItems = [
@@ -72,7 +72,6 @@ const BarraAdmin = () => {
         { icon: FaSignOutAlt, text: 'Cerrar Sesión', path: '/', divider: false },
     ];
 
-    // Handlers permanecen iguales...
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -82,7 +81,44 @@ const BarraAdmin = () => {
     };
 
     const handleLogout = async () => {
-        // ... código del logout ...
+        handleMenuClose();
+        try {
+            const response = await fetch('http://localhost:3001/api/users/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al cerrar sesión');
+            }
+
+            const data = await response.json();
+
+            // Elimina los datos del localStorage
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userName');
+            localStorage.removeItem('userType');
+            localStorage.removeItem('userId');
+
+            // Muestra la notificación de éxito
+            setNotificationMessage('Sesión cerrada exitosamente');
+            setNotificationType('success');
+            setOpenNotification(true);
+
+            setTimeout(() => {
+                navigate('/', { replace: true });
+            }, 1500);
+
+        } catch (error) {
+            console.error('Error en logout:', error);
+            setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
+            setNotificationType('error');
+            setOpenNotification(true);
+        }
     };
 
     const handleItemClick = (item) => {
@@ -258,12 +294,12 @@ const BarraAdmin = () => {
                     </Menu>
                 </Toolbar>
             </AppBar>
-            <Toolbar />
+            <Toolbar /> {/* Espaciador para el contenido debajo del AppBar fijo */}
 
             <Notificaciones
                 open={openNotification}
-                message="Has cerrado sesión exitosamente"
-                type="info"
+                message={notificationMessage}
+                type={notificationType} // Usar notificationType
                 handleClose={() => setOpenNotification(false)}
             />
         </>
