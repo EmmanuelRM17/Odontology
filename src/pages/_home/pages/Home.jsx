@@ -1,8 +1,9 @@
-import React, { useState, useEffect, Suspense } from 'react';  // Importar Suspense aquí
-import { Box, Typography, IconButton, CircularProgress } from '@mui/material';
-import { useMediaQuery } from '@mui/material';
+import React, { useState, useEffect } from 'react'; // Importar Suspense aquí
+import { Box, Typography, IconButton } from '@mui/material';
+import { useMediaQuery, Tooltip } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { lazy } from 'react';
 
 import img1 from '../../../assets/imagenes/img_1.jpg';
@@ -26,7 +27,6 @@ const rotatingTexts = [
   "Confía en los expertos en salud dental"
 ];
 
-const Ubicacion = lazy(() => import('./Ubicacion'));
 const Home = () => {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -36,14 +36,34 @@ const Home = () => {
   const isSmallScreen = useMediaQuery('(max-width:600px)');
   const [currentText, setCurrentText] = useState(rotatingTexts[0]);
   const [index, setIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const navigate = useNavigate();
 
+  const autoRotateDelay = 7000;
+  useEffect(() => {
+    if (!isPaused) {
+      const timer = setTimeout(() => {
+        nextService();
+      }, autoRotateDelay);
+      return () => clearTimeout(timer);
+    }
+  }, [currentServiceIndex, isPaused]);
+  const nextService = () => {
+    setCurrentServiceIndex((prev) => (prev + 1) % services.length);
+  };
+
+  const prevService = () => {
+    setCurrentServiceIndex((prev) =>
+      prev === 0 ? services.length - 1 : prev - 1
+    );
+  };
   useEffect(() => {
     const interval = setInterval(() => {
-      setIndex((prevIndex) => (prevIndex + 1) % rotatingTexts.length);
-    }, 15000); // Cambia cada 3 segundos
-
-    return () => clearInterval(interval); // Limpia el intervalo al desmontar
+      setIndex(prev => (prev + 1) % rotatingTexts.length);
+    }, 15000);
+    return () => clearInterval(interval);
   }, []);
+
 
   useEffect(() => {
     setCurrentText(rotatingTexts[index]);
@@ -52,38 +72,64 @@ const Home = () => {
   const images = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
   const services = [
-    { title: 'Consulta Dental General', description: 'Consulta básica para revisar tu salud bucal.' },
-    { title: 'Limpieza Dental por Ultrasonido', description: 'Eliminación de placa dental con ultrasonido.' },
-    { title: 'Curetaje (Limpieza Profunda)', description: 'Limpieza profunda para tratar problemas de encías.' },
-    { title: 'Asesoría sobre Diseño de Sonrisa', description: 'Diseño de sonrisa personalizado.' },
-    { title: 'Cirugía Estética de Encía', description: 'Mejora la estética de tus encías.' },
-    { title: 'Obturación con Resina', description: 'Restauración de dientes dañados por caries con resina.' },
-    { title: 'Incrustación Estética y de Metal', description: 'Colocación de incrustaciones estéticas o metálicas en dientes.' },
-    { title: 'Coronas Fijas Estéticas o de Metal', description: 'Coronas fijas para dientes dañados o perdidos.' },
-    { title: 'Placas Removibles Parciales', description: 'Placas removibles para dientes faltantes.' },
-    { title: 'Placas Totales Removibles', description: 'Placas removibles para prótesis dentales completas.' },
-    { title: 'Guardas Dentales', description: 'Protección dental para evitar daño durante la noche.' },
-    { title: 'Placas Hawley', description: 'Placas ortodónticas para mantener los dientes en su lugar.' },
-    { title: 'Extracción Dental', description: 'Extracción de dientes problemáticos o innecesarios.' },
-    { title: 'Ortodoncia y Ortopedia Maxilar', description: 'Tratamientos para corregir la alineación de los dientes y maxilares.' },
+    {
+      title: 'Consulta Dental General',
+      description: 'Evaluación integral para cuidar tu salud bucal y prevenir problemas.'
+    },
+    {
+      title: 'Limpieza Dental por Ultrasonido',
+      description: 'Limpieza profunda sin molestias para eliminar placa y sarro.'
+    },
+    {
+      title: 'Curetaje (Limpieza Profunda)',
+      description: 'Limpieza especializada de encías para mantener una sonrisa saludable.'
+    },
+    {
+      title: 'Asesoría sobre Diseño de Sonrisa',
+      description: 'Orientación personalizada para realzar tu sonrisa y sentirte seguro.'
+    },
+    {
+      title: 'Cirugía Estética de Encía',
+      description: 'Mejora la apariencia de tus encías para lograr una sonrisa armónica.'
+    },
+    {
+      title: 'Obturación con Resina',
+      description: 'Restauración discreta y duradera para reparar caries y recuperar tu sonrisa.'
+    },
+    {
+      title: 'Incrustación Estética y de Metal',
+      description: 'Reparación robusta y estética para restaurar dientes dañados.'
+    },
+    {
+      title: 'Coronas Fijas Estéticas o de Metal',
+      description: 'Coronas personalizadas que devuelven la función y un aspecto natural.'
+    },
+    {
+      title: 'Placas Removibles Parciales',
+      description: 'Prótesis cómodas que reemplazan dientes faltantes y mejoran tu masticación.'
+    },
+    {
+      title: 'Placas Totales Removibles',
+      description: 'Solución completa para recuperar la función y estética en casos de edentulismo.'
+    },
+    {
+      title: 'Guardas Dentales',
+      description: 'Protección nocturna que evita el desgaste dental y alivia el bruxismo.'
+    },
+    {
+      title: 'Placas Hawley',
+      description: 'Mantenimiento eficaz de la posición dental tras la ortodoncia.'
+    },
+    {
+      title: 'Extracción Dental',
+      description: 'Eliminación segura de dientes dañados con cuidado y comodidad.'
+    },
+    {
+      title: 'Ortodoncia y Ortopedia Maxilar',
+      description: 'Tratamientos para alinear tus dientes y mejorar la estructura facial.'
+    },
   ];
 
-  // Número de servicios visibles a la vez
-  const visibleServices = 5;
-
-  // Función para obtener servicios en orden circular
-  const getCircularServices = () => {
-    let items = [];
-    for (let i = 0; i < visibleServices; i++) {
-      const index = (currentServiceIndex + i) % services.length;
-      items.push({
-        ...services[index],
-        index: index,
-        position: i - Math.floor(visibleServices / 2)
-      });
-    }
-    return items;
-  };
 
   // Theme detection
   useEffect(() => {
@@ -103,22 +149,6 @@ const Home = () => {
       );
     }, 12000);
 
-    return () => clearInterval(timer);
-  }, []);
-
-  const nextService = () => {
-    setCurrentServiceIndex((prev) => (prev + 1) % services.length);
-  };
-
-  const prevService = () => {
-    setCurrentServiceIndex((prev) =>
-      prev === 0 ? services.length - 1 : prev - 1
-    );
-  };
-
-  // Auto-rotación de servicios
-  useEffect(() => {
-    const timer = setInterval(nextService, 10000);
     return () => clearInterval(timer);
   }, []);
 
@@ -144,11 +174,12 @@ const Home = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+
   return (
     <Box
       sx={{
         background: isDarkTheme
-          ? 'linear-gradient(135deg, #1C2A38 0%, #2C3E50 100%)'
+          ? 'linear-gradient(135deg, #1C2A38 0%, #1C2A38 100%)'
           : 'linear-gradient(120deg, #ffffff 0%, #E5F3FD 100%)',
         transition: 'background 0.5s ease',
         position: 'relative',
@@ -261,14 +292,12 @@ const Home = () => {
             }}
           >
             {services.map((_, index) => {
-              // Calculamos las posiciones para crear el efecto circular
               const totalServices = services.length;
               const normalizedIndex = ((index - currentServiceIndex) % totalServices + totalServices) % totalServices;
               const offset = normalizedIndex <= totalServices / 2 ? normalizedIndex : normalizedIndex - totalServices;
               const service = services[(index + currentServiceIndex) % totalServices];
               const isCenter = offset === 0;
 
-              // Calculamos la posición visual y la opacidad
               const position = offset * (isMobile ? 120 : 180);
               const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
               const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;
@@ -294,51 +323,52 @@ const Home = () => {
                     damping: 30
                   }}
                 >
-                  <Box
-                    onClick={() => {
-                      const newIndex = (currentServiceIndex + index) % totalServices;
-                      setCurrentServiceIndex(newIndex);
-                    }}
-                    sx={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      backdropFilter: 'blur(10px)',
-                      borderRadius: '15px',
-                      padding: '2rem',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      boxShadow: isCenter
-                        ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
-                        : '0 0 15px rgba(3, 66, 124, 0.2)',
-                      '&:hover': {
-                        backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                        transform: 'translateY(-5px)',
-                      },
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
+                  <Tooltip title="Click para más información" arrow>
+                    <Box
+                      onClick={() => navigate('/servicios')}
+                      onMouseEnter={() => setIsPaused(true)}
+                      onMouseLeave={() => setIsPaused(false)}
                       sx={{
-                        color: 'white',
-                        textAlign: 'center',
-                        fontWeight: 'bold',
-                        mb: 2,
-                        fontSize: { xs: '1.1rem', md: '1.25rem' }
+                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '15px',
+                        padding: '2rem',
+                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        boxShadow: isCenter
+                          ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
+                          : '0 0 15px rgba(3, 66, 124, 0.2)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                          transform: 'translateY(-5px)',
+                        },
                       }}
                     >
-                      {service.title}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        textAlign: 'center',
-                        fontSize: { xs: '0.875rem', md: '1rem' }
-                      }}
-                    >
-                      {service.description}
-                    </Typography>
-                  </Box>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          color: 'white',
+                          textAlign: 'center',
+                          fontWeight: 'bold',
+                          mb: 2,
+                          fontSize: { xs: '1.1rem', md: '1.25rem' }
+                        }}
+                      >
+                        {service.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: 'rgba(255, 255, 255, 0.9)',
+                          textAlign: 'center',
+                          fontSize: { xs: '0.875rem', md: '1rem' }
+                        }}
+                      >
+                        {service.description}
+                      </Typography>
+                    </Box>
+                  </Tooltip>
                 </motion.div>
               );
             })}
@@ -357,60 +387,6 @@ const Home = () => {
             <ChevronRight />
           </IconButton>
         </Box>
-
-
-      </Box>
-      {/* Location Section */}
-      <Box
-        sx={{
-          position: 'relative',
-          zIndex: 2,
-          width: '100%',
-          maxWidth: { xs: '90%', md: '80%' },
-          margin: '0 auto',
-          borderRadius: '12px',
-          overflow: 'hidden',
-          backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.7)' : 'rgba(255,255,255,0.9)',
-          backdropFilter: 'blur(10px)',
-          mb: 4
-        }}
-      >
-
-        {/* Título Ubicación con Estilo */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          style={{ textAlign: 'center', marginTop: '3rem' }} // 🔹 Bajamos el texto
-        >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 'bold',
-              color: isDarkTheme ? '#ffffff' : '#03427C',
-              textTransform: 'uppercase',
-              fontFamily: 'Montserrat, sans-serif',
-              letterSpacing: '2px', // 🔹 Espaciado entre letras
-              position: 'relative',
-              display: 'inline-block',
-              paddingBottom: '0.5rem',
-              borderBottom: `4px solid ${isDarkTheme ? '#fff' : '#03427C'}`, // 🔹 Línea decorativa
-              textShadow: '2px 2px 5px rgba(0,0,0,0.2)', // 🔹 Efecto de sombra sutil
-            }}
-          >
-            Ubicación
-          </Typography>
-        </motion.div>
-
-        <Suspense fallback={
-          <Box sx={{ padding: '2rem', textAlign: 'center', color: isDarkTheme ? 'white' : 'black' }}>
-            <CircularProgress />
-            <Typography>Cargando mapa...</Typography>
-          </Box>
-        }>
-          <Ubicacion />
-        </Suspense>
-
       </Box>
     </Box>
   );
