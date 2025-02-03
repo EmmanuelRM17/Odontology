@@ -87,7 +87,7 @@ const handleLogout = async () => {
     handleMenuClose(); // Cierra el menú al hacer logout
     try {
         console.log('🔄 Iniciando proceso de logout...');
-        const response = await fetch('http://localhost:3001/api/users/logout', {
+        const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
             method: 'POST',
             credentials: 'include',
             headers: {

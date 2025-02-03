@@ -103,7 +103,7 @@ const Register = () => {
 
   const fetchPrivacyPolicy = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/politicas/politicas_privacidad');
+      const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/politicas_privacidad');
       const activePolicy = response.data.find(policy => policy.estado === 'activo');
       setPrivacyPolicy(activePolicy ? activePolicy.contenido : 'No se encontraron políticas de privacidad activas.');
     } catch (error) {
@@ -114,7 +114,7 @@ const Register = () => {
 
   const fetchTermsConditions = async () => {
     try {
-      const response = await axios.get('http://localhost:3001/api/termiCondicion/terminos_condiciones');
+      const response = await axios.get('https://back-end-4803.onrender.com/api/termiCondicion/terminos_condiciones');
       const activeTerms = response.data.find(term => term.estado === 'activo');
       setTermsConditions(activeTerms ? activeTerms.contenido : 'No se encontraron términos y condiciones activos.');
     } catch (error) {
@@ -482,7 +482,7 @@ const Register = () => {
 
       // Enviar datos
       const response = await axios.post(
-        'http://localhost:3001/api/register',
+        'https://back-end-4803.onrender.com/api/register',
         dataToSubmit,
         {
           headers: { 'Content-Type': 'application/json' },
@@ -595,7 +595,7 @@ const Register = () => {
     setEmailVerificationError(''); // Limpia cualquier error previo
 
     try {
-      const response = await axios.post('http://localhost:3001/api/send-verification-email', {
+      const response = await axios.post('https://back-end-4803.onrender.com/api/send-verification-email', {
         email: trimmedEmail,
       });
 
@@ -633,7 +633,7 @@ const Register = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3001/api/verify-token', {
+      const response = await axios.post('https://back-end-4803.onrender.com/api/verify-token', {
         email: formData.email,
         token: formData.verificationToken,
       });

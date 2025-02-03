@@ -142,7 +142,7 @@ const PerfilEmpresa = () => {
         const fetchPerfilEmpresa = async () => {
             try {
                 setIsLoading(true); // Establecer loading al inicio
-                const response = await axios.get('http://localhost:3001/api/perfilEmpresa/get');
+                const response = await axios.get('https://back-end-4803.onrender.com/api/perfilEmpresa/get');
                 const { id_empresa, nombre_empresa, direccion, telefono, correo_electronico, descripcion, logo, slogan } = response.data;
 
                 if (id_empresa) {
@@ -271,7 +271,7 @@ const PerfilEmpresa = () => {
         formDataToSend.append('logo', formData.logo);
 
         try {
-            const response = await axios.put('http://localhost:3001/api/perfilEmpresa/updateLogo', formDataToSend, {
+            const response = await axios.put('https://back-end-4803.onrender.com/api/perfilEmpresa/updateLogo', formDataToSend, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -309,7 +309,7 @@ const PerfilEmpresa = () => {
         };
 
         try {
-            const response = await axios.put('http://localhost:3001/api/perfilEmpresa/updateDatos', formDataToSend);
+            const response = await axios.put('https://back-end-4803.onrender.com/api/perfilEmpresa/updateDatos', formDataToSend);
 
             if (response.status === 200) {
                 mostrarNotificacion('Datos actualizados con éxito', 'success');

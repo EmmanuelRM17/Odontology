@@ -81,7 +81,7 @@ const TerminosCondiciones = () => {
     // Función para obtener todos los términos inactivos
     const fetchTerminos = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/termiCondicion/getAllTerminos');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/termiCondicion/getAllTerminos');
             const data = response.data;
 
             // Ordenar por versión en orden descendente (de mayor a menor)
@@ -96,7 +96,7 @@ const TerminosCondiciones = () => {
 
     const fetchTerminoActivo = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/termiCondicion/gettermino');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/termiCondicion/gettermino');
             if (response.data) {
                 setTerminoActivo(response.data); // Guardar el término activo
             } else {
@@ -131,11 +131,11 @@ const TerminosCondiciones = () => {
         try {
             if (editingId !== null) {
                 // Actualización de un término existente
-                await axios.put(`http://localhost:3001/api/termiCondicion/update/${editingId}`, terminoData);
+                await axios.put(`https://back-end-4803.onrender.com/api/termiCondicion/update/${editingId}`, terminoData);
                 setNotification({ open: true, message: `Término actualizado correctamente`, type: 'success' });
             } else {
                 // Creación de un nuevo término
-                await axios.post('http://localhost:3001/api/termiCondicion/insert', terminoData);
+                await axios.post('https://back-end-4803.onrender.com/api/termiCondicion/insert', terminoData);
                 setNotification({ open: true, message: 'Término insertado con éxito', type: 'success' });
             }
 
@@ -160,7 +160,7 @@ const TerminosCondiciones = () => {
     const handleEdit = async (id) => {
         try {
             // Cargar el término activo directamente para edición
-            const response = await axios.get(`http://localhost:3001/api/termiCondicion/get/${id}`);
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/termiCondicion/get/${id}`);
             const termino = response.data;
 
             if (termino) {
@@ -176,7 +176,7 @@ const TerminosCondiciones = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.put(`http://localhost:3001/api/termiCondicion/deactivate/${id}`, { estado: 'inactivo' });
+            await axios.put(`https://back-end-4803.onrender.com/api/termiCondicion/deactivate/${id}`, { estado: 'inactivo' });
             setNotification({ open: true, message: 'Término eliminado con éxito', type: 'success' });
             await fetchTerminos();
             await fetchTerminoActivo(); // Refresca el término activo tras eliminar

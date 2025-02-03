@@ -109,7 +109,7 @@ const inputStyles = {
   useEffect(() => {
     const fetchSocials = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/redesSociales/get');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/redesSociales/get');
         setSocialData(response.data.reduce((acc, item) => ({ ...acc, [item.nombre_red]: item }), {})); // Guardamos el objeto completo
       } catch (error) {
         console.error('Error al obtener las redes sociales:', error);
@@ -163,7 +163,7 @@ const inputStyles = {
       try {
         if (isEditing !== null) {
           // Editar la red social
-          await axios.put(`http://localhost:3001/api/redesSociales/editar/${isEditing}`, {
+          await axios.put(`https://back-end-4803.onrender.com/api/redesSociales/editar/${isEditing}`, {
             nombre_red: selectedSocial,
             url: selectedSocial === 'whatsapp' ? `+52${url}` : url,
           });
@@ -176,7 +176,7 @@ const inputStyles = {
           });
         } else {
           // Añadir nueva red social
-          const response = await axios.post('http://localhost:3001/api/redesSociales/nuevo', {
+          const response = await axios.post('https://back-end-4803.onrender.com/api/redesSociales/nuevo', {
             nombre_red: selectedSocial,
             url: selectedSocial === 'whatsapp' ? `+52${url}` : url,
           });
@@ -205,7 +205,7 @@ const inputStyles = {
   const handleDelete = async (social) => {
     try {
       const id = socialData[social]?.id;
-      await axios.delete(`http://localhost:3001/api/redesSociales/eliminar/${id}`);
+      await axios.delete(`https://back-end-4803.onrender.com/api/redesSociales/eliminar/${id}`);
       const updatedData = { ...socialData };
       delete updatedData[social];
       setSocialData(updatedData);

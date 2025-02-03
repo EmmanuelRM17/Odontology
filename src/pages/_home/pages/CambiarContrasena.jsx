@@ -126,7 +126,7 @@ const CambiarContraseña = () => {
 
         try {
             setIsLoading(true); // Activar el loading cuando se presiona el botón
-            const response = await axios.post('http://localhost:3001/api/resetPassword', { token, newPassword }, { timeout: 5000 });
+            const response = await axios.post('https://back-end-4803.onrender.com/api/resetPassword', { token, newPassword }, { timeout: 5000 });
 
             if (response.status === 200) {
                 // Mostrar notificación de éxito

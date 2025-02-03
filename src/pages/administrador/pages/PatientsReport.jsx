@@ -85,7 +85,7 @@ const PatientsReport = () => {
   useEffect(() => {
     const fetchPatients = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/reportes/pacientes');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/reportes/pacientes');
         setPatients(response.data);
         setFilteredPatients(response.data);
       } catch (error) {
@@ -209,7 +209,7 @@ const PatientsReport = () => {
       }
 
       const response = await axios.put(
-        `http://localhost:3001/api/reportes/pacientes/${patientToUpdate.id}/status`,
+        `https://back-end-4803.onrender.com/api/reportes/pacientes/${patientToUpdate.id}/status`,
         { estado: 'Inactivo' },
         {
           headers: {

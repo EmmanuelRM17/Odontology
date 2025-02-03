@@ -10,7 +10,7 @@ const LogsReport = ({ isDarkTheme, colors }) => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/reportes/logs', {
+        const response = await fetch('https://back-end-4803.onrender.com/api/reportes/logs', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

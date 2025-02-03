@@ -61,7 +61,7 @@ function App() {
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
       const response = await axios.get(
-        "http://localhost:3001/api/perfilEmpresa/getTitleAndLogo"
+        "https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo"
       );
       const { nombre_empresa, logo } = response.data;
 

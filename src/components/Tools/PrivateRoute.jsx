@@ -11,7 +11,7 @@ const PrivateRoute = ({ children }) => {
         const checkAuth = async () => {
             try {
                 // Realizamos una solicitud al backend para verificar si la cookie está activa
-                const response = await fetch('http://localhost:3001/api/users/check-auth', {
+                const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
                     method: 'GET',
                     credentials: 'include', // Esto incluye las cookies en la solicitud
                     headers: {

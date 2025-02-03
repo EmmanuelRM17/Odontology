@@ -56,7 +56,7 @@ const Profile = () => {
     // Función para obtener los datos del perfil
     const fetchProfileData = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/profile/getProfile', {
+            const response = await fetch('https://back-end-4803.onrender.com/api/profile/getProfile', {
                 credentials: 'include' // Para enviar las cookies
             });
 
@@ -91,7 +91,7 @@ const Profile = () => {
         setError(null); // 🔹 Reinicia errores previos
     
         try {
-            const response = await fetch('http://localhost:3001/api/profile/updateProfile', {
+            const response = await fetch('https://back-end-4803.onrender.com/api/profile/updateProfile', {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',

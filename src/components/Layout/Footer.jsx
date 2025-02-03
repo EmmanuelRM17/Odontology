@@ -88,7 +88,7 @@ const Footer = () => {
   useEffect(() => {
     const fetchSocials = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/redesSociales/sociales');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/redesSociales/sociales');
         setSocials(response.data);
       } catch (error) {
         console.error('Error al obtener las redes sociales', error);
@@ -97,7 +97,7 @@ const Footer = () => {
 
     const fetchPrivacyPolicy = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/politicas/politicas_privacidad');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/politicas_privacidad');
         const activePolicy = response.data.filter(policy => policy.estado === 'activo');
         setPrivacyPolicy(activePolicy);
       } catch (error) {
@@ -107,7 +107,7 @@ const Footer = () => {
 
     const fetchTermsConditions = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/termiCondicion/terminos_condiciones');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/termiCondicion/terminos_condiciones');
         const activeTerms = response.data.filter(term => term.estado === 'activo');
         setTermsConditions(activeTerms);
       } catch (error) {
@@ -117,7 +117,7 @@ const Footer = () => {
 
     const fetchDisclaimer = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/api/deslinde/deslinde');
+        const response = await axios.get('https://back-end-4803.onrender.com/api/deslinde/deslinde');
         const activeDisclaimer = response.data.filter(disclaimer => disclaimer.estado === 'activo');
         setDisclaimer(activeDisclaimer);
       } catch (error) {

@@ -108,7 +108,7 @@ const BarraPaciente = () => {
 
     const checkAuthStatus = async () => {
         try {
-            const response = await fetch('http://localhost:3001/api/users/check-auth', {
+            const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
                 method: 'GET',
                 credentials: 'include',
                 headers: {
@@ -168,7 +168,7 @@ const BarraPaciente = () => {
         handleMenuClose();
         try {
             console.log('🔄 Iniciando proceso de logout...');
-            const response = await fetch('http://localhost:3001/api/users/logout', {
+            const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
                 method: 'POST',
                 credentials: 'include',
                 headers: {

@@ -60,7 +60,7 @@ const BarraNav = () => {
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('http://localhost:3001/api/perfilEmpresa/getTitleAndLogo', {
+      const response = await axios.get('https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo', {
         timeout: 5000, // ⏳ Tiempo máximo de espera (5 segundos)
       });
   

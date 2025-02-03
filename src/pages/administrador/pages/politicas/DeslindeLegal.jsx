@@ -83,7 +83,7 @@ const DeslindeLegal = () => {
     // Obtener deslindes inactivos
     const fetchDeslindes = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/deslinde/getAllDeslindes');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/deslinde/getAllDeslindes');
             const data = response.data;
 
             const deslindesInactivos = data.filter(deslinde => deslinde.estado === 'inactivo');
@@ -98,7 +98,7 @@ const DeslindeLegal = () => {
     // Obtener deslinde activo
     const fetchDeslindeActivo = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/deslinde/getdeslinde');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/deslinde/getdeslinde');
             setDeslindeActivo(response.data || null);
         } catch (error) {
             console.error('Error al cargar deslinde activo:', error);
@@ -124,11 +124,11 @@ const DeslindeLegal = () => {
         try {
             if (editingId !== null) {
                 // Actualizar deslinde existente
-                await axios.put(`http://localhost:3001/api/deslinde/update/${editingId}`, deslindeData);
+                await axios.put(`https://back-end-4803.onrender.com/api/deslinde/update/${editingId}`, deslindeData);
                 setNotification({ open: true, message: 'Deslinde actualizado correctamente', type: 'success' });
             } else {
                 // Crear nuevo deslinde
-                await axios.post('http://localhost:3001/api/deslinde/insert', deslindeData);
+                await axios.post('https://back-end-4803.onrender.com/api/deslinde/insert', deslindeData);
                 setNotification({ open: true, message: 'Deslinde insertado con éxito', type: 'success' });
             }
 
@@ -151,7 +151,7 @@ const DeslindeLegal = () => {
 
     const handleEdit = async (id) => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/deslinde/get/${id}`);
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/deslinde/get/${id}`);
             const deslinde = response.data;
 
             if (deslinde) {
@@ -167,7 +167,7 @@ const DeslindeLegal = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.put(`http://localhost:3001/api/deslinde/deactivate/${id}`, { estado: 'inactivo' });
+            await axios.put(`https://back-end-4803.onrender.com/api/deslinde/deactivate/${id}`, { estado: 'inactivo' });
             setNotification({ open: true, message: 'Deslinde eliminado con éxito', type: 'success' });
             await fetchDeslindes();
             await fetchDeslindeActivo();

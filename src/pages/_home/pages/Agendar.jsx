@@ -211,7 +211,7 @@ const ReservaCitas = () => {
 
     const fetchPrivacyPolicy = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/politicas/politicas_privacidad');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/politicas_privacidad');
             const activePolicy = response.data.find(policy => policy.estado === 'activo');
             setPrivacyPolicy(activePolicy ? activePolicy.contenido : 'No se encontraron políticas de privacidad activas.');
         } catch (error) {
@@ -222,7 +222,7 @@ const ReservaCitas = () => {
 
     const fetchTermsConditions = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/termiCondicion/terminos_condiciones');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/termiCondicion/terminos_condiciones');
             const activeTerms = response.data.find(term => term.estado === 'activo');
             setTermsConditions(activeTerms ? activeTerms.contenido : 'No se encontraron términos y condiciones activos.');
         } catch (error) {

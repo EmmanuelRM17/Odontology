@@ -82,7 +82,7 @@ const PoliticasPrivacidad = () => {
 
     const fetchPoliticas = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/politicas/getAllPoliticas');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/getAllPoliticas');
             const data = response.data;
 
             const politicasInactivas = data.filter(politica => politica.estado === 'inactivo');
@@ -96,7 +96,7 @@ const PoliticasPrivacidad = () => {
 
     const fetchPoliticaActiva = async () => {
         try {
-            const response = await axios.get('http://localhost:3001/api/politicas/getpolitica');
+            const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/getpolitica');
             if (response.data) {
                 setPoliticaActiva(response.data);
             } else {
@@ -131,10 +131,10 @@ const PoliticasPrivacidad = () => {
 
         try {
             if (editingId !== null) {
-                await axios.put(`http://localhost:3001/api/politicas/update/${editingId}`, politicaData);
+                await axios.put(`https://back-end-4803.onrender.com/api/politicas/update/${editingId}`, politicaData);
                 setNotification({ open: true, message: `Política actualizada correctamente`, type: 'success' });
             } else {
-                await axios.post('http://localhost:3001/api/politicas/insert', politicaData);
+                await axios.post('https://back-end-4803.onrender.com/api/politicas/insert', politicaData);
                 setNotification({ open: true, message: 'Política insertada con éxito', type: 'success' });
             }
 
@@ -157,7 +157,7 @@ const PoliticasPrivacidad = () => {
 
     const handleEdit = async (id) => {
         try {
-            const response = await axios.get(`http://localhost:3001/api/politicas/get/${id}`);
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/politicas/get/${id}`);
             const politica = response.data;
 
             if (politica) {
@@ -173,7 +173,7 @@ const PoliticasPrivacidad = () => {
 
     const handleDelete = async (id) => {
         try {
-            await axios.put(`http://localhost:3001/api/politicas/deactivate/${id}`, { estado: 'inactivo' });
+            await axios.put(`https://back-end-4803.onrender.com/api/politicas/deactivate/${id}`, { estado: 'inactivo' });
             setNotification({ open: true, message: 'Política eliminada con éxito', type: 'success' });
             await fetchPoliticas();
             await fetchPoliticaActiva();

@@ -71,7 +71,7 @@ const LoginAttemptsReport = () => {
   useEffect(() => {
     const fetchLoginAttempts = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/reportes/login-attempts', {
+        const response = await fetch('https://back-end-4803.onrender.com/api/reportes/login-attempts', {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -99,7 +99,7 @@ const LoginAttemptsReport = () => {
   // Función para obtener los detalles del paciente
   const handleMoreInfo = async (pacienteId) => {
     try {
-      const response = await fetch(`http://localhost:3001/api/reportes/paciente/${pacienteId}`);
+      const response = await fetch(`https://back-end-4803.onrender.com/api/reportes/paciente/${pacienteId}`);
       if (!response.ok) {
         throw new Error('Error al obtener la información del paciente');
       }
@@ -126,7 +126,7 @@ const LoginAttemptsReport = () => {
   // Función para guardar la configuración actualizada (intentos máximos y tiempo de bloqueo)
   const handleSaveConfig = async () => {
     try {
-      const response1 = await fetch('http://localhost:3001/api/reportes/update-config', {
+      const response1 = await fetch('https://back-end-4803.onrender.com/api/reportes/update-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -134,7 +134,7 @@ const LoginAttemptsReport = () => {
         body: JSON.stringify({ settingName: 'MAX_ATTEMPTS', settingValue: maxAttempts }),
       });
 
-      const response2 = await fetch('http://localhost:3001/api/reportes/update-config', {
+      const response2 = await fetch('https://back-end-4803.onrender.com/api/reportes/update-config', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

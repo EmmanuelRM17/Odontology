@@ -44,7 +44,7 @@ const Recuperacion = () => {
 
     try {
       setIsLoading(true); // Iniciar la carga
-      const response = await axios.post('http://localhost:3001/api/recuperacion', { email });
+      const response = await axios.post('https://back-end-4803.onrender.com/api/recuperacion', { email });
 
       if (response.status === 200) {
         setNotification({
@@ -85,7 +85,7 @@ const Recuperacion = () => {
     try {
       setIsLoading(true); // Iniciar la carga
       // Enviar token y email al backend
-      const response = await axios.post('http://localhost:3001/api/verifyTokene', { token, email });
+      const response = await axios.post('https://back-end-4803.onrender.com/api/verifyTokene', { token, email });
 
       if (response.status === 200) {
         setNotification({

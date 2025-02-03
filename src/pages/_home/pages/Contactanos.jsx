@@ -62,7 +62,7 @@ const Contacto = () => {
     const fetchEmpresaData = async () => {
       try {
         const response = await fetch(
-          'http://localhost:3001/api/perfilEmpresa/empresa'
+          'https://back-end-4803.onrender.com/api/perfilEmpresa/empresa'
         );
         if (!response.ok) {
           throw new Error('Error al obtener los datos de la empresa');
