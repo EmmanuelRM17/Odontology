@@ -1,34 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Container,
-    Paper,
-    Typography,
-    TextField,
-    Button,
-    Grid,
-    Box,
-    Alert,
-    CircularProgress,
-    IconButton,
-    useTheme,
-    InputAdornment
+    Container, Paper, Typography, TextField, Button, Grid, Box, Alert,
+    CircularProgress, IconButton, useTheme, InputAdornment
 } from '@mui/material';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-
 import {
-    Person as PersonIcon,
-    Edit as EditIcon,
-    Save as SaveIcon,
-    Cancel as CancelIcon,
-    LocalHospital as LocalHospitalIcon,
-    Phone as PhoneIcon,
-    Email as EmailIcon,
-    LocationOn as LocationOnIcon,
-    MedicalInformation as MedicalInformationIcon
+    Person as PersonIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
+    LocalHospital as LocalHospitalIcon, Phone as PhoneIcon, Email as EmailIcon,
+    LocationOn as LocationOnIcon, MedicalInformation as MedicalInformationIcon, Badge as BadgeIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../components/Tools/AuthContext';
-
 
 const Profile = () => {
     const theme = useTheme();
@@ -54,8 +34,8 @@ const Profile = () => {
 
     useEffect(() => {
         console.log("Datos del usuario obtenidos:", user);
-    }, [user]);  
-    
+    }, [user]);
+
     useEffect(() => {
         const fetchProfileData = async () => {
             try {
@@ -67,43 +47,48 @@ const Profile = () => {
                         'Content-Type': 'application/json'
                     }
                 });
-    
+
                 if (!response.ok) {
                     throw new Error("Error al obtener los datos del perfil");
                 }
-    
+
                 const data = await response.json();
-                console.log("Perfil completo obtenido:", data);
-    
+                console.log("Perfil completo obtenido:", data); // 🛠️ Verificar datos en consola
+
                 setProfileData({
                     nombre: data.nombre || '',
                     aPaterno: data.aPaterno || '',
                     aMaterno: data.aMaterno || '',
                     fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : null,
+                    tipoTutor: data.tipoTutor || '',
+                    nombreTutor: data.nombreTutor || '',
+                    genero: data.genero || '',
+                    lugar: data.lugar || '',
                     telefono: data.telefono || '',
                     email: data.email || '',
-                    alergias: data.alergias || 'Ninguna'
+                    alergias: data.alergias || 'Ninguna',
+                    estado: data.estado ? data.estado.trim() : 'Pendiente' // 🔹 Asegurar que nunca sea null
                 });
-    
+
                 setLoading(false);
             } catch (error) {
                 console.error("Error al cargar perfil:", error);
             }
         };
-    
+
         if (user && user.id && user.email) {
             fetchProfileData();
         }
     }, [user]);
-    
-    
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateFields()) return;
-    
+
         setLoading(true);
         setError(null); // 🔹 Reinicia errores previos
-    
+
         try {
             const response = await fetch('https://back-end-4803.onrender.com/api/profile/updateProfile', {
                 method: 'PUT',
@@ -113,22 +98,22 @@ const Profile = () => {
                 body: JSON.stringify(profileData),
                 credentials: 'include'
             });
-    
+
             let data;
             try {
                 data = await response.json(); // Intenta parsear JSON
             } catch (jsonError) {
                 throw new Error("Error en la respuesta del servidor. No se pudo leer JSON.");
             }
-    
+
             if (!response.ok) {
                 throw new Error(data?.message || 'Error al actualizar el perfil');
             }
-    
+
             if (!data?.updatedProfile) {
                 throw new Error("Respuesta inesperada: faltan datos del perfil.");
             }
-    
+
             setSuccess(true);
             setIsEditing(false);
             setProfileData(data.updatedProfile);
@@ -140,30 +125,30 @@ const Profile = () => {
             setLoading(false);
         }
     };
-    
+
     const validateFields = () => {
         const errors = {};
-    
+
         if (!profileData.nombre) errors.nombre = 'El nombre es obligatorio';
         if (!profileData.aPaterno) errors.aPaterno = 'El apellido paterno es obligatorio';
         if (!profileData.aMaterno) errors.aMaterno = 'El apellido materno es obligatorio';
         if (!profileData.email) errors.email = 'El email es obligatorio';
-    
+
         if (profileData.telefono && !/^[0-9]{10}$/.test(profileData.telefono)) {
             errors.telefono = 'Ingresa un número de teléfono válido (10 dígitos)';
         }
-    
+
         if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
             errors.email = 'Ingresa un correo electrónico válido';
         }
-    
+
         setValidationErrors(errors);
         if (Object.keys(errors).length > 0) {
             console.warn("Errores de validación:", errors);
         }
         return Object.keys(errors).length === 0;
     };
-    
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProfileData(prev => ({
@@ -179,12 +164,6 @@ const Profile = () => {
         }
     };
 
-    const handleDateChange = (date) => {
-        setProfileData(prev => ({
-            ...prev,
-            fechaNacimiento: date
-        }));
-    };
 
     const handleCancel = () => {
         setIsEditing(false);
@@ -205,12 +184,7 @@ const Profile = () => {
         }
         setValidationErrors({});
     };
-    
 
-    const handleError = (fieldName) => ({
-        error: !!validationErrors[fieldName],
-        helperText: validationErrors[fieldName]
-    });
 
     return (
         <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -246,211 +220,113 @@ const Profile = () => {
                             <IconButton
                                 onClick={() => isEditing ? handleCancel() : setIsEditing(true)}
                                 sx={{
-                                    bgcolor: isEditing ?
-                                        theme.palette.error.light :
-                                        theme.palette.primary.light,
+                                    bgcolor: isEditing ? theme.palette.error.light : theme.palette.primary.light,
                                     '&:hover': {
-                                        bgcolor: isEditing ?
-                                            theme.palette.error.main :
-                                            theme.palette.primary.main,
-                                        '& svg': {
-                                            color: '#FFFFFF'
-                                        }
+                                        bgcolor: isEditing ? theme.palette.error.main : theme.palette.primary.main,
+                                        '& svg': { color: '#FFFFFF' }
                                     }
                                 }}
                             >
-                                {isEditing ?
-                                    <CancelIcon sx={{ color: theme.palette.error.main }} /> :
-                                    <EditIcon sx={{ color: theme.palette.primary.main }} />
-                                }
+                                {isEditing ? <CancelIcon sx={{ color: theme.palette.error.main }} /> : <EditIcon sx={{ color: theme.palette.primary.main }} />}
                             </IconButton>
                         </Box>
 
                         {/* Alertas */}
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-                                {error}
-                            </Alert>
-                        )}
-                        {success && (
-                            <Alert severity="success" sx={{ mb: 2 }}>
-                                Perfil actualizado correctamente
-                            </Alert>
-                        )}
+                        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+                        {success && <Alert severity="success" sx={{ mb: 2 }}>Perfil actualizado correctamente</Alert>}
 
                         {/* Formulario */}
                         <form onSubmit={handleSubmit}>
                             <Grid container spacing={3}>
+
+                                {/* Nombre y Apellidos */}
                                 <Grid item xs={12} sm={4}>
+                                    <TextField fullWidth label="Nombre" name="nombre" value={profileData.nombre} onChange={handleChange} disabled={!isEditing} required InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon color="primary" /></InputAdornment>) }} />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField fullWidth label="Apellido Paterno" name="aPaterno" value={profileData.aPaterno} onChange={handleChange} disabled={!isEditing} required />
+                                </Grid>
+                                <Grid item xs={12} sm={4}>
+                                    <TextField fullWidth label="Apellido Materno" name="aMaterno" value={profileData.aMaterno} onChange={handleChange} disabled={!isEditing} required />
+                                </Grid>
+
+                                {/* Estado (Solo Lectura) */}
+                                <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
-                                        label="Nombre"
-                                        name="nombre"
-                                        value={profileData.nombre}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        required
+                                        label="Estado"
+                                        name="estado"
+                                        value={profileData.estado}
+                                        variant="filled"
+                                        disabled={true} // Solo lectura
                                         InputProps={{
                                             startAdornment: (
                                                 <InputAdornment position="start">
-                                                    <PersonIcon color="primary" />
+                                                    <BadgeIcon color="primary" />
                                                 </InputAdornment>
-                                            ),
+                                            )
                                         }}
                                     />
                                 </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <TextField
-                                        fullWidth
-                                        label="Apellido Paterno"
-                                        name="aPaterno"
-                                        value={profileData.aPaterno}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        required
-                                    />
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <TextField
-                                        fullWidth
-                                        label="Apellido Materno"
-                                        name="aMaterno"
-                                        value={profileData.aMaterno}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        required
-                                    />
-                                </Grid>
 
+                                {/* Fecha de Nacimiento */}
                                 <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
                                         label="Fecha de Nacimiento"
                                         type="date"
                                         name="fechaNacimiento"
-                                        value={profileData.fechaNacimiento ?
-                                            new Date(profileData.fechaNacimiento).toISOString().split('T')[0]
-                                            : ''
-                                        }
+                                        value={profileData.fechaNacimiento ? new Date(profileData.fechaNacimiento).toISOString().split('T')[0] : ''}
                                         onChange={(e) => {
                                             const date = e.target.value ? new Date(e.target.value) : null;
-                                            handleDateChange(date);
+                                            setProfileData(prev => ({ ...prev, fechaNacimiento: date }));
                                         }}
                                         disabled={!isEditing}
-                                        InputLabelProps={{
-                                            shrink: true,
-                                        }}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <PersonIcon color="primary" />
-                                                </InputAdornment>
-                                            ),
-                                        }}
+                                        InputLabelProps={{ shrink: true }}
                                     />
                                 </Grid>
 
+                                {/* Teléfono */}
                                 <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Teléfono"
-                                        name="telefono"
-                                        value={profileData.telefono}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        {...handleError('telefono')}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <PhoneIcon color="primary" />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                    />
+                                    <TextField fullWidth label="Teléfono" name="telefono" value={profileData.telefono} onChange={handleChange} disabled={!isEditing} InputProps={{ startAdornment: (<InputAdornment position="start"><PhoneIcon color="primary" /></InputAdornment>) }} />
                                 </Grid>
 
+                                {/* Email */}
                                 <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Email"
-                                        name="email"
-                                        type="email"
-                                        value={profileData.email}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        required
-                                        {...handleError('email')}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <EmailIcon color="primary" />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                    />
+                                    <TextField fullWidth label="Email" name="email" type="email" value={profileData.email} onChange={handleChange} disabled={!isEditing} required InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon color="primary" /></InputAdornment>) }} />
                                 </Grid>
 
+                                {/* Dirección */}
                                 <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Dirección"
-                                        name="lugar"
-                                        value={profileData.lugar}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <LocationOnIcon color="primary" />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                    />
+                                    <TextField fullWidth label="Dirección" name="lugar" value={profileData.lugar} onChange={handleChange} disabled={!isEditing} InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOnIcon color="primary" /></InputAdornment>) }} />
                                 </Grid>
 
+                                {/* Alergias */}
                                 <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Alergias"
-                                        name="alergias"
-                                        value={profileData.alergias}
-                                        onChange={handleChange}
-                                        disabled={!isEditing}
-                                        multiline
-                                        rows={3}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <LocalHospitalIcon color="primary" />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                    />
+                                    <TextField fullWidth label="Alergias" name="alergias" value={profileData.alergias} onChange={handleChange} disabled={!isEditing} multiline rows={3} InputProps={{ startAdornment: (<InputAdornment position="start"><LocalHospitalIcon color="primary" /></InputAdornment>) }} />
                                 </Grid>
 
+                                {/* Si el usuario tiene tutor, mostrar estos campos */}
+                                {profileData.tipoTutor && (
+                                    <>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Tipo de Tutor" name="tipoTutor" value={profileData.tipoTutor} onChange={handleChange} disabled={!isEditing} />
+                                        </Grid>
+                                        <Grid item xs={12} sm={6}>
+                                            <TextField fullWidth label="Nombre del Tutor" name="nombreTutor" value={profileData.nombreTutor} onChange={handleChange} disabled={!isEditing} />
+                                        </Grid>
+                                    </>
+                                )}
+
+                                {/* Botón Guardar */}
                                 {isEditing && (
                                     <Grid item xs={12}>
                                         <Box display="flex" justifyContent="flex-end" gap={2}>
-                                            <Button
-                                                variant="contained"
-                                                type="submit"
-                                                disabled={loading}
-                                                startIcon={loading ?
-                                                    <CircularProgress size={20} /> :
-                                                    <SaveIcon />
-                                                }
-                                                sx={{
-                                                    bgcolor: theme.palette.primary.main,
-                                                    '&:hover': {
-                                                        bgcolor: theme.palette.primary.dark
-                                                    }
-                                                }}
-                                            >
-                                                {loading ? 'Guardando...' : 'Guardar Cambios'}
-                                            </Button>
+                                            <Button variant="contained" type="submit" disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />} sx={{ bgcolor: theme.palette.primary.main, '&:hover': { bgcolor: theme.palette.primary.dark } }}>Guardar Cambios</Button>
                                         </Box>
                                     </Grid>
                                 )}
+
                             </Grid>
                         </form>
                     </>
@@ -458,6 +334,7 @@ const Profile = () => {
             </Paper>
         </Container>
     );
+
 };
 
 export default Profile;

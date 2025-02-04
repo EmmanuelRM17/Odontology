@@ -136,12 +136,14 @@ const PatientsReport = () => {
     setSearchTerm(searchValue);
     filterPatients(searchValue, statusFilter, formData.lugar);
   };
+
   // Función para manejar el filtro de estado
   const handleStatusFilter = (event) => {
     const status = event.target.value;
     setStatusFilter(status);
     filterPatients(searchTerm, status, formData.lugar);
   };
+  
   // Estado chip colors
   const getStatusColor = (status) => {
     const statusColors = {
@@ -245,7 +247,6 @@ const PatientsReport = () => {
   // Función para filtrar pacientes
   const filterPatients = (search, status, location) => {
     let filtered = patients.filter(patient => {
-      // Filtro por búsqueda (palabra clave)
       const matchesSearch =
         patient.nombre.toLowerCase().includes(search) ||
         patient.aPaterno.toLowerCase().includes(search) ||
