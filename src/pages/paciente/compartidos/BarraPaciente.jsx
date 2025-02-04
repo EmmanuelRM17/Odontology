@@ -31,6 +31,7 @@ import {
     FaFileMedical
 } from 'react-icons/fa';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useAuth } from '../../../components/Tools/AuthContext';
 
 const BarraPaciente = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -39,7 +40,9 @@ const BarraPaciente = () => {
     const [openNotification, setOpenNotification] = useState(false);
     const [notificationCount, setNotificationCount] = useState(2);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const navigate = useNavigate();
+    const { setUser } = useAuth();
 
     // Detectar tema del sistema
     useEffect(() => {
@@ -98,8 +101,6 @@ const BarraPaciente = () => {
         }
     };
 
-
-    // useEffect modificado para usar la nueva función
     useEffect(() => {
         checkAuthStatus();
         const interval = setInterval(checkAuthStatus, 300000); // 5 minutos
@@ -120,8 +121,7 @@ const BarraPaciente = () => {
             if (!response.ok) {
                 if (response.status === 401) {
                     console.log('🔴 Sesión no válida o expirada');
-                    setIsAuthenticated(false);
-                    navigate('/error', { state: { errorCode: 401, errorMessage: 'No autorizado' } });
+                    setUser(null);
                     return;
                 }
                 throw new Error('Error en el servidor');
@@ -130,84 +130,59 @@ const BarraPaciente = () => {
             const data = await response.json();
 
             if (data.authenticated && data.user) {
-                console.log('✅ Usuario autenticado:', {
-                    nombre: data.user.nombre,
-                    email: data.user.email,
-                    tipo: data.user.tipo,
-                    dispositivo: data.user.dispositivo
-                });
-
-                if (data.sesionPrevia) {
-                    console.log('⚠️ Se cerró sesión en dispositivo anterior:', data.sesionPrevia.dispositivo);
-                }
-
-                setIsAuthenticated(true);
-                localStorage.setItem('userEmail', data.user.email);
-                localStorage.setItem('userName', data.user.nombre);
-                localStorage.setItem('userType', data.user.tipo);
-                localStorage.setItem('userId', data.user.id);
+                console.log('✅ Usuario autenticado:', data.user);
+                setUser(data.user);
             } else {
                 console.log('❌ Usuario no autenticado');
-                setIsAuthenticated(false);
-                localStorage.removeItem('userEmail');
-                localStorage.removeItem('userName');
-                localStorage.removeItem('userType');
-                localStorage.removeItem('userId');
-                navigate('/error', { state: { errorCode: 403, errorMessage: 'No tienes acceso a esta página.' } });
+                setUser(null);
             }
         } catch (error) {
-            console.error('🔴 Error al verificar autenticación:', error);
-            setNotificationMessage('Error al verificar la autenticación');
+            console.error('🔴 Error al verificar autenticación:', error.message);
+            setNotificationMessage('Error al verificar autenticación.');
             setOpenNotification(true);
-            setIsAuthenticated(false);
-            navigate('/error', { state: { errorCode: 500, errorMessage: 'Error en el servidor' } });
+            setUser(null);
         }
     };
 
     const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
         handleMenuClose();
+      
         try {
-            console.log('🔄 Iniciando proceso de logout...');
-            const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
-                method: 'POST',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al cerrar sesión');
+          console.log('🔄 Iniciando proceso de logout...');
+          const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
             }
-
-            const data = await response.json();
-            console.log('✅ Sesión cerrada exitosamente:', data);
-
-            localStorage.removeItem('userEmail');
-            localStorage.removeItem('userName');
-            localStorage.removeItem('userType');
-            localStorage.removeItem('userId');
-
-            setIsAuthenticated(false);
-            setNotificationMessage('Sesión cerrada exitosamente');
-            setOpenNotification(true);
-
-            setTimeout(() => {
-                navigate('/', { replace: true });
-            }, 1500);
-
+          });
+      
+          if (!response.ok) {
+            throw new Error(`Error en logout: ${response.status}`);
+          }
+      
+          console.log('✅ Sesión cerrada exitosamente');
+          setUser(null);
+      
+          setNotificationMessage('Sesión cerrada exitosamente');
+          setOpenNotification(true);
+      
+          setTimeout(() => {
+            navigate('/', { replace: true });
+          }, 1500);
         } catch (error) {
-            console.error('❌ Error en logout:', error);
-            setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
-            setOpenNotification(true);
+          console.error('❌ Error en logout:', error.message);
+          setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
+          setOpenNotification(true);
+        } finally {
+          setIsLoggingOut(false);
         }
-    };
+      };
 
     // Si no hay autenticación, no renderizar la barra
-    if (!isAuthenticated) {
-        return null;
-    }
     return (
         <>
             <AppBar

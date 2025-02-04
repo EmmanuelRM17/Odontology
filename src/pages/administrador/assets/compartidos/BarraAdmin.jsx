@@ -20,8 +20,8 @@ import {
     FaHome, FaUsers, FaCalendarAlt, FaChartLine, FaMoneyBillWave,
     FaClock, FaBell, FaCog, FaSignOutAlt, FaFileAlt, FaTooth, FaUserCircle
 } from 'react-icons/fa';
-
 import Notificaciones from '../../../../components/Layout/Notificaciones';
+import { useAuth } from '../../../../components/Tools/AuthContext';
 
 const BarraAdmin = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -33,6 +33,9 @@ const BarraAdmin = () => {
     const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const { setUser } = useAuth();
 
     useEffect(() => {
         const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
@@ -46,7 +49,6 @@ const BarraAdmin = () => {
         return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, []);
 
-    // Colores mejorados para mejor contraste
     const colors = {
         background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
         primary: isDarkTheme ? '#4B9FFF' : '#03427c', // Color primario más claro para modo oscuro
@@ -57,7 +59,6 @@ const BarraAdmin = () => {
         iconColor: isDarkTheme ? '#E8F1FF' : '#03427c',
     };
 
-    // Configuración responsiva del menú
     const menuWidth = isMobile ? '100%' : '220px';
 
     const menuItems = [
@@ -74,7 +75,6 @@ const BarraAdmin = () => {
         { icon: FaSignOutAlt, text: 'Cerrar Sesión', path: '/', divider: false },
     ];
 
-    // Handlers permanecen iguales...
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
     };
@@ -83,55 +83,95 @@ const BarraAdmin = () => {
         setAnchorEl(null);
     };
 
-const handleLogout = async () => {
-    handleMenuClose(); // Cierra el menú al hacer logout
-    try {
-        console.log('🔄 Iniciando proceso de logout...');
-        const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        handleMenuClose();
+
+        try {
+            console.log('🔄 Iniciando proceso de logout...');
+            const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`Error en logout: ${response.status}`);
             }
-        });
 
-        if (!response.ok) {
-            throw new Error('Error al cerrar sesión');
+            console.log('✅ Sesión cerrada exitosamente');
+            setUser(null);
+            setIsAuthenticated(false);
+
+            setNotificationMessage('Sesión cerrada exitosamente');
+            setOpenNotification(true);
+            setTimeout(() => navigate('/', { replace: true }), 1500);
+        } catch (error) {
+            console.error('❌ Error en logout:', error.message);
+            setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
+            setOpenNotification(true);
+        } finally {
+            setIsLoggingOut(false);
         }
-
-        const data = await response.json();
-        console.log('✅ Sesión cerrada exitosamente:', data);
-
-        // Elimina los datos del localStorage
-        localStorage.removeItem('userEmail');
-        localStorage.removeItem('userName');
-        localStorage.removeItem('userType');
-        localStorage.removeItem('userId');
-
-        // Muestra la notificación de éxito
-        setNotificationMessage('Sesión cerrada exitosamente');
-        setNotificationType('success');
-        setOpenNotification(true); // Abre la notificación
-
-        // Redirige después de un breve retardo para que el usuario vea la notificación
-        setTimeout(() => {
-            navigate('/', { replace: true });
-        }, 1500);
-
-    } catch (error) {
-        console.error('❌ Error en logout:', error);
-        setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
-        setNotificationType('error');
-        setOpenNotification(true); // Abre la notificación de error
-    }
-};
-
+    };
     const handleItemClick = (item) => {
         if (item.text === 'Cerrar Sesión') {
             handleLogout();
         } else {
             handleMenuClose();
+        }
+    };
+    useEffect(() => {
+        checkAuthStatus();
+        const interval = setInterval(checkAuthStatus, 300000); // Verifica cada 5 min
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        if (!isAuthenticated) {
+            navigate('/error', { state: { errorCode: 403, errorMessage: 'No tienes acceso a esta página.' } });
+        }
+    }, [isAuthenticated, navigate]);
+
+
+    const checkAuthStatus = async () => {
+        try {
+            const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                if (response.status === 401) {
+                    console.warn('🔴 Sesión no válida o expirada');
+                    setUser(null);
+                    return;
+                }
+                throw new Error(`Error en el servidor: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.authenticated && data.user) {
+                console.log('✅ Usuario autenticado:', data.user);
+                setUser(data.user);
+            } else {
+                console.warn('❌ Usuario no autenticado');
+                setUser(null);
+            }
+        } catch (error) {
+            console.error('🔴 Error al verificar autenticación:', error.message);
+            setNotificationMessage('Error al verificar autenticación.');
+            setOpenNotification(true);
+            setUser(null);
         }
     };
 

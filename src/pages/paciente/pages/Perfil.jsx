@@ -27,62 +27,76 @@ import {
     LocationOn as LocationOnIcon,
     MedicalInformation as MedicalInformationIcon
 } from '@mui/icons-material';
+import { useAuth } from '../../../components/Tools/AuthContext';
+
 
 const Profile = () => {
     const theme = useTheme();
-
-    // Estados para el formulario
+    const [validationErrors, setValidationErrors] = useState({});
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const { user } = useAuth();
     const [profileData, setProfileData] = useState({
         nombre: '',
         aPaterno: '',
         aMaterno: '',
         fechaNacimiento: null,
+        tipoTutor: '',
+        nombreTutor: '',
+        genero: '',
         lugar: '',
         telefono: '',
         email: '',
         alergias: 'Ninguna'
     });
 
-    const [validationErrors, setValidationErrors] = useState({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(false);
-    const [isEditing, setIsEditing] = useState(false);
-
     useEffect(() => {
-        fetchProfileData();
-    }, []);
-
-    // Función para obtener los datos del perfil
-    const fetchProfileData = async () => {
-        try {
-            const response = await fetch('https://back-end-4803.onrender.com/api/profile/getProfile', {
-                credentials: 'include' // Para enviar las cookies
-            });
-
-            if (!response.ok) throw new Error('Error al cargar el perfil');
-
-            const data = await response.json();
-
-            // Asegurar que todas las propiedades tengan un valor por defecto
-            setProfileData({
-                nombre: data.nombre || '',
-                aPaterno: data.aPaterno || '',
-                aMaterno: data.aMaterno || '',
-                fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : null,
-                lugar: data.lugar || '',
-                telefono: data.telefono || '',
-                email: data.email || '',
-                alergias: data.alergias || 'Ninguna'
-            });
-        } catch (err) {
-            setError('Error al cargar los datos del perfil');
-            console.error('Error:', err);
-        } finally {
-            setLoading(false);
+        console.log("Datos del usuario obtenidos:", user);
+    }, [user]);  
+    
+    useEffect(() => {
+        const fetchProfileData = async () => {
+            try {
+                const response = await fetch(`https://back-end-4803.onrender.com/api/profile/${user.id}?email=${user.email}`, {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Error al obtener los datos del perfil");
+                }
+    
+                const data = await response.json();
+                console.log("Perfil completo obtenido:", data);
+    
+                setProfileData({
+                    nombre: data.nombre || '',
+                    aPaterno: data.aPaterno || '',
+                    aMaterno: data.aMaterno || '',
+                    fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : null,
+                    telefono: data.telefono || '',
+                    email: data.email || '',
+                    alergias: data.alergias || 'Ninguna'
+                });
+    
+                setLoading(false);
+            } catch (error) {
+                console.error("Error al cargar perfil:", error);
+            }
+        };
+    
+        if (user && user.id && user.email) {
+            fetchProfileData();
         }
-    };
-
+    }, [user]);
+    
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!validateFields()) return;
@@ -127,27 +141,29 @@ const Profile = () => {
         }
     };
     
-
-    // En el frontend faltan validaciones para campos requeridos que están en el backend
     const validateFields = () => {
         const errors = {};
-
+    
         if (!profileData.nombre) errors.nombre = 'El nombre es obligatorio';
         if (!profileData.aPaterno) errors.aPaterno = 'El apellido paterno es obligatorio';
         if (!profileData.aMaterno) errors.aMaterno = 'El apellido materno es obligatorio';
         if (!profileData.email) errors.email = 'El email es obligatorio';
-
+    
         if (profileData.telefono && !/^[0-9]{10}$/.test(profileData.telefono)) {
             errors.telefono = 'Ingresa un número de teléfono válido (10 dígitos)';
         }
-
+    
         if (profileData.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileData.email)) {
             errors.email = 'Ingresa un correo electrónico válido';
         }
-
+    
         setValidationErrors(errors);
+        if (Object.keys(errors).length > 0) {
+            console.warn("Errores de validación:", errors);
+        }
         return Object.keys(errors).length === 0;
     };
+    
     const handleChange = (e) => {
         const { name, value } = e.target;
         setProfileData(prev => ({
@@ -170,21 +186,26 @@ const Profile = () => {
         }));
     };
 
-    const formatDate = (date) => {
-        if (!date) return '';
-        try {
-            return format(new Date(date), 'dd/MM/yyyy', { locale: es });
-        } catch (error) {
-            console.error('Error al formatear la fecha:', error);
-            return '';
-        }
-    };
-
     const handleCancel = () => {
         setIsEditing(false);
-        fetchProfileData();
+        if (user) {
+            setProfileData({
+                nombre: user.nombre || '',
+                aPaterno: user.aPaterno || '',
+                aMaterno: user.aMaterno || '',
+                fechaNacimiento: user.fechaNacimiento ? new Date(user.fechaNacimiento) : null,
+                tipoTutor: user.tipoTutor || '',
+                nombreTutor: user.nombreTutor || '',
+                genero: user.genero || '',
+                lugar: user.lugar || '',
+                telefono: user.telefono || '',
+                email: user.email || '',
+                alergias: user.alergias || 'Ninguna'
+            });
+        }
         setValidationErrors({});
     };
+    
 
     const handleError = (fieldName) => ({
         error: !!validationErrors[fieldName],
