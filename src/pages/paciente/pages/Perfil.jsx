@@ -6,7 +6,10 @@ import {
 import {
     Person as PersonIcon, Edit as EditIcon, Save as SaveIcon, Cancel as CancelIcon,
     LocalHospital as LocalHospitalIcon, Phone as PhoneIcon, Email as EmailIcon,
-    LocationOn as LocationOnIcon, MedicalInformation as MedicalInformationIcon, Badge as BadgeIcon
+    LocationOn as LocationOnIcon, MedicalInformation as MedicalInformationIcon, Badge as BadgeIcon,
+    ContactPhone as ContactPhoneIcon,
+    Warning as WarningIcon,
+    SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../components/Tools/AuthContext';
 
@@ -59,7 +62,7 @@ const Profile = () => {
                     nombre: data.nombre || '',
                     aPaterno: data.aPaterno || '',
                     aMaterno: data.aMaterno || '',
-                    fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : null,
+                    fechaNacimiento: data.fechaNacimiento ? new Date(data.fechaNacimiento) : '',
                     tipoTutor: data.tipoTutor || '',
                     nombreTutor: data.nombreTutor || '',
                     genero: data.genero || '',
@@ -67,8 +70,9 @@ const Profile = () => {
                     telefono: data.telefono || '',
                     email: data.email || '',
                     alergias: data.alergias || 'Ninguna',
-                    estado: data.estado ? data.estado.trim() : 'Pendiente' // 🔹 Asegurar que nunca sea null
+                    estado: data.estado ? data.estado.trim() : 'Pendiente'
                 });
+
 
                 setLoading(false);
             } catch (error) {
@@ -172,105 +176,214 @@ const Profile = () => {
                 nombre: user.nombre || '',
                 aPaterno: user.aPaterno || '',
                 aMaterno: user.aMaterno || '',
-                fechaNacimiento: user.fechaNacimiento ? new Date(user.fechaNacimiento) : null,
+                fechaNacimiento: user.fechaNacimiento ? new Date(user.fechaNacimiento).toISOString().split('T')[0] : '',
                 tipoTutor: user.tipoTutor || '',
                 nombreTutor: user.nombreTutor || '',
                 genero: user.genero || '',
                 lugar: user.lugar || '',
                 telefono: user.telefono || '',
                 email: user.email || '',
-                alergias: user.alergias || 'Ninguna'
+                alergias: user.alergias || 'Ninguna',
+                estado: user.estado ? user.estado.trim() : 'Pendiente'
             });
         }
         setValidationErrors({});
     };
 
+    const handleEdit = () => {
+        setIsEditing(true);
+    };
+    
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Container maxWidth="lg" sx={{ 
+            py: 4,
+            bgcolor: theme.palette.mode === 'dark' ? '#1B2A3A' : '#F9FDFF'
+        }}>
             <Paper
-                elevation={1}
+                elevation={3}
                 sx={{
-                    p: 4,
-                    bgcolor: '#FFFFFF',
-                    borderRadius: 2,
-                    boxShadow: theme.shadows[1]
+                    p: { xs: 2, md: 4 },
+                    bgcolor: theme.palette.mode === 'dark' ? '#1B2A3A' : '#FFFFFF',
+                    borderRadius: 3,
+                    boxShadow: theme.palette.mode === 'dark' 
+                        ? '0 4px 20px rgba(255, 255, 255, 0.2)' 
+                        : '0 4px 20px rgba(0, 0, 0, 0.1)',
+                    border: theme.palette.mode === 'dark' 
+                        ? '1px solid rgba(255, 255, 255, 0.2)' 
+                        : '1px solid rgba(0, 0, 0, 0.1)'
                 }}
             >
                 {loading ? (
                     <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-                        <CircularProgress sx={{ color: theme.palette.primary.main }} />
+                        <CircularProgress sx={{ color: '#03427c' }} />
                     </Box>
                 ) : (
                     <>
                         {/* Cabecera */}
-                        <Box mb={3} display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography
-                                variant="h5"
-                                sx={{
-                                    color: theme.palette.primary.main,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 1
-                                }}
-                            >
-                                <MedicalInformationIcon />
-                                Mi Perfil
-                            </Typography>
-                            <IconButton
-                                onClick={() => isEditing ? handleCancel() : setIsEditing(true)}
-                                sx={{
-                                    bgcolor: isEditing ? theme.palette.error.light : theme.palette.primary.light,
-                                    '&:hover': {
-                                        bgcolor: isEditing ? theme.palette.error.main : theme.palette.primary.main,
-                                        '& svg': { color: '#FFFFFF' }
+                        <Box 
+                            mb={4} 
+                            sx={{
+                                background: theme.palette.mode === 'dark' 
+                                    ? 'linear-gradient(45deg, #03427c, #1B2A3A)'
+                                    : 'linear-gradient(45deg, #03427c, #0561b3)',
+                                borderRadius: 2,
+                                p: 3,
+                                color: '#FFFFFF'
+                            }}
+                        >
+                            <Box display="flex" justifyContent="space-between" alignItems="center">
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 2,
+                                        fontWeight: 'bold'
+                                    }}
+                                >
+                                    <LocalHospitalIcon sx={{ fontSize: 40 }} />
+                                    Perfil del Paciente
+                                </Typography>
+                                <IconButton
+                                    onClick={() => isEditing ? handleCancel() :handleEdit()}
+                                    sx={{
+                                        bgcolor: 'white',
+                                        '&:hover': {
+                                            bgcolor: isEditing ? '#ffebee' : '#F9FDFF',
+                                            transform: 'scale(1.1)',
+                                            transition: 'all 0.3s'
+                                        }
+                                    }}
+                                >
+                                    {isEditing ? 
+                                        <CancelIcon sx={{ color: '#dc3545' }} /> : 
+                                        <EditIcon sx={{ color: '#03427c' }} />
                                     }
-                                }}
-                            >
-                                {isEditing ? <CancelIcon sx={{ color: theme.palette.error.main }} /> : <EditIcon sx={{ color: theme.palette.primary.main }} />}
-                            </IconButton>
+                                </IconButton>
+                            </Box>
                         </Box>
-
+    
                         {/* Alertas */}
-                        {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-                        {success && <Alert severity="success" sx={{ mb: 2 }}>Perfil actualizado correctamente</Alert>}
-
+                        {error && (
+                            <Alert 
+                                severity="error" 
+                                sx={{ mb: 3, borderRadius: 2 }}
+                                onClose={() => setError(null)}
+                            >
+                                {error}
+                            </Alert>
+                        )}
+                        {success && (
+                            <Alert 
+                                severity="success"
+                                sx={{ mb: 3, borderRadius: 2 }}
+                            >
+                                Cambios guardados exitosamente
+                            </Alert>
+                        )}
+    
                         {/* Formulario */}
                         <form onSubmit={handleSubmit}>
                             <Grid container spacing={3}>
-
-                                {/* Nombre y Apellidos */}
-                                <Grid item xs={12} sm={4}>
-                                    <TextField fullWidth label="Nombre" name="nombre" value={profileData.nombre} onChange={handleChange} disabled={!isEditing} required InputProps={{ startAdornment: (<InputAdornment position="start"><PersonIcon color="primary" /></InputAdornment>) }} />
+                                {/* Información Personal */}
+                                <Grid item xs={12}>
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            mb: 2, 
+                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold' 
+                                        }}
+                                    >
+                                        <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Información Personal
+                                    </Typography>
                                 </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <TextField fullWidth label="Apellido Paterno" name="aPaterno" value={profileData.aPaterno} onChange={handleChange} disabled={!isEditing} required />
+    
+                                <Grid item xs={12} md={4}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Nombre"
+                                        name="nombre"
+                                        value={profileData.nombre}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        required
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <PersonIcon sx={{ color: '#03427c' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#03427c',
+                                                }
+                                            }
+                                        }}
+                                    />
                                 </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <TextField fullWidth label="Apellido Materno" name="aMaterno" value={profileData.aMaterno} onChange={handleChange} disabled={!isEditing} required />
+    
+                                <Grid item xs={12} md={4}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Apellido Paterno"
+                                        name="aPaterno"
+                                        value={profileData.aPaterno}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        required
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#03427c'
+                                                }
+                                            }
+                                        }}
+                                    />
                                 </Grid>
-
-                                {/* Estado (Solo Lectura) */}
-                                <Grid item xs={12} sm={6}>
+    
+                                <Grid item xs={12} md={4}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Apellido Materno"
+                                        name="aMaterno"
+                                        value={profileData.aMaterno}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        required
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                '&.Mui-focused fieldset': {
+                                                    borderColor: '#03427c'
+                                                }
+                                            }
+                                        }}
+                                    />
+                                </Grid>
+    
+                                <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
                                         label="Estado"
                                         name="estado"
                                         value={profileData.estado}
                                         variant="filled"
-                                        disabled={true} // Solo lectura
+                                        disabled={true}
                                         InputProps={{
                                             startAdornment: (
                                                 <InputAdornment position="start">
-                                                    <BadgeIcon color="primary" />
+                                                    <BadgeIcon sx={{ color: '#03427c' }} />
                                                 </InputAdornment>
                                             )
                                         }}
                                     />
                                 </Grid>
-
-                                {/* Fecha de Nacimiento */}
-                                <Grid item xs={12} sm={6}>
+    
+                                <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
                                         label="Fecha de Nacimiento"
@@ -285,48 +398,186 @@ const Profile = () => {
                                         InputLabelProps={{ shrink: true }}
                                     />
                                 </Grid>
-
-                                {/* Teléfono */}
-                                <Grid item xs={12} sm={6}>
-                                    <TextField fullWidth label="Teléfono" name="telefono" value={profileData.telefono} onChange={handleChange} disabled={!isEditing} InputProps={{ startAdornment: (<InputAdornment position="start"><PhoneIcon color="primary" /></InputAdornment>) }} />
-                                </Grid>
-
-                                {/* Email */}
+    
+                                {/* Información de Contacto */}
                                 <Grid item xs={12}>
-                                    <TextField fullWidth label="Email" name="email" type="email" value={profileData.email} onChange={handleChange} disabled={!isEditing} required InputProps={{ startAdornment: (<InputAdornment position="start"><EmailIcon color="primary" /></InputAdornment>) }} />
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            mt: 4,
+                                            mb: 2, 
+                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold' 
+                                        }}
+                                    >
+                                        <ContactPhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Información de Contacto
+                                    </Typography>
                                 </Grid>
-
-                                {/* Dirección */}
+    
+                                <Grid item xs={12} md={6}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Teléfono"
+                                        name="telefono"
+                                        value={profileData.telefono}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <PhoneIcon sx={{ color: '#03427c' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+    
+                                <Grid item xs={12} md={6}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Email"
+                                        name="email"
+                                        type="email"
+                                        value={profileData.email}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        required
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <EmailIcon sx={{ color: '#03427c' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+    
                                 <Grid item xs={12}>
-                                    <TextField fullWidth label="Dirección" name="lugar" value={profileData.lugar} onChange={handleChange} disabled={!isEditing} InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOnIcon color="primary" /></InputAdornment>) }} />
+                                    <TextField 
+                                        fullWidth 
+                                        label="Dirección"
+                                        name="lugar"
+                                        value={profileData.lugar}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <LocationOnIcon sx={{ color: '#03427c' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
                                 </Grid>
-
-                                {/* Alergias */}
+    
+                                {/* Información Médica */}
                                 <Grid item xs={12}>
-                                    <TextField fullWidth label="Alergias" name="alergias" value={profileData.alergias} onChange={handleChange} disabled={!isEditing} multiline rows={3} InputProps={{ startAdornment: (<InputAdornment position="start"><LocalHospitalIcon color="primary" /></InputAdornment>) }} />
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            mt: 4,
+                                            mb: 2, 
+                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold' 
+                                        }}
+                                    >
+                                        <LocalHospitalIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Información Médica
+                                    </Typography>
                                 </Grid>
-
-                                {/* Si el usuario tiene tutor, mostrar estos campos */}
+    
+                                <Grid item xs={12}>
+                                    <TextField 
+                                        fullWidth 
+                                        label="Alergias"
+                                        name="alergias"
+                                        value={profileData.alergias}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        multiline
+                                        rows={3}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <WarningIcon sx={{ color: '#03427c' }} />
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                </Grid>
+    
+                                {/* Información del Tutor */}
                                 {profileData.tipoTutor && (
                                     <>
-                                        <Grid item xs={12} sm={6}>
-                                            <TextField fullWidth label="Tipo de Tutor" name="tipoTutor" value={profileData.tipoTutor} onChange={handleChange} disabled={!isEditing} />
+                                        <Grid item xs={12}>
+                                            <Typography 
+                                                variant="h6" 
+                                                sx={{ 
+                                                    mt: 4,
+                                                    mb: 2, 
+                                                    color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
+                                                    fontWeight: 'bold' 
+                                                }}
+                                            >
+                                                <SupervisorAccountIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                                Información del Tutor
+                                            </Typography>
                                         </Grid>
-                                        <Grid item xs={12} sm={6}>
-                                            <TextField fullWidth label="Nombre del Tutor" name="nombreTutor" value={profileData.nombreTutor} onChange={handleChange} disabled={!isEditing} />
+                                        <Grid item xs={12} md={6}>
+                                            <TextField 
+                                                fullWidth 
+                                                label="Tipo de Tutor"
+                                                name="tipoTutor"
+                                                value={profileData.tipoTutor}
+                                                onChange={handleChange}
+                                                disabled={!isEditing}
+                                            />
+                                        </Grid>
+                                        <Grid item xs={12} md={6}>
+                                            <TextField 
+                                                fullWidth 
+                                                label="Nombre del Tutor"
+                                                name="nombreTutor"
+                                                value={profileData.nombreTutor}
+                                                onChange={handleChange}
+                                                disabled={!isEditing}
+                                            />
                                         </Grid>
                                     </>
                                 )}
-
-                                {/* Botón Guardar */}
+    
+                                {/* Botón de Guardar */}
                                 {isEditing && (
                                     <Grid item xs={12}>
-                                        <Box display="flex" justifyContent="flex-end" gap={2}>
-                                            <Button variant="contained" type="submit" disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />} sx={{ bgcolor: theme.palette.primary.main, '&:hover': { bgcolor: theme.palette.primary.dark } }}>Guardar Cambios</Button>
+                                        <Box 
+                                            display="flex" 
+                                            justifyContent="flex-end" 
+                                            gap={2}
+                                            sx={{ mt: 4 }}
+                                        >
+                                            <Button
+                                                variant="contained"
+                                                type="submit"
+                                                disabled={loading}
+                                                startIcon={loading ? <CircularProgress size={20} /> : <SaveIcon />}
+                                                sx={{
+                                                    bgcolor: '#03427c',
+                                                    px: 4,
+                                                    py: 1.5,
+                                                    borderRadius: 2,
+                                                    '&:hover': {
+                                                        bgcolor: '#025aa5',
+                                                        transform: 'translateY(-2px)',
+                                                        transition: 'all 0.3s'
+                                                    }
+                                                }}
+                                            >
+                                                Guardar Cambios
+                                            </Button>
                                         </Box>
                                     </Grid>
                                 )}
-
                             </Grid>
                         </form>
                     </>
@@ -334,7 +585,6 @@ const Profile = () => {
             </Paper>
         </Container>
     );
-
 };
 
 export default Profile;

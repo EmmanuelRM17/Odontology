@@ -2,74 +2,143 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumbs as MuiBreadcrumbs, Typography, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { Home, ChevronRight } from '@mui/icons-material';
+import { keyframes } from '@mui/system';
+
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const pulse = keyframes`
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.03);
+  }
+  100% {
+    transform: scale(1);
+  }
+`;
 
 const Breadcrumbs = ({ paths }) => {
   const theme = useTheme();
+  const isDark = theme.palette.mode === 'dark';
   
-  // Definir colores según el modo
-  const textColor = theme.palette.mode === 'dark' ? 'white' : 'black'; // Blanco en oscuro, negro en claro
-  const separatorColor = theme.palette.mode === 'dark' ? '#f0f0f0' : '#1E90FF';
-  const hoverColor = theme.palette.mode === 'dark' ? '#dcdcdc' : '#87CEFA'; // Gris claro en oscuro, azul claro en claro
-  const backgroundColor = '#EEF6FF'; // Color de fondo especificado
-  const hoverBackgroundColor = theme.palette.mode === 'dark' ? '#B7D5FF' : '#CCE3FF'; // Fondo más intenso al pasar el mouse
+  const colors = {
+    text: isDark ? theme.palette.grey[100] : theme.palette.grey[900],
+    background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(25, 118, 210, 0.04)',
+    hover: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+    active: isDark ? theme.palette.primary.dark : theme.palette.primary.light,
+    separator: isDark ? theme.palette.grey[400] : theme.palette.grey[500],
+  };
 
   return (
-    <Box sx={{ padding: '10px', marginTop: '14px', marginLeft: '15px' }}>
+    <Box
+      sx={{
+        padding: '8px 16px',
+        borderRadius: '8px',
+        backgroundColor: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.8)',
+        backdropFilter: 'blur(8px)',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        animation: `${fadeIn} 0.5s ease-out`,
+        '&:hover': {
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          transition: 'box-shadow 0.3s ease-in-out',
+        },
+      }}
+    >
       <MuiBreadcrumbs
-        separator=">>"
-        aria-label="breadcrumb"
+        separator={
+          <ChevronRight
+            sx={{
+              color: colors.separator,
+              fontSize: '1rem',
+              mx: 0.2,
+              animation: `${pulse} 2s infinite ease-in-out`,
+            }}
+          />
+        }
+        aria-label="navegación breadcrumb"
         sx={{
-          display: 'flex',
-          flexDirection: 'row',
-          alignItems: 'center',
-          fontSize: '1rem',
-          '& .MuiBreadcrumbs-separator': {
-            color: separatorColor,
-            fontWeight: 'bold',
+          '& .MuiBreadcrumbs-ol': {
+            alignItems: 'center',
           },
         }}
       >
-        {paths.map((path, index) => (
-          <Box key={index}>
-            {index === paths.length - 1 ? (
-              <Typography sx={{ 
-                color: textColor, 
-                fontWeight: 'bold', 
-                backgroundColor, 
-                padding: '5px 10px', 
-                borderRadius: '8px' // Bordes redondeados
-              }}>
-                {path.name}
-              </Typography>
-            ) : (
-              <Link
-                to={path.path}
-                style={{
-                  textDecoration: 'none',
-                }}
-              >
-                <Box
+        <Link to="/" style={{ textDecoration: 'none' }}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              color: colors.text,
+              p: '4px 8px',
+              borderRadius: '6px',
+              backgroundColor: colors.background,
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                backgroundColor: colors.hover,
+                transform: 'translateY(-1px)',
+              },
+            }}
+          >
+            <Home sx={{ mr: 0.3, fontSize: '0.9rem' }} />
+            <Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
+              Inicio
+            </Typography>
+          </Box>
+        </Link>
+
+        {paths.map((path, index) => {
+          const isLast = index === paths.length - 1;
+
+          return (
+            <Box key={path.path || index}>
+              {isLast ? (
+                <Typography
                   sx={{
-                    color: textColor, // Color del texto
-                    fontWeight: 'bold',
-                    fontSize: '1rem',
-                    padding: '5px 10px',
-                    borderRadius: '8px', // Bordes redondeados
-                    backgroundColor, // Fondo azul suave
-                    transition: 'background-color 0.3s ease, color 0.3s ease, transform 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: hoverBackgroundColor, // Fondo más intenso al pasar el mouse
-                      color: theme.palette.mode === 'dark' ? 'white' : 'black', // Color de texto blanco cuando el fondo es azul marino
-                      transform: 'scale(1.1)',
-                    },
+                    color: colors.text,
+                    fontSize: '0.85rem',
+                    fontWeight: 600,
+                    p: '4px 8px',
+                    borderRadius: '6px',
+                    backgroundColor: colors.active,
+                    transition: 'all 0.2s ease-in-out',
                   }}
                 >
                   {path.name}
-                </Box>
-              </Link>
-            )}
-          </Box>
-        ))}
+                </Typography>
+              ) : (
+                <Link to={path.path} style={{ textDecoration: 'none' }}>
+                  <Box
+                    sx={{
+                      color: colors.text,
+                      p: '4px 8px',
+                      borderRadius: '6px',
+                      backgroundColor: colors.background,
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        backgroundColor: colors.hover,
+                        transform: 'translateY(-1px)',
+                      },
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
+                      {path.name}
+                    </Typography>
+                  </Box>
+                </Link>
+              )}
+            </Box>
+          );
+        })}
       </MuiBreadcrumbs>
     </Box>
   );
