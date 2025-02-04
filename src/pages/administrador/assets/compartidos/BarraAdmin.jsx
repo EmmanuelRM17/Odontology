@@ -131,13 +131,6 @@ const BarraAdmin = () => {
         return () => clearInterval(interval);
     }, []);
 
-    useEffect(() => {
-        if (!isAuthenticated) {
-            navigate('/error', { state: { errorCode: 403, errorMessage: 'No tienes acceso a esta página.' } });
-        }
-    }, [isAuthenticated, navigate]);
-
-
     const checkAuthStatus = async () => {
         try {
             const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
