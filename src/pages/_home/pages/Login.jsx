@@ -471,8 +471,7 @@ const Login = () => {
                 minHeight: '100vh',
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
-                bgcolor: '#F9FDFF'
-            }}
+                bgcolor: isDarkMode ? '#1C2A38' : '#F9FDFF'            }}
         >
             {/* Sección Principal - Formulario */}
             <Box

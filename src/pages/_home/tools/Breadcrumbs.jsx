@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Breadcrumbs as MuiBreadcrumbs, Typography, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -30,14 +30,27 @@ const pulse = keyframes`
 
 const Breadcrumbs = ({ paths }) => {
   const theme = useTheme();
-  const isDark = theme.palette.mode === 'dark';
+  const [isDarkTheme, setIsDarkTheme] = useState(false);
+
+  // Theme detection
+  useEffect(() => {
+    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
+    setIsDarkTheme(matchDarkTheme.matches);
+
+    const handleThemeChange = (e) => setIsDarkTheme(e.matches);
+    matchDarkTheme.addEventListener('change', handleThemeChange);
+    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
+  }, []);
   
   const colors = {
-    text: isDark ? theme.palette.grey[100] : theme.palette.grey[900],
-    background: isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(25, 118, 210, 0.04)',
-    hover: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(25, 118, 210, 0.08)',
-    active: isDark ? theme.palette.primary.dark : theme.palette.primary.light,
-    separator: isDark ? theme.palette.grey[400] : theme.palette.grey[500],
+    text: isDarkTheme ? '#ffffff' : theme.palette.grey[900],
+    background: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(3, 66, 124, 0.04)',
+    hover: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(3, 66, 124, 0.08)',
+    active: isDarkTheme ? '#1976d2' : '#03427C',
+    separator: isDarkTheme ? 'rgba(255, 255, 255, 0.7)' : theme.palette.grey[500],
+    containerBg: isDarkTheme ? 'rgba(3, 11, 70, 0.32)' : 'rgba(255, 255, 255, 0.8)',
+    shadow: isDarkTheme ? '0 2px 4px rgba(0,0,0,0.2)' : '0 2px 4px rgba(0,0,0,0.05)',
+    hoverShadow: isDarkTheme ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)',
   };
 
   return (
@@ -45,12 +58,12 @@ const Breadcrumbs = ({ paths }) => {
       sx={{
         padding: '8px 16px',
         borderRadius: '8px',
-        backgroundColor: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: colors.containerBg,
         backdropFilter: 'blur(8px)',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+        boxShadow: colors.shadow,
         animation: `${fadeIn} 0.5s ease-out`,
         '&:hover': {
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          boxShadow: colors.hoverShadow,
           transition: 'box-shadow 0.3s ease-in-out',
         },
       }}
@@ -98,13 +111,16 @@ const Breadcrumbs = ({ paths }) => {
 
         {paths.map((path, index) => {
           const isLast = index === paths.length - 1;
+          
+          // Skip rendering if the path name is "Inicio"
+          if (path.name === "Inicio") return null;
 
           return (
             <Box key={path.path || index}>
               {isLast ? (
                 <Typography
                   sx={{
-                    color: colors.text,
+                    color: '#fff',
                     fontSize: '0.85rem',
                     fontWeight: 600,
                     p: '4px 8px',
