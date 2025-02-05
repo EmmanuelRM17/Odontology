@@ -11,7 +11,8 @@ import {
     Badge,
     Avatar,
     ListItemIcon,
-    ListItemText
+    ListItemText,
+    useTheme, useMediaQuery
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -39,12 +40,14 @@ const BarraPaciente = () => {
     const [anchorEl, setAnchorEl] = useState(null);
     const [openNotification, setOpenNotification] = useState(false);
     const [notificationCount, setNotificationCount] = useState(2);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const navigate = useNavigate();
     const { setUser } = useAuth();
 
-    // Detectar tema del sistema
+    const menuWidth = isMobile ? '100%' : '220px';
+
     useEffect(() => {
         const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
         setIsDarkTheme(matchDarkTheme.matches);
@@ -80,6 +83,17 @@ const BarraPaciente = () => {
         { icon: FaSignOutAlt, text: 'Cerrar Sesión', path: null, divider: false }
     ];
 
+    useEffect(() => {
+        if (notificationMessage && notificationMessage !== 'Cerrando sesión...') {
+            setOpenNotification(true);
+            const timer = setTimeout(() => {
+                setNotificationMessage('');
+                setOpenNotification(false);
+            }, 2000);
+    
+            return () => clearTimeout(timer);
+        }
+    }, [notificationMessage]);
 
     const handleMenuOpen = (event) => {
         setAnchorEl(event.currentTarget);
@@ -88,6 +102,37 @@ const BarraPaciente = () => {
     const handleMenuClose = () => {
         setAnchorEl(null);
     };
+
+    useEffect(() => {
+        const checkAuthStatus = async () => {
+            try {
+                const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
+                });
+    
+                if (!response.ok) {
+                    throw new Error("Usuario no autenticado");
+                }
+    
+                const data = await response.json();
+                if (data.authenticated && data.user) {
+                    setUser(data.user); // ✅ Guarda el usuario en el contexto de `useAuth()`
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error("Error al verificar autenticación:", error);
+                setUser(null);
+            }
+        };
+    
+        checkAuthStatus();
+    }, []);
 
     // Agregar esta función que falta
     const handleItemClick = (item) => {
@@ -101,88 +146,49 @@ const BarraPaciente = () => {
         }
     };
 
-    useEffect(() => {
-        checkAuthStatus();
-        const interval = setInterval(checkAuthStatus, 300000); // 5 minutos
-        return () => clearInterval(interval);
-    }, [navigate]);
-
-    const checkAuthStatus = async () => {
+    const handleLogout = async () => {
+        if (isLoggingOut) return;
+        setIsLoggingOut(true);
+        handleMenuClose();
+    
         try {
-            const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
-                method: 'GET',
+            console.log('🔄 Cerrando sesión...');
+            setNotificationMessage('Cerrando sesión... Redirigiendo...');
+            setOpenNotification(true);
+    
+            // 🕒 Mantiene el mensaje visible durante al menos 3 segundos antes de continuar
+            await new Promise(resolve => setTimeout(resolve, 3000));
+    
+            const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
+                method: 'POST',
                 credentials: 'include',
                 headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json',
                 }
             });
-
+    
             if (!response.ok) {
-                if (response.status === 401) {
-                    console.log('🔴 Sesión no válida o expirada');
-                    setUser(null);
-                    return;
-                }
-                throw new Error('Error en el servidor');
+                throw new Error(`Error en logout: ${response.status}`);
             }
-
-            const data = await response.json();
-
-            if (data.authenticated && data.user) {
-                console.log('✅ Usuario autenticado:', data.user);
-                setUser(data.user);
-            } else {
-                console.log('❌ Usuario no autenticado');
+    
+            console.log('✅ Sesión cerrada exitosamente');
+            setNotificationMessage('Sesión cerrada exitosamente');
+    
+            setTimeout(() => {
                 setUser(null);
-            }
+                navigate('/', { replace: true });
+                setTimeout(() => setOpenNotification(false), 1000);
+            }, 1000);
+    
         } catch (error) {
-            console.error('🔴 Error al verificar autenticación:', error.message);
-            setNotificationMessage('Error al verificar autenticación.');
-            setOpenNotification(true);
-            setUser(null);
+            console.error('❌ Error en logout:', error.message);
+            setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
+        } finally {
+            setIsLoggingOut(false);
         }
     };
-
-    const handleLogout = async () => {
-        if (isLoggingOut) return;
-        setIsLoggingOut(true);
-        handleMenuClose();
-      
-        try {
-          console.log('🔄 Iniciando proceso de logout...');
-          const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-            }
-          });
-      
-          if (!response.ok) {
-            throw new Error(`Error en logout: ${response.status}`);
-          }
-      
-          console.log('✅ Sesión cerrada exitosamente');
-          setUser(null);
-      
-          setNotificationMessage('Sesión cerrada exitosamente');
-          setOpenNotification(true);
-      
-          setTimeout(() => {
-            navigate('/', { replace: true });
-          }, 1500);
-        } catch (error) {
-          console.error('❌ Error en logout:', error.message);
-          setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
-          setOpenNotification(true);
-        } finally {
-          setIsLoggingOut(false);
-        }
-      };
-
-    // Si no hay autenticación, no renderizar la barra
+    
     return (
         <>
             <AppBar
@@ -196,7 +202,7 @@ const BarraPaciente = () => {
                 <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         <FaTooth style={{
-                            fontSize: 32,
+                            fontSize: isMobile ? 24 : 32,
                             color: '#03427c',
                             filter: isDarkTheme ? 'brightness(1.5)' : 'none'
                         }} />
@@ -252,7 +258,7 @@ const BarraPaciente = () => {
                             sx: {
                                 backgroundColor: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
                                 color: isDarkTheme ? '#fff' : '#03427c',
-                                width: 220,
+                                width: menuWidth,
                                 borderRadius: 2,
                                 mt: 1,
                             }
@@ -288,7 +294,7 @@ const BarraPaciente = () => {
                     </Menu>
                 </Toolbar>
             </AppBar>
-            <Toolbar /> {/* Espaciador para el contenido debajo del AppBar fijo */}
+            <Toolbar />
 
             <Notificaciones
                 open={openNotification}

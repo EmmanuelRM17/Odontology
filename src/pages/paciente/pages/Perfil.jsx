@@ -56,7 +56,7 @@ const Profile = () => {
                 }
 
                 const data = await response.json();
-                console.log("Perfil completo obtenido:", data); // 🛠️ Verificar datos en consola
+                console.log("Perfil completo obtenido:", data); 
 
                 setProfileData({
                     nombre: data.nombre || '',

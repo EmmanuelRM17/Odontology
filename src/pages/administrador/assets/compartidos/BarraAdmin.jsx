@@ -25,7 +25,6 @@ import { useAuth } from '../../../../components/Tools/AuthContext';
 
 const BarraAdmin = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
-    const [notificationType, setNotificationType] = useState('');
     const [isDarkTheme, setIsDarkTheme] = useState(false);
     const [anchorEl, setAnchorEl] = useState(null);
     const [openNotification, setOpenNotification] = useState(false);
@@ -33,7 +32,6 @@ const BarraAdmin = () => {
     const navigate = useNavigate();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { setUser } = useAuth();
 
@@ -59,7 +57,7 @@ const BarraAdmin = () => {
         iconColor: isDarkTheme ? '#E8F1FF' : '#03427c',
     };
 
-    const menuWidth = isMobile ? '100%' : '220px';
+    const menuWidth = isMobile ? '100%' : '200px';
 
     const menuItems = [
         { icon: FaHome, text: 'Panel Principal', path: '/Administrador/principal', divider: false },
@@ -83,13 +81,59 @@ const BarraAdmin = () => {
         setAnchorEl(null);
     };
 
+    useEffect(() => {
+        const checkAuthStatus = async () => {
+            try {
+                const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
+                    method: 'GET',
+                    credentials: 'include',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error("Usuario no autenticado");
+                }
+
+                const data = await response.json();
+                if (data.authenticated && data.user) {
+                    setUser(data.user); // ✅ Guarda el usuario en el contexto de `useAuth()`
+                } else {
+                    setUser(null);
+                }
+            } catch (error) {
+                console.error("Error al verificar autenticación:", error);
+                setUser(null);
+            }
+        };
+
+        checkAuthStatus();
+    }, []);
+
+    const handleItemClick = (item) => {
+        handleMenuClose();
+        if (item.text === 'Cerrar Sesión') {
+            handleLogout();
+        } else if (item.path) {
+            navigate(item.path);
+        }
+    };
+    
     const handleLogout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         handleMenuClose();
-
+    
         try {
-            console.log('🔄 Iniciando proceso de logout...');
+            // Primera notificación
+            setNotificationMessage('Cerrando sesión... Redirigiendo...');
+            setOpenNotification(true);
+    
+            // Primera espera
+            await new Promise(resolve => setTimeout(resolve, 2000));
+    
             const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
                 method: 'POST',
                 credentials: 'include',
@@ -98,76 +142,32 @@ const BarraAdmin = () => {
                     'Content-Type': 'application/json',
                 }
             });
-
+    
             if (!response.ok) {
                 throw new Error(`Error en logout: ${response.status}`);
             }
-
-            console.log('✅ Sesión cerrada exitosamente');
-            setUser(null);
-            setIsAuthenticated(false);
-
+    
+            // Segunda notificación
             setNotificationMessage('Sesión cerrada exitosamente');
-            setOpenNotification(true);
-            setTimeout(() => navigate('/', { replace: true }), 1500);
+            
+            // Segunda espera antes de redirigir
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            
+            setUser(null);
+            setOpenNotification(false);
+            navigate('/', { replace: true });
+    
         } catch (error) {
             console.error('❌ Error en logout:', error.message);
             setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
             setOpenNotification(true);
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            setOpenNotification(false);
         } finally {
             setIsLoggingOut(false);
         }
     };
-    const handleItemClick = (item) => {
-        if (item.text === 'Cerrar Sesión') {
-            handleLogout();
-        } else {
-            handleMenuClose();
-        }
-    };
-    useEffect(() => {
-        checkAuthStatus();
-        const interval = setInterval(checkAuthStatus, 300000); // Verifica cada 5 min
-        return () => clearInterval(interval);
-    }, []);
-
-    const checkAuthStatus = async () => {
-        try {
-            const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
-                method: 'GET',
-                credentials: 'include',
-                headers: {
-                    'Accept': 'application/json',
-                    'Content-Type': 'application/json',
-                }
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    console.warn('🔴 Sesión no válida o expirada');
-                    setUser(null);
-                    return;
-                }
-                throw new Error(`Error en el servidor: ${response.status}`);
-            }
-
-            const data = await response.json();
-
-            if (data.authenticated && data.user) {
-                console.log('✅ Usuario autenticado:', data.user);
-                setUser(data.user);
-            } else {
-                console.warn('❌ Usuario no autenticado');
-                setUser(null);
-            }
-        } catch (error) {
-            console.error('🔴 Error al verificar autenticación:', error.message);
-            setNotificationMessage('Error al verificar autenticación.');
-            setOpenNotification(true);
-            setUser(null);
-        }
-    };
-
+    
     return (
         <>
             <AppBar
@@ -178,13 +178,8 @@ const BarraAdmin = () => {
                     boxShadow: isDarkTheme ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 4px rgba(0,0,0,0.1)',
                 }}
             >
-                <Toolbar
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        padding: isMobile ? '0.5rem' : '0.5rem 1rem',
-                    }}
-                >
+                <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+
                     <Box
                         component={Link}
                         to="/Administrador/principal"
@@ -196,24 +191,15 @@ const BarraAdmin = () => {
                             gap: isMobile ? 1 : 2
                         }}
                     >
-                        <FaTooth
-                            style={{
-                                fontSize: isMobile ? 24 : 32,
-                                color: colors.primary,
-                            }}
-                        />
+                        <FaTooth style={{ fontSize: isMobile ? 24 : 32, color: colors.primary }} />
+
                         <Typography
-                            variant={isMobile ? "subtitle1" : "h6"}
+                            variant="h6"
                             sx={{
                                 fontWeight: 'bold',
-                                letterSpacing: 0.5,
+                                letterSpacing: 1,
                                 color: colors.text,
-                                display: { xs: 'none', sm: 'block' },
-                                fontSize: {
-                                    xs: '0.9rem',
-                                    sm: '1rem',
-                                    md: '1.25rem'
-                                }
+                                fontSize: { xs: '0.9rem', sm: '1rem', md: '1.2rem' }
                             }}
                         >
                             Odontología Carol - Admin
@@ -256,13 +242,8 @@ const BarraAdmin = () => {
                                 transition: 'all 0.2s'
                             }}
                         >
-                            <Avatar
-                                sx={{
-                                    bgcolor: colors.primary,
-                                    width: isMobile ? 32 : 40,
-                                    height: isMobile ? 32 : 40
-                                }}
-                            >
+                            <Avatar sx={{ bgcolor: colors.primary, width: 32, height: 32 }}>
+
                                 <FaUserCircle color={isDarkTheme ? '#1B2A3A' : '#ffffff'} />
                             </Avatar>
                         </IconButton>
@@ -337,7 +318,7 @@ const BarraAdmin = () => {
 
             <Notificaciones
                 open={openNotification}
-                message="Has cerrado sesión exitosamente"
+                message={notificationMessage}  // Usar el mensaje dinámico en lugar del estático
                 type="info"
                 handleClose={() => setOpenNotification(false)}
             />
