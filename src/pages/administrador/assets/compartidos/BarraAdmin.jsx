@@ -70,7 +70,7 @@ const BarraAdmin = () => {
         { icon: FaClock, text: 'Historial', path: '/Administrador/historial', divider: true },
         { icon: FaBell, text: 'Notificaciones', path: '/Administrador/notificaciones', divider: false },
         { icon: FaCog, text: 'Configuración', path: '/Administrador/configuracion', divider: true },
-        { icon: FaSignOutAlt, text: 'Cerrar Sesión', path: '/', divider: false },
+        { icon: FaSignOutAlt, text: 'Cerrar Sesión', path: null, divider: false }
     ];
 
     const handleMenuOpen = (event) => {
@@ -120,20 +120,20 @@ const BarraAdmin = () => {
             navigate(item.path);
         }
     };
-    
+
     const handleLogout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         handleMenuClose();
-    
+
         try {
             // Primera notificación
             setNotificationMessage('Cerrando sesión... Redirigiendo...');
             setOpenNotification(true);
-    
+
             // Primera espera
             await new Promise(resolve => setTimeout(resolve, 2000));
-    
+
             const response = await fetch('https://back-end-4803.onrender.com/api/users/logout', {
                 method: 'POST',
                 credentials: 'include',
@@ -142,21 +142,21 @@ const BarraAdmin = () => {
                     'Content-Type': 'application/json',
                 }
             });
-    
+
             if (!response.ok) {
                 throw new Error(`Error en logout: ${response.status}`);
             }
-    
+
             // Segunda notificación
             setNotificationMessage('Sesión cerrada exitosamente');
-            
+
             // Segunda espera antes de redirigir
             await new Promise(resolve => setTimeout(resolve, 1500));
-            
+
             setUser(null);
             setOpenNotification(false);
             navigate('/', { replace: true });
-    
+
         } catch (error) {
             console.error('❌ Error en logout:', error.message);
             setNotificationMessage('Error al cerrar sesión. Intente nuevamente.');
@@ -167,7 +167,7 @@ const BarraAdmin = () => {
             setIsLoggingOut(false);
         }
     };
-    
+
     return (
         <>
             <AppBar
