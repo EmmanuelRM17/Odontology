@@ -7,6 +7,7 @@ import Breadcrumbs from './pages/_home/tools/Breadcrumbs.jsx';
 
 // Componentes Importados
 import Home from "./pages/_home/pages/Home";
+import Noticias from "./pages/_home/pages/Noticias"
 import Register from "./pages/_home/pages/Register";
 import Login from "./pages/_home/pages/Login";
 import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
@@ -29,7 +30,7 @@ import PrincipalAdmin from "./pages/administrador/pages/Principal";
 import Configuracion from "./pages/administrador/pages/Configuracion";
 import Reportes from "./pages/administrador/pages/reportes";
 import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
-import Pacientes from "./pages/administrador/pages/PatientsReport.jsx";
+import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/ServicioForm.jsx";
 
 function App() {
@@ -141,7 +142,7 @@ function App() {
     <Router>
       <Routes>
         {/* Rutas públicas */}
-        <Route path="/" element={<LayoutConEncabezado><Home /><Ubicacion/><Preguntas /></LayoutConEncabezado>} />
+        <Route path="/" element={<LayoutConEncabezado><Home /><Ubicacion/><Noticias/><Preguntas /></LayoutConEncabezado>} />
         <Route path="/FAQ" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'FAQ' }]} /><Preguntas /></LayoutConEncabezado>} />
         <Route path="/Contact" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Contacto', path: '/Contact' }]} /><Contactanos /></LayoutConEncabezado>} />
         <Route path="/register" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Registro' }]} /><Register /></LayoutConEncabezado>} />

@@ -164,7 +164,7 @@ const Ubicacion = () => {
       animate="visible"
       style={{
         backgroundImage: 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)', // Fondo degradado aplicado a toda la sección
-        minHeight: '100vh', // Ajusta el alto para cubrir toda la vista
+        minHeight: '80vh', // Ajusta el alto para cubrir toda la vista
         width: '100%', // Asegura que cubra todo el ancho disponible
 
         justifyContent: 'center',
