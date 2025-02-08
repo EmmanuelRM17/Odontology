@@ -72,62 +72,20 @@ const Home = () => {
   const images = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
   const services = [
-    {
-      title: 'Consulta Dental General',
-      description: 'Evaluación integral para cuidar tu salud bucal y prevenir problemas.'
-    },
-    {
-      title: 'Limpieza Dental por Ultrasonido',
-      description: 'Limpieza profunda sin molestias para eliminar placa y sarro.'
-    },
-    {
-      title: 'Curetaje (Limpieza Profunda)',
-      description: 'Limpieza especializada de encías para mantener una sonrisa saludable.'
-    },
-    {
-      title: 'Asesoría sobre Diseño de Sonrisa',
-      description: 'Orientación personalizada para realzar tu sonrisa y sentirte seguro.'
-    },
-    {
-      title: 'Cirugía Estética de Encía',
-      description: 'Mejora la apariencia de tus encías para lograr una sonrisa armónica.'
-    },
-    {
-      title: 'Obturación con Resina',
-      description: 'Restauración discreta y duradera para reparar caries y recuperar tu sonrisa.'
-    },
-    {
-      title: 'Incrustación Estética y de Metal',
-      description: 'Reparación robusta y estética para restaurar dientes dañados.'
-    },
-    {
-      title: 'Coronas Fijas Estéticas o de Metal',
-      description: 'Coronas personalizadas que devuelven la función y un aspecto natural.'
-    },
-    {
-      title: 'Placas Removibles Parciales',
-      description: 'Prótesis cómodas que reemplazan dientes faltantes y mejoran tu masticación.'
-    },
-    {
-      title: 'Placas Totales Removibles',
-      description: 'Solución completa para recuperar la función y estética en casos de edentulismo.'
-    },
-    {
-      title: 'Guardas Dentales',
-      description: 'Protección nocturna que evita el desgaste dental y alivia el bruxismo.'
-    },
-    {
-      title: 'Placas Hawley',
-      description: 'Mantenimiento eficaz de la posición dental tras la ortodoncia.'
-    },
-    {
-      title: 'Extracción Dental',
-      description: 'Eliminación segura de dientes dañados con cuidado y comodidad.'
-    },
-    {
-      title: 'Ortodoncia y Ortopedia Maxilar',
-      description: 'Tratamientos para alinear tus dientes y mejorar la estructura facial.'
-    },
+    { id: 1, title: 'Consulta Dental General', description: 'Evaluación integral para cuidar tu salud bucal y prevenir problemas.' },
+    { id: 2, title: 'Limpieza Dental por Ultrasonido', description: 'Limpieza profunda sin molestias para eliminar placa y sarro.' },
+    { id: 3, title: 'Curetaje (Limpieza Profunda)', description: 'Limpieza especializada de encías para mantener una sonrisa saludable.' },
+    { id: 4, title: 'Asesoría sobre Diseño de Sonrisa', description: 'Orientación personalizada para realzar tu sonrisa y sentirte seguro.' },
+    { id: 5, title: 'Cirugía Estética de Encía', description: 'Mejora la apariencia de tus encías para lograr una sonrisa armónica.' },
+    { id: 6, title: 'Obturación con Resina', description: 'Restauración discreta y duradera para reparar caries y recuperar tu sonrisa.' },
+    { id: 7, title: 'Incrustación Estética y de Metal', description: 'Reparación robusta y estética para restaurar dientes dañados.' },
+    { id: 8, title: 'Coronas Fijas Estéticas o de Metal', description: 'Coronas personalizadas que devuelven la función y un aspecto natural.' },
+    { id: 9, title: 'Placas Removibles Parciales', description: 'Prótesis cómodas que reemplazan dientes faltantes y mejoran tu masticación.' },
+    { id: 10, title: 'Placas Totales Removibles', description: 'Solución completa para recuperar la función y estética en casos de edentulismo.' },
+    { id: 11, title: 'Guardas Dentales', description: 'Protección nocturna que evita el desgaste dental y alivia el bruxismo.' },
+    { id: 12, title: 'Placas Hawley', description: 'Mantenimiento eficaz de la posición dental tras la ortodoncia.' },
+    { id: 13, title: 'Extracción Dental', description: 'Eliminación segura de dientes dañados con cuidado y comodidad.' },
+    { id: 14, title: 'Ortodoncia y Ortopedia Maxilar', description: 'Tratamientos para alinear tus dientes y mejorar la estructura facial.' }
   ];
 
 
@@ -325,7 +283,7 @@ const Home = () => {
                 >
                   <Tooltip title="Click para más información" arrow>
                     <Box
-                      onClick={() => navigate('/servicios')}
+                      onClick={() => navigate(`/servicios/detalle/${service.id}`)}
                       onMouseEnter={() => setIsPaused(true)}
                       onMouseLeave={() => setIsPaused(false)}
                       sx={{

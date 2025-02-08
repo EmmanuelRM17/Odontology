@@ -6,11 +6,13 @@ import ErrorPage from "./components/Tools/ErrorPage.jsx";
 import Breadcrumbs from './pages/_home/tools/Breadcrumbs.jsx';
 
 // Componentes Importados
+import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
 import Home from "./pages/_home/pages/Home";
 import Noticias from "./pages/_home/pages/Noticias"
 import Register from "./pages/_home/pages/Register";
 import Login from "./pages/_home/pages/Login";
-import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
+import Servicios from "./pages/_home/pages/Servicios"
+import ServiciosDetalle from "./pages/_home/pages/ServiciosDetalle"
 import Recuperacion from "./pages/_home/pages/Recuperacion";
 import Reset from "./pages/_home/pages/CambiarContrasena";
 import Preguntas from "./pages/_home/pages/Preguntas";
@@ -149,6 +151,8 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/agendar-cita" element={<Agendar />} />
         <Route path="/about" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
+        <Route path="/servicios" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
+        <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
         <Route path="/recuperacion" element={<Recuperacion />} />
         <Route path="/resetContra" element={<Reset />} />
   
