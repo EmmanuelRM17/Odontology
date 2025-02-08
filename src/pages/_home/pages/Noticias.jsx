@@ -62,7 +62,7 @@ const Noticias = () => {
     useEffect(() => {
         fetchNews();
         // Actualizar datos cada 30 minutos
-        const updateInterval = setInterval(fetchNews, 30 * 60 * 1000);
+        const updateInterval = setInterval(fetchNews, 40 * 60 * 1000);
         return () => clearInterval(updateInterval);
     }, []);
 
@@ -131,7 +131,8 @@ const Noticias = () => {
                             bottom: '-10px',
                             left: '50%',
                             transform: 'translateX(-50%)',
-                            width: '100px',
+                            maxWidth:'1000px',
+                            width: '50%',
                             height: '4px',
                             backgroundColor: '#03427C',
                             borderRadius: '2px'
@@ -143,7 +144,7 @@ const Noticias = () => {
                         ...commonStyles
                     }}
                 >
-                    <span>Noticias y Consejos de Salud Dental</span>
+                    <span>Noticias y Consejos</span>
                 </Typography>
 
                 <Box
