@@ -173,7 +173,7 @@ function App() {
         <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
         
         {/* Rutas protegidas del empleado */}
-        <Route path="/Empleado/principal" element={<PrivateRoute><LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado></PrivateRoute>} />
+        <Route path="/Empleado/principal" element={<LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado>} />
 
 
         {/* Ruta para manejo de errores */}
