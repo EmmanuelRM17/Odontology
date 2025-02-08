@@ -35,6 +35,10 @@ import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/ServicioForm.jsx";
 
+//Rutas del empleado
+import LayoutEmpleado from "./pages/empleado/LayoutEmpleado.jsx";
+import PrincipalEmpleado from "./pages/empleado/Principal.jsx";
+
 function App() {
   const [tituloPagina, setTituloPagina] = useState("_");
   const [logo, setLogo] = useState("");
@@ -167,7 +171,11 @@ function App() {
         <Route path="/Administrador/pacientes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
-  
+        
+        {/* Rutas protegidas del empleado */}
+        <Route path="/Empleado/principal" element={<PrivateRoute><LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado></PrivateRoute>} />
+
+
         {/* Ruta para manejo de errores */}
         <Route path="/error" element={<ErrorPage />} />
         <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
