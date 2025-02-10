@@ -447,9 +447,9 @@ const Login = () => {
                 localStorage.setItem('loggedIn', true);
                 localStorage.setItem('userType', 'pacientes');
                 navigate('/Paciente/principal');
-            } else if (data.userType === 'empleado') {
+            } else if (data.userType === 'empleados') {
                     localStorage.setItem('loggedIn', true);
-                    localStorage.setItem('userType', 'empleado');
+                    localStorage.setItem('userType', 'empleados');
                     navigate('/Empleado/principal'); 
             } else {
                 setErrorMessage('Tipo de usuario desconocido. Inténtalo nuevamente.');
