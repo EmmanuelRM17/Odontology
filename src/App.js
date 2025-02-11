@@ -2,8 +2,10 @@ import React, { useEffect, useState, useRef } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import axios from "axios";
 import PrivateRoute from "./components/Tools/PrivateRoute";
-import ErrorPage from "./components/Tools/ErrorPage.jsx";
-import Breadcrumbs from './pages/_home/tools/Breadcrumbs.jsx';
+import ErrorPage from "./components/Tools/ErrorPage";
+import Chatbot from "./components/Tools/Chatbot.jsx";
+import Breadcrumbs from './pages/_home/tools/Breadcrumbs';
+
 
 // Componentes Importados
 import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
@@ -33,7 +35,7 @@ import Configuracion from "./pages/administrador/pages/Configuracion";
 import Reportes from "./pages/administrador/pages/reportes";
 import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
-import ServicioForm from "./pages/administrador/ServicioForm.jsx";
+import ServicioForm from "./pages/administrador/pages/ServicioForm.jsx";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado.jsx";
@@ -150,21 +152,21 @@ function App() {
     <Router>
       <Routes>
         {/* Rutas públicas */}
-        <Route path="/" element={<LayoutConEncabezado><Home /><Ubicacion/><Noticias/><Preguntas /></LayoutConEncabezado>} />
-        <Route path="/FAQ" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'FAQ' }]} /><Preguntas /></LayoutConEncabezado>} />
-        <Route path="/Contact" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Contacto', path: '/Contact' }]} /><Contactanos /></LayoutConEncabezado>} />
-        <Route path="/register" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Registro' }]} /><Register /></LayoutConEncabezado>} />
+        <Route path="/" element={<LayoutConEncabezado><Chatbot /><Home /><Ubicacion/><Noticias/><Preguntas /></LayoutConEncabezado>} />
+        <Route path="/FAQ" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'FAQ' }]} /><Preguntas /></LayoutConEncabezado>} />
+        <Route path="/Contact" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Contacto', path: '/Contact' }]} /><Contactanos /></LayoutConEncabezado>} />
+        <Route path="/register" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Registro' }]} /><Register /></LayoutConEncabezado>} />
         <Route path="/login" element={<Login />} />
         <Route path="/agendar-cita" element={<Agendar />} />
-        <Route path="/about" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
-        <Route path="/servicios" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
-        <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
+        <Route path="/about" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
+        <Route path="/servicios" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
+        <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
         <Route path="/recuperacion" element={<Recuperacion />} />
         <Route path="/resetContra" element={<Reset />} />
   
         {/* Rutas protegidas del paciente */}
-        <Route path="/Paciente/principal" element={<PrivateRoute><LayoutPaciente><Principal /></LayoutPaciente></PrivateRoute>} />
-        <Route path="/Paciente/perfil" element={<PrivateRoute><LayoutPaciente><Breadcrumbs paths={[{ name: 'Home', path: '/Paciente/principal' }, { name: 'Perfil' }]} /><Perfil /></LayoutPaciente></PrivateRoute>} />
+        <Route path="/Paciente/principal" element={<PrivateRoute><LayoutPaciente><Chatbot /><Principal /></LayoutPaciente></PrivateRoute>} />
+        <Route path="/Paciente/perfil" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: 'Home', path: '/Paciente/principal' }, { name: 'Perfil' }]} /><Perfil /></LayoutPaciente></PrivateRoute>} />
   
         {/* Rutas protegidas del administrador */}
         <Route path="/Administrador/principal" element={<PrivateRoute><LayoutAdmin><PrincipalAdmin /></LayoutAdmin></PrivateRoute>} />

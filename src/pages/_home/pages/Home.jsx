@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { lazy } from 'react';
+import { useRef } from 'react';
 
 import img1 from '../../../assets/imagenes/img_1.jpg';
 import img2 from '../../../assets/imagenes/img_2.jpg';
@@ -38,16 +39,33 @@ const Home = () => {
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const navigate = useNavigate();
-
+  const [displayedText, setDisplayedText] = useState('');
+  const typingIntervalRef = useRef(null);
   const autoRotateDelay = 7000;
+  const serviceIndexRef = useRef(0);
+  const textIndexRef = useRef(0);
+  const imageIndexRef = useRef(0);
+
   useEffect(() => {
-    if (!isPaused) {
-      const timer = setTimeout(() => {
-        nextService();
-      }, autoRotateDelay);
-      return () => clearTimeout(timer);
-    }
-  }, [currentServiceIndex, isPaused]);
+    if (isPaused) return;
+
+    let frame;
+    let startTime = performance.now();
+    const duration = autoRotateDelay;
+
+    const animate = (currentTime) => {
+      if (currentTime - startTime >= duration) {
+        serviceIndexRef.current = (serviceIndexRef.current + 1) % services.length;
+        setCurrentServiceIndex(serviceIndexRef.current);
+        startTime = currentTime;
+      }
+      frame = requestAnimationFrame(animate);
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [isPaused]);
+
   const nextService = () => {
     setCurrentServiceIndex((prev) => (prev + 1) % services.length);
   };
@@ -57,13 +75,42 @@ const Home = () => {
       prev === 0 ? services.length - 1 : prev - 1
     );
   };
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIndex(prev => (prev + 1) % rotatingTexts.length);
-    }, 15000);
-    return () => clearInterval(interval);
-  }, []);
 
+  const startTypingEffect = (text) => {
+    if (!text) return; // Evitar valores undefined
+    setDisplayedText(''); // Limpiar el texto antes de escribir
+    let index = 0;
+  
+    const typeNextLetter = () => {
+      if (index <= text.length) {
+        setDisplayedText(text.slice(0, index)); // Agregar letra sin concatenar manualmente
+        index++;
+        setTimeout(typeNextLetter, 100); // Velocidad de escritura (ajustable)
+      }
+    };
+  
+    typeNextLetter(); // Iniciar la animación
+  };
+  
+  useEffect(() => {
+    let frame;
+    let startTime = performance.now();
+    const duration = 10000; // Cambia el texto cada 5 segundos
+  
+    const animate = (currentTime) => {
+      if (currentTime - startTime >= duration) {
+        textIndexRef.current = (textIndexRef.current + 1) % rotatingTexts.length;
+        startTypingEffect(rotatingTexts[textIndexRef.current]); // Iniciar escritura del nuevo texto
+        startTime = currentTime;
+      }
+      frame = requestAnimationFrame(animate);
+    };
+  
+    startTypingEffect(rotatingTexts[0]); // Iniciar el primer texto
+    frame = requestAnimationFrame(animate);
+  
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     setCurrentText(rotatingTexts[index]);
@@ -101,13 +148,24 @@ const Home = () => {
 
   // Mejorada la transición de imágenes de fondo
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentImageIndex((prevIndex) =>
-        prevIndex === images.length - 1 ? 0 : prevIndex + 1
-      );
-    }, 12000);
+    let frame;
+    let startTime = performance.now();
+    const duration = 12000;
 
-    return () => clearInterval(timer);
+    const animate = (currentTime) => {
+      const elapsedTime = currentTime - startTime;
+
+      if (elapsedTime >= duration) {
+        imageIndexRef.current = (imageIndexRef.current + 1) % images.length;
+        setCurrentImageIndex(imageIndexRef.current);
+        startTime = currentTime;
+      }
+
+      frame = requestAnimationFrame(animate);
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // Nuevo efecto para manejar el scroll
@@ -203,7 +261,7 @@ const Home = () => {
               WebkitTextStroke: '.5px rgba(255,255,255,0.8)',
             }}
           >
-            {currentText}
+            {displayedText}
           </Typography>
         </motion.div>
 

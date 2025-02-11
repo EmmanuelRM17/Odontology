@@ -436,7 +436,7 @@ const Login = () => {
             setNotificationMessage(data.message || 'Código verificado correctamente.');
             setOpenNotification(true);
             setVerificationCode('');
-            setShowVerificationModal(false); // Cambiado de setOpenModal a setShowVerificationModal
+            setShowVerificationModal(false); 
 
             // Guardar en localStorage y redireccionar según el tipo de usuario
             if (data.userType === 'administradores') {
@@ -447,9 +447,9 @@ const Login = () => {
                 localStorage.setItem('loggedIn', true);
                 localStorage.setItem('userType', 'pacientes');
                 navigate('/Paciente/principal');
-            } else if (data.userType === 'empleado') {
+            } else if (data.userType === 'empleados') {
                     localStorage.setItem('loggedIn', true);
-                    localStorage.setItem('userType', 'empleado');
+                    localStorage.setItem('userType', 'empleados');
                     navigate('/Empleado/principal'); 
             } else {
                 setErrorMessage('Tipo de usuario desconocido. Inténtalo nuevamente.');
