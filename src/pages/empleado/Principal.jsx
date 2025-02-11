@@ -1,53 +1,84 @@
 import React from 'react';
-import { Container, Typography, Grid, Card, CardContent, CardActionArea, Box } from '@mui/material';
-import { FaUserCircle, FaCalendarAlt, FaClipboardList, FaUsers, FaChartLine } from 'react-icons/fa';
-import { useNavigate } from 'react-router-dom';
+import { Box, Card, CardContent, Typography, IconButton } from '@mui/material';
+import { Facebook, WhatsApp, Email } from '@mui/icons-material'; // Importar íconos de Material-UI
+import img4 from '../../assets/imagenes/img_7.jpg'; // Asegúrate de que la ruta es correcta
 
-const Principal = () => {
-    const navigate = useNavigate();
+const HomeEmpleado = () => {
+  return (
+    <Box
+  sx={{
+    height: '100vh',
+    backgroundImage: `url(${img4})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    display: 'flex',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    position: 'relative',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+      backgroundColor: 'rgba(0, 0, 0, 0.5)', // Opacidad del fondo
+      zIndex: 1, // Asegura que el fondo opaco esté detrás de la tarjeta
+    },
+  }}
+>
+  {/* Tarjeta de información (sin opacidad) */}
+  <Card
+    sx={{
+      width: '350px',
+      minHeight: '200px',
+      backgroundColor: '#003366', // Color sólido (sin opacidad)
+      color: 'white',
+      borderRadius: '10px',
+      marginLeft: '26px',
+      zIndex: 2, // Asegura que la tarjeta esté por encima del fondo opaco
+      transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
+      '&:hover': {
+        transform: 'scale(1.05)',
+        boxShadow: '0px 10px 20px rgba(0, 0, 0, 0.5)',
+      },
+    }}
+  >
+    <CardContent>
+      <Typography gutterBottom variant="h4" component="div" sx={{ fontWeight: 'bold' }}>
+        Bienvenido a Odontología Carol
+      </Typography>
+      <Typography variant="body1" sx={{ fontSize: '1.1rem', lineHeight: '1.6' }}>
+        En Odontología Carol nos preocupamos por tu salud bucal. Aquí encontrarás los mejores profesionales y tratamientos para cuidar de tu sonrisa.
+      </Typography>
+    </CardContent>
+  </Card>
 
-    const menuItems = [
-        { icon: <FaUserCircle size={30} color='#03427c' />, title: 'Mi Perfil', path: '/Empleado/perfil' },
-        { icon: <FaCalendarAlt size={30} color='#03427c' />, title: 'Citas', path: '/Empleado/citas' },
-        { icon: <FaUsers size={30} color='#03427c' />, title: 'Pacientes', path: '/Empleado/pacientes' },
-        { icon: <FaClipboardList size={30} color='#03427c' />, title: 'Historial', path: '/Empleado/historial' },
-        { icon: <FaChartLine size={30} color='#03427c' />, title: 'Estadísticas', path: '/Empleado/estadisticas' },
-    ];
-
-    return (
-        <Container maxWidth="lg" sx={{ mt: 9, mb: 10 }}>
-            <Typography variant="h4" fontWeight="bold" color="#03427c" gutterBottom>
-                Bienvenido, Empleado
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-                Accede rápidamente a las funciones más importantes
-            </Typography>
-
-            <Grid container spacing={3} mt={2}>
-                {menuItems.map((item, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                        <Card sx={{
-                            textAlign: 'center',
-                            backgroundColor: '#F9FDFF',
-                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                            borderRadius: 2,
-                            transition: 'transform 0.2s',
-                            '&:hover': { transform: 'scale(1.05)' }
-                        }}>
-                            <CardActionArea onClick={() => navigate(item.path)}>
-                                <CardContent>
-                                    <Box mb={1}>{item.icon}</Box>
-                                    <Typography variant="h6" fontWeight="bold" color="#03427c">
-                                        {item.title}
-                                    </Typography>
-                                </CardContent>
-                            </CardActionArea>
-                        </Card>
-                    </Grid>
-                ))}
-            </Grid>
-        </Container>
-    );
+  {/* Redes sociales (fila horizontal en la parte inferior derecha) */}
+  <Box
+    sx={{
+      position: 'absolute',
+      bottom: '35px',
+      right: '30px',
+      display: 'flex',
+      flexDirection: 'row',
+      gap: '15px',
+      zIndex: 2, // Asegura que los íconos estén por encima del fondo opaco
+    }}
+  >
+    {/* Íconos de redes sociales */}
+    <IconButton href="https://facebook.com" target="_blank" rel="noopener noreferrer" sx={{ backgroundColor: '#1877F2', color: 'white', '&:hover': { backgroundColor: '#166FE5', transform: 'scale(1.2)', transition: 'transform 0.3s ease-in-out, background-color 0.3s ease-in-out' } }}>
+      <Facebook fontSize="large" />
+    </IconButton>
+    <IconButton href="https://wa.me/1234567890" target="_blank" rel="noopener noreferrer" sx={{ backgroundColor: '#25D366', color: 'white', '&:hover': { backgroundColor: '#128C7E', transform: 'scale(1.2)', transition: 'transform 0.3s ease-in-out, background-color 0.3s ease-in-out' } }}>
+      <WhatsApp fontSize="large" />
+    </IconButton>
+    <IconButton href="mailto:info@odontologiacarol.com" sx={{ backgroundColor: '#D44638', color: 'white', '&:hover': { backgroundColor: '#C5221F', transform: 'scale(1.2)', transition: 'transform 0.3s ease-in-out, background-color 0.3s ease-in-out' } }}>
+      <Email fontSize="large" />
+    </IconButton>
+  </Box>
+</Box>
+  );
 };
 
-export default Principal;
+export default HomeEmpleado;

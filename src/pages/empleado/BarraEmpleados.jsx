@@ -31,7 +31,7 @@ const BarraEmpleados = () => {
         { icon: FaHome, text: 'Inicio', path: '/Empleado/principal' },
         { icon: FaUserCircle, text: 'Mi Perfil', path: '/Empleado/perfil' },
         { icon: FaCalendarAlt, text: 'Citas', path: '/Empleado/citas' },
-        { icon: FaUsers, text: 'Pacientes', path: '/Empleado/pacientes' },
+        { icon: FaUsers, text: 'Pacientes', path: '/Empleado/gestionPacient' },
         { icon: FaClipboardList, text: 'Historial', path: '/Empleado/historial' },
         { icon: FaFileMedical, text: 'Reportes', path: '/Empleado/reportes' },
         { icon: FaChartLine, text: 'Estadísticas', path: '/Empleado/estadisticas' },

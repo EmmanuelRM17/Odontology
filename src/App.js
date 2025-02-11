@@ -38,6 +38,8 @@ import ServicioForm from "./pages/administrador/ServicioForm.jsx";
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado.jsx";
 import PrincipalEmpleado from "./pages/empleado/Principal.jsx";
+import GestionPacient from "./pages/empleado/pages/Gestionpacient.jsx";
+import ExpedienteClinico from "./pages/empleado/pages/ExpedientPacient.jsx";
 
 function App() {
   const [tituloPagina, setTituloPagina] = useState("_");
@@ -168,14 +170,14 @@ function App() {
         <Route path="/Administrador/principal" element={<PrivateRoute><LayoutAdmin><PrincipalAdmin /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/configuracion" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Configuración' }]} /><Configuracion /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/reportes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Reportes' }]} /><Reportes /></LayoutAdmin></PrivateRoute>} />
-        <Route path="/Administrador/pacientes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/pacientes" element={<LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin>} />
         <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
         
         {/* Rutas protegidas del empleado */}
         <Route path="/Empleado/principal" element={<LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado>} />
-
-
+        <Route path="/Empleado/gestionPacient" element={<LayoutEmpleado><GestionPacient /></LayoutEmpleado>} />
+        <Route path="/Empleado/ExpedienteClinico" element={<LayoutEmpleado><ExpedienteClinico /></LayoutEmpleado>} />
         {/* Ruta para manejo de errores */}
         <Route path="/error" element={<ErrorPage />} />
         <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
