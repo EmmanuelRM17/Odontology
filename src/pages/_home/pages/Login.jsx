@@ -436,7 +436,7 @@ const Login = () => {
             setNotificationMessage(data.message || 'Código verificado correctamente.');
             setOpenNotification(true);
             setVerificationCode('');
-            setShowVerificationModal(false); // Cambiado de setOpenModal a setShowVerificationModal
+            setShowVerificationModal(false); 
 
             // Guardar en localStorage y redireccionar según el tipo de usuario
             if (data.userType === 'administradores') {
