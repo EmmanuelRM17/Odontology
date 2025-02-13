@@ -172,28 +172,40 @@ const FAQ = () => {
       showNotification("Error al actualizar el formulario", "error");
     }
   };
-
   const handleCaptchaChange = (value) => {
-    try {
-      if (value) {
-        setCaptchaValue(value);
-        setIsCaptchaLoading(false);
-        setErrorMessage("");
-        setFormData(prev => ({ ...prev, captchaVerified: true }));
-        console.log("✅ Captcha verificado correctamente.");
-        showNotification("Verificación completada", "success");
+    if (value) {
+      setCaptchaValue(value);
+      setIsCaptchaLoading(false);
+      setErrorMessage("");
+      setFormData(prev => ({ ...prev, captchaVerified: true }));
+      showNotification("Verificación completada", "success");
+  
+      // Limpiar timeout previo antes de crear uno nuevo
+      if (captchaTimeoutRef.current) {
+        clearTimeout(captchaTimeoutRef.current);
       }
-    } catch (error) {
-      console.error("❌ Error en Captcha:", error);
-      setErrorMessage("Error con el captcha. Por favor, inténtalo de nuevo.");
-      setFormData(prev => ({ ...prev, captchaVerified: false }));
-
-      if (recaptchaRef.current) {
-        setTimeout(() => recaptchaRef.current.reset(), 1000);
-      }
+  
+      captchaTimeoutRef.current = setTimeout(() => {
+        console.log("Captcha expirado");
+        setCaptchaValue(null);
+        setFormData(prev => ({ ...prev, captchaVerified: false }));
+        showNotification("La verificación ha expirado, por favor intente nuevamente", "warning");
+        if (recaptchaRef.current) {
+          recaptchaRef.current.reset();
+        }
+      }, 120000); 
     }
   };
-
+  
+  // Limpiar timeout cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (captchaTimeoutRef.current) {
+        clearTimeout(captchaTimeoutRef.current);
+      }
+    };
+  }, []);
+  
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -630,12 +642,26 @@ const FAQ = () => {
         startIcon={<EmailIcon />}
         onClick={() => setOpenModal(true)}
         sx={{
-          ...styles.askButton,
+          background: isDarkTheme ? "#90CAF9" : "#03427C",
+          color: isDarkTheme ? "#000000" : "white",
+          fontFamily: "Montserrat, sans-serif",
+          padding: "0.75rem 2rem",
+          borderRadius: "30px",
+          textTransform: "none",
+          fontSize: "1.1rem",
+          fontWeight: 500,
+          transition: "all 0.3s ease",
           animation: `${pulseAnimation} 2s infinite`,
-          '&:hover': {
-            ...styles.askButton['&:hover'],
-            animation: 'none'
-          }
+          boxShadow: isDarkTheme
+            ? "0 4px 15px rgba(144, 202, 249, 0.4)"
+            : "0 4px 15px rgba(3, 66, 124, 0.4)",
+          "&:hover": {
+            background: isDarkTheme ? "#63a4ff" : "#03427C",
+            transform: "translateY(-2px)",
+            boxShadow: isDarkTheme
+              ? "0 6px 20px rgba(144, 202, 249, 0.6)"
+              : "0 6px 20px rgba(3, 66, 124, 0.6)",
+          },
         }}
       >
         ¿Tienes una duda?
