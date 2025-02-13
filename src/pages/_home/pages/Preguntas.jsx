@@ -20,6 +20,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 import { keyframes } from "@emotion/react";
 import { useRef } from "react";
 import { CircularProgress } from "@mui/material";
+import { useCallback } from "react";
 import Notificaciones from '../../../components/Layout/Notificaciones'; // Importamos el componente de notificaciones
 
 const FAQ = () => {
@@ -74,14 +75,14 @@ const FAQ = () => {
 
 
   // Helper function para mostrar notificaciones
-  const showNotification = (message, type = "info", duration = 3000) => {
+  const showNotification = (message, type = "info", duration = 4000) => {
     setNotification({
       open: true,
       message,
       type
     });
-
-    // Desaparecer la notificación después de 'duration' milisegundos
+  
+    // Cerrar notificación después del tiempo definido
     setTimeout(() => {
       setNotification(prev => ({ ...prev, open: false }));
     }, duration);
@@ -112,36 +113,34 @@ const FAQ = () => {
     }
   }, []);
 
-  // FAQ fetching effect
-  useEffect(() => {
-    const fetchFAQs = async () => {
-      try {
-        const response = await fetch(
-          "https://back-end-4803.onrender.com/api/preguntas/get-all"
-        );
+  const fetchFAQs = useCallback(async () => {
+    try {
+      const response = await fetch(
+        "https://back-end-4803.onrender.com/api/preguntas/get-all"
+      );
 
-        if (!response.ok) {
-          throw new Error(`Error HTTP: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (!Array.isArray(data)) {
-          throw new Error("Formato de datos incorrecto");
-        }
-
-        setFaqs(data);
-      } catch (error) {
-        showNotification("No se pudieron cargar las preguntas frecuentes", "error");
-        setFaqs([]);
-      } finally {
-        setLoadingFaqs(false);
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
       }
-    };
 
-    fetchFAQs();
+      const data = await response.json();
+
+      if (!Array.isArray(data)) {
+        throw new Error("Formato de datos incorrecto");
+      }
+
+      setFaqs(data);
+    } catch (error) {
+      showNotification("No se pudieron cargar las preguntas frecuentes", "error");
+      setFaqs([]);
+    } finally {
+      setLoadingFaqs(false);
+    }
   }, []);
 
+  useEffect(() => {
+    fetchFAQs();
+  }, [fetchFAQs]);
 
   // Cleanup effect para el timeout del captcha
   useEffect(() => {
@@ -179,12 +178,12 @@ const FAQ = () => {
       setErrorMessage("");
       setFormData(prev => ({ ...prev, captchaVerified: true }));
       showNotification("Verificación completada", "success");
-  
+
       // Limpiar timeout previo antes de crear uno nuevo
       if (captchaTimeoutRef.current) {
         clearTimeout(captchaTimeoutRef.current);
       }
-  
+
       captchaTimeoutRef.current = setTimeout(() => {
         console.log("Captcha expirado");
         setCaptchaValue(null);
@@ -193,10 +192,10 @@ const FAQ = () => {
         if (recaptchaRef.current) {
           recaptchaRef.current.reset();
         }
-      }, 120000); 
+      }, 120000);
     }
   };
-  
+
   // Limpiar timeout cuando el componente se desmonte
   useEffect(() => {
     return () => {
@@ -205,7 +204,7 @@ const FAQ = () => {
       }
     };
   }, []);
-  
+
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -296,14 +295,10 @@ const FAQ = () => {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
-
-      setFaqs(prev => [...prev, {
-        question: formData.question,
-        answer: "Pendiente de respuesta"
-      }]);
-
-      showNotification("Su pregunta ha sido enviada exitosamente", "success");
+      showNotification("El administrador responderá su pregunta pronto.", "info", 5000);
       setOpenModal(false);
+
+      fetchFAQs();
 
       // Resetear formulario
       setFormData({
@@ -327,6 +322,7 @@ const FAQ = () => {
       showNotification("Error al enviar la pregunta", "error");
     }
   };
+
 
   // Primero definimos las animaciones
   const fadeIn = keyframes`

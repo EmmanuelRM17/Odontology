@@ -34,7 +34,9 @@ const Contacto = () => {
     telefono: '',
     mensaje: ''
   });
-
+  const [errors, setErrors] = useState({});
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
+  const phoneRegex = /^\d{10,15}$/;
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyCjYgHzkG53-aSTcHJkAPYu98TIkGZ2d-w"
   });
@@ -84,12 +86,54 @@ const Contacto = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+  
+    // Limpiar el error del campo que el usuario está editando
+    setErrors({ ...errors, [e.target.name]: '' });
+  };
+  
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+
+    // Validaciones
+    let newErrors = {};
+    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es obligatorio.';
+    if (!emailRegex.test(formData.email)) newErrors.email = 'Correo inválido. Usa @gmail, @hotmail, @outlook, etc.';
+    if (!phoneRegex.test(formData.telefono)) newErrors.telefono = 'El teléfono debe tener entre 10 y 15 números.';
+    if (formData.mensaje.trim().length < 10) newErrors.mensaje = 'El mensaje debe tener al menos 10 caracteres.';
+
+    // Si hay errores, detener el envío y mostrarlos
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('https://back-end-4803.onrender.com/api/contactos/msj', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        alert('✅ Mensaje enviado correctamente');
+        setFormData({ nombre: '', email: '', telefono: '', mensaje: '' }); // Limpia el formulario
+        setErrors({}); // Limpia errores después del envío exitoso
+      } else {
+        alert(`❌ Error: ${data.error}`);
+      }
+    } catch (error) {
+      alert('❌ Error al enviar el mensaje, intenta más tarde.');
+      console.error('Error al enviar el formulario:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Formulario enviado:', formData);
-  };
 
   return (
     <Box
@@ -282,13 +326,14 @@ const Contacto = () => {
                     type="submit"
                     variant="contained"
                     fullWidth
+                    disabled={isLoading} // Deshabilita el botón mientras se envía el formulario
                     sx={{
-                      bgcolor: '#0052A3',
-                      '&:hover': { bgcolor: '#003d7a' },
+                      bgcolor: isLoading ? '#A0A0A0' : '#0052A3', // Cambia el color cuando está deshabilitado
+                      '&:hover': { bgcolor: isLoading ? '#A0A0A0' : '#003d7a' },
                       py: 1.5
                     }}
                   >
-                    Enviar Mensaje
+                    {isLoading ? 'Enviando...' : 'Enviar Mensaje'}
                   </Button>
                 </Box>
               </Box>
