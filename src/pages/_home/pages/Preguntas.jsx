@@ -125,6 +125,11 @@ const FAQ = () => {
         }
 
         const data = await response.json();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Formato de datos incorrecto");
+        }
+
         setFaqs(data);
       } catch (error) {
         showNotification("No se pudieron cargar las preguntas frecuentes", "error");
@@ -136,6 +141,7 @@ const FAQ = () => {
 
     fetchFAQs();
   }, []);
+
 
   // Cleanup effect para el timeout del captcha
   useEffect(() => {
@@ -222,7 +228,7 @@ const FAQ = () => {
         isRegistered: data.exists,
         paciente_id: data.exists ? data.paciente_id : null,
       }));
-      
+
       if (data.exists) {
         showNotification("¿Qué duda tiene mi paciente?", "success");
       }
@@ -278,7 +284,6 @@ const FAQ = () => {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
-      const data = await response.json();
 
       setFaqs(prev => [...prev, {
         question: formData.question,
