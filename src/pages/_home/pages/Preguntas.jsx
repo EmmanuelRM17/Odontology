@@ -16,34 +16,70 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmailIcon from "@mui/icons-material/Email";
+import ReCAPTCHA from "react-google-recaptcha"; // Importar reCAPTCHA
+import { useRef } from "react";
+import { CircularProgress } from "@mui/material";
 
 const FAQ = () => {
   const [expandedPanel, setExpandedPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [captchaValue, setCaptchaValue] = useState(null);
+  const [isCaptchaLoading, setIsCaptchaLoading] = useState(true);
+  const recaptchaRef = useRef(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [loadingFaqs, setLoadingFaqs] = useState(true);
+  const [faqs, setFaqs] = useState([]);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
+    name: "",
     question: "",
+    isRegistered: false, // Indica si el usuario está registrado
+    paciente_id: null, // Guardará el ID del paciente si está registrado
+    captchaVerified: false, // Verifica si el captcha fue completado
   });
 
   useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    
+    const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+
     setIsDarkTheme(matchDarkTheme.matches);
-  
+
     const handleThemeChange = (e) => {
       setIsDarkTheme(e.matches);
     };
-  
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-  
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
+
+    matchDarkTheme.addEventListener("change", handleThemeChange);
+
+    return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
   }, []);
-  
+
+  //useEffect para obtener las preguntas de la base de datos 
+  useEffect(() => {
+    const fetchFAQs = async () => {
+      try {
+        const response = await fetch(
+          "https://back-end-4803.onrender.com/api/preguntas/get-all"
+        );
+
+        if (!response.ok) throw new Error("Error al obtener preguntas");
+
+        const data = await response.json();
+        setFaqs(data);
+      } catch (error) {
+        console.error("Error cargando FAQs:", error);
+        setFaqs([]); // Si falla, establecer como vacío
+      } finally {
+        setLoadingFaqs(false);
+      }
+    };
+
+    fetchFAQs();
+  }, []);
+
   const handleChange = (panel) => (event, isExpanded) => {
     setExpandedPanel(isExpanded ? panel : false);
   };
@@ -55,44 +91,99 @@ const FAQ = () => {
     });
   };
 
-  const handleSubmit = () => {
-    console.log("Formulario enviado:", formData);
-    setFormData({ name: "", email: "", question: "" });
-    setOpenModal(false);
+  // Actualiza la función handleCaptchaChange:
+  const handleCaptchaChange = (value) => {
+    try {
+      setCaptchaValue(value);
+      setIsCaptchaLoading(false);
+      setErrorMessage("");
+      setFormData({ ...formData, captchaVerified: true }); // Asegurar que se marca como verificado
+    } catch (error) {
+      console.error("Error en el captcha:", error);
+      setErrorMessage("Error con el captcha. Por favor, inténtalo de nuevo.");
+      setFormData({ ...formData, captchaVerified: false });
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+    }
   };
 
-  const faqs = [
-    {
-      question: "¿Qué tipos de tratamientos dentales ofrecen?",
-      answer:
-        "Ofrecemos una amplia gama de tratamientos que incluyen limpieza dental, blanqueamiento y ortodoncia.",
-    },
-    {
-      question: "¿Cuánto tiempo dura una limpieza dental profesional?",
-      answer:
-        "Una limpieza dental profesional típicamente dura entre 45 minutos y una hora, dependiendo del estado de tu salud bucal y la cantidad de sarro acumulado.",
-    },
-    {
-      question: "¿Con qué frecuencia debo visitar al dentista?",
-      answer:
-        "Recomendamos visitas de control y limpieza cada 6 meses. Sin embargo, si tienes problemas específicos, podríamos sugerir visitas más frecuentes.",
-    },
-    {
-      question: "¿Atienden emergencias dentales?",
-      answer:
-        "Sí, ofrecemos servicio de emergencias dentales. Contamos con horarios flexibles y disponibilidad para atender casos urgentes como dolor severo, traumatismos o infecciones.",
-    },
-    {
-      question: "¿Qué métodos de pago aceptan?",
-      answer:
-        "Aceptamos efectivo y ofrecemos planes de financiamiento para tratamientos extensos.",
-    },
-    {
-      question: "¿Cuánto tiempo dura un tratamiento de ortodoncia?",
-      answer:
-        "La duración del tratamiento de ortodoncia varía según cada caso, pero generalmente puede durar entre 18 y 24 meses. Durante la consulta inicial, podemos darte un estimado más preciso.",
-    },
-  ];
+  // Verificar si el correo existe en la base de datos
+  const checkEmailInDatabase = async () => {
+    try {
+      const response = await fetch(
+        "https://back-end-4803.onrender.com/api/preguntas/verificar-correo",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Error al verificar el correo");
+
+      const data = await response.json();
+      if (data.exists) {
+        setFormData((prev) => ({
+          ...prev,
+          name: data.name, // Autocompletar el nombre si existe
+          isRegistered: true,
+          paciente_id: data.paciente_id, // Guardar el ID del paciente
+        }));
+      } else {
+        setFormData((prev) => ({
+          ...prev,
+          name: "",
+          isRegistered: false,
+          paciente_id: null,
+        }));
+      }
+    } catch (error) {
+      console.error("Error verificando el correo:", error);
+    }
+  };
+
+
+  // Enviar la pregunta a la base de datos
+  const handleSubmit = async () => {
+    const payload = {
+      email: formData.email,
+      name: formData.name,
+      question: formData.question,
+      paciente_id: formData.isRegistered ? formData.paciente_id : null,
+    };
+
+    try {
+      const response = await fetch(
+        "https://back-end-4803.onrender.com/api/preguntas/nueva",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) throw new Error("Error al enviar la pregunta");
+
+      console.log("Pregunta enviada correctamente");
+
+      // Actualizar las preguntas en la UI sin necesidad de recargar
+      setFaqs([...faqs, { question: formData.question, answer: "Pendiente de respuesta" }]);
+
+      setOpenModal(false);
+      setFormData({
+        email: "",
+        name: "",
+        question: "",
+        isRegistered: false,
+        paciente_id: null,
+        captchaVerified: false,
+      });
+    } catch (error) {
+      console.error("Error al enviar la pregunta:", error);
+    }
+  };
+
 
   const styles = {
     container: {
@@ -191,28 +282,35 @@ const FAQ = () => {
       <Typography variant="h5" component="h1" sx={styles.title}>
         Preguntas Frecuentes
       </Typography>
-
-      {faqs.map((faq, index) => (
-        <Accordion
-          key={index}
-          expanded={expandedPanel === `panel${index}`}
-          onChange={handleChange(`panel${index}`)}
-          sx={styles.accordion}
-        >
-          <AccordionSummary
-            expandIcon={
-              <ExpandMoreIcon
-                sx={{ color: isDarkTheme ? "#90CAF9" : "#0077CC" }}
-              />
-            }
-          >
-            <Typography sx={styles.question}>{faq.question}</Typography>
-          </AccordionSummary>
-          <AccordionDetails>
-            <Typography sx={styles.answer}>{faq.answer}</Typography>
-          </AccordionDetails>
-        </Accordion>
-      ))}
+      {loadingFaqs ? (
+        <CircularProgress size={24} sx={{ marginTop: "2rem" }} />
+      ) : (
+        faqs.length > 0 ? (
+          faqs.map((faq, index) => (
+            <Accordion
+              key={index}
+              expanded={expandedPanel === `panel${index}`}
+              onChange={handleChange(`panel${index}`)}
+              sx={styles.accordion}
+            >
+              <AccordionSummary
+                expandIcon={
+                  <ExpandMoreIcon sx={{ color: isDarkTheme ? "#90CAF9" : "#0077CC" }} />
+                }
+              >
+                <Typography sx={styles.question}>{faq.question}</Typography>
+              </AccordionSummary>
+              <AccordionDetails>
+                <Typography sx={styles.answer}>{faq.answer}</Typography>
+              </AccordionDetails>
+            </Accordion>
+          ))
+        ) : (
+          <Typography sx={{ marginTop: "1rem", color: "#777" }}>
+            No hay preguntas frecuentes disponibles.
+          </Typography>
+        )
+      )}
 
       <Button
         variant="contained"
@@ -232,25 +330,32 @@ const FAQ = () => {
       >
         <DialogTitle sx={styles.modalTitle}>Hacer una pregunta</DialogTitle>
         <DialogContent>
-          <TextField
-            name="name"
-            label="Nombre"
-            fullWidth
-            value={formData.name}
-            onChange={handleFormChange}
-            sx={styles.textField}
-            required
-          />
+          {/* Campo de correo con validación */}
           <TextField
             name="email"
             label="Correo electrónico"
             fullWidth
             value={formData.email}
             onChange={handleFormChange}
-            sx={styles.textField}
+            onBlur={checkEmailInDatabase} // Valida el email cuando pierda el foco
             required
             type="email"
+            sx={styles.textField}
           />
+
+          {/* Campo de nombre (deshabilitado si el usuario está registrado) */}
+          <TextField
+            name="name"
+            label="Nombre"
+            fullWidth
+            value={formData.name}
+            onChange={handleFormChange}
+            required
+            disabled={formData.isRegistered} // Si está registrado, deshabilita el input
+            sx={styles.textField}
+          />
+
+          {/* Campo para la pregunta */}
           <TextField
             name="question"
             label="Tu pregunta"
@@ -262,10 +367,43 @@ const FAQ = () => {
             multiline
             rows={4}
           />
+
+          {/* ReCAPTCHA */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            mb: 3,
+            minHeight: '78px'
+          }}>
+            {isCaptchaLoading ? (
+              <CircularProgress size={24} />
+            ) : (
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey="6Lc74mAqAAAAAL5MmFjf4x0PWP9MtBNEy9ypux_h"
+                onChange={handleCaptchaChange}
+                onLoad={() => {
+                  setIsCaptchaLoading(false);
+                  setErrorMessage('');
+                }}
+                onError={() => {
+                  setIsCaptchaLoading(false);
+                  setErrorMessage('Error al cargar el captcha. Por favor, recarga la página.');
+                }}
+                onExpired={() => {
+                  setCaptchaValue(null);
+                  setErrorMessage('El captcha ha expirado. Por favor, complétalo nuevamente.');
+                }}
+                theme={isDarkMode ? 'dark' : 'light'}
+              />
+            )}
+          </Box>
         </DialogContent>
+
         <DialogActions sx={styles.dialogActions}>
-          <Button 
-            onClick={() => setOpenModal(false)} 
+          <Button
+            onClick={() => setOpenModal(false)}
             sx={{ fontFamily: "Montserrat, sans-serif" }}
           >
             Cancelar
@@ -273,6 +411,7 @@ const FAQ = () => {
           <Button
             onClick={handleSubmit}
             variant="contained"
+            disabled={!formData.captchaVerified} // Deshabilita hasta que se verifique el captcha
             sx={{
               background: isDarkTheme ? "#90CAF9" : "#0077CC",
               color: isDarkTheme ? "#000000" : "white",
@@ -288,6 +427,6 @@ const FAQ = () => {
       </Dialog>
     </Box>
   );
-};
 
+};
 export default FAQ;

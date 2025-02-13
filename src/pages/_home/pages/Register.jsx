@@ -11,8 +11,6 @@ import zxcvbn from 'zxcvbn';
 import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 
-
-
 const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -58,7 +56,6 @@ const Register = () => {
   const today = new Date().toISOString().split('T')[0];
   const [showChangeEmailConfirmation, setShowChangeEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const [isEmailEditable, setIsEmailEditable] = useState(true); // Controlar si el correo es editable
   const [privacyPolicy, setPrivacyPolicy] = useState('');
   const [termsConditions, setTermsConditions] = useState('');
