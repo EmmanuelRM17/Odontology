@@ -16,48 +16,103 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmailIcon from "@mui/icons-material/Email";
-import ReCAPTCHA from "react-google-recaptcha"; // Importar reCAPTCHA
+import ReCAPTCHA from "react-google-recaptcha";
+import { keyframes } from "@emotion/react";
 import { useRef } from "react";
 import { CircularProgress } from "@mui/material";
+import Notificaciones from '../../../components/Layout/Notificaciones'; // Importamos el componente de notificaciones
 
 const FAQ = () => {
+  // State management
   const [expandedPanel, setExpandedPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [captchaValue, setCaptchaValue] = useState(null);
   const [isCaptchaLoading, setIsCaptchaLoading] = useState(true);
-  const recaptchaRef = useRef(null);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loadingFaqs, setLoadingFaqs] = useState(true);
   const [faqs, setFaqs] = useState([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [notification, setNotification] = useState({
+    open: false,
+    message: "",
+    type: "info"
+  });
+  const recaptchaRef = useRef(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const captchaTimeoutRef = useRef(null);
 
   const [formData, setFormData] = useState({
     email: "",
     name: "",
     question: "",
-    isRegistered: false, // Indica si el usuario está registrado
-    paciente_id: null, // Guardará el ID del paciente si está registrado
-    captchaVerified: false, // Verifica si el captcha fue completado
+    isRegistered: false,
+    paciente_id: null,
+    captchaVerified: false,
   });
 
   useEffect(() => {
-    const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    let retries = 0;
+    const maxRetries = 50; // 🔹 Máximo de intentos (cada 100ms = 5s)
 
-    setIsDarkTheme(matchDarkTheme.matches);
+    const checkRecaptcha = setInterval(() => {
+      if (window.grecaptcha && window.grecaptcha.render) {
+        console.log("✅ reCAPTCHA cargado correctamente.");
+        setIsCaptchaLoading(false);
+        clearInterval(checkRecaptcha);
+      } else if (retries >= maxRetries) {
+        console.error("⚠ reCAPTCHA no pudo cargar después de varios intentos.");
+        setIsCaptchaLoading(false);
+        clearInterval(checkRecaptcha);
+      }
+      retries++;
+    }, 100);
 
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-
-    matchDarkTheme.addEventListener("change", handleThemeChange);
-
-    return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
+    return () => clearInterval(checkRecaptcha);
   }, []);
 
-  //useEffect para obtener las preguntas de la base de datos 
+
+  // Helper function para mostrar notificaciones
+  const showNotification = (message, type = "info", duration = 3000) => {
+    setNotification({
+      open: true,
+      message,
+      type
+    });
+
+    // Desaparecer la notificación después de 'duration' milisegundos
+    setTimeout(() => {
+      setNotification(prev => ({ ...prev, open: false }));
+    }, duration);
+  };
+
+
+  // Manejador para cerrar notificaciones
+  const handleNotificationClose = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  // Theme detection effect
+  useEffect(() => {
+    try {
+      const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+      setIsDarkTheme(matchDarkTheme.matches);
+      setIsDarkMode(matchDarkTheme.matches);
+
+      const handleThemeChange = (e) => {
+        setIsDarkTheme(e.matches);
+        setIsDarkMode(e.matches);
+      };
+
+      matchDarkTheme.addEventListener("change", handleThemeChange);
+      return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
+    } catch (error) {
+      console.error("Error en la detección del tema:", error);
+    }
+  }, []);
+
+  // FAQ fetching effect
   useEffect(() => {
     const fetchFAQs = async () => {
       try {
@@ -65,13 +120,15 @@ const FAQ = () => {
           "https://back-end-4803.onrender.com/api/preguntas/get-all"
         );
 
-        if (!response.ok) throw new Error("Error al obtener preguntas");
+        if (!response.ok) {
+          throw new Error(`Error HTTP: ${response.status}`);
+        }
 
         const data = await response.json();
         setFaqs(data);
       } catch (error) {
-        console.error("Error cargando FAQs:", error);
-        setFaqs([]); // Si falla, establecer como vacío
+        showNotification("No se pudieron cargar las preguntas frecuentes", "error");
+        setFaqs([]);
       } finally {
         setLoadingFaqs(false);
       }
@@ -80,37 +137,70 @@ const FAQ = () => {
     fetchFAQs();
   }, []);
 
+  // Cleanup effect para el timeout del captcha
+  useEffect(() => {
+    return () => {
+      if (captchaTimeoutRef.current) {
+        clearTimeout(captchaTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleChange = (panel) => (event, isExpanded) => {
-    setExpandedPanel(isExpanded ? panel : false);
+    try {
+      setExpandedPanel(isExpanded ? panel : false);
+    } catch (error) {
+      console.error("Error al manejar el acordeón:", error);
+    }
   };
 
   const handleFormChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+    try {
+      const { name, value } = e.target;
+      setFormData(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    } catch (error) {
+      console.error("Error en el formulario:", error);
+      showNotification("Error al actualizar el formulario", "error");
+    }
   };
 
-  // Actualiza la función handleCaptchaChange:
   const handleCaptchaChange = (value) => {
     try {
-      setCaptchaValue(value);
-      setIsCaptchaLoading(false);
-      setErrorMessage("");
-      setFormData({ ...formData, captchaVerified: true }); // Asegurar que se marca como verificado
+      if (value) {
+        setCaptchaValue(value);
+        setIsCaptchaLoading(false);
+        setErrorMessage("");
+        setFormData(prev => ({ ...prev, captchaVerified: true }));
+        console.log("✅ Captcha verificado correctamente.");
+        showNotification("Verificación completada", "success");
+      }
     } catch (error) {
-      console.error("Error en el captcha:", error);
+      console.error("❌ Error en Captcha:", error);
       setErrorMessage("Error con el captcha. Por favor, inténtalo de nuevo.");
-      setFormData({ ...formData, captchaVerified: false });
+      setFormData(prev => ({ ...prev, captchaVerified: false }));
+
       if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
+        setTimeout(() => recaptchaRef.current.reset(), 1000);
       }
     }
   };
 
-  // Verificar si el correo existe en la base de datos
+
+  const validateEmail = (email) => {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+  };
+
   const checkEmailInDatabase = async () => {
     try {
+      if (!validateEmail(formData.email)) {
+        showNotification("Por favor ingrese un correo electrónico válido", "warning");
+        return;
+      }
+
       const response = await fetch(
         "https://back-end-4803.onrender.com/api/preguntas/verificar-correo",
         {
@@ -120,40 +210,61 @@ const FAQ = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Error al verificar el correo");
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
       const data = await response.json();
+
+      setFormData(prev => ({
+        ...prev,
+        name: data.exists ? `${data.name} ${data.apellido_paterno}` : "",
+        isRegistered: data.exists,
+        paciente_id: data.exists ? data.paciente_id : null,
+      }));
+      
       if (data.exists) {
-        setFormData((prev) => ({
-          ...prev,
-          name: data.name, // Autocompletar el nombre si existe
-          isRegistered: true,
-          paciente_id: data.paciente_id, // Guardar el ID del paciente
-        }));
-      } else {
-        setFormData((prev) => ({
-          ...prev,
-          name: "",
-          isRegistered: false,
-          paciente_id: null,
-        }));
+        showNotification("¿Qué duda tiene mi paciente?", "success");
       }
+
     } catch (error) {
-      console.error("Error verificando el correo:", error);
+      showNotification("Error al verificar el correo electrónico", "error");
     }
   };
 
+  const validateForm = () => {
+    if (!formData.email.trim()) {
+      showNotification("Por favor ingrese su correo electrónico", "warning");
+      return false;
+    }
+    if (!formData.name.trim()) {
+      showNotification("Por favor ingrese su nombre", "warning");
+      return false;
+    }
+    if (!formData.question.trim()) {
+      showNotification("Por favor ingrese su pregunta", "warning");
+      return false;
+    }
+    if (!formData.captchaVerified) {
+      showNotification("Por favor complete la verificación de seguridad", "warning");
+      return false;
+    }
+    return true;
+  };
 
-  // Enviar la pregunta a la base de datos
   const handleSubmit = async () => {
-    const payload = {
-      email: formData.email,
-      name: formData.name,
-      question: formData.question,
-      paciente_id: formData.isRegistered ? formData.paciente_id : null,
-    };
-
     try {
+      if (!validateForm()) {
+        return;
+      }
+
+      const payload = {
+        email: formData.email,
+        name: formData.name,
+        question: formData.question,
+        paciente_id: formData.isRegistered ? formData.paciente_id : null,
+      };
+
       const response = await fetch(
         "https://back-end-4803.onrender.com/api/preguntas/nueva",
         {
@@ -163,14 +274,21 @@ const FAQ = () => {
         }
       );
 
-      if (!response.ok) throw new Error("Error al enviar la pregunta");
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
-      console.log("Pregunta enviada correctamente");
+      const data = await response.json();
 
-      // Actualizar las preguntas en la UI sin necesidad de recargar
-      setFaqs([...faqs, { question: formData.question, answer: "Pendiente de respuesta" }]);
+      setFaqs(prev => [...prev, {
+        question: formData.question,
+        answer: "Pendiente de respuesta"
+      }]);
 
+      showNotification("Su pregunta ha sido enviada exitosamente", "success");
       setOpenModal(false);
+
+      // Resetear formulario
       setFormData({
         email: "",
         name: "",
@@ -179,123 +297,312 @@ const FAQ = () => {
         paciente_id: null,
         captchaVerified: false,
       });
+
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+      }
+
+      // Limpiar timeout del captcha
+      if (captchaTimeoutRef.current) {
+        clearTimeout(captchaTimeoutRef.current);
+      }
     } catch (error) {
-      console.error("Error al enviar la pregunta:", error);
+      showNotification("Error al enviar la pregunta", "error");
     }
   };
 
+  // Primero definimos las animaciones
+  const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+  const slideFromRight = keyframes`
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+`;
+
+  const pulseAnimation = keyframes`
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+`;
 
   const styles = {
     container: {
       background: isDarkTheme
-        ? "linear-gradient(135deg, #1C2A38, #1C2A38)"
-        : "linear-gradient(90deg, #ffffff, #E5F3FD)",
+        ? "linear-gradient(135deg, #1C2A38 0%, #2C3E50 100%)"
+        : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
       minHeight: "55vh",
-      padding: isMobile ? "1rem" : "2rem",
+      padding: isMobile ? "1.5rem" : "3rem",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
       justifyContent: "flex-start",
+      transition: "background 0.3s ease-in-out",
+      position: "relative",
     },
     title: {
-      marginBottom: "1.5rem",
+      marginBottom: "2rem",
       color: isDarkTheme ? "#90CAF9" : "#03427C",
-      fontSize: isMobile ? "1.5rem" : "1.75rem",
+      fontSize: isMobile ? "1.75rem" : "2rem",
       fontWeight: "bold",
       textAlign: "center",
       fontFamily: "Montserrat, sans-serif",
+      textTransform: "uppercase",
+      letterSpacing: "2px",
+      position: "relative",
+      display: "inline-block",
+      paddingBottom: "0.75rem",
+      borderBottom: `4px solid ${isDarkTheme ? "#90CAF9" : "#03427C"}`,
+      textShadow: "2px 2px 5px rgba(0,0,0,0.2)",
+      animation: `${fadeIn} 0.8s ease-out`,
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        bottom: "-4px",
+        left: "0",
+        width: "100%",
+        height: "4px",
+        background: isDarkTheme ? "#90CAF9" : "#03427C",
+        transform: "scaleX(0)",
+        transformOrigin: "right",
+        transition: "transform 0.3s ease-out",
+      },
+      "&:hover::after": {
+        transform: "scaleX(1)",
+        transformOrigin: "left",
+      },
     },
     accordion: {
       background: isDarkTheme ? "#2d3748" : "white",
       borderRadius: "12px",
       boxShadow: isDarkTheme
-        ? "0 4px 6px rgba(0,0,0,0.3)"
-        : "0 4px 6px rgba(0,0,0,0.1)",
-      margin: "0.5rem 0",
+        ? "0 8px 16px rgba(0,0,0,0.4)"
+        : "0 8px 16px rgba(0,0,0,0.1)",
+      margin: "0.75rem 0",
       width: "100%",
       maxWidth: "800px",
+      transition: "all 0.3s ease-in-out",
+      animation: `${slideFromRight} 0.5s ease-out`,
+      "&:hover": {
+        transform: "translateY(-2px)",
+        boxShadow: isDarkTheme
+          ? "0 12px 20px rgba(0,0,0,0.5)"
+          : "0 12px 20px rgba(0,0,0,0.15)",
+      },
     },
     question: {
-      fontFamily: "Montserrat, sans-serif",
-      fontSize: isMobile ? "0.9rem" : "1rem",
-      fontWeight: 500,
+      fontFamily: '"Montserrat", sans-serif',
+      fontSize: isMobile ? "1rem" : "1.1rem",
+      fontWeight: 400,
       color: isDarkTheme ? "#ffffff" : "#000000",
+      transition: "color 0.3s ease",
     },
     answer: {
       fontFamily: "Montserrat, sans-serif",
-      fontSize: isMobile ? "0.85rem" : "0.95rem",
+      fontSize: isMobile ? "0.9rem" : "1rem",
       color: isDarkTheme ? "#cbd5e0" : "#555555",
-      lineHeight: 1.5,
+      lineHeight: 1.6,
+      padding: "0.5rem 0",
+      transition: "all 0.3s ease",
     },
     askButton: {
-      marginTop: "2rem",
+      marginTop: "2.5rem",
       background: isDarkTheme ? "#90CAF9" : "#03427C",
       color: isDarkTheme ? "#000000" : "white",
       fontFamily: "Montserrat, sans-serif",
+      padding: "0.75rem 2rem",
+      borderRadius: "30px",
+      textTransform: "none",
+      fontSize: "1.1rem",
+      fontWeight: 500,
+      transition: "all 0.3s ease",
+      animation: `${pulseAnimation} 2s infinite`,
+      boxShadow: isDarkTheme
+        ? "0 4px 15px rgba(144, 202, 249, 0.4)"
+        : "0 4px 15px rgba(3, 66, 124, 0.4)",
       "&:hover": {
         background: isDarkTheme ? "#63a4ff" : "#03427C",
+        transform: "translateY(-2px)",
+        boxShadow: isDarkTheme
+          ? "0 6px 20px rgba(144, 202, 249, 0.6)"
+          : "0 6px 20px rgba(3, 66, 124, 0.6)",
       },
     },
     modal: {
       "& .MuiDialog-paper": {
-        borderRadius: "12px",
-        padding: "1rem",
+        borderRadius: "16px",
+        padding: "1.5rem",
         backgroundColor: isDarkTheme ? "#2d3748" : "white",
+        boxShadow: isDarkTheme
+          ? "0 12px 24px rgba(0,0,0,0.5)"
+          : "0 12px 24px rgba(0,0,0,0.2)",
+        animation: `${fadeIn} 0.3s ease-out`,
       },
     },
     modalTitle: {
       fontFamily: "Montserrat, sans-serif",
       color: isDarkTheme ? "#90CAF9" : "#03427C",
+      fontSize: "1.5rem",
+      fontWeight: "bold",
+      textTransform: "uppercase",
+      letterSpacing: "1px",
+      textAlign: "center",
+      marginBottom: "1.5rem",
+      borderBottom: `3px solid ${isDarkTheme ? "#90CAF9" : "#03427C"}`,
+      paddingBottom: "0.75rem",
     },
     textField: {
-      marginBottom: "1rem",
+      marginBottom: "1.5rem",
       "& label": {
         fontFamily: "Montserrat, sans-serif",
         color: isDarkTheme ? "#cbd5e0" : undefined,
+        fontSize: "0.95rem",
       },
-      "& input": {
+      "& input, & textarea": {
         fontFamily: "Montserrat, sans-serif",
         color: isDarkTheme ? "#ffffff" : undefined,
-      },
-      "& textarea": {
-        fontFamily: "Montserrat, sans-serif",
-        color: isDarkTheme ? "#ffffff" : undefined,
+        fontSize: "1rem",
+        padding: "0.75rem",
       },
       "& .MuiOutlinedInput-root": {
+        borderRadius: "8px",
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-1px)",
+        },
         "& fieldset": {
           borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.23)" : undefined,
+          transition: "border-color 0.3s ease",
         },
         "&:hover fieldset": {
           borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.5)" : undefined,
         },
+        "&.Mui-focused fieldset": {
+          borderColor: isDarkTheme ? "#90CAF9" : "#03427C",
+          borderWidth: "2px",
+        },
       },
     },
     dialogActions: {
+      padding: "1rem",
       "& .MuiButton-text": {
         color: isDarkTheme ? "#90CAF9" : undefined,
+        transition: "all 0.3s ease",
+        "&:hover": {
+          transform: "translateY(-1px)",
+        },
       },
+    },
+    captchaContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: '1.5rem',
+      minHeight: '78px',
+      transition: 'all 0.3s ease',
+      animation: `${fadeIn} 0.5s ease-out`,
+    },
+    noFaqsMessage: {
+      marginTop: "2rem",
+      color: isDarkTheme ? "#cbd5e0" : "#777",
+      fontSize: "1.1rem",
+      textAlign: "center",
+      fontFamily: "Montserrat, sans-serif",
+      animation: `${fadeIn} 0.5s ease-out`,
+      padding: "2rem",
+      border: `2px dashed ${isDarkTheme ? "#4a5568" : "#ccc"}`,
+      borderRadius: "12px",
+    },
+    loadingSpinner: {
+      marginTop: "2rem",
+      color: isDarkTheme ? "#90CAF9" : "#03427C",
+      animation: `${fadeIn} 0.5s ease-out`,
     },
   };
 
   return (
     <Box sx={styles.container}>
-      <Typography variant="h5" component="h1" sx={styles.title}>
+      {/* Enhanced Animated Title */}
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 'bold',
+          color: isDarkMode ? '#ffffff' : '#03427C',
+          textTransform: 'uppercase',
+          fontFamily: 'Montserrat, sans-serif',
+          letterSpacing: '2px',
+          position: 'relative',
+          display: 'inline-block',
+          paddingBottom: '0.5rem',
+          borderBottom: `4px solid ${isDarkMode ? '#fff' : '#03427C'}`,
+          textShadow: '2px 2px 5px rgba(0,0,0,0.2)',
+          textAlign: 'center',
+          width: '45%',
+          mb: 2
+        }}
+      >
         Preguntas Frecuentes
       </Typography>
-      {loadingFaqs ? (
-        <CircularProgress size={24} sx={{ marginTop: "2rem" }} />
-      ) : (
-        faqs.length > 0 ? (
+
+      {/* FAQs Container with Animation */}
+      <Box
+        sx={{
+          width: '100%',
+          maxWidth: '800px',
+          margin: '0 auto',
+          animation: `${fadeIn} 0.8s ease-out`
+        }}
+      >
+        {loadingFaqs ? (
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            mt: 4,
+            animation: `${pulseAnimation} 2s infinite`
+          }}>
+            <CircularProgress sx={styles.loadingSpinner} />
+          </Box>
+        ) : faqs.length > 0 ? (
           faqs.map((faq, index) => (
             <Accordion
               key={index}
               expanded={expandedPanel === `panel${index}`}
               onChange={handleChange(`panel${index}`)}
-              sx={styles.accordion}
+              sx={{
+                ...styles.accordion,
+                animation: `${slideFromRight} ${0.3 + index * 0.1}s ease-out`
+              }}
+              TransitionProps={{ unmountOnExit: true }}
             >
               <AccordionSummary
                 expandIcon={
-                  <ExpandMoreIcon sx={{ color: isDarkTheme ? "#90CAF9" : "#0077CC" }} />
+                  <ExpandMoreIcon
+                    sx={{
+                      color: isDarkTheme ? "#90CAF9" : "#03427C",
+                      transition: 'all 0.3s ease',
+                      transform: expandedPanel === `panel${index}` ? 'rotate(180deg)' : 'rotate(0deg)'
+                    }}
+                  />
                 }
               >
                 <Typography sx={styles.question}>{faq.question}</Typography>
@@ -306,127 +613,158 @@ const FAQ = () => {
             </Accordion>
           ))
         ) : (
-          <Typography sx={{ marginTop: "1rem", color: "#777" }}>
+          <Typography sx={styles.noFaqsMessage}>
             No hay preguntas frecuentes disponibles.
           </Typography>
-        )
-      )}
+        )}
+      </Box>
 
+      {/* Animated Ask Button */}
       <Button
         variant="contained"
         startIcon={<EmailIcon />}
         onClick={() => setOpenModal(true)}
-        sx={styles.askButton}
+        sx={{
+          ...styles.askButton,
+          animation: `${pulseAnimation} 2s infinite`,
+          '&:hover': {
+            ...styles.askButton['&:hover'],
+            animation: 'none'
+          }
+        }}
       >
         ¿Tienes una duda?
       </Button>
 
+      {/* Enhanced Modal with Animations */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
         maxWidth="sm"
         fullWidth
-        sx={styles.modal}
+        sx={{
+          ...styles.modal,
+          '& .MuiDialog-paper': {
+            ...styles.modal['& .MuiDialog-paper'],
+            animation: `${fadeIn} 0.4s ease-out`
+          }
+        }}
       >
-        <DialogTitle sx={styles.modalTitle}>Hacer una pregunta</DialogTitle>
+        <DialogTitle sx={styles.modalTitle}>
+          Hacer una pregunta
+        </DialogTitle>
         <DialogContent>
-          {/* Campo de correo con validación */}
-          <TextField
-            name="email"
-            label="Correo electrónico"
-            fullWidth
-            value={formData.email}
-            onChange={handleFormChange}
-            onBlur={checkEmailInDatabase} // Valida el email cuando pierda el foco
-            required
-            type="email"
-            sx={styles.textField}
-          />
+          <Box
+            component="form"
+            sx={{
+              mt: 2,
+              '& > *': {
+                animation: `${slideFromRight} 0.5s ease-out`
+              }
+            }}
+          >
+            <TextField
+              name="email"
+              label="Correo electrónico"
+              fullWidth
+              value={formData.email}
+              onChange={handleFormChange}
+              onBlur={checkEmailInDatabase}
+              required
+              type="email"
+              sx={styles.textField}
+            />
 
-          {/* Campo de nombre (deshabilitado si el usuario está registrado) */}
-          <TextField
-            name="name"
-            label="Nombre"
-            fullWidth
-            value={formData.name}
-            onChange={handleFormChange}
-            required
-            disabled={formData.isRegistered} // Si está registrado, deshabilita el input
-            sx={styles.textField}
-          />
+            <TextField
+              name="name"
+              label="Nombre"
+              fullWidth
+              value={formData.name}
+              onChange={handleFormChange}
+              required
+              disabled={formData.isRegistered}
+              sx={styles.textField}
+            />
 
-          {/* Campo para la pregunta */}
-          <TextField
-            name="question"
-            label="Tu pregunta"
-            fullWidth
-            value={formData.question}
-            onChange={handleFormChange}
-            sx={styles.textField}
-            required
-            multiline
-            rows={4}
-          />
+            <TextField
+              name="question"
+              label="Tu pregunta"
+              fullWidth
+              value={formData.question}
+              onChange={handleFormChange}
+              sx={styles.textField}
+              required
+              multiline
+              rows={4}
+            />
+            <Box sx={styles.captchaContainer}>
+              {isCaptchaLoading ? (
+                <CircularProgress size={24} />
+              ) : (
+                <ReCAPTCHA
+                  ref={recaptchaRef}
+                  sitekey="6Lc74mAqAAAAAL5MmFjf4x0PWP9MtBNEy9ypux_h"
+                  onChange={handleCaptchaChange}
+                  onExpired={() => {
+                    setCaptchaValue(null);
+                    setErrorMessage("⚠ El captcha ha expirado. Complétalo nuevamente.");
+                    if (recaptchaRef.current) {
+                      setTimeout(() => recaptchaRef.current.reset(), 1000);
+                    }
+                  }}
+                  onError={() => {
+                    setErrorMessage("❌ Error al cargar el captcha. Inténtalo de nuevo.");
+                    setIsCaptchaLoading(true); // Forzar recarga del captcha
+                  }}
+                  theme={isDarkTheme ? 'dark' : 'light'}
+                />
+              )}
+            </Box>
 
-          {/* ReCAPTCHA */}
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            mb: 3,
-            minHeight: '78px'
-          }}>
-            {isCaptchaLoading ? (
-              <CircularProgress size={24} />
-            ) : (
-              <ReCAPTCHA
-                ref={recaptchaRef}
-                sitekey="6Lc74mAqAAAAAL5MmFjf4x0PWP9MtBNEy9ypux_h"
-                onChange={handleCaptchaChange}
-                onLoad={() => {
-                  setIsCaptchaLoading(false);
-                  setErrorMessage('');
-                }}
-                onError={() => {
-                  setIsCaptchaLoading(false);
-                  setErrorMessage('Error al cargar el captcha. Por favor, recarga la página.');
-                }}
-                onExpired={() => {
-                  setCaptchaValue(null);
-                  setErrorMessage('El captcha ha expirado. Por favor, complétalo nuevamente.');
-                }}
-                theme={isDarkMode ? 'dark' : 'light'}
-              />
-            )}
           </Box>
         </DialogContent>
 
         <DialogActions sx={styles.dialogActions}>
           <Button
             onClick={() => setOpenModal(false)}
-            sx={{ fontFamily: "Montserrat, sans-serif" }}
+            sx={{
+              ...styles.dialogActions['& .MuiButton-text'],
+              fontFamily: "Montserrat, sans-serif"
+            }}
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!formData.captchaVerified} // Deshabilita hasta que se verifique el captcha
+            disabled={!formData.captchaVerified}
             sx={{
-              background: isDarkTheme ? "#90CAF9" : "#0077CC",
+              background: isDarkTheme ? "#90CAF9" : "#03427C",
               color: isDarkTheme ? "#000000" : "white",
               fontFamily: "Montserrat, sans-serif",
-              "&:hover": {
-                background: isDarkTheme ? "#63a4ff" : "#005fa3",
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                background: isDarkTheme ? "#63a4ff" : "#02315E",
+                transform: 'translateY(-2px)',
+                boxShadow: '0 6px 20px rgba(3, 66, 124, 0.4)'
               },
+              '&:disabled': {
+                background: isDarkTheme ? "#4a5568" : "#cccccc"
+              }
             }}
           >
             Enviar
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Notificaciones
+        open={notification.open}
+        message={notification.message}
+        type={notification.type}
+        onClose={handleNotificationClose}
+      />
     </Box>
   );
-
 };
 export default FAQ;
