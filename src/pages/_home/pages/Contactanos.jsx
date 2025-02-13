@@ -86,15 +86,13 @@ const Contacto = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-  
+
     // Limpiar el error del campo que el usuario está editando
     setErrors({ ...errors, [e.target.name]: '' });
   };
-  
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
 
     // Validaciones
     let newErrors = {};
@@ -106,12 +104,13 @@ const Contacto = () => {
     // Si hay errores, detener el envío y mostrarlos
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      setIsLoading(false);
-      return;
+      return; // ❌ Evita continuar con la petición si hay errores
     }
 
+    setIsLoading(true); // ✅ Activar el estado de carga solo si la validación pasa
+
     try {
-      const response = await fetch('https://back-end-4803.onrender.com/api/contactos/msj', {
+      const response = await fetch('https://back-end-4803.onrender.com/api/contacto/msj', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
@@ -133,7 +132,6 @@ const Contacto = () => {
       setIsLoading(false);
     }
   };
-
 
   return (
     <Box
@@ -245,7 +243,6 @@ const Contacto = () => {
                 >
                   O si lo prefieres, puedes escribirnos a través del siguiente formulario de contacto:
                 </Typography>
-
                 <Box
                   component="form"
                   onSubmit={handleSubmit}
@@ -271,6 +268,8 @@ const Contacto = () => {
                       type={field.type || 'text'}
                       value={formData[field.name]}
                       onChange={handleInputChange}
+                      error={!!errors[field.name]} // ✅ Muestra error si existe
+                      helperText={errors[field.name]} // ✅ Muestra mensaje de error
                       variant="outlined"
                       sx={{
                         mb: 2,
@@ -302,6 +301,8 @@ const Contacto = () => {
                     rows={4}
                     value={formData.mensaje}
                     onChange={handleInputChange}
+                    error={!!errors.mensaje} // ✅ Muestra error si existe
+                    helperText={errors.mensaje} // ✅ Muestra mensaje de error
                     variant="outlined"
                     sx={{
                       mb: 2,
@@ -326,11 +327,12 @@ const Contacto = () => {
                     type="submit"
                     variant="contained"
                     fullWidth
-                    disabled={isLoading} // Deshabilita el botón mientras se envía el formulario
+                    disabled={isLoading} // ✅ Deshabilita mientras se envía el formulario
                     sx={{
-                      bgcolor: isLoading ? '#A0A0A0' : '#0052A3', // Cambia el color cuando está deshabilitado
+                      bgcolor: isLoading ? '#A0A0A0' : '#0052A3',
                       '&:hover': { bgcolor: isLoading ? '#A0A0A0' : '#003d7a' },
-                      py: 1.5
+                      py: 1.5,
+                      cursor: isLoading ? 'not-allowed' : 'pointer' // ✅ Mejora accesibilidad
                     }}
                   >
                     {isLoading ? 'Enviando...' : 'Enviar Mensaje'}
