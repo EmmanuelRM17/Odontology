@@ -15,6 +15,7 @@ import { Phone, Email, LocationOn, WhatsApp, ArrowBack, OpenInNew } from '@mui/i
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
+import Notificaciones from '../../../components/Layout/Notificaciones';
 
 const Contacto = () => {
   const theme = useTheme();
@@ -28,6 +29,11 @@ const Contacto = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    type: 'info', // success, error, warning, info
+  });
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
@@ -94,20 +100,24 @@ const Contacto = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validaciones
     let newErrors = {};
-    if (!formData.nombre.trim()) newErrors.nombre = 'El nombre es obligatorio.';
-    if (!emailRegex.test(formData.email)) newErrors.email = 'Correo inválido. Usa @gmail, @hotmail, @outlook, etc.';
+    if (!formData.nombre.trim()) newErrors.nombre = 'Por favor, ingresa tu nombre.';
+    if (!emailRegex.test(formData.email)) newErrors.email = 'Introduce un correo válido (Gmail, Hotmail, Outlook, etc.).';
     if (!phoneRegex.test(formData.telefono)) newErrors.telefono = 'El teléfono debe tener entre 10 y 15 números.';
-    if (formData.mensaje.trim().length < 10) newErrors.mensaje = 'El mensaje debe tener al menos 10 caracteres.';
+    if (formData.mensaje.trim().length < 10) newErrors.mensaje = 'Tu mensaje debe tener al menos 10 caracteres.';
 
-    // Si hay errores, detener el envío y mostrarlos
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
-      return; // ❌ Evita continuar con la petición si hay errores
+      setNotification({
+        open: true,
+        message: '❌ Por favor, revisa los campos en rojo antes de enviar.',
+        type: 'error'
+      });
+      return;
     }
 
-    setIsLoading(true); // ✅ Activar el estado de carga solo si la validación pasa
+
+    setIsLoading(true);
 
     try {
       const response = await fetch('https://back-end-4803.onrender.com/api/contacto/msj', {
@@ -119,19 +129,39 @@ const Contacto = () => {
       const data = await response.json();
 
       if (response.ok) {
-        alert('✅ Mensaje enviado correctamente');
-        setFormData({ nombre: '', email: '', telefono: '', mensaje: '' }); // Limpia el formulario
-        setErrors({}); // Limpia errores después del envío exitoso
-      } else {
-        alert(`❌ Error: ${data.error}`);
+        setNotification({
+          open: true,
+          message: '🎉 ¡Gracias! Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.',
+          type: 'success'
+        });
+        setFormData({
+          nombre: '',
+          email: '',
+          telefono: '',
+          mensaje: ''
+        });
+      }
+      else {
+        setNotification({
+          open: true,
+          message: '⚠️ Lo sentimos, hubo un problema al enviar tu mensaje. Intenta nuevamente en unos minutos.',
+          type: 'warning'
+        });
       }
     } catch (error) {
-      alert('❌ Error al enviar el mensaje, intenta más tarde.');
+      setNotification({
+        open: true,
+        message: '❌ Error al enviar el mensaje, intenta más tarde.',
+        type: 'error'
+      });
       console.error('Error al enviar el formulario:', error);
     } finally {
       setIsLoading(false);
+
     }
+
   };
+
 
   return (
     <Box
@@ -327,16 +357,17 @@ const Contacto = () => {
                     type="submit"
                     variant="contained"
                     fullWidth
-                    disabled={isLoading} // ✅ Deshabilita mientras se envía el formulario
+                    disabled={isLoading}
                     sx={{
-                      bgcolor: isLoading ? '#A0A0A0' : '#0052A3',
-                      '&:hover': { bgcolor: isLoading ? '#A0A0A0' : '#003d7a' },
+                      bgcolor: isLoading ? '#B0BEC5' : '#0052A3',
+                      '&:hover': { bgcolor: isLoading ? '#B0BEC5' : '#003d7a' },
                       py: 1.5,
-                      cursor: isLoading ? 'not-allowed' : 'pointer' // ✅ Mejora accesibilidad
+                      cursor: isLoading ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {isLoading ? 'Enviando...' : 'Enviar Mensaje'}
+                    {isLoading ? '📨 Enviando...' : 'Enviar Mensaje'}
                   </Button>
+
                 </Box>
               </Box>
             </Grid>
@@ -436,6 +467,14 @@ const Contacto = () => {
           </Grid>
         </Paper>
       </Container>
+      <Notificaciones
+        open={notification.open}
+        message={notification.message}
+        type={notification.type}
+        handleClose={() => setNotification({ ...notification, open: false })}
+        autoHideDuration={5000} // La notificación desaparece después de 5 segundos
+      />
+
     </Box>
   );
 };

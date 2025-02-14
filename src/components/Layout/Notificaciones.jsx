@@ -94,8 +94,8 @@ const Notificaciones = ({ open, message, type, handleClose }) => {
   return (
     <Snackbar
       open={open}
-      autoHideDuration={null}
-      onClose={handleClose}
+      autoHideDuration={3000} 
+            onClose={handleClose}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} // Cambiado a bottom-center
       sx={{
         '& .MuiSnackbar-root': {
