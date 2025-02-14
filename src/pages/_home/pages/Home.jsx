@@ -195,8 +195,8 @@ const Home = () => {
     <Box
       sx={{
         background: isDarkTheme
-          ? 'linear-gradient(135deg, #1C2A38 0%, #1C2A38 100%)'
-          : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
+        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" 
+        : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
         transition: 'background 0.5s ease',
         position: 'relative',
         minHeight: '100vh',

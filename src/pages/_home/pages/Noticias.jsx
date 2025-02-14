@@ -104,15 +104,17 @@ const Noticias = () => {
 
     return (
         <Box
-            sx={{
-                minHeight: '80vh',
-                backgroundImage: isDarkTheme
-                    ? 'none'
-                    : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
-                transition: 'background-image 0.3s ease-in-out',
-                py: 4,
-                ...commonStyles
-            }}
+        sx={{
+            minHeight: "80vh",
+            backgroundImage: isDarkTheme
+              ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" // 🌙 Degradado oscuro en modo oscuro
+              : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)", // ☀️ Degradado claro en modo claro
+            transition: "background-image 0.3s ease-in-out, background-color 0.3s ease-in-out",
+            backgroundColor: isDarkTheme ? "#0D1B2A" : "transparent",
+            py: 4,
+            ...commonStyles,
+          }}
+          
         >
             <Container maxWidth="xl">
                 <Typography

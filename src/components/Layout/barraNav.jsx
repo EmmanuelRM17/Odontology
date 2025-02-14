@@ -12,9 +12,11 @@ import {
   ListItem,
   ListItemText,
   IconButton,
-  Skeleton
+  Skeleton,
+  ListItemIcon,
+  Divider
 } from '@mui/material';
-import { FaSignInAlt, FaCalendarAlt } from 'react-icons/fa';
+import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle } from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -131,7 +133,8 @@ const BarraNav = () => {
     <Box
       sx={{
         width: '80vw',
-        backgroundColor: isDarkTheme ? '#2A3A4A' : '#f0f0f0',
+        maxWidth: '360px',
+        backgroundColor: isDarkTheme ? '#1a2027' : '#ffffff',
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -145,7 +148,8 @@ const BarraNav = () => {
         justifyContent: 'space-between',
         alignItems: 'center',
         p: 2,
-        borderBottom: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e0e0e0'}`
+        borderBottom: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+        backgroundColor: isDarkTheme ? '#2A3A4A' : '#f8f9fa'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           {logo && (
@@ -153,45 +157,151 @@ const BarraNav = () => {
               src={logo}
               alt="Logo"
               style={{
-                marginRight: '10px',
+                marginRight: '12px',
                 width: '40px',
                 height: '40px',
-                borderRadius: '50%'
+                borderRadius: '50%',
+                border: `2px solid ${isDarkTheme ? '#3d5afe' : '#1976d2'}`
               }}
             />
           )}
           <Typography
             variant="h6"
             sx={{
-              color: isDarkTheme ? 'white' : '#333',
-              fontWeight: 600
+              color: isDarkTheme ? '#fff' : '#1a2027',
+              fontWeight: 600,
+              fontFamily: '"Montserrat", sans-serif',
+              fontSize: '1.1rem'
             }}
           >
             {companyName || 'Odontología Carol'}
           </Typography>
         </Box>
-        <IconButton onClick={toggleDrawer(false)}>
-          <CloseIcon sx={{ color: isDarkTheme ? 'white' : '#333' }} />
+        <IconButton 
+          onClick={toggleDrawer(false)}
+          sx={{
+            color: isDarkTheme ? '#fff' : '#1a2027',
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'
+            }
+          }}
+        >
+          <CloseIcon />
         </IconButton>
       </Box>
 
-      <List>
-        <ListItem button component={Link} to="/">
-          <ListItemText primary="Inicio" />
+      <List sx={{ flex: 1, pt: 2 }}>
+        <ListItem 
+          button 
+          component={Link} 
+          to="/"
+          sx={{
+            py: 1.5,
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
+            <FaHome size={20} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Inicio"
+            primaryTypographyProps={{
+              sx: {
+                color: isDarkTheme ? '#fff' : '#1a2027',
+                fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 500
+              }
+            }}
+          />
         </ListItem>
-        <ListItem button component={Link} to="/about">
-          <ListItemText primary="Acerca de" />
+
+        <ListItem 
+          button 
+          component={Link} 
+          to="/about"
+          sx={{
+            py: 1.5,
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
+            <FaInfoCircle size={20} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Acerca de"
+            primaryTypographyProps={{
+              sx: {
+                color: isDarkTheme ? '#fff' : '#1a2027',
+                fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 500
+              }
+            }}
+          />
         </ListItem>
-        <ListItem button component={Link} to="/agendar-cita">
-          <ListItemText primary="Agenda una Cita" />
+
+        <Divider sx={{ my: 2, borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
+
+        <ListItem 
+          button 
+          component={Link} 
+          to="/agendar-cita"
+          sx={{
+            py: 1.5,
+            backgroundColor: isDarkTheme ? 'rgba(61, 90, 254, 0.1)' : 'rgba(25, 118, 210, 0.08)',
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(61, 90, 254, 0.2)' : 'rgba(25, 118, 210, 0.12)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
+            <FaCalendarAlt size={20} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Agenda una Cita"
+            primaryTypographyProps={{
+              sx: {
+                color: isDarkTheme ? '#fff' : '#1a2027',
+                fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 600
+              }
+            }}
+          />
         </ListItem>
-        <ListItem button component={Link} to="/login">
-          <FaSignInAlt style={{ marginRight: '10px', fontSize: '1.5rem' }} />
-          <ListItemText primary="Iniciar sesión" />
+
+        <ListItem 
+          button 
+          component={Link} 
+          to="/login"
+          sx={{
+            py: 1.5,
+            mt: 1,
+            backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
+            <FaSignInAlt size={20} />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Iniciar sesión"
+            primaryTypographyProps={{
+              sx: {
+                color: isDarkTheme ? '#fff' : '#1a2027',
+                fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 500
+              }
+            }}
+          />
         </ListItem>
       </List>
     </Box>
-  );
+  )
 
   if (loading) {
     return <LoadingNavBar isDarkTheme={isDarkTheme} />;

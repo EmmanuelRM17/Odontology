@@ -16,20 +16,18 @@ import {
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmailIcon from "@mui/icons-material/Email";
-import ReCAPTCHA from "react-google-recaptcha";
 import { keyframes } from "@emotion/react";
 import { useRef } from "react";
 import { CircularProgress } from "@mui/material";
 import { useCallback } from "react";
 import Notificaciones from '../../../components/Layout/Notificaciones'; // Importamos el componente de notificaciones
+import CustomRecaptcha from "../../../components/Tools/Captcha";
 
 const FAQ = () => {
-  // State management
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
   const [isDarkTheme, setIsDarkTheme] = useState(false);
-  const [captchaValue, setCaptchaValue] = useState(null);
-  const [isCaptchaLoading, setIsCaptchaLoading] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loadingFaqs, setLoadingFaqs] = useState(true);
   const [faqs, setFaqs] = useState([]);
@@ -39,10 +37,8 @@ const FAQ = () => {
     message: "",
     type: "info"
   });
-  const recaptchaRef = useRef(null);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const captchaTimeoutRef = useRef(null);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -53,27 +49,6 @@ const FAQ = () => {
     captchaVerified: false,
   });
 
-  useEffect(() => {
-    let retries = 0;
-    const maxRetries = 50; // 🔹 Máximo de intentos (cada 100ms = 5s)
-
-    const checkRecaptcha = setInterval(() => {
-      if (window.grecaptcha && window.grecaptcha.render) {
-        console.log("✅ reCAPTCHA cargado correctamente.");
-        setIsCaptchaLoading(false);
-        clearInterval(checkRecaptcha);
-      } else if (retries >= maxRetries) {
-        console.error("⚠ reCAPTCHA no pudo cargar después de varios intentos.");
-        setIsCaptchaLoading(false);
-        clearInterval(checkRecaptcha);
-      }
-      retries++;
-    }, 100);
-
-    return () => clearInterval(checkRecaptcha);
-  }, []);
-
-
   // Helper function para mostrar notificaciones
   const showNotification = (message, type = "info", duration = 4000) => {
     setNotification({
@@ -81,7 +56,7 @@ const FAQ = () => {
       message,
       type
     });
-  
+
     // Cerrar notificación después del tiempo definido
     setTimeout(() => {
       setNotification(prev => ({ ...prev, open: false }));
@@ -142,15 +117,6 @@ const FAQ = () => {
     fetchFAQs();
   }, [fetchFAQs]);
 
-  // Cleanup effect para el timeout del captcha
-  useEffect(() => {
-    return () => {
-      if (captchaTimeoutRef.current) {
-        clearTimeout(captchaTimeoutRef.current);
-      }
-    };
-  }, []);
-
   const handleChange = (panel) => (event, isExpanded) => {
     try {
       setExpandedPanel(isExpanded ? panel : false);
@@ -171,40 +137,10 @@ const FAQ = () => {
       showNotification("Error al actualizar el formulario", "error");
     }
   };
+
   const handleCaptchaChange = (value) => {
-    if (value) {
-      setCaptchaValue(value);
-      setIsCaptchaLoading(false);
-      setErrorMessage("");
-      setFormData(prev => ({ ...prev, captchaVerified: true }));
-      showNotification("Verificación completada", "success");
-
-      // Limpiar timeout previo antes de crear uno nuevo
-      if (captchaTimeoutRef.current) {
-        clearTimeout(captchaTimeoutRef.current);
-      }
-
-      captchaTimeoutRef.current = setTimeout(() => {
-        console.log("Captcha expirado");
-        setCaptchaValue(null);
-        setFormData(prev => ({ ...prev, captchaVerified: false }));
-        showNotification("La verificación ha expirado, por favor intente nuevamente", "warning");
-        if (recaptchaRef.current) {
-          recaptchaRef.current.reset();
-        }
-      }, 120000);
-    }
+    setCaptchaVerified(!!value);
   };
-
-  // Limpiar timeout cuando el componente se desmonte
-  useEffect(() => {
-    return () => {
-      if (captchaTimeoutRef.current) {
-        clearTimeout(captchaTimeoutRef.current);
-      }
-    };
-  }, []);
-
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -262,7 +198,7 @@ const FAQ = () => {
       showNotification("Por favor ingrese su pregunta", "warning");
       return false;
     }
-    if (!formData.captchaVerified) {
+    if (!captchaVerified) {
       showNotification("Por favor complete la verificación de seguridad", "warning");
       return false;
     }
@@ -309,15 +245,6 @@ const FAQ = () => {
         paciente_id: null,
         captchaVerified: false,
       });
-
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
-      }
-
-      // Limpiar timeout del captcha
-      if (captchaTimeoutRef.current) {
-        clearTimeout(captchaTimeoutRef.current);
-      }
     } catch (error) {
       showNotification("Error al enviar la pregunta", "error");
     }
@@ -362,7 +289,7 @@ const FAQ = () => {
   const styles = {
     container: {
       background: isDarkTheme
-        ? "linear-gradient(135deg, #1C2A38 0%, #2C3E50 100%)"
+        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
         : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
       minHeight: "55vh",
       padding: isMobile ? "1.5rem" : "3rem",
@@ -646,6 +573,7 @@ const FAQ = () => {
           textTransform: "none",
           fontSize: "1.1rem",
           fontWeight: 500,
+          mt: 3,
           transition: "all 0.3s ease",
           animation: `${pulseAnimation} 2s infinite`,
           boxShadow: isDarkTheme
@@ -725,29 +653,8 @@ const FAQ = () => {
               rows={4}
             />
             <Box sx={styles.captchaContainer}>
-              {isCaptchaLoading ? (
-                <CircularProgress size={24} />
-              ) : (
-                <ReCAPTCHA
-                  ref={recaptchaRef}
-                  sitekey="6Lc74mAqAAAAAL5MmFjf4x0PWP9MtBNEy9ypux_h"
-                  onChange={handleCaptchaChange}
-                  onExpired={() => {
-                    setCaptchaValue(null);
-                    setErrorMessage("⚠ El captcha ha expirado. Complétalo nuevamente.");
-                    if (recaptchaRef.current) {
-                      setTimeout(() => recaptchaRef.current.reset(), 1000);
-                    }
-                  }}
-                  onError={() => {
-                    setErrorMessage("❌ Error al cargar el captcha. Inténtalo de nuevo.");
-                    setIsCaptchaLoading(true); // Forzar recarga del captcha
-                  }}
-                  theme={isDarkTheme ? 'dark' : 'light'}
-                />
-              )}
+              <CustomRecaptcha onCaptchaChange={handleCaptchaChange} isDarkMode={isDarkMode} />
             </Box>
-
           </Box>
         </DialogContent>
 
@@ -764,7 +671,7 @@ const FAQ = () => {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={!formData.captchaVerified}
+            disabled={!captchaVerified}
             sx={{
               background: isDarkTheme ? "#90CAF9" : "#03427C",
               color: isDarkTheme ? "#000000" : "white",

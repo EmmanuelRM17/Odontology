@@ -163,10 +163,12 @@ const Ubicacion = () => {
       initial="hidden"
       animate="visible"
       style={{
-        backgroundImage: 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)', // Fondo degradado aplicado a toda la sección
-        minHeight: '80vh', // Ajusta el alto para cubrir toda la vista
+        background: isDarkMode
+        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" 
+        : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)", 
+        transition: 'background-color 0.3s ease',   
+             minHeight: '80vh', // Ajusta el alto para cubrir toda la vista
         width: '100%', // Asegura que cubra todo el ancho disponible
-
         justifyContent: 'center',
         alignItems: 'center',
       }}

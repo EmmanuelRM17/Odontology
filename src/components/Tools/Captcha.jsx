@@ -1,162 +1,181 @@
-// CustomRecaptcha.js
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReCAPTCHA from 'react-google-recaptcha';
-import { Box, CircularProgress, IconButton } from '@mui/material';
+import { Box, CircularProgress, IconButton, Typography } from '@mui/material';
 import { Refresh } from '@mui/icons-material';
 
 const RECAPTCHA_SITE_KEY = '6Lc74mAqAAAAAL5MmFjf4x0PWP9MtBNEy9ypux_h';
-const LOAD_TIMEOUT = 5000;
+const POLLING_INTERVAL_MS = 100;
+const MAX_POLLING_ATTEMPTS = 50;
+const AUTO_RESET_MS = 120000;
 
-const CustomRecaptcha = ({ onCaptchaChange, isDarkMode = false }) => {
-    const [isCaptchaLoading, setIsCaptchaLoading] = useState(true);
-    const [loadError, setLoadError] = useState(false);
-    const recaptchaRef = useRef(null);
-    const loadingTimerRef = useRef(null);
-    const mountedRef = useRef(true);
+// Función para cargar el script de reCAPTCHA
+const loadRecaptchaScript = () => {
+  if (window.grecaptcha) {
+    return Promise.resolve();
+  }
 
-    const cleanupTimers = () => {
-        if (loadingTimerRef.current) {
-            clearTimeout(loadingTimerRef.current);
-            loadingTimerRef.current = null;
+  return new Promise((resolve, reject) => {
+    const script = document.createElement('script');
+    script.src = `https://www.google.com/recaptcha/api.js?render=explicit`;
+    script.async = true;
+    script.defer = true;
+    script.id = 'recaptcha-script';
+
+    script.onload = () => {
+      // Esperamos un poco más después de que el script se carga
+      setTimeout(resolve, 500);
+    };
+    script.onerror = reject;
+
+    document.head.appendChild(script);
+  });
+};
+
+function CustomRecaptcha({ onCaptchaChange, isDarkMode }) {
+  const recaptchaRef = useRef(null);
+  const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
+  const [captchaKey, setCaptchaKey] = useState(Date.now());
+
+  // Efecto para cargar el script
+  useEffect(() => {
+    let mounted = true;
+
+    const initializeRecaptcha = async () => {
+      try {
+        await loadRecaptchaScript();
+        
+        if (!mounted) return;
+
+        let attempts = 0;
+        const interval = setInterval(() => {
+          if (window.grecaptcha && window.grecaptcha.render) {
+            setStatus('ready');
+            clearInterval(interval);
+          } else {
+            attempts++;
+            if (attempts >= MAX_POLLING_ATTEMPTS) {
+              console.error('❌ reCAPTCHA no cargó a tiempo.');
+              setStatus('error');
+              clearInterval(interval);
+            }
+          }
+        }, POLLING_INTERVAL_MS);
+
+        return () => clearInterval(interval);
+      } catch (error) {
+        console.error('Error loading reCAPTCHA script:', error);
+        if (mounted) {
+          setStatus('error');
         }
+      }
     };
 
-    const resetCaptcha = useCallback(() => {
-        setLoadError(false);
-        setIsCaptchaLoading(true);
+    initializeRecaptcha();
 
+    return () => {
+      mounted = false;
+    };
+  }, [captchaKey]);
+
+  useEffect(() => {
+    if (status === 'ready') {
+      const timer = setTimeout(() => {
         if (recaptchaRef.current) {
-            recaptchaRef.current.reset();
+          recaptchaRef.current.reset();
+          console.log('♻️ reCAPTCHA reseteado después de 2 minutos.');
         }
+      }, AUTO_RESET_MS);
 
-        initializeCaptcha();
-    }, []);
+      return () => clearTimeout(timer);
+    }
+  }, [status]);
 
+  const handleChange = useCallback((value) => {
+    try {
+      onCaptchaChange(value);
+    } catch (error) {
+      console.error('Error en onCaptchaChange:', error);
+      onCaptchaChange(null);
+    }
+  }, [onCaptchaChange]);
 
-    const initializeCaptcha = useCallback(() => {
-        cleanupTimers();
+  const handleErrored = useCallback(() => {
+    console.error('❌ Error interno de reCAPTCHA.');
+    setStatus('error');
+    onCaptchaChange(null);
+  }, [onCaptchaChange]);
 
-        loadingTimerRef.current = setTimeout(() => {
-            if (mountedRef.current) {
-                if (!window.grecaptcha) {
-                    setLoadError(true);
-                    setIsCaptchaLoading(false);
-                    console.error("⏳ reCAPTCHA no se pudo cargar dentro del tiempo límite.");
-                }
-            }
-        }, LOAD_TIMEOUT);
+  const handleExpired = useCallback(() => {
+    console.log('⏰ reCAPTCHA expiró.');
+    onCaptchaChange(null);
+  }, [onCaptchaChange]);
 
-        const MAX_RETRIES = 50; // 🔹 Límite de intentos (cada 100ms = 5s)
-        let recaptchaRetries = 0;
+  const resetCaptcha = useCallback(() => {
+    // Remover el script anterior si existe
+    const oldScript = document.getElementById('recaptcha-script');
+    if (oldScript) {
+      oldScript.remove();
+    }
+    
+    // Limpiar la variable global de grecaptcha
+    if (window.grecaptcha) {
+      delete window.grecaptcha;
+    }
 
-        const checkRecaptchaLoad = () => {
-            if (window.grecaptcha && window.grecaptcha.render) {
-                if (mountedRef.current) {
-                    setIsCaptchaLoading(false);
-                    cleanupTimers();
-                    console.log("✅ reCAPTCHA cargado correctamente.");
-                }
-            } else if (mountedRef.current && recaptchaRetries < MAX_RETRIES) {
-                recaptchaRetries++;
-                setTimeout(checkRecaptchaLoad, 100);
-            } else {
-                console.error("❌ Error: No se pudo cargar reCAPTCHA después de varios intentos.");
-                setLoadError(true);
-                setIsCaptchaLoading(false);
-            }
-        };
+    console.log('♻️ Reseteando reCAPTCHA manualmente...');
+    setCaptchaKey(Date.now());
+    setStatus('loading');
+  }, []);
 
-        checkRecaptchaLoad();
-    }, []);
+  const renderContent = () => {
+    switch (status) {
+      case 'loading':
+        return (
+          <Box sx={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center',
+            minHeight: '78px'
+          }}>
+            <CircularProgress size={24} />
+          </Box>
+        );
+      
+      case 'error':
+        return (
+          <Box sx={{ textAlign: 'center', minHeight: '78px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+              Error al cargar reCAPTCHA. Intenta recargar.
+            </Typography>
+            <IconButton onClick={resetCaptcha} color="primary" size="small">
+              <Refresh fontSize="small" />
+            </IconButton>
+          </Box>
+        );
+      
+      case 'ready':
+        return (
+          <ReCAPTCHA
+            key={captchaKey}
+            ref={recaptchaRef}
+            sitekey={RECAPTCHA_SITE_KEY}
+            onChange={handleChange}
+            onErrored={handleErrored}
+            onExpired={handleExpired}
+            theme={isDarkMode ? 'dark' : 'light'}
+          />
+        );
+      
+      default:
+        return null;
+    }
+  };
 
-    useEffect(() => {
-        mountedRef.current = true;
-        initializeCaptcha();
-
-        return () => {
-            mountedRef.current = false;
-            cleanupTimers();
-        };
-    }, [initializeCaptcha]);
-
-    const handleCaptchaChange = useCallback((value) => {
-        try {
-            if (mountedRef.current) {
-                setIsCaptchaLoading(false);
-                onCaptchaChange(value);
-            }
-        } catch (error) {
-            console.error('Error en el captcha:', error);
-            if (recaptchaRef.current) {
-                recaptchaRef.current.reset();
-            }
-            onCaptchaChange(null);
-        }
-    }, [onCaptchaChange]);
-
-    const handleError = useCallback(() => {
-        if (mountedRef.current) {
-            setLoadError(true);
-            setIsCaptchaLoading(false);
-            onCaptchaChange(null);
-        }
-    }, [onCaptchaChange]);
-
-    return (
-        <Box
-            sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'center',
-                alignItems: 'center',
-                minHeight: '78px',
-                position: 'relative'
-            }}
-        >
-            {isCaptchaLoading && (
-                <CircularProgress size={24} />
-            )}
-
-            {!isCaptchaLoading && (
-                <ReCAPTCHA
-                    ref={recaptchaRef}
-                    sitekey={RECAPTCHA_SITE_KEY}
-                    onChange={handleCaptchaChange}
-                    onError={handleError}
-                    onExpired={() => onCaptchaChange(null)}
-                    theme={isDarkMode ? 'dark' : 'light'}
-                />
-            )}
-
-            {/* Botón de recarga solo visible cuando hay error */}
-            {loadError && (
-                <Box
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        width: '100%',
-                        justifyContent: 'center',
-                        mt: 1
-                    }}
-                >
-                    <IconButton
-                        onClick={resetCaptcha}
-                        color="primary"
-                        size="small"
-                        sx={{
-                            bgcolor: 'background.paper',
-                            boxShadow: 1,
-                            '&:hover': {
-                                bgcolor: 'action.hover'
-                            }
-                        }}
-                    >
-                        <Refresh fontSize="small" />
-                    </IconButton>
-                </Box>
-            )}
-        </Box>
-    );
-};
+  return (
+    <Box sx={{ position: 'relative', minHeight: '78px' }}>
+      {renderContent()}
+    </Box>
+  );
+}
 
 export default React.memo(CustomRecaptcha);

@@ -8,17 +8,17 @@ import {
   Grid,
   CircularProgress,
   useTheme,
-  Paper,
-  IconButton
+  Paper
 } from '@mui/material';
-import { Phone, Email, LocationOn, WhatsApp, ArrowBack, OpenInNew } from '@mui/icons-material';
+import { Phone, Email, LocationOn, WhatsApp, OpenInNew } from '@mui/icons-material';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import CustomRecaptcha from '../../../components/Tools/Captcha';
 
 const Contacto = () => {
   const theme = useTheme();
+  const [captchaVerified, setCaptchaVerified] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [empresa, setEmpresa] = useState({
     nombre_empresa: 'Nombre de la Empresa',
@@ -32,7 +32,7 @@ const Contacto = () => {
   const [notification, setNotification] = useState({
     open: false,
     message: '',
-    type: 'info', // success, error, warning, info
+    type: 'info',
   });
   const [formData, setFormData] = useState({
     nombre: '',
@@ -41,8 +41,10 @@ const Contacto = () => {
     mensaje: ''
   });
   const [errors, setErrors] = useState({});
+
   const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
   const phoneRegex = /^\d{10,15}$/;
+
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyCjYgHzkG53-aSTcHJkAPYu98TIkGZ2d-w"
   });
@@ -60,7 +62,6 @@ const Contacto = () => {
     const handleThemeChange = (e) => {
       setIsDarkMode(e.matches);
     };
-
     matchDarkTheme.addEventListener('change', handleThemeChange);
     return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
   }, []);
@@ -69,9 +70,7 @@ const Contacto = () => {
   useEffect(() => {
     const fetchEmpresaData = async () => {
       try {
-        const response = await fetch(
-          'https://back-end-4803.onrender.com/api/perfilEmpresa/empresa'
-        );
+        const response = await fetch('https://back-end-4803.onrender.com/api/perfilEmpresa/empresa');
         if (!response.ok) {
           throw new Error('Error al obtener los datos de la empresa');
         }
@@ -83,7 +82,6 @@ const Contacto = () => {
         setIsLoading(false);
       }
     };
-
     fetchEmpresaData();
   }, []);
 
@@ -92,33 +90,31 @@ const Contacto = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
-
-    // Limpiar el error del campo que el usuario está editando
+    // Limpiar el error del campo que se edita
     setErrors({ ...errors, [e.target.name]: '' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     let newErrors = {};
+
     if (!formData.nombre.trim()) newErrors.nombre = 'Por favor, ingresa tu nombre.';
-    if (!emailRegex.test(formData.email)) newErrors.email = 'Introduce un correo válido (Gmail, Hotmail, Outlook, etc.).';
-    if (!phoneRegex.test(formData.telefono)) newErrors.telefono = 'El teléfono debe tener entre 10 y 15 números.';
+    if (!emailRegex.test(formData.email)) newErrors.email = 'Introduce un correo válido.';
+    if (!phoneRegex.test(formData.telefono)) newErrors.telefono = 'El teléfono debe tener entre 10 y 15 dígitos.';
     if (formData.mensaje.trim().length < 10) newErrors.mensaje = 'Tu mensaje debe tener al menos 10 caracteres.';
+    if (!captchaVerified) newErrors.captcha = '⚠️ Por favor, completa la verificación de seguridad.';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       setNotification({
         open: true,
-        message: '❌ Por favor, revisa los campos en rojo antes de enviar.',
+        message: '❌ Revisa los campos en rojo antes de enviar.',
         type: 'error'
       });
       return;
     }
 
-
     setIsLoading(true);
-
     try {
       const response = await fetch('https://back-end-4803.onrender.com/api/contacto/msj', {
         method: 'POST',
@@ -126,12 +122,10 @@ const Contacto = () => {
         body: JSON.stringify(formData),
       });
 
-      const data = await response.json();
-
       if (response.ok) {
         setNotification({
           open: true,
-          message: '🎉 ¡Gracias! Tu mensaje ha sido enviado correctamente. Nos pondremos en contacto contigo pronto.',
+          message: '🎉 ¡Gracias! Tu mensaje ha sido enviado correctamente.',
           type: 'success'
         });
         setFormData({
@@ -140,11 +134,11 @@ const Contacto = () => {
           telefono: '',
           mensaje: ''
         });
-      }
-      else {
+        setCaptchaVerified(false); // Reiniciar captcha
+      } else {
         setNotification({
           open: true,
-          message: '⚠️ Lo sentimos, hubo un problema al enviar tu mensaje. Intenta nuevamente en unos minutos.',
+          message: '⚠️ Hubo un problema al enviar tu mensaje. Intenta de nuevo.',
           type: 'warning'
         });
       }
@@ -154,14 +148,45 @@ const Contacto = () => {
         message: '❌ Error al enviar el mensaje, intenta más tarde.',
         type: 'error'
       });
-      console.error('Error al enviar el formulario:', error);
     } finally {
       setIsLoading(false);
-
     }
-
   };
 
+  const commonStyles = {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: isDarkMode ? '#1B2A3A' : '#ffffff',
+      borderRadius: '12px',
+      transition: 'all 0.3s ease',
+      '& fieldset': {
+        borderColor: isDarkMode ? '#475569' : '#e0e0e0',
+        borderWidth: '2px',
+      },
+      '&:hover fieldset': {
+        borderColor: '#0052A3',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#0052A3',
+        borderWidth: '2px',
+      },
+      '& input, & textarea': {
+        color: isDarkMode ? '#ffffff' : '#000000',
+      },
+    },
+    '& .MuiInputLabel-root': {
+      color: isDarkMode ? '#94A3B8' : '#666666',
+      '&.Mui-focused': {
+        color: '#0052A3',
+      },
+    },
+    mb: 3,
+  };
+
+  const fields = [
+    { name: 'nombre', label: 'Nombre', icon: '👤' },
+    { name: 'email', label: 'Email', type: 'email', icon: '📧' },
+    { name: 'telefono', label: 'Teléfono', icon: '📱' }
+  ];
 
   return (
     <Box
@@ -210,9 +235,8 @@ const Contacto = () => {
             Nos encantará atenderte y resolver cualquier duda que puedas tener.
           </Typography>
 
-
           <Grid container spacing={4}>
-            {/* Lado Izquierdo: Información y Formulario */}
+            {/* Lado Izquierdo */}
             <Grid item xs={12} md={6}>
               <Box>
                 {[
@@ -236,6 +260,7 @@ const Contacto = () => {
                     <Typography sx={{ ml: 2 }}>{item.text}</Typography>
                   </Box>
                 ))}
+
                 <Typography
                   variant="body1"
                   sx={{
@@ -244,7 +269,7 @@ const Contacto = () => {
                     textAlign: 'center'
                   }}
                 >
-                  Si deseas contactarnos mandanos un WhatsApp y te mandaremos la informacion que necesites.
+                  Si deseas contactarnos mándanos un WhatsApp y te mandaremos la información que necesites.
                 </Typography>
 
                 <Button
@@ -273,86 +298,77 @@ const Contacto = () => {
                 >
                   O si lo prefieres, puedes escribirnos a través del siguiente formulario de contacto:
                 </Typography>
+
                 <Box
                   component="form"
                   onSubmit={handleSubmit}
                   sx={{
-                    p: 3,
+                    p: 4,
                     bgcolor: isDarkMode ? '#1B2A3A' : '#ffffff',
-                    borderRadius: 2,
-                    boxShadow: 1
+                    borderRadius: '16px',
+                    boxShadow: isDarkMode
+                      ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.24)'
+                      : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                    '& > *:not(:last-child)': {
+                      mb: 2.5,
+                    },
                   }}
                 >
-                  {[
-                    { name: 'nombre', label: 'Nombre' },
-                    { name: 'email', label: 'Email', type: 'email' },
-                    { name: 'telefono', label: 'Teléfono' }
-                  ].map((field) => (
+                  {fields.map((field) => (
                     <TextField
                       key={field.name}
                       fullWidth
                       required
                       margin="normal"
                       name={field.name}
-                      label={field.label}
+                      label={`${field.icon} ${field.label}`}
                       type={field.type || 'text'}
                       value={formData[field.name]}
                       onChange={handleInputChange}
-                      error={!!errors[field.name]} // ✅ Muestra error si existe
-                      helperText={errors[field.name]} // ✅ Muestra mensaje de error
+                      error={!!errors[field.name]}
+                      helperText={errors[field.name]}
                       variant="outlined"
-                      sx={{
-                        mb: 2,
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: isDarkMode ? '#1B2A3A' : '#ffffff',
-                          '& fieldset': {
-                            borderColor: isDarkMode ? '#475569' : '#e0e0e0',
-                          },
-                          '&:hover fieldset': {
-                            borderColor: '#0052A3',
-                          },
-                          '& input': {
-                            color: isDarkMode ? '#ffffff' : '#000000',
-                          },
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: isDarkMode ? '#94A3B8' : '#666666',
-                        },
-                      }}
+                      sx={commonStyles}
                     />
                   ))}
+
                   <TextField
                     fullWidth
                     required
                     margin="normal"
                     name="mensaje"
-                    label="Mensaje"
+                    label="✍️ Mensaje"
                     multiline
                     rows={4}
                     value={formData.mensaje}
                     onChange={handleInputChange}
-                    error={!!errors.mensaje} // ✅ Muestra error si existe
-                    helperText={errors.mensaje} // ✅ Muestra mensaje de error
+                    error={!!errors.mensaje}
+                    helperText={errors.mensaje}
                     variant="outlined"
                     sx={{
-                      mb: 2,
+                      ...commonStyles,
                       '& .MuiOutlinedInput-root': {
-                        backgroundColor: isDarkMode ? '#1B2A3A' : '#ffffff',
-                        '& fieldset': {
-                          borderColor: isDarkMode ? '#475569' : '#e0e0e0',
-                        },
-                        '&:hover fieldset': {
-                          borderColor: '#0052A3',
-                        },
-                        '& textarea': {
-                          color: isDarkMode ? '#ffffff' : '#000000',
-                        },
-                      },
-                      '& .MuiInputLabel-root': {
-                        color: isDarkMode ? '#94A3B8' : '#666666',
+                        ...commonStyles['& .MuiOutlinedInput-root'],
+                        borderRadius: '16px',
                       },
                     }}
                   />
+
+                  {errors.captcha && (
+                    <Typography variant="body2" color="error" sx={{ mb: 1 }}>
+                      {errors.captcha}
+                    </Typography>
+                  )}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      my: 3,
+                    }}
+                  >
+                    <CustomRecaptcha onCaptchaChange={setCaptchaVerified} isDarkMode={isDarkMode} />
+                  </Box>
                   <Button
                     type="submit"
                     variant="contained"
@@ -360,36 +376,48 @@ const Contacto = () => {
                     disabled={isLoading}
                     sx={{
                       bgcolor: isLoading ? '#B0BEC5' : '#0052A3',
-                      '&:hover': { bgcolor: isLoading ? '#B0BEC5' : '#003d7a' },
-                      py: 1.5,
-                      cursor: isLoading ? 'not-allowed' : 'pointer'
+                      '&:hover': {
+                        bgcolor: isLoading ? '#B0BEC5' : '#003d7a',
+                        transform: isLoading ? 'none' : 'translateY(-2px)',
+                      },
+                      py: 2,
+                      borderRadius: '12px',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      textTransform: 'none',
+                      fontSize: '1.1rem',
+                      fontWeight: 500,
+                      transition: 'all 0.3s ease',
+                      boxShadow: '0 4px 6px -1px rgba(0, 82, 163, 0.2)',
                     }}
                   >
-                    {isLoading ? '📨 Enviando...' : 'Enviar Mensaje'}
+                    {isLoading ? '📨 Enviando...' : '✉️ Enviar Mensaje'}
                   </Button>
-
                 </Box>
               </Box>
             </Grid>
 
             {/* Lado Derecho: Mapa */}
             <Grid item xs={12} md={6}>
-              <Box sx={{
-                height: { xs: '400px' },
-                minHeight: { md: '600px' },
-                width: '100%',
-                borderRadius: 2,
-                overflow: 'hidden',
-                boxShadow: 3
-              }}>
+              <Box
+                sx={{
+                  height: { xs: '400px' },
+                  minHeight: { md: '600px' },
+                  width: '100%',
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  boxShadow: 3
+                }}
+              >
                 {!isLoaded ? (
-                  <Box sx={{
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    bgcolor: isDarkMode ? '#2A3648' : '#f5f5f5'
-                  }}>
+                  <Box
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      bgcolor: isDarkMode ? '#2A3648' : '#f5f5f5'
+                    }}
+                  >
                     <CircularProgress />
                   </Box>
                 ) : (
@@ -402,11 +430,22 @@ const Contacto = () => {
                       streetViewControl: true,
                       mapTypeControl: true,
                       fullscreenControl: true,
-                      styles: isDarkMode ? [
-                        { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-                        { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-                        { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-                      ] : []
+                      styles: isDarkMode
+                        ? [
+                          {
+                            elementType: 'geometry',
+                            stylers: [{ color: '#242f3e' }]
+                          },
+                          {
+                            elementType: 'labels.text.stroke',
+                            stylers: [{ color: '#242f3e' }]
+                          },
+                          {
+                            elementType: 'labels.text.fill',
+                            stylers: [{ color: '#746855' }]
+                          }
+                        ]
+                        : []
                     }}
                   >
                     <Marker
@@ -419,12 +458,14 @@ const Contacto = () => {
               </Box>
 
               {/* Botones de acción */}
-              <Box sx={{
-                mt: 2,
-                display: 'flex',
-                gap: 2,
-                flexDirection: { xs: 'column', sm: 'row' }
-              }}>
+              <Box
+                sx={{
+                  mt: 2,
+                  display: 'flex',
+                  gap: 2,
+                  flexDirection: { xs: 'column', sm: 'row' }
+                }}
+              >
                 <Button
                   variant="outlined"
                   startIcon={<OpenInNew />}
@@ -434,7 +475,9 @@ const Contacto = () => {
                     borderColor: isDarkMode ? '#ffffff' : '#0052A3',
                     '&:hover': {
                       borderColor: isDarkMode ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,82,163,0.1)'
+                      bgcolor: isDarkMode
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'rgba(0,82,163,0.1)'
                     }
                   }}
                   href="https://www.google.com/maps/@21.0816681,-98.5359763,19.64z"
@@ -452,7 +495,9 @@ const Contacto = () => {
                     borderColor: isDarkMode ? '#ffffff' : '#0052A3',
                     '&:hover': {
                       borderColor: isDarkMode ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,82,163,0.1)'
+                      bgcolor: isDarkMode
+                        ? 'rgba(255,255,255,0.1)'
+                        : 'rgba(0,82,163,0.1)'
                     }
                   }}
                   onClick={() => {
@@ -467,14 +512,14 @@ const Contacto = () => {
           </Grid>
         </Paper>
       </Container>
+
       <Notificaciones
         open={notification.open}
         message={notification.message}
         type={notification.type}
         handleClose={() => setNotification({ ...notification, open: false })}
-        autoHideDuration={5000} // La notificación desaparece después de 5 segundos
+        autoHideDuration={5000}
       />
-
     </Box>
   );
 };
