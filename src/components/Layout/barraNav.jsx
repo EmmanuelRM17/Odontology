@@ -128,7 +128,7 @@ const BarraNav = () => {
     setDrawerOpen(open);
   };
 
-  // Lista de enlaces en el Drawer
+  //  Drawer
   const drawerList = (
     <Box
       sx={{
