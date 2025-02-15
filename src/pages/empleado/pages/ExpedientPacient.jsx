@@ -36,6 +36,7 @@ const ExpedienteClinico = () => {
   // Función para visualizar expediente
   const visualizarExpediente = (expedienteId) => {
     console.log(`Visualizando expediente con ID: ${expedienteId}`);
+    // Aquí puedes agregar la lógica para abrir un modal o redirigir a otra página
   };
 
   // Función para filtrar los datos
