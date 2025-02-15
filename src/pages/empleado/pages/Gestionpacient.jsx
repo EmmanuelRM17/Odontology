@@ -494,6 +494,7 @@ const PatientsReport = () => {
         <IconButton
         onClick={() => navigate(`/Empleado/ExpedienteClinico`, { 
         state: { 
+        id: patient.id,
         nombre: patient.nombre, 
         telefono: patient.telefono, 
         correo: patient.email 
