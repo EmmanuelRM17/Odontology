@@ -19,7 +19,7 @@ const ExpedienteClinico = () => {
   useEffect(() => {
     const fetchHistorial = async () => {
       try {
-        const response = await axios.get(`https://back-end-4803.onrender.com/api/expediente/paciente/${id}`);
+        const response = await axios.get(`https://back-end-4803.onrender.com/api/expediente/${id}`);
         setHistorial(response.data);
         setLoading(false);
       } catch (err) {
