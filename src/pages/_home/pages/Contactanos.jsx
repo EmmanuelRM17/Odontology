@@ -125,7 +125,7 @@ const Contacto = () => {
       if (response.ok) {
         setNotification({
           open: true,
-          message: '🎉 ¡Gracias! Tu mensaje ha sido enviado correctamente.',
+          message: '📨 Hemos recibido su mensaje. Esté pendiente, le responderemos lo antes posible.',
           type: 'success'
         });
         setFormData({
