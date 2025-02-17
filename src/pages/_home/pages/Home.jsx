@@ -317,6 +317,7 @@ const Home = () => {
               </Typography>
             ) : (
               services.map((_, index) => {
+                if (!services[currentServiceIndex]) return null; 
                 const totalServices = services.length;
                 if (totalServices === 0) return null; // Evita errores si no hay datos
 

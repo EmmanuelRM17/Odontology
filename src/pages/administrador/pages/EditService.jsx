@@ -53,7 +53,7 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   useEffect(() => {
     if (!serviceId) return;
   
-    console.log("Solicitando servicio con ID:", serviceId); // 👀 Verifica que el ID es correcto
+    console.log("Solicitando servicio con ID:", serviceId); 
   
     fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`)
       .then(response => {

@@ -4,14 +4,15 @@ import {
   Card, CardContent, Typography, TableContainer,
   Table, TableBody, TableCell, TableHead, TableRow, Paper, Dialog,
   DialogTitle, DialogContent, DialogActions, Box, IconButton, Tooltip,
-  Chip, Fab
+  Chip, Fab,
 } from '@mui/material';
 import {
   MedicalServices, Timer, AttachMoney, Edit, Delete,
   Description, CheckCircle, Info, EventAvailable,
-  HealthAndSafety, MenuBook, AccessTime, Add, Close
+  HealthAndSafety, MenuBook, AccessTime, Add, Close, BorderColor
 } from '@mui/icons-material';
 import EditServiceDialog from './EditService';
+import Notificaciones from '../../../components/Layout/Notificaciones';
 
 const ServicioForm = () => {
   const [isDarkTheme] = useState(false);
@@ -21,6 +22,14 @@ const ServicioForm = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [services, setServices] = useState([]);
   const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    type: '',
+  });
 
   // Colores del tema
   const colors = {
@@ -45,6 +54,9 @@ const ServicioForm = () => {
     aftercare: ['', '', '', '']
   });
 
+  const handleNotificationClose = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
 
   // Función para manejar la apertura del diálogo de detalles
   const handleArrayChange = (field, index, value) => {
@@ -65,14 +77,54 @@ const ServicioForm = () => {
     );
   };
 
-  const validateServiceDetailsForm = (details) => {
-    return (
-      details.some(d => d.tipo === "beneficio" && d.descripcion.trim() !== "") &&
-      details.some(d => d.tipo === "incluye" && d.descripcion.trim() !== "") &&
-      details.some(d => d.tipo === "preparacion" && d.descripcion.trim() !== "") &&
-      details.some(d => d.tipo === "cuidado" && d.descripcion.trim() !== "")
-    );
-  };
+  const handleDeleteService = async () => {
+    if (!serviceToDelete) return;
+
+    setIsProcessing(true);
+
+    try {
+        const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/delete/${serviceToDelete.id}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error('Error al eliminar el servicio');
+        }
+
+        setNotification({
+            open: true,
+            message: `El servicio "${serviceToDelete.title}" ha sido eliminado correctamente.`,
+            type: 'success',
+        });
+
+        setOpenConfirmDialog(false);
+        setServiceToDelete(null);
+        fetchServices(); // Refrescar la lista después de eliminar
+
+        // Asegurar que la notificación se cierre después de 3 segundos
+        setTimeout(() => {
+            setNotification({ open: false, message: '', type: '' });
+        }, 3000);
+
+    } catch (error) {
+        console.error('Error al eliminar el servicio:', error);
+
+        setNotification({
+            open: true,
+            message: 'Hubo un error al eliminar el servicio.',
+            type: 'error',
+        });
+
+        setTimeout(() => {
+            setNotification({ open: false, message: '', type: '' });
+        }, 3000);
+
+    } finally {
+        setIsProcessing(false);
+    }
+};
+ 
+
 
   const handleViewDetails = (service) => {
     const details = {
@@ -207,52 +259,68 @@ const ServicioForm = () => {
                       </TableCell>
                       <TableCell align="center">
                         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+
+                          {/* 🔍 Ver Detalles */}
                           <Tooltip title="Ver detalles">
                             <IconButton
                               onClick={() => handleViewDetails(service)}
                               sx={{
-                                backgroundColor: colors.primary,
+                                backgroundColor: '#4caf50',
                                 color: 'white',
-                                '&:hover': { backgroundColor: colors.hover }
+                                borderRadius: '50%',
+                                width: 42,
+                                height: 42,
+                                '&:hover': { backgroundColor: '#388e3c' }
                               }}
-                              disabled={!service}
                             >
-                              <Info />
+                              <Info fontSize="medium" />
                             </IconButton>
                           </Tooltip>
+
+                          {/* ✏️ Editar Servicio */}
                           <Tooltip title="Editar servicio">
                             <IconButton
                               sx={{
-                                backgroundColor: '#2e7d32',
+                                backgroundColor: '#0288d1', // Azul más claro para editar
                                 color: 'white',
-                                '&:hover': { backgroundColor: 'rgba(46, 125, 50, 0.8)' }
+                                borderRadius: '50%',
+                                width: 42,
+                                height: 42,
+                                '&:hover': { backgroundColor: '#0277bd' } // Azul oscuro al pasar el mouse
                               }}
                               onClick={() => {
                                 if (service?.id) {
-                                  setSelectedService(service.id); // Guarda solo el ID del servicio
+                                  setSelectedService(service.id);
                                   setOpenEditDialog(true);
                                 }
                               }}
                             >
-                              <Edit />
+                              <BorderColor fontSize="medium" /> {/* Cambia Edit por un icono más bonito */}
                             </IconButton>
                           </Tooltip>
 
-
+                          {/* ❌ Eliminar Servicio */}
                           <Tooltip title="Eliminar servicio">
                             <IconButton
-                              sx={{
-                                backgroundColor: '#d32f2f',
-                                color: 'white',
-                                '&:hover': { backgroundColor: 'rgba(211, 47, 47, 0.8)' }
+                              onClick={() => {
+                                setServiceToDelete(service);
+                                setOpenConfirmDialog(true);
                               }}
-                              disabled={!service}
+                              sx={{
+                                backgroundColor: '#e53935', // Rojo vibrante
+                                color: 'white',
+                                borderRadius: '50%',
+                                width: 42,
+                                height: 42,
+                                '&:hover': { backgroundColor: '#c62828' } // Rojo más oscuro al pasar el mouse
+                              }}
                             >
-                              <Delete />
+                              <Close fontSize="medium" /> {/* Ícono de "X" más claro */}
                             </IconButton>
                           </Tooltip>
                         </Box>
                       </TableCell>
+
                     </TableRow>
                   ))
                 ) : (
@@ -373,6 +441,98 @@ const ServicioForm = () => {
             </DialogActions>
           </>
         )}
+      </Dialog>
+
+      {/* Diálogo de eliminar el servicio */}
+      <Dialog
+        open={openConfirmDialog}
+        onClose={() => !isProcessing && setOpenConfirmDialog(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: colors.paper,
+            color: colors.text
+          }
+        }}
+      >
+        <DialogTitle sx={{ color: colors.primary }}>
+          Confirmar eliminación
+        </DialogTitle>
+
+        <DialogContent>
+          <Typography>
+            <strong>¿Estás seguro de que deseas eliminar el servicio "{serviceToDelete?.title}"?</strong>
+          </Typography>
+
+          <Typography variant="body2" sx={{ mt: 1, color: colors.secondary }}>
+            Se eliminarán todos los detalles asociados, incluyendo:
+          </Typography>
+
+          {/* 📌 Lista de detalles asociados */}
+          {serviceToDelete && (
+            <Box sx={{ mt: 2, pl: 2 }}>
+              {serviceToDelete.benefits.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Beneficios:</Typography>
+                  {serviceToDelete.benefits.map((benefit, index) => (
+                    <Typography key={index} variant="body2">• {benefit}</Typography>
+                  ))}
+                </>
+              )}
+
+              {serviceToDelete.includes.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Incluye:</Typography>
+                  {serviceToDelete.includes.map((item, index) => (
+                    <Typography key={index} variant="body2">• {item}</Typography>
+                  ))}
+                </>
+              )}
+
+              {serviceToDelete.preparation.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Preparación:</Typography>
+                  {serviceToDelete.preparation.map((prep, index) => (
+                    <Typography key={index} variant="body2">• {prep}</Typography>
+                  ))}
+                </>
+              )}
+
+              {serviceToDelete.aftercare.length > 0 && (
+                <>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Cuidados posteriores:</Typography>
+                  {serviceToDelete.aftercare.map((care, index) => (
+                    <Typography key={index} variant="body2">• {care}</Typography>
+                  ))}
+                </>
+              )}
+            </Box>
+          )}
+
+          <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold', color: '#d32f2f' }}>
+            ⚠ Esta acción no se puede deshacer.
+          </Typography>
+        </DialogContent>
+
+        <DialogActions>
+          <Button
+            onClick={() => setOpenConfirmDialog(false)}
+            disabled={isProcessing}
+            sx={{ color: colors.secondary }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleDeleteService}
+            disabled={isProcessing}
+            sx={{
+              bgcolor: '#e53935',
+              '&:hover': { bgcolor: '#c62828' }
+            }}
+          >
+            {isProcessing ? 'Eliminando...' : 'Eliminar'}
+          </Button>
+        </DialogActions>
       </Dialog>
 
 
@@ -623,10 +783,15 @@ const ServicioForm = () => {
       <EditServiceDialog
         open={openEditDialog}
         handleClose={() => setOpenEditDialog(false)}
-        serviceId={selectedService} 
-        onUpdate={fetchServices} 
+        serviceId={selectedService}
+        onUpdate={fetchServices}
       />
-
+      <Notificaciones
+        open={notification.open}
+        message={notification.message}
+        type={notification.type}
+        onClose={handleNotificationClose}
+      />
     </Box>
   );
 };
