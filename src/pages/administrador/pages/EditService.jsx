@@ -51,25 +51,32 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   };
 
   useEffect(() => {
-    if (serviceId) {
-      fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`)
-        .then(response => response.json())
-        .then(data => {
-          // Parse duration into min and max
-          const [min, max] = (data.duration || '').split('-').map(d => d.replace(/\D/g, ''));
-          setEditedService({
-            ...data,
-            durationMin: min || '',
-            durationMax: max || '',
-            benefits: data.benefits?.length ? data.benefits : [''],
-            includes: data.includes?.length ? data.includes : [''],
-            preparation: data.preparation?.length ? data.preparation : [''],
-            aftercare: data.aftercare?.length ? data.aftercare : ['']
-          });
-        })
-        .catch(error => console.error('Error al obtener el servicio:', error));
-    }
+    if (!serviceId) return;
+  
+    console.log("Solicitando servicio con ID:", serviceId); // 👀 Verifica que el ID es correcto
+  
+    fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`)
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Error ${response.status}: Servicio no encontrado`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        const [min, max] = (data.duration || '').split('-').map(d => d.replace(/\D/g, ''));
+        setEditedService({
+          ...data,
+          durationMin: min || '',
+          durationMax: max || '',
+          benefits: data.benefits?.length ? data.benefits : [''],
+          includes: data.includes?.length ? data.includes : [''],
+          preparation: data.preparation?.length ? data.preparation : [''],
+          aftercare: data.aftercare?.length ? data.aftercare : ['']
+        });
+      })
+      .catch(error => console.error('Error al obtener el servicio:', error));
   }, [serviceId]);
+  
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -92,20 +99,20 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
       ...prev,
       [field]: prev[field] ? [...prev[field], ''] : ['']
     }));
-    setNotification({ open: true, message: `${field} agregado correctamente.`, type: 'success' });
+    setNotification({ open: true, message: `agregado ${field}.`, type: 'success' });
   };
-  
+
 
   const handleRemoveItem = (field, index) => {
     setEditedService(prev => {
       const newArray = [...(prev[field] || [])];
-      newArray.splice(index, 1); 
+      newArray.splice(index, 1);
       return { ...prev, [field]: newArray };
     });
-  
-    setNotification({ open: true, message: `${field} eliminado correctamente.`, type: 'info' });
+
+    setNotification({ open: true, message: `eliminado ${field}.`, type: 'info' });
   };
-  
+
 
   useEffect(() => {
     if (notification.open) {
@@ -115,7 +122,7 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
       return () => clearTimeout(timer);
     }
   }, [notification.open]);
-  
+
 
   const validateForm = () => {
     const newErrors = {};
@@ -152,7 +159,7 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
       preparation: editedService.preparation?.filter(p => p.trim()) || [],
       aftercare: editedService.aftercare?.filter(a => a.trim()) || []
     };
-    
+
     try {
       const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/update/${serviceId}`, {
         method: 'PUT',
@@ -167,13 +174,27 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
         return;
       }
 
-      setNotification({ open: true, message: 'Servicio actualizado correctamente', type: 'success' });
-      onUpdate();
-      handleClose();
+      const responseData = await response.json();
+      console.log("Servicio actualizado correctamente:", responseData);
+
+      setNotification({ open: false });
+      setTimeout(() => {
+        setNotification({ open: true, message: 'Servicio actualizado correctamente', type: 'success' });
+
+        setTimeout(() => {
+          onUpdate();
+          handleClose();
+        }, 1500);
+
+      }, 200);
+
     } catch (error) {
       console.error('Error al actualizar el servicio:', error);
+      setNotification({ open: true, message: 'Error en la conexión con el servidor.', type: 'error' });
     }
   };
+
+
 
 
   if (!editedService) return null;
