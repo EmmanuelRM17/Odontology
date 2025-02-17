@@ -13,108 +13,45 @@ import {
     CssBaseline,
     Container,
     ButtonGroup,
-    Button
+    Button,
+    Select,
+    MenuItem
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { Tooltip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-
-
-const services = [
-    {
-        id: 1,
-        title: 'Consulta Dental General',
-        description: 'Revisión completa de dientes y encías para detectar problemas y prevenir enfermedades. Incluye asesoría en higiene dental.',
-        category: 'Preventivo'
-    },
-    {
-        id: 2,
-        title: 'Limpieza Dental por Ultrasonido',
-        description: 'Elimina placa y sarro sin molestias, dejando tus dientes más limpios, frescos y protegidos contra caries y gingivitis.',
-        category: 'Higiene'
-    },
-    {
-        id: 3,
-        title: 'Curetaje (Limpieza Profunda)',
-        description: 'Limpieza especializada para tratar encías inflamadas y evitar enfermedades periodontales avanzadas.',
-        category: 'Higiene'
-    },
-    {
-        id: 4,
-        title: 'Asesoría sobre Diseño de Sonrisa',
-        description: 'Evaluamos la forma, alineación y color de tus dientes para mejorar tu sonrisa y aumentar tu confianza.',
-        category: 'Estética'
-    },
-    {
-        id: 5,
-        title: 'Cirugía Estética de Encía',
-        description: 'Corrige encías desiguales o muy grandes para lograr una sonrisa armónica y estética.',
-        category: 'Cirugía'
-    },
-    {
-        id: 6,
-        title: 'Obturación con Resina',
-        description: 'Repara caries con resina del color del diente, restaurando su función y estética de forma discreta.',
-        category: 'Restauración'
-    },
-    {
-        id: 7,
-        title: 'Incrustación Estética y de Metal',
-        description: 'Solución resistente y estética para reparar dientes dañados sin necesidad de una corona completa.',
-        category: 'Restauración'
-    },
-    {
-        id: 8,
-        title: 'Coronas Fijas Estéticas o de Metal',
-        description: 'Protege y restaura dientes debilitados con coronas duraderas y de aspecto natural.',
-        category: 'Restauración'
-    },
-    {
-        id: 9,
-        title: 'Placas Removibles Parciales',
-        description: 'Reemplazo cómodo y accesible para dientes perdidos, mejorando la masticación y la estética.',
-        category: 'Prótesis'
-    },
-    {
-        id: 10,
-        title: 'Placas Totales Removibles',
-        description: 'Prótesis completas para recuperar la sonrisa y la función masticatoria en pacientes sin dientes.',
-        category: 'Prótesis'
-    },
-    {
-        id: 11,
-        title: 'Guardas Dentales',
-        description: 'Protege tus dientes contra el desgaste por bruxismo y reduce el dolor en la mandíbula.',
-        category: 'Preventivo'
-    },
-    {
-        id: 12,
-        title: 'Placas Hawley',
-        description: 'Retenedor removible para mantener los dientes alineados después de un tratamiento de ortodoncia.',
-        category: 'Ortodoncia'
-    },
-    {
-        id: 13,
-        title: 'Extracción Dental',
-        description: 'Removemos dientes dañados o infectados de manera segura y sin dolor con anestesia local.',
-        category: 'Cirugía'
-    },
-    {
-        id: 14,
-        title: 'Ortodoncia y Ortopedia Maxilar',
-        description: 'Alineamos tus dientes y mejoramos tu mordida con brackets o alineadores transparentes.',
-        category: 'Ortodoncia'
-    }
-];
-
+import useMediaQuery from '@mui/material/useMediaQuery';
 
 const Servicios = () => {
+    const [services, setServices] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
     const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const navigate = useNavigate();
+    const isMobile = useMediaQuery('(max-width:600px)');
 
-    // Theme detection
+    // Obtener servicios desde la API
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const response = await fetch('https://back-end-4803.onrender.com/api/servicios/all');
+                if (!response.ok) {
+                    throw new Error('Error al obtener los servicios');
+                }
+                const data = await response.json();
+                setServices(data);
+            } catch (error) {
+                setError(error.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchServices();
+    }, []);
+
+    // Detectar tema oscuro/claro
     useEffect(() => {
         const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
         setIsDarkTheme(matchDarkTheme.matches);
@@ -124,8 +61,10 @@ const Servicios = () => {
         return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, []);
 
+    // Obtener categorías únicas
     const categories = ['Todos', ...new Set(services.map(service => service.category))];
 
+    // Filtrar servicios según búsqueda y categoría
     const filteredServices = services.filter(service => {
         const matchesSearch = service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             service.description.toLowerCase().includes(searchTerm.toLowerCase());
@@ -133,6 +72,7 @@ const Servicios = () => {
         return matchesSearch && matchesCategory;
     });
 
+    // Tema y estilos
     const theme = createTheme({
         palette: {
             mode: isDarkTheme ? 'dark' : 'light',
@@ -193,72 +133,109 @@ const Servicios = () => {
                 }}
             >
                 <Container maxWidth="lg">
-                    <Box sx={{
-                        py: 5,
-                        px: { xs: 2, sm: 3 },
-                    }}>
-                        <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            mb: 4
-                        }}>
-                            <Typography
-                                variant="h3"
-                                component="h1"
-                                sx={{
-                                    fontWeight: 700,
-                                    color: '#03427C',
-                                    fontSize: { xs: '2rem', sm: '3rem' }
-                                }}
-                            >
-                                Nuestros Servicios
-                            </Typography>
-                        </Box>
+                    <Box sx={{ py: 5, px: { xs: 2, sm: 3 } }}>
+                        <Typography
+                            variant="h3"
+                            component="h1"
+                            sx={{
+                                fontWeight: 700,
+                                color: '#03427C',
+                                fontSize: { xs: '2rem', sm: '3rem' }
+                            }}
+                        >
+                            Nuestros Servicios
+                        </Typography>
 
+                        {/* Input de búsqueda */}
+                        <TextField
+                            fullWidth
+                            variant="outlined"
+                            placeholder="Buscar servicios..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <SearchIcon />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{ my: 3 }}
+                        />
+
+                        {/* Categorías */}
                         <Box sx={{ mb: 4 }}>
-                            <TextField
-                                fullWidth
-                                variant="outlined"
-                                placeholder="Buscar servicios..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <SearchIcon />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                sx={{ mb: 3 }}
-                            />
-
-                            <ButtonGroup
-                                variant="contained"
-                                sx={{
-                                    display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 1,
-                                    '& .MuiButton-root': {
-                                        borderRadius: '25px',
-                                        m: 0.5
-                                    }
-                                }}
-                            >
-                                {categories.map((category) => (
-                                    <Button
-                                        key={category}
-                                        onClick={() => setSelectedCategory(category)}
-                                        variant={selectedCategory === category ? "contained" : "outlined"}
-                                        size="small"
-                                    >
-                                        {category}
-                                    </Button>
-                                ))}
-                            </ButtonGroup>
+                            {isMobile ? (
+                                // 📌 Muestra un `Select` en pantallas pequeñas con tema dinámico
+                                <Select
+                                    fullWidth
+                                    value={selectedCategory}
+                                    onChange={(e) => setSelectedCategory(e.target.value)}
+                                    displayEmpty
+                                    sx={{
+                                        borderRadius: '12px',
+                                        backgroundColor: theme.palette.mode === 'dark' ? '#243446' : '#ffffff',
+                                        color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                                        '& .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: theme.palette.mode === 'dark' ? '#B8C7DC' : '#476685'
+                                        },
+                                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: theme.palette.mode === 'dark' ? '#ffffff' : '#03427C'
+                                        },
+                                        '& .MuiSvgIcon-root': {
+                                            color: theme.palette.mode === 'dark' ? '#ffffff' : '#476685'
+                                        }
+                                    }}
+                                >
+                                    {categories.map((category) => (
+                                        <MenuItem
+                                            key={category}
+                                            value={category}
+                                            sx={{
+                                                backgroundColor: theme.palette.mode === 'dark' ? '#243446' : '#ffffff',
+                                                color: theme.palette.mode === 'dark' ? '#ffffff' : '#000000',
+                                                '&:hover': {
+                                                    backgroundColor: theme.palette.mode === 'dark' ? '#1C2A38' : '#E5F3FD'
+                                                }
+                                            }}
+                                        >
+                                            {category}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            ) : (
+                                // 📌 Muestra botones en pantallas grandes
+                                <ButtonGroup
+                                    variant="contained"
+                                    sx={{
+                                        display: 'flex',
+                                        flexWrap: 'wrap',
+                                        gap: 1,
+                                        '& .MuiButton-root': {
+                                            borderRadius: '25px',
+                                            m: 0.5
+                                        }
+                                    }}
+                                >
+                                    {categories.map((category) => (
+                                        <Button
+                                            key={category}
+                                            onClick={() => setSelectedCategory(category)}
+                                            variant={selectedCategory === category ? "contained" : "outlined"}
+                                            size="small"
+                                        >
+                                            {category}
+                                        </Button>
+                                    ))}
+                                </ButtonGroup>
+                            )}
                         </Box>
+                        {/* Cargando / Error */}
+                        {loading && <Typography>Cargando servicios...</Typography>}
+                        {error && <Typography color="error">{error}</Typography>}
 
-                        <Grid container spacing={3}>
+                        {/* Servicios */}
+                        <Grid container spacing={3} sx={{ mt: 3 }}>
                             {filteredServices.map((service) => (
                                 <Grid item xs={12} sm={6} md={4} key={service.id}>
                                     <Tooltip title="Presiona para más información" arrow>
@@ -299,8 +276,9 @@ const Servicios = () => {
                                                     variant="body2"
                                                     sx={{ color: isDarkTheme ? '#B8C7DC' : '#476685' }}
                                                 >
-                                                    {service.description}
+                                                    {service.description.split('.')[0] + '.'}
                                                 </Typography>
+
                                             </CardContent>
                                         </Card>
                                     </Tooltip>

@@ -33,6 +33,9 @@ const Home = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [scrollOpacity, setScrollOpacity] = useState(1);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const isMobile = useMediaQuery('(max-width:600px)');
   const isSmallScreen = useMediaQuery('(max-width:600px)');
   const [currentText, setCurrentText] = useState(rotatingTexts[0]);
@@ -80,7 +83,7 @@ const Home = () => {
     if (!text) return; // Evitar valores undefined
     setDisplayedText(''); // Limpiar el texto antes de escribir
     let index = 0;
-  
+
     const typeNextLetter = () => {
       if (index <= text.length) {
         setDisplayedText(text.slice(0, index)); // Agregar letra sin concatenar manualmente
@@ -88,15 +91,15 @@ const Home = () => {
         setTimeout(typeNextLetter, 100); // Velocidad de escritura (ajustable)
       }
     };
-  
+
     typeNextLetter(); // Iniciar la animación
   };
-  
+
   useEffect(() => {
     let frame;
     let startTime = performance.now();
     const duration = 10000; // Cambia el texto cada 5 segundos
-  
+
     const animate = (currentTime) => {
       if (currentTime - startTime >= duration) {
         textIndexRef.current = (textIndexRef.current + 1) % rotatingTexts.length;
@@ -105,10 +108,10 @@ const Home = () => {
       }
       frame = requestAnimationFrame(animate);
     };
-  
+
     startTypingEffect(rotatingTexts[0]); // Iniciar el primer texto
     frame = requestAnimationFrame(animate);
-  
+
     return () => cancelAnimationFrame(frame);
   }, []);
 
@@ -118,23 +121,23 @@ const Home = () => {
 
   const images = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
-  const services = [
-    { id: 1, title: 'Consulta Dental General', description: 'Evaluación integral para cuidar tu salud bucal y prevenir problemas.' },
-    { id: 2, title: 'Limpieza Dental por Ultrasonido', description: 'Limpieza profunda sin molestias para eliminar placa y sarro.' },
-    { id: 3, title: 'Curetaje (Limpieza Profunda)', description: 'Limpieza especializada de encías para mantener una sonrisa saludable.' },
-    { id: 4, title: 'Asesoría sobre Diseño de Sonrisa', description: 'Orientación personalizada para realzar tu sonrisa y sentirte seguro.' },
-    { id: 5, title: 'Cirugía Estética de Encía', description: 'Mejora la apariencia de tus encías para lograr una sonrisa armónica.' },
-    { id: 6, title: 'Obturación con Resina', description: 'Restauración discreta y duradera para reparar caries y recuperar tu sonrisa.' },
-    { id: 7, title: 'Incrustación Estética y de Metal', description: 'Reparación robusta y estética para restaurar dientes dañados.' },
-    { id: 8, title: 'Coronas Fijas Estéticas o de Metal', description: 'Coronas personalizadas que devuelven la función y un aspecto natural.' },
-    { id: 9, title: 'Placas Removibles Parciales', description: 'Prótesis cómodas que reemplazan dientes faltantes y mejoran tu masticación.' },
-    { id: 10, title: 'Placas Totales Removibles', description: 'Solución completa para recuperar la función y estética en casos de edentulismo.' },
-    { id: 11, title: 'Guardas Dentales', description: 'Protección nocturna que evita el desgaste dental y alivia el bruxismo.' },
-    { id: 12, title: 'Placas Hawley', description: 'Mantenimiento eficaz de la posición dental tras la ortodoncia.' },
-    { id: 13, title: 'Extracción Dental', description: 'Eliminación segura de dientes dañados con cuidado y comodidad.' },
-    { id: 14, title: 'Ortodoncia y Ortopedia Maxilar', description: 'Tratamientos para alinear tus dientes y mejorar la estructura facial.' }
-  ];
-
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await fetch('https://back-end-4803.onrender.com/api/servicios/all');
+        if (!response.ok) {
+          throw new Error('Error al obtener los servicios');
+        }
+        const data = await response.json();
+        setServices(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
 
   // Theme detection
   useEffect(() => {
@@ -195,8 +198,8 @@ const Home = () => {
     <Box
       sx={{
         background: isDarkTheme
-        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" 
-        : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
+          ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+          : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
         transition: 'background 0.5s ease',
         position: 'relative',
         minHeight: '100vh',
@@ -307,88 +310,103 @@ const Home = () => {
               overflow: 'hidden'
             }}
           >
-            {services.map((_, index) => {
-              const totalServices = services.length;
-              const normalizedIndex = ((index - currentServiceIndex) % totalServices + totalServices) % totalServices;
-              const offset = normalizedIndex <= totalServices / 2 ? normalizedIndex : normalizedIndex - totalServices;
-              const service = services[(index + currentServiceIndex) % totalServices];
-              const isCenter = offset === 0;
+            {/* 🔹 Manejo de Carga */}
+            {services.length === 0 ? (
+              <Typography sx={{ color: 'white', textAlign: 'center' }}>
+                Cargando servicios...
+              </Typography>
+            ) : (
+              services.map((_, index) => {
+                const totalServices = services.length;
+                if (totalServices === 0) return null; // Evita errores si no hay datos
 
-              const position = offset * (isMobile ? 120 : 180);
-              const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
-              const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;
-              const rotation = offset * -25;
+                const normalizedIndex =
+                  ((index - currentServiceIndex) % totalServices + totalServices) % totalServices;
+                const offset =
+                  normalizedIndex <= totalServices / 2
+                    ? normalizedIndex
+                    : normalizedIndex - totalServices;
+                const service = services[(index + currentServiceIndex) % totalServices];
+                const isCenter = offset === 0;
 
-              return (
-                <motion.div
-                  key={index}
-                  style={{
-                    position: 'absolute',
-                    width: isMobile ? '280px' : '320px',
-                  }}
-                  animate={{
-                    x: `${position}%`,
-                    scale: scale,
-                    opacity: opacity,
-                    zIndex: isCenter ? 3 : 2 - Math.abs(offset),
-                    rotateY: rotation,
-                  }}
-                  transition={{
-                    type: 'spring',
-                    stiffness: 300,
-                    damping: 30
-                  }}
-                >
-                  <Tooltip title="Click para más información" arrow>
-                    <Box
-                      onClick={() => navigate(`/servicios/detalle/${service.id}`)}
-                      onMouseEnter={() => setIsPaused(true)}
-                      onMouseLeave={() => setIsPaused(false)}
-                      sx={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: '15px',
-                        padding: '2rem',
-                        border: '1px solid rgba(255, 255, 255, 0.3)',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s ease',
-                        boxShadow: isCenter
-                          ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
-                          : '0 0 15px rgba(3, 66, 124, 0.2)',
-                        '&:hover': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                          transform: 'translateY(-5px)',
-                        },
-                      }}
-                    >
-                      <Typography
-                        variant="h6"
+                const position = offset * (isMobile ? 120 : 180);
+                const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
+                const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;
+                const rotation = offset * -25;
+
+                return (
+                  <motion.div
+                    key={service.id} // Asegura que cada servicio tenga una clave única
+                    style={{
+                      position: 'absolute',
+                      width: isMobile ? '280px' : '320px',
+                    }}
+                    animate={{
+                      x: `${position}%`,
+                      scale: scale,
+                      opacity: opacity,
+                      zIndex: isCenter ? 3 : 2 - Math.abs(offset),
+                      rotateY: rotation,
+                    }}
+                    transition={{
+                      type: 'spring',
+                      stiffness: 300,
+                      damping: 30
+                    }}
+                  >
+                    <Tooltip title="Click para más información" arrow>
+                      <Box
+                        onClick={() => navigate(`/servicios/detalle/${service.id}`)}
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
                         sx={{
-                          color: 'white',
-                          textAlign: 'center',
-                          fontWeight: 'bold',
-                          mb: 2,
-                          fontSize: { xs: '1.1rem', md: '1.25rem' }
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          backdropFilter: 'blur(10px)',
+                          borderRadius: '15px',
+                          padding: '2rem',
+                          border: '1px solid rgba(255, 255, 255, 0.3)',
+                          cursor: 'pointer',
+                          transition: 'all 0.3s ease',
+                          boxShadow: isCenter
+                            ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
+                            : '0 0 15px rgba(3, 66, 124, 0.2)',
+                          '&:hover': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
+                            transform: 'translateY(-5px)',
+                          },
                         }}
                       >
-                        {service.title}
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: 'rgba(255, 255, 255, 0.9)',
-                          textAlign: 'center',
-                          fontSize: { xs: '0.875rem', md: '1rem' }
-                        }}
-                      >
-                        {service.description}
-                      </Typography>
-                    </Box>
-                  </Tooltip>
-                </motion.div>
-              );
-            })}
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            color: 'white',
+                            textAlign: 'center',
+                            fontWeight: 'bold',
+                            mb: 2,
+                            fontSize: { xs: '1.1rem', md: '1.25rem' }
+                          }}
+                        >
+                          {service.title}
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            textAlign: 'center',
+                            fontSize: { xs: '0.875rem', md: '1rem' }
+                          }}
+                        >
+                          {service.description.split('.')[0] + '.'}
+                        </Typography>
+
+                      </Box>
+                    </Tooltip>
+                  </motion.div>
+                );
+              })
+            )}
           </Box>
+
           <IconButton
             onClick={nextService}
             sx={{

@@ -89,29 +89,40 @@ const FAQ = () => {
   }, []);
 
   const fetchFAQs = useCallback(async () => {
+    const controller = new AbortController();  // 📌 Controlador para abortar la solicitud si tarda demasiado
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // ⏳ 10 segundos de espera máximo
+
     try {
-      const response = await fetch(
-        "https://back-end-4803.onrender.com/api/preguntas/get-all"
-      );
+        const response = await fetch(
+            "https://back-end-4803.onrender.com/api/preguntas/get-all",
+            { signal: controller.signal } // Asociar el controlador de aborto
+        );
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
+        clearTimeout(timeoutId); // 🚀 Si la respuesta llega antes, cancelar el timeout
 
-      const data = await response.json();
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
 
-      if (!Array.isArray(data)) {
-        throw new Error("Formato de datos incorrecto");
-      }
+        const data = await response.json();
 
-      setFaqs(data);
+        if (!Array.isArray(data)) {
+            throw new Error("Formato de datos incorrecto");
+        }
+
+        setFaqs(data);
     } catch (error) {
-      showNotification("No se pudieron cargar las preguntas frecuentes", "error");
-      setFaqs([]);
+        if (error.name === "AbortError") {
+            showNotification("Tiempo de espera agotado. Inténtalo más tarde.", "error");
+        } else {
+            showNotification("No se pudieron cargar las preguntas frecuentes", "error");
+        }
+        setFaqs([]);
     } finally {
-      setLoadingFaqs(false);
+        setLoadingFaqs(false);
     }
-  }, []);
+}, []);
+
 
   useEffect(() => {
     fetchFAQs();
