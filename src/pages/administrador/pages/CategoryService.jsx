@@ -170,60 +170,59 @@ const CategoryService = ({ open, handleClose }) => {
         }
     };
 
-
     const confirmDelete = async (category) => {
         try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${category}`);
-    
-            const contentType = response.headers.get("content-type");
-            if (!contentType || !contentType.includes("application/json")) {
-                throw new Error("❌ El servidor devolvió una respuesta no válida.");
-            }
-    
-            const result = await response.json();
-    
-            if (!response.ok) {
-                throw new Error(result.message || "No se pudo verificar la categoría.");
-            }
-    
-            if (result.services && result.services.length > 0) {
-                showNotification(
-                    `❌ No puedes eliminar la categoría "${category}" porque está en uso en: ${result.services.join(', ')}`,
-                    'error'
-                );
-                return;
-            }
-    
-            setDeleteDialog({ open: true, category });
-        } catch (error) {
-            console.error('❌ Error al verificar la eliminación de la categoría:', error);
-            showNotification(error.message, 'error');
-        }
-    };
-    
-    const handleDelete = async (category) => {
-        try {
-            console.log(`🗑️ Eliminando categoría: ${category}`);
-    
-            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${encodeURIComponent(category)}`, {
-                method: 'DELETE'
+            // Verificar si la categoría está en uso antes de eliminarla
+            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/verify/${category}`, {
+                method: 'GET',
+                headers: { 'Content-Type': 'application/json' }
             });
     
             const result = await response.json();
     
             if (!response.ok) {
-                throw new Error(result.message || 'Error al eliminar la categoría');
+                if (result.services) {
+                    // Si la categoría está en uso, mostrar los servicios en el diálogo
+                    setDeleteDialog({ open: true, category, servicesInUse: result.services });
+                } else {
+                    showNotification(result.message || 'Error al verificar la categoría', 'error');
+                }
+                return;
             }
     
-            showNotification(`✅ Categoría '${category}' eliminada exitosamente`, 'success');
-            setDeleteDialog({ open: false, category: null });
-            fetchCategories(); // Recargar categorías si se eliminó correctamente
+            // Si la categoría no está en uso, abrir diálogo de confirmación
+            setDeleteDialog({ open: true, category, servicesInUse: null });
+    
         } catch (error) {
-            console.error('❌ Error al eliminar la categoría:', error);
-            showNotification(error.message || 'Error al eliminar la categoría', 'error');
-            setDeleteDialog({ open: false, category: null });
+            console.error('❌ Error al verificar la categoría:', error);
+            showNotification('Error al verificar la categoría', 'error');
         }
     };
+    
+    const handleDelete = async (category) => {
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${category}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
+    
+            const result = await response.json();
+    
+            if (!response.ok) {
+                showNotification(result.message || 'Error al eliminar la categoría', 'error');
+                return;
+            }
+    
+            showNotification('Categoría eliminada exitosamente', 'success');
+            setDeleteDialog({ open: false, category: null, servicesInUse: null });
+            fetchCategories(); // Recargar la lista de categorías después de la eliminación
+    
+        } catch (error) {
+            console.error('❌ Error al eliminar la categoría:', error);
+            showNotification('Error al eliminar la categoría', 'error');
+        }
+    };
+    
 
     return (
         <>
@@ -406,37 +405,31 @@ const CategoryService = ({ open, handleClose }) => {
             </Dialog>
 
             {/* Diálogo de confirmación de eliminación */}
-            <Dialog
-                open={deleteDialog.open}
-                onClose={() => setDeleteDialog({ open: false, category: null })}
-                PaperProps={{
-                    style: { backgroundColor: colors.background }
-                }}
-            >
-                <DialogTitle sx={{ color: colors.error }}>
+            <Dialog open={deleteDialog.open} onClose={() => setDeleteDialog({ open: false, category: null })}>
+                <DialogTitle>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <WarningIcon />
+                        <WarningIcon color="error" />
                         Confirmar eliminación
                     </Box>
                 </DialogTitle>
-
                 <DialogContent>
                     {deleteDialog.servicesInUse && deleteDialog.servicesInUse.length > 0 ? (
-                        <Typography>
-                            ❌ No puedes eliminar la categoría "{deleteDialog.category}" porque está en uso en los siguientes servicios:
+                        <>
+                            <Typography>
+                                ❌ No puedes eliminar la categoría "{deleteDialog.category}" porque está en uso en los siguientes servicios:
+                            </Typography>
                             <ul>
                                 {deleteDialog.servicesInUse.map(service => (
                                     <li key={service.id}>{service.title}</li>
                                 ))}
                             </ul>
-                        </Typography>
+                        </>
                     ) : (
                         <DialogContentText>
                             ¿Estás seguro de que deseas eliminar la categoría "{deleteDialog.category}"? Esta acción no se puede deshacer.
                         </DialogContentText>
                     )}
                 </DialogContent>
-
                 <DialogActions>
                     <Button onClick={() => setDeleteDialog({ open: false, category: null })} sx={{ color: colors.primary }}>
                         Cancelar
@@ -455,6 +448,7 @@ const CategoryService = ({ open, handleClose }) => {
                     ) : null}
                 </DialogActions>
             </Dialog>
+
 
             <Notificaciones
                 open={notification.open}
