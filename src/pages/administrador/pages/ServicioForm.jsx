@@ -265,12 +265,12 @@ const ServicioForm = () => {
                             <IconButton
                               onClick={() => handleViewDetails(service)}
                               sx={{
-                                backgroundColor: '#4caf50',
+                                backgroundColor: '#0288d1',
                                 color: 'white',
                                 borderRadius: '50%',
                                 width: 42,
                                 height: 42,
-                                '&:hover': { backgroundColor: '#388e3c' }
+                                '&:hover': { backgroundColor: '#0277bd' }
                               }}
                             >
                               <Info fontSize="medium" />
@@ -281,12 +281,12 @@ const ServicioForm = () => {
                           <Tooltip title="Editar servicio">
                             <IconButton
                               sx={{
-                                backgroundColor: '#0288d1', // Azul más claro para editar
+                                backgroundColor: '#4caf50', // Azul más claro para editar
                                 color: 'white',
                                 borderRadius: '50%',
                                 width: 42,
                                 height: 42,
-                                '&:hover': { backgroundColor: '#0277bd' } // Azul oscuro al pasar el mouse
+                                '&:hover': { backgroundColor: '#388e3c' } // Azul oscuro al pasar el mouse
                               }}
                               onClick={() => {
                                 if (service?.id) {

@@ -344,7 +344,6 @@ const Login = () => {
         }
     };
 
-
     // Función para reenviar el código
     const handleResendCode = async () => {
         if (!canResend) return;

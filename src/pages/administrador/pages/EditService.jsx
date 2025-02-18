@@ -18,6 +18,7 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   const [editedService, setEditedService] = useState(null);
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+  const [categories, setCategories] = useState([]);
 
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
@@ -52,9 +53,9 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
 
   useEffect(() => {
     if (!serviceId) return;
-  
-    console.log("Solicitando servicio con ID:", serviceId); 
-  
+
+    console.log("Solicitando servicio con ID:", serviceId);
+
     fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`)
       .then(response => {
         if (!response.ok) {
@@ -76,7 +77,22 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
       })
       .catch(error => console.error('Error al obtener el servicio:', error));
   }, [serviceId]);
-  
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('https://back-end-4803.onrender.com/api/servicios/categorias');
+        if (!response.ok) throw new Error('Error al obtener categorías');
+
+        const data = await response.json();
+        setCategories(data); // Almacenar categorías en el estado
+      } catch (error) {
+        console.error('Error cargando categorías:', error);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -307,14 +323,20 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
                   name="category"
                   value={editedService.category || ''}
                   onChange={handleChange}
-                  startAdornment={<Category sx={{ color: 'action.active', mr: 1 }} />}
                 >
-                  <MenuItem value="General">General</MenuItem>
-                  <MenuItem value="Especializado">Especializado</MenuItem>
-                  <MenuItem value="Preventivo">Preventivo</MenuItem>
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <MenuItem key={cat.id} value={cat.nombre}>
+                        {cat.nombre}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>Cargando categorías...</MenuItem>
+                  )}
                 </Select>
               </FormControl>
             </Grid>
+
             <Grid item xs={12}>
               <TextField
                 fullWidth
