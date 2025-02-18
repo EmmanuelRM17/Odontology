@@ -174,14 +174,19 @@ const CategoryService = ({ open, handleClose }) => {
     const confirmDelete = async (category) => {
         try {
             const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${category}`);
-
-            if (!response.ok) {
-                const result = await response.json();
-                throw new Error(result.message || 'No se pudo verificar la categoría.');
+    
+            // Verificar si la respuesta es realmente JSON
+            const contentType = response.headers.get("content-type");
+            if (!contentType || !contentType.includes("application/json")) {
+                throw new Error("❌ El servidor devolvió una respuesta no válida.");
             }
-
+    
             const result = await response.json();
-
+    
+            if (!response.ok) {
+                throw new Error(result.message || "No se pudo verificar la categoría.");
+            }
+    
             if (result.services && result.services.length > 0) {
                 showNotification(
                     `❌ No puedes eliminar la categoría "${category}" porque está en uso en: ${result.services.join(', ')}`,
@@ -189,38 +194,37 @@ const CategoryService = ({ open, handleClose }) => {
                 );
                 return;
             }
-
+    
             setDeleteDialog({ open: true, category });
         } catch (error) {
             console.error('❌ Error al verificar la eliminación de la categoría:', error);
             showNotification(error.message, 'error');
         }
     };
-
+    
     const handleDelete = async (category) => {
         try {
             console.log(`🗑️ Eliminando categoría: ${category}`);
-
-            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${category}`, {
+    
+            const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${encodeURIComponent(category)}`, {
                 method: 'DELETE'
             });
-
+    
+            const result = await response.json();
+    
             if (!response.ok) {
-                const result = await response.json();
                 throw new Error(result.message || 'Error al eliminar la categoría');
             }
-
-            showNotification('Categoría eliminada exitosamente', 'success');
+    
+            showNotification(`✅ Categoría '${category}' eliminada exitosamente`, 'success');
             setDeleteDialog({ open: false, category: null });
-            fetchCategories(); // Solo recargar si la eliminación es exitosa
+            fetchCategories(); // Recargar categorías si se eliminó correctamente
         } catch (error) {
             console.error('❌ Error al eliminar la categoría:', error);
             showNotification(error.message || 'Error al eliminar la categoría', 'error');
-            setDeleteDialog({ open: false, category: null }); // Cerrar el diálogo incluso si hay error
+            setDeleteDialog({ open: false, category: null });
         }
     };
-
-
 
     return (
         <>
