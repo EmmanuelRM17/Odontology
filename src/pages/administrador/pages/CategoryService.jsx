@@ -175,7 +175,6 @@ const CategoryService = ({ open, handleClose }) => {
         try {
             const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/categorias/${category}`);
     
-            // Verificar si la respuesta es realmente JSON
             const contentType = response.headers.get("content-type");
             if (!contentType || !contentType.includes("application/json")) {
                 throw new Error("❌ El servidor devolvió una respuesta no válida.");
