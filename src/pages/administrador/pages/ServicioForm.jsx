@@ -15,8 +15,8 @@ import {
 import { alpha } from '@mui/material/styles';
 import EditServiceDialog from './EditService';
 import NewService from './newService';
+import CategoryService from './CategoryService';
 import Notificaciones from '../../../components/Layout/Notificaciones';
-
 
 const ServicioForm = () => {
   const [isDarkTheme] = useState(false);
@@ -29,7 +29,7 @@ const ServicioForm = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
+  const [openCategoriesDialog, setOpenCategoriesDialog] = useState(false);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -176,7 +176,26 @@ const ServicioForm = () => {
             Servicios Dentales
           </Typography>
 
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 3 }}>
+            {/* 📂 Botón para ver categorías (a la izquierda) */}
+            <Tooltip title="Ver Categorías">
+              <IconButton
+                onClick={() => setOpenCategoriesDialog(true)}
+                sx={{
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 42,
+                  height: 42,
+                  mr: 2, // Margen derecho para separar de la barra de búsqueda
+                  '&:hover': { backgroundColor: '#0277bd' }
+                }}
+              >
+                <MenuBook fontSize="medium" />
+              </IconButton>
+            </Tooltip>
+
+            {/* 🔍 Barra de búsqueda */}
             <TextField
               variant="outlined"
               placeholder="Buscar servicio..."
@@ -188,6 +207,7 @@ const ServicioForm = () => {
               sx={{ width: '50%' }}
             />
           </Box>
+
 
           <TableContainer component={Paper}>
             <Table>
@@ -685,6 +705,10 @@ const ServicioForm = () => {
         onServiceCreated={handleServiceCreated}
       />
 
+      <CategoryService
+        open={openCategoriesDialog}
+        handleClose={() => setOpenCategoriesDialog(false)}
+      />
       <EditServiceDialog
         open={openEditDialog}
         handleClose={() => setOpenEditDialog(false)}

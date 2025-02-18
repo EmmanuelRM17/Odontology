@@ -115,13 +115,12 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         });
         setNotification({ open: true, message: `Eliminado ${field}`, type: 'info' });
     };
+
     const validateForm = () => {
         const newErrors = {};
-        const regexOnlyLetters = /^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/; // Solo letras y espacios
         const regexNoSpecialChars = /^[A-Za-z0-9ÁÉÍÓÚáéíóúÑñ\s.,()-]+$/; // Permite letras, números y algunos signos básicos
-        const regexPositiveNumber = /^[1-9]\d*(\.\d{1,2})?$/; // Solo números positivos con hasta 2 decimales
 
-        // Validaciones de campos generales
+        // 🟢 Validaciones generales
         if (!newService.title?.trim()) {
             newErrors.title = 'El título es obligatorio.';
         } else if (newService.title.length < 5) {
@@ -134,48 +133,45 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
             newErrors.description = 'La descripción es obligatoria.';
         } else if (newService.description.length < 10) {
             newErrors.description = 'La descripción debe tener al menos 10 caracteres.';
-        } else if (!regexNoSpecialChars.test(newService.description)) {
-            newErrors.description = 'La descripción contiene caracteres no permitidos.';
         }
 
         if (!newService.category?.trim()) {
             newErrors.category = 'Debe seleccionar una categoría.';
         }
 
-        // Validación de duración
-        if (!newService.durationMin) {
-            newErrors.durationMin = 'Debe ingresar una duración mínima.';
-        } else if (!/^\d+$/.test(newService.durationMin)) {
-            newErrors.durationMin = 'La duración mínima debe ser un número entero.';
+        if (!newService.durationMin || isNaN(newService.durationMin)) {
+            newErrors.durationMin = 'Ingrese una duración mínima válida.';
         }
 
-        if (!newService.durationMax) {
-            newErrors.durationMax = 'Debe ingresar una duración máxima.';
-        } else if (!/^\d+$/.test(newService.durationMax)) {
-            newErrors.durationMax = 'La duración máxima debe ser un número entero.';
+        if (!newService.durationMax || isNaN(newService.durationMax)) {
+            newErrors.durationMax = 'Ingrese una duración máxima válida.';
         }
 
         if (parseInt(newService.durationMin) > parseInt(newService.durationMax)) {
             newErrors.durationMin = 'La duración mínima no puede ser mayor que la máxima.';
         }
 
-        // Validación de precio
-        if (!newService.price) {
-            newErrors.price = 'Debe ingresar un precio.';
-        } else if (!regexPositiveNumber.test(newService.price)) {
-            newErrors.price = 'Ingrese un precio válido (ej. 1500 o 1500.50).';
+        if (!newService.price || isNaN(newService.price) || newService.price <= 0) {
+            newErrors.price = 'Ingrese un precio válido mayor a 0.';
         }
 
-        // Validación de los arrays con nombres más claros
-        ['beneficio', 'incluye', 'preparacion', 'cuidado'].forEach(field => {
-            if (!newService[field]?.some(item => item.trim())) {
-                newErrors[field] = `Debe agregar al menos un ${field}.`;
+        // 🟢 Corrección de validación para arrays
+        const detalleCampos = {
+            benefits: "beneficio",
+            includes: "incluye",
+            preparation: "preparacion",
+            aftercare: "cuidado"
+        };
+
+        Object.entries(detalleCampos).forEach(([campo, nombre]) => {
+            if (!newService[campo]?.some(item => item.trim())) {
+                newErrors[campo] = `Debe agregar al menos un ${nombre}.`;
             } else {
-                newService[field].forEach((item, index) => {
+                newService[campo].forEach((item, index) => {
                     if (item.length < 5) {
-                        newErrors[`${field}-${index}`] = `${field} ${index + 1} debe tener al menos 5 caracteres.`;
+                        newErrors[`${campo}-${index}`] = `${nombre} ${index + 1} debe tener al menos 5 caracteres.`;
                     } else if (!regexNoSpecialChars.test(item)) {
-                        newErrors[`${field}-${index}`] = `${field} ${index + 1} contiene caracteres inválidos.`;
+                        newErrors[`${campo}-${index}`] = `${nombre} ${index + 1} contiene caracteres inválidos.`;
                     }
                 });
             }
@@ -185,43 +181,52 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         return Object.keys(newErrors).length === 0;
     };
 
+
     const handleSubmit = async () => {
-        if (!validateForm()) return;
-    
+        console.log("🔍 Intentando guardar el servicio...");
+
+        // ✅ Verificar si la validación pasa
+        if (!validateForm()) {
+            console.log("❌ Falló la validación, revisa los errores:", errors);
+            return;
+        }
+
         const formattedService = {
             ...newService,
             duration: `${newService.durationMin}-${newService.durationMax} minutos`,
-            beneficio: newService.beneficio.filter(b => b.trim()),
-            incluye: newService.incluye.filter(i => i.trim()),
-            preparacion: newService.preparacion.filter(p => p.trim()),
-            cuidado: newService.cuidado.filter(a => a.trim())
+            benefits: newService.benefits.filter(b => b.trim()),
+            includes: newService.includes.filter(i => i.trim()),
+            preparation: newService.preparation.filter(p => p.trim()),
+            aftercare: newService.aftercare.filter(a => a.trim())
         };
-    
+
+        console.log("📤 Enviando servicio al backend:", formattedService);
+
         try {
             const response = await fetch('https://back-end-4803.onrender.com/api/servicios/create', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formattedService)
             });
-    
+
             if (!response.ok) {
                 let errorMessage = 'Error al crear el servicio';
                 try {
                     const errorData = await response.json();
                     errorMessage = errorData.message || errorMessage;
-                } catch (_) {
-                    // Si la API no envía JSON, usa el mensaje predeterminado.
-                }
+                } catch (_) { }
                 throw new Error(errorMessage);
             }
-    
+
             const createdService = await response.json();
+            console.log("✅ Servicio creado exitosamente:", createdService);
+
             setNotification({
                 open: true,
                 message: 'Servicio creado exitosamente',
                 type: 'success'
             });
-    
+
             // Reset form
             setNewService({
                 title: '',
@@ -230,20 +235,20 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                 durationMin: '',
                 durationMax: '',
                 price: '',
-                beneficio: [''],
-                incluye: [''],
-                preparacion: [''],
-                cuidado: ['']
+                benefits: [''],
+                includes: [''],
+                preparation: [''],
+                aftercare: ['']
             });
-    
+
             // Notificar al componente padre y cerrar el diálogo
             setTimeout(() => {
                 onServiceCreated(createdService);
                 handleClose();
             }, 1500);
-    
+
         } catch (error) {
-            console.error('Error de red o API:', error);
+            console.error('❌ Error en el fetch:', error);
             setNotification({
                 open: true,
                 message: error.message.includes('Failed to fetch')
@@ -253,7 +258,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
             });
         }
     };
-    
+
 
     useEffect(() => {
         if (notification.open) {
