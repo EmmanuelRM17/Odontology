@@ -50,12 +50,12 @@ const Home = () => {
   const imageIndexRef = useRef(0);
 
   useEffect(() => {
-    if (isPaused) return;
-
+    if (isPaused || services.length === 0) return; 
+  
     let frame;
     let startTime = performance.now();
     const duration = autoRotateDelay;
-
+  
     const animate = (currentTime) => {
       if (currentTime - startTime >= duration) {
         serviceIndexRef.current = (serviceIndexRef.current + 1) % services.length;
@@ -64,10 +64,10 @@ const Home = () => {
       }
       frame = requestAnimationFrame(animate);
     };
-
+  
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
-  }, [isPaused]);
+  }, [isPaused, services]);
 
   const nextService = () => {
     setCurrentServiceIndex((prev) => (prev + 1) % services.length);
@@ -262,6 +262,7 @@ const Home = () => {
               borderBottom: '3px solid #03427C',
               textShadow: '4px 4px 6px rgba(0,0,0,0.3)', // Sombra oscura para resaltar
               WebkitTextStroke: '.5px rgba(255,255,255,0.8)',
+              minHeight: '80px',
             }}
           >
             {displayedText}
@@ -311,25 +312,25 @@ const Home = () => {
             }}
           >
             {/* 🔹 Manejo de Carga */}
-            {services.length === 0 ? (
+            {loading ? (
               <Typography sx={{ color: 'white', textAlign: 'center' }}>
                 Cargando servicios...
               </Typography>
+            ) : error ? (
+              <Typography sx={{ color: 'red', textAlign: 'center', fontWeight: 'bold' }}>
+                {error}
+              </Typography>
+            ) : services.length === 0 ? (
+              <Typography sx={{ color: 'white', textAlign: 'center' }}>
+                No hay servicios disponibles en este momento.
+              </Typography>
             ) : (
-              services.map((_, index) => {
-                if (!services[currentServiceIndex]) return null; 
+              services.map((service, i) => {
                 const totalServices = services.length;
-                if (totalServices === 0) return null; // Evita errores si no hay datos
-
-                const normalizedIndex =
-                  ((index - currentServiceIndex) % totalServices + totalServices) % totalServices;
-                const offset =
-                  normalizedIndex <= totalServices / 2
-                    ? normalizedIndex
-                    : normalizedIndex - totalServices;
-                const service = services[(index + currentServiceIndex) % totalServices];
+                let offset = i - currentServiceIndex;
+                if (offset > totalServices / 2) offset -= totalServices;
+                if (offset < -totalServices / 2) offset += totalServices;
                 const isCenter = offset === 0;
-
                 const position = offset * (isMobile ? 120 : 180);
                 const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
                 const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;

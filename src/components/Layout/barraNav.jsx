@@ -16,7 +16,7 @@ import {
   ListItemIcon,
   Divider
 } from '@mui/material';
-import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle } from 'react-icons/fa';
+import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -40,10 +40,10 @@ const LoadingNavBar = ({ isDarkTheme }) => (
         <Skeleton variant="rectangular" width={140} height={36} />
         <Skeleton variant="rectangular" width={120} height={36} />
       </Box>
-      <Skeleton 
-        variant="circular" 
-        width={40} 
-        height={40} 
+      <Skeleton
+        variant="circular"
+        width={40}
+        height={40}
         sx={{ display: { xs: 'block', md: 'none' } }}
       />
     </Toolbar>
@@ -56,8 +56,8 @@ const BarraNav = () => {
   const [logo, setLogo] = useState(null);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null); 
-  
+  const [error, setError] = useState(null);
+
   const navigate = useNavigate();
 
   const fetchTitleAndLogo = async (retries = 3) => {
@@ -65,18 +65,18 @@ const BarraNav = () => {
       const response = await axios.get('https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo', {
         timeout: 5000, // ⏳ Tiempo máximo de espera (5 segundos)
       });
-  
+
       const { nombre_empresa, logo } = response.data;
-  
+
       if (nombre_empresa) {
         document.title = nombre_empresa;
         setCompanyName(nombre_empresa);
       }
-  
+
       if (logo) {
         setLogo(`data:image/png;base64,${logo}`);
       }
-  
+
       setLoading(false);
     } catch (error) {
       if (axios.isCancel(error)) {
@@ -86,7 +86,7 @@ const BarraNav = () => {
       } else {
         console.error("Error al obtener logo y título:", error.message);
       }
-  
+
       if (retries > 0) {
         await new Promise((res) => setTimeout(res, 1000));
         fetchTitleAndLogo(retries - 1);
@@ -96,7 +96,7 @@ const BarraNav = () => {
       }
     }
   };
-  
+
   // Detectar el tema del sistema
   useEffect(() => {
     setIsDarkTheme(false);
@@ -177,7 +177,7 @@ const BarraNav = () => {
             {companyName || 'Odontología Carol'}
           </Typography>
         </Box>
-        <IconButton 
+        <IconButton
           onClick={toggleDrawer(false)}
           sx={{
             color: isDarkTheme ? '#fff' : '#1a2027',
@@ -191,9 +191,9 @@ const BarraNav = () => {
       </Box>
 
       <List sx={{ flex: 1, pt: 2 }}>
-        <ListItem 
-          button 
-          component={Link} 
+        <ListItem
+          button
+          component={Link}
           to="/"
           sx={{
             py: 1.5,
@@ -205,7 +205,7 @@ const BarraNav = () => {
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
             <FaHome size={20} />
           </ListItemIcon>
-          <ListItemText 
+          <ListItemText
             primary="Inicio"
             primaryTypographyProps={{
               sx: {
@@ -217,9 +217,9 @@ const BarraNav = () => {
           />
         </ListItem>
 
-        <ListItem 
-          button 
-          component={Link} 
+        <ListItem
+          button
+          component={Link}
           to="/about"
           sx={{
             py: 1.5,
@@ -231,7 +231,7 @@ const BarraNav = () => {
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
             <FaInfoCircle size={20} />
           </ListItemIcon>
-          <ListItemText 
+          <ListItemText
             primary="Acerca de"
             primaryTypographyProps={{
               sx: {
@@ -245,9 +245,9 @@ const BarraNav = () => {
 
         <Divider sx={{ my: 2, borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
 
-        <ListItem 
-          button 
-          component={Link} 
+        <ListItem
+          button
+          component={Link}
           to="/agendar-cita"
           sx={{
             py: 1.5,
@@ -260,7 +260,7 @@ const BarraNav = () => {
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
             <FaCalendarAlt size={20} />
           </ListItemIcon>
-          <ListItemText 
+          <ListItemText
             primary="Agenda una Cita"
             primaryTypographyProps={{
               sx: {
@@ -272,9 +272,9 @@ const BarraNav = () => {
           />
         </ListItem>
 
-        <ListItem 
-          button 
-          component={Link} 
+        <ListItem
+          button
+          component={Link}
           to="/login"
           sx={{
             py: 1.5,
@@ -288,7 +288,7 @@ const BarraNav = () => {
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
             <FaSignInAlt size={20} />
           </ListItemIcon>
-          <ListItemText 
+          <ListItemText
             primary="Iniciar sesión"
             primaryTypographyProps={{
               sx: {
@@ -309,6 +309,69 @@ const BarraNav = () => {
 
   return (
     <>
+      <Box
+        sx={{
+          backgroundColor: isDarkTheme ? "#1A5F7A" : "#03427C", // Azul más fresco y profesional
+          color: "#FFFFFF",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          padding: "10px 16px",
+          fontSize: "0.875rem",
+          flexWrap: "wrap",
+          gap: { xs: 1, sm: 3 },
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)" // Sombra sutil
+        }}
+      >
+        {/* 📍 Dirección */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <FaMapMarkerAlt style={{ color: "#4FD1C5" }} size={16} /> {/* Color turquesa dental */}
+          <Typography
+            sx={{
+              fontFamily: '"Montserrat", sans-serif',
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              letterSpacing: "0.2px",
+              fontWeight: 500
+            }}
+          >
+            Pino Suárez 390, Ixcatlán, Hgo.
+          </Typography>
+        </Box>
+
+        {/* Separador en pantallas grandes */}
+        <Box
+          sx={{
+            display: { xs: "none", sm: "block" },
+            mx: 2,
+            opacity: 0.7
+          }}
+        >
+          |
+        </Box>
+
+        {/* 📞 Teléfono */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <FaPhoneAlt style={{ color: "#4FD1C5" }} size={14} />
+          <Typography
+            component="a"
+            href="tel:5569435268"
+            sx={{
+              textDecoration: "none",
+              color: "#4FD1C5",
+              fontWeight: "600",
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              transition: "color 0.2s ease",
+              "&:hover": {
+                color: "#B2F5EA" // Color más claro al hacer hover
+              }
+            }}
+          >
+            7713339456
+          </Typography>
+        </Box>
+      </Box>
+
+
       <AppBar
         position="static"
         sx={{
