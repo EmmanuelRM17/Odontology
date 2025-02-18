@@ -207,132 +207,129 @@ const ServicioForm = () => {
               sx={{ width: '50%' }}
             />
           </Box>
-
-
-          <TableContainer component={Paper}>
+          <TableContainer
+            component={Paper}
+            sx={{
+              boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
+              backgroundColor: colors.paper,
+              borderRadius: '12px', // 🔹 Bordes más redondeados
+              overflow: 'hidden',
+              transition: 'all 0.3s ease'
+            }}
+          >
             <Table>
-              <TableHead sx={{ backgroundColor: colors.tableHeader }}>
+              {/* ✅ Igualar el estilo del encabezado con la tabla de pacientes */}
+              <TableHead sx={{ backgroundColor: '#E3F2FD' }}>
                 <TableRow>
-                  <TableCell>Servicio</TableCell>
-                  <TableCell>Duración</TableCell>
-                  <TableCell>Precio</TableCell>
-                  <TableCell>Categoría</TableCell>
-                  <TableCell align="center">Acciones</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>#</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Servicio</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Duración</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Precio</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Categoría</TableCell>
+                  <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Acciones</TableCell>
                 </TableRow>
               </TableHead>
+
               <TableBody>
-                {services && services.length > 0 ? (
-                  services.map((service) => (
+                {services.length > 0 ? (
+                  services.map((service, index) => (
                     <TableRow
-                      key={service?.id || Math.random()} // Evita errores si `id` es undefined
+                      key={service?.id || index}
                       sx={{
-                        '&:hover': { backgroundColor: colors.hover },
-                        transition: 'background-color 0.2s'
+                        height: '69px', // 🔹 Igualar la altura de las filas a la de pacientes
+                        '&:hover': { backgroundColor: 'rgba(25,118,210,0.1)' }, // 🔹 Igualar hover
+                        transition: 'background-color 0.2s ease'
                       }}
                     >
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <MedicalServices sx={{ color: colors.primary, mr: 2 }} />
-                          <Typography>{service?.title || "N/A"}</Typography>
-                        </Box>
+                      <TableCell sx={{ color: colors.text }}>{index + 1}</TableCell>
+                      <TableCell sx={{ color: colors.text }}>
+                        {service?.title || "N/A"}
                       </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Timer sx={{ color: colors.primary, mr: 1 }} />
-                          {service?.duration || "N/A"}
-                        </Box>
+                      <TableCell sx={{ color: colors.text }}>
+                        {service?.duration || "N/A"}
                       </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <AttachMoney sx={{ color: colors.primary }} />
-                          {service?.price ? parseFloat(service.price).toFixed(2) : "N/A"}
-                        </Box>
+                      <TableCell sx={{ color: colors.text }}>
+                        ${service?.price ? parseFloat(service.price).toFixed(2) : "N/A"}
                       </TableCell>
                       <TableCell>
                         <Chip
                           label={service?.category || "N/A"}
-                          color="primary"
-                          variant="outlined"
+                          sx={{
+                            backgroundColor: isDarkTheme ? '#0288d1' : '#E3F2FD',
+                            color: isDarkTheme ? '#FFF' : '#0277BD',
+                            fontWeight: '500',
+                            border: `1px solid ${isDarkTheme ? '#0288d1' : '#0277BD'}`,
+                            fontSize: '0.875rem',
+                            height: '28px',
+                          }}
                         />
                       </TableCell>
-                      <TableCell align="center">
-                        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
-
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1 }}>
                           {/* 🔍 Ver Detalles */}
-                          <Tooltip title="Ver detalles">
+                          <Tooltip title="Ver detalles" arrow>
                             <IconButton
                               onClick={() => handleViewDetails(service)}
                               sx={{
                                 backgroundColor: '#0288d1',
-                                color: 'white',
+                                '&:hover': { backgroundColor: '#0277bd' },
+                                padding: '8px', // 🔹 Ajustar tamaño igual que en pacientes
                                 borderRadius: '50%',
-                                width: 42,
-                                height: 42,
-                                '&:hover': { backgroundColor: '#0277bd' }
                               }}
                             >
-                              <Info fontSize="medium" />
+                              <Info fontSize="medium" sx={{ color: 'white' }} />
                             </IconButton>
                           </Tooltip>
 
                           {/* ✏️ Editar Servicio */}
-                          <Tooltip title="Editar servicio">
+                          <Tooltip title="Editar servicio" arrow>
                             <IconButton
-                              sx={{
-                                backgroundColor: '#4caf50', // Azul más claro para editar
-                                color: 'white',
-                                borderRadius: '50%',
-                                width: 42,
-                                height: 42,
-                                '&:hover': { backgroundColor: '#388e3c' } // Azul oscuro al pasar el mouse
-                              }}
                               onClick={() => {
-                                if (service?.id) {
-                                  setSelectedService(service.id);
-                                  setOpenEditDialog(true);
-                                }
+                                setSelectedService(service.id);
+                                setOpenEditDialog(true);
+                              }}
+                              sx={{
+                                backgroundColor: '#4caf50',
+                                '&:hover': { backgroundColor: '#388e3c' },
+                                padding: '8px',
+                                borderRadius: '50%',
                               }}
                             >
-                              <BorderColor fontSize="medium" /> {/* Cambia Edit por un icono más bonito */}
+                              <BorderColor fontSize="medium" sx={{ color: 'white' }} />
                             </IconButton>
                           </Tooltip>
 
                           {/* ❌ Eliminar Servicio */}
-                          <Tooltip title="Eliminar servicio">
+                          <Tooltip title="Eliminar servicio" arrow>
                             <IconButton
                               onClick={() => {
                                 setServiceToDelete(service);
                                 setOpenConfirmDialog(true);
                               }}
                               sx={{
-                                backgroundColor: '#e53935', // Rojo vibrante
-                                color: 'white',
+                                backgroundColor: '#e53935',
+                                '&:hover': { backgroundColor: '#c62828' },
+                                padding: '8px',
                                 borderRadius: '50%',
-                                width: 42,
-                                height: 42,
-                                '&:hover': { backgroundColor: '#c62828' } // Rojo más oscuro al pasar el mouse
                               }}
                             >
-                              <Close fontSize="medium" /> {/* Ícono de "X" más claro */}
+                              <Close fontSize="medium" sx={{ color: 'white' }} />
                             </IconButton>
                           </Tooltip>
                         </Box>
                       </TableCell>
-
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center">
+                    <TableCell colSpan={6} align="center">
                       <Typography color="textSecondary">No hay servicios disponibles</Typography>
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
-
             </Table>
           </TableContainer>
-
         </CardContent>
       </Card>
       {/* Diálogo de detalles del servicio */}
