@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import {
   TextField, Button, Grid, MenuItem, FormControl, Select, InputLabel,
-  Card, CardContent, Typography, TableContainer,
-  Table, TableBody, TableCell, TableHead, TableRow, Paper, Dialog,
-  DialogTitle, DialogContent, DialogActions, Box, IconButton, Tooltip,
-  Chip, Fab,
+  Card, CardContent, Typography, TableContainer, Table, TableBody, TableCell,
+  TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
+  Box, IconButton, Tooltip, Chip, Fab, Alert, AlertTitle
 } from '@mui/material';
+
 import {
-  MedicalServices, Timer, AttachMoney, Edit, Delete,
-  Description, CheckCircle, Info, EventAvailable,
-  HealthAndSafety, MenuBook, AccessTime, Add, Close, BorderColor
+  MedicalServices, Timer, AttachMoney, Edit, Delete, Description, CheckCircle,
+  Info, EventAvailable, HealthAndSafety, MenuBook, AccessTime, Add, Close, BorderColor,
+  Warning
 } from '@mui/icons-material';
+
+import { alpha } from '@mui/material/styles';
 import EditServiceDialog from './EditService';
+import NewService from './newService';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+
 
 const ServicioForm = () => {
   const [isDarkTheme] = useState(false);
@@ -25,6 +29,7 @@ const ServicioForm = () => {
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -40,42 +45,15 @@ const ServicioForm = () => {
     cardBg: isDarkTheme ? '#1A2735' : '#ffffff',
   };
 
-  const [newService, setNewService] = useState({
-    title: '',
-    description: '',
-    category: 'General',
-    duration: '',
-    price: '',
-    disponibilidad: true,
-    promotion: 0,
-    benefits: ['', '', '', ''],
-    includes: ['', '', '', ''],
-    preparation: ['', '', '', ''],
-    aftercare: ['', '', '', '']
-  });
-
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
-  // Función para manejar la apertura del diálogo de detalles
-  const handleArrayChange = (field, index, value) => {
-    setNewService(prev => ({
-      ...prev,
-      [field]: prev[field] ? prev[field].map((item, i) => (i === index ? value : item)) : [],
-    }));
+  const handleServiceCreated = (newService) => {
+    setOpenNewServiceForm(false);
+    fetchServices(); // Vuelve a cargar la lista de servicios después de agregar uno nuevo
   };
 
-  //validacion del form
-  const validateServiceForm = () => {
-    return (
-      newService.title.trim() !== "" &&
-      newService.description.trim() !== "" &&
-      +     newService.category.trim() !== "" &&
-      newService.duration.trim() !== "" &&
-      newService.price > 0
-    );
-  };
 
   const handleDeleteService = async () => {
     if (!serviceToDelete) return;
@@ -83,47 +61,47 @@ const ServicioForm = () => {
     setIsProcessing(true);
 
     try {
-        const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/delete/${serviceToDelete.id}`, {
-            method: 'DELETE',
-        });
+      const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/delete/${serviceToDelete.id}`, {
+        method: 'DELETE',
+      });
 
-        if (!response.ok) {
-            throw new Error('Error al eliminar el servicio');
-        }
+      if (!response.ok) {
+        throw new Error('Error al eliminar el servicio');
+      }
 
-        setNotification({
-            open: true,
-            message: `El servicio "${serviceToDelete.title}" ha sido eliminado correctamente.`,
-            type: 'success',
-        });
+      setNotification({
+        open: true,
+        message: `El servicio "${serviceToDelete.title}" ha sido eliminado correctamente.`,
+        type: 'success',
+      });
 
-        setOpenConfirmDialog(false);
-        setServiceToDelete(null);
-        fetchServices(); // Refrescar la lista después de eliminar
+      setOpenConfirmDialog(false);
+      setServiceToDelete(null);
+      fetchServices(); // Refrescar la lista después de eliminar
 
-        // Asegurar que la notificación se cierre después de 3 segundos
-        setTimeout(() => {
-            setNotification({ open: false, message: '', type: '' });
-        }, 3000);
+      // Asegurar que la notificación se cierre después de 3 segundos
+      setTimeout(() => {
+        setNotification({ open: false, message: '', type: '' });
+      }, 3000);
 
     } catch (error) {
-        console.error('Error al eliminar el servicio:', error);
+      console.error('Error al eliminar el servicio:', error);
 
-        setNotification({
-            open: true,
-            message: 'Hubo un error al eliminar el servicio.',
-            type: 'error',
-        });
+      setNotification({
+        open: true,
+        message: 'Hubo un error al eliminar el servicio.',
+        type: 'error',
+      });
 
-        setTimeout(() => {
-            setNotification({ open: false, message: '', type: '' });
-        }, 3000);
+      setTimeout(() => {
+        setNotification({ open: false, message: '', type: '' });
+      }, 3000);
 
     } finally {
-        setIsProcessing(false);
+      setIsProcessing(false);
     }
-};
- 
+  };
+
 
 
   const handleViewDetails = (service) => {
@@ -450,74 +428,215 @@ const ServicioForm = () => {
         PaperProps={{
           sx: {
             backgroundColor: colors.paper,
-            color: colors.text
+            color: colors.text,
+            maxWidth: '600px',
+            width: '100%'
           }
         }}
       >
-        <DialogTitle sx={{ color: colors.primary }}>
+        <DialogTitle
+          sx={{
+            color: colors.primary,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            borderBottom: `1px solid ${colors.divider}`
+          }}
+        >
+          <Warning sx={{ color: '#d32f2f' }} />
           Confirmar eliminación
         </DialogTitle>
 
-        <DialogContent>
-          <Typography>
-            <strong>¿Estás seguro de que deseas eliminar el servicio "{serviceToDelete?.title}"?</strong>
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            ¿Estás seguro de que deseas eliminar el servicio "{serviceToDelete?.title}"?
           </Typography>
 
-          <Typography variant="body2" sx={{ mt: 1, color: colors.secondary }}>
+          <Typography
+            variant="body1"
+            sx={{
+              mt: 2,
+              color: colors.secondary,
+              borderBottom: `1px solid ${colors.divider}`,
+              pb: 1
+            }}
+          >
             Se eliminarán todos los detalles asociados, incluyendo:
           </Typography>
 
           {/* 📌 Lista de detalles asociados */}
           {serviceToDelete && (
-            <Box sx={{ mt: 2, pl: 2 }}>
+            <Box
+              sx={{
+                mt: 2,
+                pl: 2,
+                maxHeight: '300px',
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': {
+                  width: '8px'
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: colors.divider,
+                  borderRadius: '4px'
+                }
+              }}
+            >
               {serviceToDelete.benefits.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold' }}>Beneficios:</Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 'bold',
+                      color: colors.primary
+                    }}
+                  >
+                    Beneficios:
+                  </Typography>
                   {serviceToDelete.benefits.map((benefit, index) => (
-                    <Typography key={index} variant="body2">• {benefit}</Typography>
+                    <Typography
+                      key={index}
+                      variant="body2"
+                      sx={{
+                        pl: 2,
+                        position: 'relative',
+                        '&::before': {
+                          content: '"•"',
+                          position: 'absolute',
+                          left: 0,
+                          color: colors.primary
+                        }
+                      }}
+                    >
+                      {benefit}
+                    </Typography>
                   ))}
                 </>
               )}
 
               {serviceToDelete.includes.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Incluye:</Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 'bold',
+                      mt: 2,
+                      color: colors.primary
+                    }}
+                  >
+                    Incluye:
+                  </Typography>
                   {serviceToDelete.includes.map((item, index) => (
-                    <Typography key={index} variant="body2">• {item}</Typography>
+                    <Typography
+                      key={index}
+                      variant="body2"
+                      sx={{
+                        pl: 2,
+                        position: 'relative',
+                        '&::before': {
+                          content: '"•"',
+                          position: 'absolute',
+                          left: 0,
+                          color: colors.primary
+                        }
+                      }}
+                    >
+                      {item}
+                    </Typography>
                   ))}
                 </>
               )}
 
               {serviceToDelete.preparation.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Preparación:</Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 'bold',
+                      mt: 2,
+                      color: colors.primary
+                    }}
+                  >
+                    Preparación:
+                  </Typography>
                   {serviceToDelete.preparation.map((prep, index) => (
-                    <Typography key={index} variant="body2">• {prep}</Typography>
+                    <Typography
+                      key={index}
+                      variant="body2"
+                      sx={{
+                        pl: 2,
+                        position: 'relative',
+                        '&::before': {
+                          content: '"•"',
+                          position: 'absolute',
+                          left: 0,
+                          color: colors.primary
+                        }
+                      }}
+                    >
+                      {prep}
+                    </Typography>
                   ))}
                 </>
               )}
 
               {serviceToDelete.aftercare.length > 0 && (
                 <>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 'bold', mt: 1 }}>Cuidados posteriores:</Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      fontWeight: 'bold',
+                      mt: 2,
+                      color: colors.primary
+                    }}
+                  >
+                    Cuidados posteriores:
+                  </Typography>
                   {serviceToDelete.aftercare.map((care, index) => (
-                    <Typography key={index} variant="body2">• {care}</Typography>
+                    <Typography
+                      key={index}
+                      variant="body2"
+                      sx={{
+                        pl: 2,
+                        position: 'relative',
+                        '&::before': {
+                          content: '"•"',
+                          position: 'absolute',
+                          left: 0,
+                          color: colors.primary
+                        }
+                      }}
+                    >
+                      {care}
+                    </Typography>
                   ))}
                 </>
               )}
             </Box>
           )}
 
-          <Typography variant="body2" sx={{ mt: 2, fontWeight: 'bold', color: '#d32f2f' }}>
-            ⚠ Esta acción no se puede deshacer.
-          </Typography>
+          <Alert
+            severity="error"
+            sx={{
+              mt: 2,
+              '& .MuiAlert-icon': {
+                color: '#d32f2f'
+              }
+            }}
+          >
+            <AlertTitle>Esta acción no se puede deshacer.</AlertTitle>
+          </Alert>
         </DialogContent>
 
-        <DialogActions>
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
           <Button
             onClick={() => setOpenConfirmDialog(false)}
             disabled={isProcessing}
-            sx={{ color: colors.secondary }}
+            sx={{
+              color: colors.secondary,
+              '&:hover': {
+                backgroundColor: alpha(colors.secondary, 0.1)
+              }
+            }}
           >
             Cancelar
           </Button>
@@ -526,8 +645,13 @@ const ServicioForm = () => {
             onClick={handleDeleteService}
             disabled={isProcessing}
             sx={{
-              bgcolor: '#e53935',
-              '&:hover': { bgcolor: '#c62828' }
+              bgcolor: '#d32f2f',
+              '&:hover': {
+                bgcolor: '#c62828'
+              },
+              '&:disabled': {
+                bgcolor: alpha('#d32f2f', 0.5)
+              }
             }}
           >
             {isProcessing ? 'Eliminando...' : 'Eliminar'}
@@ -535,251 +659,32 @@ const ServicioForm = () => {
         </DialogActions>
       </Dialog>
 
-
-
       {/* Botón FAB para agregar nuevo servicio */}
-      <Fab
-        color="primary"
-        sx={{
-          position: 'fixed',
-          bottom: 32,
-          right: 32,
-          bgcolor: colors.primary,
-          '&:hover': {
+      <Tooltip title="Agregar nuevo servicio">
+        <Fab
+          color="primary"
+          sx={{
+            position: 'fixed',
+            bottom: 32,
+            right: 32,
             bgcolor: colors.primary,
-            opacity: 0.9
-          }
-        }}
-        onClick={() => setOpenNewServiceForm(true)}
-      >
-        <Add />
-      </Fab>
-
-      {/* Modal para nuevo servicio */}
-      <Dialog
-        open={openNewServiceForm}
-        onClose={() => setOpenNewServiceForm(false)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{
-          style: {
-            backgroundColor: colors.cardBg,
-            color: colors.text
-          }
-        }}
-      >
-        <DialogTitle sx={{
-          bgcolor: colors.primary,
-          color: '#ffffff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <MedicalServices />
-            <Typography>Nuevo Servicio Dental</Typography>
-          </Box>
-          <IconButton onClick={() => setOpenNewServiceForm(false)} sx={{ color: '#ffffff' }}>
-            <Close />
-          </IconButton>
-        </DialogTitle>
-
-        <DialogContent sx={{ mt: 2 }}>
-          <Grid container spacing={3}>
-            {/* Información básica */}
-            <Grid item xs={12}>
-              <Typography variant="h6" sx={{ color: colors.primary, mb: 2 }}>
-                Información Básica
-              </Typography>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nombre del Servicio"
-                    value={newService.title}
-                    onChange={(e) => setNewService({ ...newService, title: e.target.value })}
-                    sx={{
-                      '& label': { color: colors.secondary },
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: colors.secondary },
-                        '&:hover fieldset': { borderColor: colors.primary },
-                        '&.Mui-focused fieldset': { borderColor: colors.primary }
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Duración"
-                    value={newService.duration}
-                    onChange={(e) => setNewService({ ...newService, duration: e.target.value })}
-                    placeholder="ej: 30-45 minutos"
-                    sx={{
-                      '& label': { color: colors.secondary },
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: colors.secondary },
-                        '&:hover fieldset': { borderColor: colors.primary },
-                        '&.Mui-focused fieldset': { borderColor: colors.primary }
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Precio"
-                    type="number"
-                    value={newService.price}
-                    onChange={(e) => setNewService({ ...newService, price: e.target.value })}
-                    sx={{
-                      '& label': { color: colors.secondary },
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: colors.secondary },
-                        '&:hover fieldset': { borderColor: colors.primary },
-                        '&.Mui-focused fieldset': { borderColor: colors.primary }
-                      }
-                    }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel sx={{ color: colors.secondary }}>Disponibilidad</InputLabel>
-                    <Select
-                      value={newService.disponibilidad}
-                      onChange={(e) => setNewService({ ...newService, disponibilidad: e.target.value })}
-                      sx={{
-                        '& .MuiOutlinedInput-notchedOutline': { borderColor: colors.secondary },
-                        '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary },
-                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary }
-                      }}
-                    >
-                      <MenuItem value={true}>Disponible</MenuItem>
-                      <MenuItem value={false}>No Disponible</MenuItem>
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    label="Descripción Corta"
-                    value={newService.shortDescription}
-                    onChange={(e) => setNewService({ ...newService, shortDescription: e.target.value })}
-                    sx={{
-                      '& label': { color: colors.secondary },
-                      '& .MuiOutlinedInput-root': {
-                        '& fieldset': { borderColor: colors.secondary },
-                        '&:hover fieldset': { borderColor: colors.primary },
-                        '&.Mui-focused fieldset': { borderColor: colors.primary }
-                      }
-                    }}
-                  />
-                </Grid>
-              </Grid>
-            </Grid>
-
-            {/* Beneficios */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ color: colors.primary, mb: 2 }}>
-                <CheckCircle sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Beneficios
-              </Typography>
-              {newService.benefits.map((benefit, index) => (
-                <TextField
-                  key={`benefit-${index}`}
-                  fullWidth
-                  label={`Beneficio ${index + 1}`}
-                  value={benefit}
-                  onChange={(e) => handleArrayChange('benefits', index, e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-              ))}
-            </Grid>
-
-            {/* Incluye */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ color: colors.primary, mb: 2 }}>
-                <MenuBook sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Incluye
-              </Typography>
-              {newService.includes.map((include, index) => (
-                <TextField
-                  key={`include-${index}`}
-                  fullWidth
-                  label={`Inclusión ${index + 1}`}
-                  value={include}
-                  onChange={(e) => handleArrayChange('includes', index, e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-              ))}
-            </Grid>
-
-            {/* Preparación */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ color: colors.primary, mb: 2 }}>
-                <AccessTime sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Preparación
-              </Typography>
-              {newService.preparation.map((prep, index) => (
-                <TextField
-                  key={`prep-${index}`}
-                  fullWidth
-                  label={`Preparación ${index + 1}`}
-                  value={prep}
-                  onChange={(e) => handleArrayChange('preparation', index, e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-              ))}
-            </Grid>
-
-            {/* Cuidados posteriores */}
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" sx={{ color: colors.primary, mb: 2 }}>
-                <EventAvailable sx={{ mr: 1, verticalAlign: 'middle' }} />
-                Cuidados Posteriores
-              </Typography>
-              {newService.aftercare.map((care, index) => (
-                <TextField
-                  key={`care-${index}`}
-                  fullWidth
-                  label={`Cuidado ${index + 1}`}
-                  value={care}
-                  onChange={(e) => handleArrayChange('aftercare', index, e.target.value)}
-                  sx={{ mb: 2 }}
-                />
-              ))}
-            </Grid>
-          </Grid>
-        </DialogContent>
-
-        <DialogActions sx={{ p: 3 }}>
-          <Button
-            onClick={() => setOpenNewServiceForm(false)}
-            sx={{ color: colors.secondary }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (validateServiceForm()) {
-                setOpenNewServiceForm(false);
-              }
-            }}
-            sx={{
+            '&:hover': {
               bgcolor: colors.primary,
-              '&:hover': {
-                bgcolor: colors.primary,
-                opacity: 0.9
-              }
-            }}
-          >
-            Guardar Servicio
-          </Button>
-        </DialogActions>
-      </Dialog>
+              opacity: 0.9
+            }
+          }}
+          onClick={() => setOpenNewServiceForm(true)}
+        >
+          <Add />
+        </Fab>
+      </Tooltip>
+
+      <NewService
+        open={openNewServiceForm}
+        handleClose={() => setOpenNewServiceForm(false)}
+        onServiceCreated={handleServiceCreated}
+      />
+
       <EditServiceDialog
         open={openEditDialog}
         handleClose={() => setOpenEditDialog(false)}

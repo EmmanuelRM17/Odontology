@@ -54,16 +54,15 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   useEffect(() => {
     if (!serviceId) return;
 
-    console.log("Solicitando servicio con ID:", serviceId);
+    const fetchData = async () => {
+      try {
+        console.log("Solicitando servicio con ID:", serviceId);
 
-    fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`)
-      .then(response => {
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: Servicio no encontrado`);
-        }
-        return response.json();
-      })
-      .then(data => {
+        // Obtener datos del servicio por ID
+        const response = await fetch(`https://back-end-4803.onrender.com/api/servicios/get/${serviceId}`);
+        if (!response.ok) throw new Error(`Error ${response.status}: Servicio no encontrado`);
+        const data = await response.json();
+
         const [min, max] = (data.duration || '').split('-').map(d => d.replace(/\D/g, ''));
         setEditedService({
           ...data,
@@ -74,25 +73,20 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
           preparation: data.preparation?.length ? data.preparation : [''],
           aftercare: data.aftercare?.length ? data.aftercare : ['']
         });
-      })
-      .catch(error => console.error('Error al obtener el servicio:', error));
-  }, [serviceId]);
 
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('https://back-end-4803.onrender.com/api/servicios/categorias');
-        if (!response.ok) throw new Error('Error al obtener categorías');
+        // Obtener categorías desde el endpoint
+        const categoryResponse = await fetch('https://back-end-4803.onrender.com/api/servicios/categorias');
+        const categories = await categoryResponse.json();
+        setCategories(categories); // Guardar categorías en el estado
 
-        const data = await response.json();
-        setCategories(data); // Almacenar categorías en el estado
       } catch (error) {
-        console.error('Error cargando categorías:', error);
+        console.error('Error al obtener el servicio:', error);
       }
     };
 
-    fetchCategories();
-  }, []);
+    fetchData();
+  }, [serviceId]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -325,9 +319,9 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
                   onChange={handleChange}
                 >
                   {categories.length > 0 ? (
-                    categories.map((cat) => (
-                      <MenuItem key={cat.id} value={cat.nombre}>
-                        {cat.nombre}
+                    categories.map((cat, index) => (
+                      <MenuItem key={index} value={cat}>
+                        {cat}
                       </MenuItem>
                     ))
                   ) : (
