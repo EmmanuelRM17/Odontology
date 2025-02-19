@@ -16,7 +16,7 @@ import {
   ListItemIcon,
   Divider
 } from '@mui/material';
-import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle, FaMapMarkerAlt, FaPhoneAlt } from 'react-icons/fa';
+import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle, FaMapMarkerAlt, FaPhoneAlt, FaClock } from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
 import CloseIcon from '@mui/icons-material/Close';
 
@@ -311,21 +311,61 @@ const BarraNav = () => {
     <>
       <Box
         sx={{
-          backgroundColor: isDarkTheme ? "#1A5F7A" : "#03427C", // Azul más fresco y profesional
+          backgroundColor: isDarkTheme ? "#1E293B" : "#03427C", // Azul más oscuro para tema negro
           color: "#FFFFFF",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          padding: "10px 16px",
+          padding: "12px 16px",
           fontSize: "0.875rem",
           flexWrap: "wrap",
-          gap: { xs: 1, sm: 3 },
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)" // Sombra sutil
+          gap: { xs: 2, sm: 3 },
+          boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
         }}
       >
         {/* 📍 Dirección */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FaMapMarkerAlt style={{ color: "#4FD1C5" }} size={16} /> {/* Color turquesa dental */}
+          <FaMapMarkerAlt
+            style={{
+              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"  // Azul más brillante para tema oscuro
+            }}
+            size={16}
+          />
+          <Typography
+            sx={{
+              fontFamily: '"Montserrat", sans-serif',
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              letterSpacing: "0.3px",
+              fontWeight: 500,
+              '&:hover': {
+                color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
+                transition: "color 0.2s ease"
+              }
+            }}
+          >
+            Pino Suárez 390, Ixcatlán, Hgo.
+          </Typography>
+        </Box>
+
+        <Box
+          sx={{
+            display: { xs: "none", sm: "block" },
+            mx: 2,
+            opacity: 0.4,
+            color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
+          }}
+        >
+          |
+        </Box>
+
+        {/* ⏰ Horario */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <FaClock
+            style={{
+              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
+            }}
+            size={14}
+          />
           <Typography
             sx={{
               fontFamily: '"Montserrat", sans-serif',
@@ -334,16 +374,16 @@ const BarraNav = () => {
               fontWeight: 500
             }}
           >
-            Pino Suárez 390, Ixcatlán, Hgo.
+            Lun - Vie: 9:00 - 19:00
           </Typography>
         </Box>
 
-        {/* Separador en pantallas grandes */}
         <Box
           sx={{
             display: { xs: "none", sm: "block" },
             mx: 2,
-            opacity: 0.7
+            opacity: 0.4,
+            color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
           }}
         >
           |
@@ -351,18 +391,24 @@ const BarraNav = () => {
 
         {/* 📞 Teléfono */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FaPhoneAlt style={{ color: "#4FD1C5" }} size={14} />
+          <FaPhoneAlt
+            style={{
+              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
+            }}
+            size={14}
+          />
           <Typography
             component="a"
-            href="tel:5569435268"
+            href="tel:7713339456"
             sx={{
               textDecoration: "none",
-              color: "#4FD1C5",
+              color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
               fontWeight: "600",
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              transition: "color 0.2s ease",
+              transition: "all 0.3s ease",
               "&:hover": {
-                color: "#B2F5EA" // Color más claro al hacer hover
+                color: isDarkTheme ? "#7DD3FC" : "#B2F5EA",
+                transform: "scale(1.03)"
               }
             }}
           >
@@ -370,7 +416,6 @@ const BarraNav = () => {
           </Typography>
         </Box>
       </Box>
-
 
       <AppBar
         position="static"
