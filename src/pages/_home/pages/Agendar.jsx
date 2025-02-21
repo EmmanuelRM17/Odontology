@@ -61,7 +61,7 @@ const steps = [
 
 const ReservaCitas = () => {
     const [isDarkTheme, setIsDarkTheme] = useState(false);
-    const [activeStep, setActiveStep] = useState(1);
+    const [activeStep, setActiveStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [stepsCompleted, setStepsCompleted] = useState({
         step1: false,
@@ -112,28 +112,34 @@ const ReservaCitas = () => {
         return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, []);
 
-    const handleStepCompletion = (step, isCompleted) => {
-        setStepsCompleted(prev => ({
+    const handleStepCompletion = (step, isCompleted, stepData = {}) => {
+        setStepsCompleted((prev) => ({
             ...prev,
-            [step]: isCompleted
+            [step]: isCompleted,
         }));
+
+        handleFormDataChange(stepData);
+
+        if (isCompleted) {
+            handleNextStep();
+        }
     };
 
     const handleNextStep = () => {
         setIsLoading(true);
         setTimeout(() => {
-            setActiveStep(prev => prev + 1);
+            setActiveStep((prev) => prev + 1);
             setIsLoading(false);
             setNotification({
                 open: true,
                 message: 'Paso completado con éxito',
-                type: 'success'
+                type: 'success',
             });
         }, 1000);
     };
 
     const handlePrevStep = () => {
-        setActiveStep(prev => prev - 1);
+        setActiveStep((prev) => Math.max(prev - 1, 0));
     };
 
     const handleFormDataChange = (newData) => {
@@ -154,15 +160,24 @@ const ReservaCitas = () => {
             formData,
             onFormDataChange: handleFormDataChange,
             onStepCompletion: handleStepCompletion,
-            setNotification
+            setNotification,
         };
 
         switch (activeStep) {
-            case 1: return <StepOne {...commonProps} />;
-            case 2: return <StepTwo {...commonProps} />;
-            case 3: return <StepThree {...commonProps} selectedDate={selectedDate} selectedTime={selectedTime} onDateTimeChange={handleDateTimeSelection} />;
-            case 4: return <StepFour {...commonProps} />;
-            default: return null;
+            case 0:
+                return <StepOne {...commonProps} />;
+            case 1:
+                return <StepTwo {...commonProps} />;
+            case 2:
+                return <StepThree {...commonProps}
+                    selectedDate={selectedDate}
+                    selectedTime={selectedTime}
+                    onDateTimeChange={handleDateTimeSelection}
+                />;
+            case 3:
+                return <StepFour {...commonProps} />;
+            default:
+                return null;
         }
     };
 
@@ -272,7 +287,7 @@ const ReservaCitas = () => {
                     }}
                 >
                     <Stepper
-                        activeStep={activeStep - 1}
+                        activeStep={activeStep}
                         alternativeLabel
                         orientation="horizontal"
                         sx={{

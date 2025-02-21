@@ -8,7 +8,6 @@ import {
     CircularProgress,
     Card,
     CardContent,
-    Tooltip
 } from '@mui/material';
 import {
     CalendarMonth as CalendarIcon,
@@ -77,6 +76,12 @@ const StepThree = ({
         onNext();
     };
 
+    // Función auxiliar para comparar fechas
+    const isSameDate = (date1, date2) => {
+        if (!(date1 instanceof Date) || !(date2 instanceof Date)) return false;
+        return date1.toDateString() === date2.toDateString();
+    };
+
     return (
         <Paper
             elevation={3}
@@ -112,11 +117,11 @@ const StepThree = ({
                         {availableDates.map((date) => (
                             <Grid item xs={6} sm={4} md={3} key={date.toISOString()}>
                                 <Card
-                                    elevation={selectedDate?.toDateString() === date.toDateString() ? 6 : 3}
+                                    elevation={isSameDate(selectedDate, date) ? 6 : 3}
                                     sx={{
                                         borderRadius: 3,
                                         overflow: 'hidden',
-                                        border: selectedDate?.toDateString() === date.toDateString()
+                                        border: isSameDate(selectedDate, date)
                                             ? `2px solid ${colors.primary}`
                                             : '2px solid transparent',
                                         '&:hover': {

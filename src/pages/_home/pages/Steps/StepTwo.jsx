@@ -9,7 +9,6 @@ import {
     CardMedia, 
     Button, 
     Chip, 
-    CircularProgress,
     Tooltip 
 } from '@mui/material';
 import {
@@ -17,7 +16,6 @@ import {
     CheckCircle as CheckCircleIcon,
     Info as InfoIcon
 } from '@mui/icons-material';
-import axios from 'axios';
 
 const StepTwo = ({
     colors,
@@ -29,27 +27,31 @@ const StepTwo = ({
     onStepCompletion,
     setNotification
 }) => {
-    const [isLoading, setIsLoading] = useState(false);
-    const [specialists, setSpecialists] = useState([]);
     const [selectedSpecialist, setSelectedSpecialist] = useState(formData.especialista || null);
 
-    useEffect(() => {
-        setIsLoading(true);
-        axios.get('https://back-end-4803.onrender.com/api/especialistas/all')
-            .then((response) => {
-                setSpecialists(response.data);
-                setIsLoading(false);
-            })
-            .catch((error) => {
-                console.error('Error al cargar especialistas:', error);
-                setNotification({
-                    open: true,
-                    message: 'No se pudo cargar la lista de especialistas.',
-                    type: 'error'
-                });
-                setIsLoading(false);
-            });
-    }, [setNotification]);
+    const specialists = [
+        {
+            id: 1,
+            name: 'Dr. Juan Pérez',
+            specialty: 'Cardiología',
+            experience: 10,
+            image: 'https://via.placeholder.com/300'
+        },
+        {
+            id: 2,
+            name: 'Dra. María López',
+            specialty: 'Dermatología',
+            experience: 8,
+            image: 'https://via.placeholder.com/300'
+        },
+        {
+            id: 3,
+            name: 'Dr. Carlos Gómez',
+            specialty: 'Pediatría',
+            experience: 5,
+            image: 'https://via.placeholder.com/300'
+        }
+    ];
 
     const handleSelectSpecialist = (specialist) => {
         setSelectedSpecialist(specialist);
@@ -89,63 +91,57 @@ const StepTwo = ({
                 Selección de Especialista
             </Typography>
 
-            {isLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
-                    <CircularProgress color="primary" />
-                </Box>
-            ) : (
-                <Grid container spacing={3}>
-                    {specialists.map((specialist) => (
-                        <Grid item xs={12} sm={6} md={4} key={specialist.id}>
-                            <Card 
-                                elevation={4}
-                                sx={{
-                                    borderRadius: 3,
-                                    overflow: 'hidden',
-                                    transition: 'all 0.3s ease',
-                                    border: selectedSpecialist?.id === specialist.id 
-                                        ? `3px solid ${colors.primary}` 
-                                        : '3px solid transparent',
-                                    '&:hover': {
-                                        transform: 'translateY(-5px)',
-                                        boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
-                                    }
-                                }}
-                                onClick={() => handleSelectSpecialist(specialist)}
-                            >
-                                <CardMedia
-                                    component="img"
-                                    height="180"
-                                    image={specialist.image || 'https://via.placeholder.com/300'}
-                                    alt={specialist.name}
-                                    sx={{ objectFit: 'cover' }}
+            <Grid container spacing={3}>
+                {specialists.map((specialist) => (
+                    <Grid item xs={12} sm={6} md={4} key={specialist.id}>
+                        <Card 
+                            elevation={4}
+                            sx={{
+                                borderRadius: 3,
+                                overflow: 'hidden',
+                                transition: 'all 0.3s ease',
+                                border: selectedSpecialist?.id === specialist.id 
+                                    ? `3px solid ${colors.primary}` 
+                                    : '3px solid transparent',
+                                '&:hover': {
+                                    transform: 'translateY(-5px)',
+                                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)'
+                                }
+                            }}
+                            onClick={() => handleSelectSpecialist(specialist)}
+                        >
+                            <CardMedia
+                                component="img"
+                                height="180"
+                                image={specialist.image}
+                                alt={specialist.name}
+                                sx={{ objectFit: 'cover' }}
+                            />
+                            <CardContent>
+                                <Typography 
+                                    variant="h6" 
+                                    sx={{ color: colors.primary, fontWeight: 600 }}
+                                >
+                                    {specialist.name}
+                                </Typography>
+                                <Typography 
+                                    variant="body2" 
+                                    sx={{ color: colors.text, mb: 1 }}
+                                >
+                                    {specialist.specialty}
+                                </Typography>
+                                <Chip
+                                    icon={<MedicalServicesIcon />}
+                                    label={`${specialist.experience} años de experiencia`}
+                                    variant="outlined"
+                                    color="primary"
+                                    size="small"
                                 />
-                                <CardContent>
-                                    <Typography 
-                                        variant="h6" 
-                                        sx={{ color: colors.primary, fontWeight: 600 }}
-                                    >
-                                        {specialist.name}
-                                    </Typography>
-                                    <Typography 
-                                        variant="body2" 
-                                        sx={{ color: colors.text, mb: 1 }}
-                                    >
-                                        {specialist.specialty}
-                                    </Typography>
-                                    <Chip
-                                        icon={<MedicalServicesIcon />}
-                                        label={`${specialist.experience} años de experiencia`}
-                                        variant="outlined"
-                                        color="primary"
-                                        size="small"
-                                    />
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
-            )}
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                ))}
+            </Grid>
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
                 <Button

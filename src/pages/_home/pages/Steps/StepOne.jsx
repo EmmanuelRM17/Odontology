@@ -34,7 +34,7 @@ import {
     ContactMail as ContactIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
-import Captcha from '../../../../components/Tools/Captcha';
+import CustomRecaptcha from '../../../../components/Tools/Captcha';
 
 // Regex validations
 const nameRegex = /^[A-Za-zÀ-ÿñÑ\s]+$/;
@@ -51,7 +51,6 @@ const StepOne = ({
     onStepCompletion,
     setNotification
 }) => {
-    // State management
     const [errors, setErrors] = useState({});
     const [termsAccepted, setTermsAccepted] = useState(false);
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -62,6 +61,10 @@ const StepOne = ({
     const [openPrivacyModal, setOpenPrivacyModal] = useState(false);
     const [termsConditions, setTermsConditions] = useState('');
     const [privacyPolicy, setPrivacyPolicy] = useState('');
+    const [availableServices, setAvailableServices] = useState([]);
+    const [loadingServices, setLoadingServices] = useState(true);
+    const [selectedServiceDescription, setSelectedServiceDescription] = useState('');
+    const [captchaVerified, setCaptchaVerified] = useState(false);
 
     // Effect for alert auto-hide
     useEffect(() => {
@@ -70,6 +73,29 @@ const StepOne = ({
             return () => clearTimeout(timeout);
         }
     }, [showAlert]);
+
+    useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const response = await axios.get('https://back-end-4803.onrender.com/api/servicios/all');
+                setAvailableServices(response.data);
+            } catch (error) {
+                setNotification({
+                    open: true,
+                    message: 'Error al cargar los servicios',
+                    type: 'error'
+                });
+
+                setTimeout(() => {
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
+            }
+            finally {
+                setLoadingServices(false);
+            }
+        };
+        fetchServices();
+    }, []);
 
     // Modal handlers
     const handleOpenPrivacyModal = async (event) => {
@@ -110,6 +136,30 @@ const StepOne = ({
             setTermsConditions('Error al cargar los términos y condiciones.');
         }
     };
+
+    const isFormValid = () => {
+        const requiredFields = [
+            'nombre',
+            'apellidoPaterno',
+            'apellidoMaterno',
+            'genero',
+            'fechaNacimiento',
+            'servicio',
+            'lugar',
+        ];
+
+        if (!formData.omitCorreo) requiredFields.push('correo');
+        if (!formData.omitTelefono) requiredFields.push('telefono');
+        if (formData.lugar === 'Otro') requiredFields.push('otroLugar');
+
+        const allFieldsFilled = requiredFields.every(
+            (field) => formData[field] && !errors[field]
+        );
+
+        return allFieldsFilled && termsAccepted && captchaVerified;
+    };
+
+
 
     // Field validation
     const validateField = (name, value) => {
@@ -167,11 +217,6 @@ const StepOne = ({
                     errorMessage = 'Debe contener 10 dígitos';
                 }
                 break;
-            case 'motivoCita':
-                if (!value.trim()) {
-                    errorMessage = 'Indica brevemente el motivo de la cita';
-                }
-                break;
             case 'lugar':
                 if (!value.trim()) {
                     errorMessage = 'El lugar de proveniencia es obligatorio';
@@ -195,20 +240,30 @@ const StepOne = ({
 
         if (type === 'checkbox') {
             onFormDataChange({ [name]: checked });
+
             if (name === 'omitCorreo' && checked) {
                 onFormDataChange({ correo: '' });
                 setErrors((prev) => ({ ...prev, correo: '' }));
             }
+
             if (name === 'omitTelefono' && checked) {
                 onFormDataChange({ telefono: '' });
                 setErrors((prev) => ({ ...prev, telefono: '' }));
             }
+
             return;
         }
 
         onFormDataChange({ [name]: value });
         const errorMessage = validateField(name, value);
         setErrors((prev) => ({ ...prev, [name]: errorMessage }));
+        if (name === 'servicio') {
+            const selectedService = availableServices.find(service => service.title === value);
+            const fullDescription = selectedService ? selectedService.description : '';
+            const shortDescription = fullDescription.split('.')[0] + '.';
+            setSelectedServiceDescription(shortDescription);
+        }
+
     };
 
     // Next step handler
@@ -219,15 +274,15 @@ const StepOne = ({
             'apellidoMaterno',
             'genero',
             'fechaNacimiento',
-            'motivoCita',
+            'servicio',
+            'lugar',
         ];
 
+        if (formData.lugar === 'Otro') requiredFields.push('otroLugar');
         if (!formData.omitCorreo) requiredFields.push('correo');
         if (!formData.omitTelefono) requiredFields.push('telefono');
 
-        requiredFields.push('lugar');
-        if (formData.lugar === 'Otro') requiredFields.push('otroLugar');
-
+        // Validar los campos requeridos
         const newErrors = {};
         requiredFields.forEach((field) => {
             const errorMessage = validateField(field, formData[field]);
@@ -239,20 +294,36 @@ const StepOne = ({
             setNotification({
                 open: true,
                 message: 'Por favor, completa todos los campos requeridos correctamente.',
-                type: 'error'
+                type: 'error',
             });
             setShowAlert(true);
+
+            setTimeout(() => {
+                setNotification({ open: false, message: '', type: '' });
+                setShowAlert(false);
+            }, 3000);
+
             return;
         }
 
-        if (!termsAccepted || !privacyAccepted || !captchaValue) {
-            setOpenSnackbar(true);
+        if (!termsAccepted || !captchaVerified) {
+            setNotification({
+                open: true,
+                message: 'Debes aceptar los términos y condiciones y resolver el captcha.',
+                type: 'error',
+            });
+        
+            setTimeout(() => {
+                setNotification({ open: false, message: '', type: '' });
+            }, 3000);
+        
             return;
         }
-
+        
         onStepCompletion('step1', true);
-        onNext();
+        onNext(); 
     };
+
 
     return (
         <Paper
@@ -505,25 +576,76 @@ const StepOne = ({
 
                 {/* Servicio Seleccionado */}
                 <Grid item xs={12} md={6}>
-                    <FormControl fullWidth required error={!!errors.servicio}>
+                    <FormControl
+                        fullWidth
+                        required
+                        error={!!errors.servicio}
+                        sx={{
+                            maxWidth: '100%',
+
+                        }}
+                    >
                         <InputLabel>Servicio</InputLabel>
                         <Select
                             value={formData.servicio}
                             onChange={handleChange}
                             label="Servicio"
                             name="servicio"
+                            fullWidth
+                            sx={{
+                                height: '56px',
+                                maxWidth: '100%',
+                            }}
                         >
                             <MenuItem value="">Seleccione un servicio</MenuItem>
-                            <MenuItem value="Consulta General">Consulta General</MenuItem>
-                            <MenuItem value="Limpieza Dental">Limpieza Dental</MenuItem>
-                            <MenuItem value="Ortodoncia">Ortodoncia</MenuItem>
-                            <MenuItem value="Endodoncia">Endodoncia</MenuItem>
-                            <MenuItem value="Implantes Dentales">Implantes Dentales</MenuItem>
+                            {availableServices.map((service) => (
+                                <MenuItem key={service.id} value={service.title}>
+                                    {service.title}
+                                </MenuItem>
+                            ))}
                         </Select>
                         {errors.servicio && <FormHelperText error>{errors.servicio}</FormHelperText>}
                     </FormControl>
                 </Grid>
 
+                {/* Descripción del Servicio */}
+                {selectedServiceDescription && (
+                    <Grid item xs={12} md={6}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: { xs: 'flex-start', md: 'flex-start' },
+                                alignItems: 'center',
+                                maxWidth: '100%',
+                                minHeight: '56px',
+                                overflow: 'hidden',
+                            }}
+                        >
+                            <Alert
+                                severity="info"
+                                variant="outlined"
+                                sx={{
+                                    width: '100%',
+                                    wordBreak: 'break-word',
+                                    boxSizing: 'border-box',
+                                    padding: '8px 16px',
+                                    margin: 0, // Eliminar cualquier margen que desplace el select
+                                }}
+                            >
+                                <Typography
+                                    variant="body2"
+                                    sx={{
+                                        whiteSpace: 'pre-line',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                    }}
+                                >
+                                    {selectedServiceDescription}
+                                </Typography>
+                            </Alert>
+                        </Box>
+                    </Grid>
+                )}
 
                 {/* Sección de Términos, Política y Captcha sin elevación */}
                 <Grid item xs={12}>
@@ -552,32 +674,20 @@ const StepOne = ({
                                 </Typography>
                             }
                         />
+
                     </Box>
 
                     {/* Captcha Centrado */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
                         <Box sx={{ maxWidth: '300px', width: '100%' }}>
-                            <Captcha onChange={setCaptchaValue} />
+                            <CustomRecaptcha
+                                onCaptchaChange={setCaptchaVerified}
+                                isDarkMode={isDarkTheme}
+                            />
                         </Box>
                     </Box>
+
                 </Grid>
-
-                {/* Snackbar para mostrar alertas */}
-                <Snackbar
-                    open={openSnackbar}
-                    autoHideDuration={6000}
-                    onClose={handleCloseSnackbar}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                >
-                    <Alert
-                        onClose={handleCloseSnackbar}
-                        severity="error"
-                        sx={{ width: '100%' }}
-                    >
-                        Debe aceptar los términos y condiciones y la política de privacidad para continuar.
-                    </Alert>
-                </Snackbar>
-
 
                 {/* Continue Button */}
                 <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
@@ -593,6 +703,7 @@ const StepOne = ({
                             px: 4,
                             borderRadius: 2
                         }}
+                        disabled={!isFormValid()}
                     >
                         Continuar
                     </Button>
@@ -641,22 +752,6 @@ const StepOne = ({
                         </Button>
                     </DialogActions>
                 </Dialog>
-
-                {/* Snackbar for terms not accepted */}
-                <Snackbar
-                    open={openSnackbar}
-                    autoHideDuration={6000}
-                    onClose={handleCloseSnackbar}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-                >
-                    <Alert
-                        onClose={handleCloseSnackbar}
-                        severity="error"
-                        sx={{ width: '100%' }}
-                    >
-                        Debe aceptar los términos y condiciones y la política de privacidad para continuar.
-                    </Alert>
-                </Snackbar>
             </Grid>
         </Paper>
     );
