@@ -492,91 +492,91 @@ const StepOne = ({
                     />
                 </Grid>
 
-{/* Selección del Servicio Section */}
-<Grid item xs={12}>
-    <Typography 
-        variant="h6" 
-        color="primary" 
-        sx={{ mt: 2, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-    >
-        <AssignmentIcon /> Selección del Servicio
-    </Typography>
-</Grid>
+                {/* Selección del Servicio Section */}
+                <Grid item xs={12}>
+                    <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{ mt: 2, mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                        <AssignmentIcon /> Selección del Servicio
+                    </Typography>
+                </Grid>
 
-{/* Servicio Seleccionado */}
-<Grid item xs={12} md={6}>
-    <FormControl fullWidth required error={!!errors.servicio}>
-        <InputLabel>Servicio</InputLabel>
-        <Select
-            value={formData.servicio}
-            onChange={handleChange}
-            label="Servicio"
-            name="servicio"
-        >
-            <MenuItem value="">Seleccione un servicio</MenuItem>
-            <MenuItem value="Consulta General">Consulta General</MenuItem>
-            <MenuItem value="Limpieza Dental">Limpieza Dental</MenuItem>
-            <MenuItem value="Ortodoncia">Ortodoncia</MenuItem>
-            <MenuItem value="Endodoncia">Endodoncia</MenuItem>
-            <MenuItem value="Implantes Dentales">Implantes Dentales</MenuItem>
-        </Select>
-        {errors.servicio && <FormHelperText error>{errors.servicio}</FormHelperText>}
-    </FormControl>
-</Grid>
+                {/* Servicio Seleccionado */}
+                <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required error={!!errors.servicio}>
+                        <InputLabel>Servicio</InputLabel>
+                        <Select
+                            value={formData.servicio}
+                            onChange={handleChange}
+                            label="Servicio"
+                            name="servicio"
+                        >
+                            <MenuItem value="">Seleccione un servicio</MenuItem>
+                            <MenuItem value="Consulta General">Consulta General</MenuItem>
+                            <MenuItem value="Limpieza Dental">Limpieza Dental</MenuItem>
+                            <MenuItem value="Ortodoncia">Ortodoncia</MenuItem>
+                            <MenuItem value="Endodoncia">Endodoncia</MenuItem>
+                            <MenuItem value="Implantes Dentales">Implantes Dentales</MenuItem>
+                        </Select>
+                        {errors.servicio && <FormHelperText error>{errors.servicio}</FormHelperText>}
+                    </FormControl>
+                </Grid>
 
 
-{/* Sección de Términos, Política y Captcha sin elevación */}
-<Grid item xs={12}>
-    <Typography 
-        variant="h6" 
-        color="primary" 
-        sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-    >
-        <TermsIcon /> Términos y Condiciones
-    </Typography>
+                {/* Sección de Términos, Política y Captcha sin elevación */}
+                <Grid item xs={12}>
+                    <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                    >
+                        <TermsIcon /> Términos y Condiciones
+                    </Typography>
 
-    {/* Checkbox para Aceptar Términos y Política */}
-    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mb: 3 }}>
-        <FormControlLabel
-            control={
-                <Checkbox
-                    checked={termsAccepted}
-                    onChange={(e) => setTermsAccepted(e.target.checked)}
-                    color="primary"
-                />
-            }
-            label={
-                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    Acepto los <Link href="#" onClick={handleOpenTermsModal}>términos y condiciones</Link> 
-                    y la <Link href="#" onClick={handleOpenPrivacyModal}>política de privacidad</Link>.
-                </Typography>
-            }
-        />
-    </Box>
+                    {/* Checkbox para Aceptar Términos y Política */}
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center', mb: 3 }}>
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={termsAccepted}
+                                    onChange={(e) => setTermsAccepted(e.target.checked)}
+                                    color="primary"
+                                />
+                            }
+                            label={
+                                <Typography variant="body1" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    Acepto los <Link href="#" onClick={handleOpenTermsModal}>términos y condiciones</Link>
+                                    y la <Link href="#" onClick={handleOpenPrivacyModal}>política de privacidad</Link>.
+                                </Typography>
+                            }
+                        />
+                    </Box>
 
-    {/* Captcha Centrado */}
-    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-        <Box sx={{ maxWidth: '300px', width: '100%' }}>
-            <Captcha onChange={setCaptchaValue} />
-        </Box>
-    </Box>
-</Grid>
+                    {/* Captcha Centrado */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                        <Box sx={{ maxWidth: '300px', width: '100%' }}>
+                            <Captcha onChange={setCaptchaValue} />
+                        </Box>
+                    </Box>
+                </Grid>
 
-{/* Snackbar para mostrar alertas */}
-<Snackbar 
-    open={openSnackbar}
-    autoHideDuration={6000}
-    onClose={handleCloseSnackbar}
-    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
->
-    <Alert
-        onClose={handleCloseSnackbar}
-        severity="error"
-        sx={{ width: '100%' }}
-    >
-        Debe aceptar los términos y condiciones y la política de privacidad para continuar.
-    </Alert>
-</Snackbar>
+                {/* Snackbar para mostrar alertas */}
+                <Snackbar
+                    open={openSnackbar}
+                    autoHideDuration={6000}
+                    onClose={handleCloseSnackbar}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                >
+                    <Alert
+                        onClose={handleCloseSnackbar}
+                        severity="error"
+                        sx={{ width: '100%' }}
+                    >
+                        Debe aceptar los términos y condiciones y la política de privacidad para continuar.
+                    </Alert>
+                </Snackbar>
 
 
                 {/* Continue Button */}
