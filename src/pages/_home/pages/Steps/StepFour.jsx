@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Typography,
@@ -10,7 +10,8 @@ import {
     CardContent,
     Avatar,
     Divider,
-    Tooltip
+    Tooltip,
+    CircularProgress
 } from '@mui/material';
 import {
     CheckCircle as CheckCircleIcon,
@@ -20,21 +21,48 @@ import {
     Email as EmailIcon,
     Phone as PhoneIcon,
     Home as HomeIcon,
-    EventAvailable as EventAvailableIcon
+    EventAvailable as EventAvailableIcon,
+    MedicalServices as MedicalServicesIcon,
+    Place as PlaceIcon,
+    MonetizationOn as PriceIcon,
+    Category as CategoryIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const StepFour = ({
     colors,
     isDarkTheme,
     formData,
-    selectedDate,
-    selectedTime,
     onPrev,
     onStepCompletion,
     setNotification
 }) => {
     const navigate = useNavigate();
+    const [serviceDetails, setServiceDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchServiceDetails = async () => {
+            if (!formData.servicio) return;
+            setLoading(true);
+            try {
+                const response = await axios.get('https://back-end-4803.onrender.com/api/servicios/all');
+                const selectedService = response.data.find(service => service.title === formData.servicio);
+                setServiceDetails(selectedService);
+            } catch (error) {
+                setNotification({
+                    open: true,
+                    message: 'Error al cargar los detalles del servicio',
+                    type: 'error'
+                });
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchServiceDetails();
+    }, [formData.servicio]);
 
     const handleConfirm = () => {
         setNotification({
@@ -45,12 +73,19 @@ const StepFour = ({
         onStepCompletion('step4', true);
     };
 
-    const formattedDate = selectedDate?.toLocaleDateString('es-ES', {
-        weekday: 'long',
-        day: 'numeric',
-        month: 'long',
-        year: 'numeric'
-    });
+    const formattedDate = formData.fechaCita
+        ? new Date(formData.fechaCita).toLocaleDateString('es-ES', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        })
+        : 'Fecha no seleccionada';
+
+    const formattedTime = formData.horaCita || 'Hora no seleccionada';
+    const formattedEmail = formData.correo || 'No proporcionado';
+    const formattedPhone = formData.telefono || 'No proporcionado';
+    const formattedService = formData.servicio || 'No especificado';
 
     return (
         <Paper
@@ -59,13 +94,13 @@ const StepFour = ({
                 p: 4,
                 backgroundColor: colors.cardBg,
                 borderRadius: 3,
-                boxShadow: isDarkTheme 
+                boxShadow: isDarkTheme
                     ? '0 4px 20px rgba(0,0,0,0.3)'
                     : '0 4px 20px rgba(0,0,0,0.1)'
             }}
         >
-            <Typography 
-                variant="h5" 
+            <Typography
+                variant="h5"
                 sx={{ mb: 3, textAlign: 'center', color: colors.primary }}
             >
                 Confirmación de Cita
@@ -82,19 +117,19 @@ const StepFour = ({
             >
                 <CardContent>
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                        <Avatar 
-                            sx={{ 
-                                bgcolor: colors.accent, 
-                                width: 60, 
-                                height: 60, 
-                                mr: 2 
+                        <Avatar
+                            sx={{
+                                bgcolor: colors.accent,
+                                width: 60,
+                                height: 60,
+                                mr: 2
                             }}
                         >
                             <PersonIcon sx={{ fontSize: 32, color: '#ffffff' }} />
                         </Avatar>
                         <Box>
                             <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600 }}>
-                                {formData.nombre} {formData.apellidos}
+                                {formData.nombre} {formData.apellidoPaterno} {formData.apellidoMaterno}
                             </Typography>
                             <Typography variant="body2" sx={{ color: colors.secondary }}>
                                 {formData.genero}
@@ -108,7 +143,7 @@ const StepFour = ({
                         <Grid item xs={12} sm={6}>
                             <Chip
                                 icon={<EmailIcon />}
-                                label={formData.correo}
+                                label={formattedEmail}
                                 color="primary"
                                 variant="outlined"
                                 fullWidth
@@ -118,7 +153,7 @@ const StepFour = ({
                         <Grid item xs={12} sm={6}>
                             <Chip
                                 icon={<PhoneIcon />}
-                                label={formData.telefono}
+                                label={formattedPhone}
                                 color="primary"
                                 variant="outlined"
                                 fullWidth
@@ -137,7 +172,7 @@ const StepFour = ({
                         <Grid item xs={12} sm={6}>
                             <Chip
                                 icon={<CalendarIcon />}
-                                label={formattedDate || 'Fecha no seleccionada'}
+                                label={formattedDate}
                                 color="primary"
                                 variant="outlined"
                                 fullWidth
@@ -147,7 +182,7 @@ const StepFour = ({
                         <Grid item xs={12} sm={6}>
                             <Chip
                                 icon={<TimeIcon />}
-                                label={selectedTime || 'Hora no seleccionada'}
+                                label={formattedTime}
                                 color="primary"
                                 variant="outlined"
                                 fullWidth
@@ -157,7 +192,7 @@ const StepFour = ({
                         <Grid item xs={12}>
                             <Chip
                                 icon={<EventAvailableIcon />}
-                                label={`Especialista: ${formData.especialista?.name || 'No seleccionado'}`}
+                                label={`Especialista: ${formData.especialista || 'No seleccionado'}`}
                                 color="primary"
                                 variant="outlined"
                                 fullWidth
@@ -165,6 +200,47 @@ const StepFour = ({
                             />
                         </Grid>
                     </Grid>
+                    <Divider sx={{ my: 2 }} />
+
+                    <Typography variant="h6" sx={{ mb: 2, color: colors.secondary }}>
+                        Detalles del Servicio
+                    </Typography>
+
+                    {serviceDetails && (
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Chip
+                                    icon={<MedicalServicesIcon />}
+                                    label={`Servicio: ${serviceDetails.title}`}
+                                    color="primary"
+                                    variant="outlined"
+                                    fullWidth
+                                    sx={{ mb: 1 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Chip
+                                    icon={<CategoryIcon />}
+                                    label={`Categoría: ${serviceDetails.category}`}
+                                    color="primary"
+                                    variant="outlined"
+                                    fullWidth
+                                    sx={{ mb: 1 }}
+                                />
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Chip
+                                    icon={<PriceIcon />}
+                                    label={`Precio: $${serviceDetails.price}`}
+                                    color="primary"
+                                    variant="outlined"
+                                    fullWidth
+                                    sx={{ mb: 1 }}
+                                />
+                            </Grid>
+                        </Grid>
+                    )}
+
                 </CardContent>
             </Card>
 

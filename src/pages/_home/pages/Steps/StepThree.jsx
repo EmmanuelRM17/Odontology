@@ -29,7 +29,8 @@ const StepThree = ({
     onNext,
     onPrev,
     onStepCompletion,
-    setNotification
+    setNotification,
+    onFormDataChange
 }) => {
     const [availableDates, setAvailableDates] = useState([]);
     const [availableTimes, setAvailableTimes] = useState([]);
@@ -43,9 +44,6 @@ const StepThree = ({
             const currentDate = new Date();
             const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
             const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-            // Ajustamos para empezar desde la fecha actual
-            const startDate = currentDate;
 
             for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
                 dates.push(new Date(d));
@@ -64,10 +62,12 @@ const StepThree = ({
     const handleSelectDate = (date) => {
         onDateTimeChange(date, null);
         setShowTimes(true);
+        onFormDataChange({ fechaCita: date.toISOString().split('T')[0] });
     };
 
     const handleSelectTime = (time) => {
         onDateTimeChange(selectedDate, time);
+        onFormDataChange({ horaCita: time });
     };
 
     const handleNext = () => {
@@ -84,7 +84,6 @@ const StepThree = ({
     };
     
 
-    // [El resto del código se mantiene exactamente igual]
     const isSameDate = (date1, date2) => {
         if (!(date1 instanceof Date) || !(date2 instanceof Date)) return false;
         return date1.toDateString() === date2.toDateString();

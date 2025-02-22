@@ -525,7 +525,7 @@ const StepOne = ({
                                 color="primary"
                             />
                         }
-                        label="Omitir correo"
+                        label="No tengo correo"
                     />
                 </Grid>
 
@@ -557,7 +557,7 @@ const StepOne = ({
                                 color="primary"
                             />
                         }
-                        label="Omitir teléfono"
+                        label="No tengo teléfono"
                     />
                 </Grid>
 

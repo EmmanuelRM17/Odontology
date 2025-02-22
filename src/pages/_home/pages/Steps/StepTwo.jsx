@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-    Box, 
-    Typography, 
-    Grid, 
-    Paper, 
-    Card, 
-    CardContent, 
-    CardMedia, 
+import {
+    Box,
+    Typography,
+    Grid,
+    Paper,
+    Card,
+    CardContent,
+    CardMedia,
     Button,
     Chip
 } from '@mui/material';
@@ -21,6 +21,7 @@ const StepTwo = ({
     onNext,
     onPrev,
     onStepCompletion,
+    onFormDataChange
 }) => {
     const specialist = {
         id: 1,
@@ -31,6 +32,7 @@ const StepTwo = ({
     };
 
     const handleNext = () => {
+        onFormDataChange({ especialista: specialist.name });
         onStepCompletion('step2', true);
     };
 
@@ -41,13 +43,13 @@ const StepTwo = ({
                 p: 4,
                 backgroundColor: colors.cardBg,
                 borderRadius: 3,
-                boxShadow: isDarkTheme 
+                boxShadow: isDarkTheme
                     ? '0 4px 20px rgba(0,0,0,0.3)'
                     : '0 4px 20px rgba(0,0,0,0.1)'
             }}
         >
-            <Typography 
-                variant="h5" 
+            <Typography
+                variant="h5"
                 sx={{ mb: 3, textAlign: 'center', color: colors.primary }}
             >
                 Especialista
@@ -55,7 +57,7 @@ const StepTwo = ({
 
             <Grid container justifyContent="center">
                 <Grid item xs={12} sm={8} md={6}>
-                    <Card 
+                    <Card
                         elevation={4}
                         sx={{
                             borderRadius: 3,
@@ -72,14 +74,14 @@ const StepTwo = ({
                             sx={{ objectFit: 'cover' }}
                         />
                         <CardContent>
-                            <Typography 
-                                variant="h6" 
+                            <Typography
+                                variant="h6"
                                 sx={{ color: colors.primary, fontWeight: 600, mb: 1 }}
                             >
                                 {specialist.name}
                             </Typography>
-                            <Typography 
-                                variant="body1" 
+                            <Typography
+                                variant="body1"
                                 sx={{ color: colors.text, mb: 2 }}
                             >
                                 {specialist.specialty}

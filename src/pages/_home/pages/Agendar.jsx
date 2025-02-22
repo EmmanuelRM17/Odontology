@@ -76,14 +76,18 @@ const ReservaCitas = () => {
     });
     const [formData, setFormData] = useState({
         nombre: '',
-        apellidos: '',
+        apellidoPaterno: '',
+        apellidoMaterno: '',
         genero: '',
+        fechaNacimiento: '',
         correo: '',
         telefono: '',
         especialista: '',
         lugar: '',
         otroLugar: '',
-        servicio: ''
+        servicio: '',
+        fechaCita: '',
+        horaCita: ''
     });
 
     const [selectedDate, setSelectedDate] = useState(null);
@@ -154,11 +158,17 @@ const ReservaCitas = () => {
             return updatedData;
         });
     };
-
-
+    
     const handleDateTimeSelection = (date, time) => {
         setSelectedDate(date);
         setSelectedTime(time);
+
+        if (date) {
+            handleFormDataChange({ fechaCita: date.toISOString().split('T')[0] });
+        }
+        if (time) {
+            handleFormDataChange({ horaCita: time });
+        }
     };
 
     const renderStep = () => {
@@ -177,13 +187,20 @@ const ReservaCitas = () => {
             case 0:
                 return <StepOne {...commonProps} />;
             case 1:
-                return <StepTwo {...commonProps} />;
-            case 2:
-                return <StepThree {...commonProps}
-                    selectedDate={selectedDate}
-                    selectedTime={selectedTime}
-                    onDateTimeChange={handleDateTimeSelection}
+                return <StepTwo
+                    {...commonProps}
+                    onFormDataChange={handleFormDataChange}
                 />;
+            case 2:
+                return (
+                    <StepThree
+                        {...commonProps}
+                        selectedDate={selectedDate}
+                        selectedTime={selectedTime}
+                        onDateTimeChange={handleDateTimeSelection}
+                        onFormDataChange={handleFormDataChange}
+                        />
+                );
             case 3:
                 return <StepFour {...commonProps} />;
             default:
