@@ -37,7 +37,6 @@ const StepFour = ({
     const navigate = useNavigate();
 
     const handleConfirm = () => {
-        // Aquí se podría agregar la lógica para enviar la confirmación al servidor
         setNotification({
             open: true,
             message: '¡Cita confirmada con éxito!',

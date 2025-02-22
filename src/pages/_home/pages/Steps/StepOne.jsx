@@ -47,7 +47,6 @@ const StepOne = ({
     isDarkTheme,
     formData,
     onFormDataChange,
-    onNext,
     onStepCompletion,
     setNotification
 }) => {
@@ -320,8 +319,7 @@ const StepOne = ({
             return;
         }
         
-        onStepCompletion('step1', true);
-        onNext(); 
+        onStepCompletion('step1', true);      
     };
 
 

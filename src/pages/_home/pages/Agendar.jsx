@@ -80,12 +80,14 @@ const ReservaCitas = () => {
         genero: '',
         correo: '',
         telefono: '',
-        asunto: '',
-        mensaje: '',
         especialista: '',
+        lugar: '',
+        otroLugar: '',
+        servicio: ''
     });
-    const [selectedDate, setSelectedDate] = useState('');
-    const [selectedTime, setSelectedTime] = useState('');
+
+    const [selectedDate, setSelectedDate] = useState(null);
+    const [selectedTime, setSelectedTime] = useState(null);
 
     const theme = useTheme();
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
@@ -135,6 +137,9 @@ const ReservaCitas = () => {
                 message: 'Paso completado con éxito',
                 type: 'success',
             });
+            setTimeout(() => {
+                setNotification({ open: false, message: '', type: '' });
+            }, 3000);
         }, 1000);
     };
 
@@ -143,8 +148,13 @@ const ReservaCitas = () => {
     };
 
     const handleFormDataChange = (newData) => {
-        setFormData(prev => ({ ...prev, ...newData }));
+        setFormData((prev) => {
+            const updatedData = { ...prev, ...newData };
+            console.log('Datos actualizados:', updatedData); // Para depuración
+            return updatedData;
+        });
     };
+
 
     const handleDateTimeSelection = (date, time) => {
         setSelectedDate(date);

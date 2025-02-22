@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import {
     Box,
     Typography,
-    Grid,
     Button,
     Paper,
     CircularProgress,
     Card,
     CardContent,
+    Collapse,
+    Divider
 } from '@mui/material';
 import {
     CalendarMonth as CalendarIcon,
     AccessTime as TimeIcon,
     CheckCircle as CheckCircleIcon,
-    ArrowBack as ArrowBackIcon
+    ArrowBack as ArrowBackIcon,
+    Event as EventIcon,
+    EventAvailable as EventAvailableIcon,
+    EventBusy as EventBusyIcon
 } from '@mui/icons-material';
 
 const StepThree = ({
@@ -30,23 +34,27 @@ const StepThree = ({
     const [availableDates, setAvailableDates] = useState([]);
     const [availableTimes, setAvailableTimes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [showTimes, setShowTimes] = useState(false);
 
     useEffect(() => {
         setIsLoading(true);
-        // Simulación de carga de fechas disponibles
         setTimeout(() => {
             const dates = [];
-            for (let i = 0; i < 15; i++) {
-                const date = new Date();
-                date.setDate(date.getDate() + i);
-                dates.push(date);
+            const currentDate = new Date();
+            const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+            const lastDay = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+            // Ajustamos para empezar desde la fecha actual
+            const startDate = currentDate;
+
+            for (let d = new Date(firstDay); d <= lastDay; d.setDate(d.getDate() + 1)) {
+                dates.push(new Date(d));
             }
             setAvailableDates(dates);
 
             setAvailableTimes([
-                "09:00", "10:00", "11:00", "12:00",
-                "13:00", "14:00", "15:00", "16:00",
-                "17:00", "18:00", "19:00", "20:00"
+                "10:00", "10:30", "11:00", "11:30", "12:00",
+                "16:00", "16:30", "17:00", "17:30", "18:00", "18:30", "19:00"
             ]);
 
             setIsLoading(false);
@@ -54,32 +62,38 @@ const StepThree = ({
     }, []);
 
     const handleSelectDate = (date) => {
-        onDateTimeChange(date, selectedTime);
-        onStepCompletion('step3', true);
+        onDateTimeChange(date, null);
+        setShowTimes(true);
     };
 
     const handleSelectTime = (time) => {
         onDateTimeChange(selectedDate, time);
-        onStepCompletion('step3', true);
     };
 
     const handleNext = () => {
         if (!selectedDate || !selectedTime) {
             setNotification({
                 open: true,
-                message: 'Debes seleccionar una fecha y un horario antes de continuar.',
+                message: 'Por favor selecciona una fecha y horario para continuar.',
                 type: 'error'
             });
-            onStepCompletion('step3', false);
+            onStepCompletion('step3', false); 
             return;
         }
-        onNext();
+        onStepCompletion('step3', true); 
     };
+    
 
-    // Función auxiliar para comparar fechas
+    // [El resto del código se mantiene exactamente igual]
     const isSameDate = (date1, date2) => {
         if (!(date1 instanceof Date) || !(date2 instanceof Date)) return false;
         return date1.toDateString() === date2.toDateString();
+    };
+
+    const isDateDisabled = (date) => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return date < today;
     };
 
     return (
@@ -89,16 +103,24 @@ const StepThree = ({
                 p: 4,
                 backgroundColor: colors.cardBg,
                 borderRadius: 3,
-                boxShadow: isDarkTheme 
+                boxShadow: isDarkTheme
                     ? '0 4px 20px rgba(0,0,0,0.3)'
                     : '0 4px 20px rgba(0,0,0,0.1)'
             }}
         >
-            <Typography 
-                variant="h5" 
-                sx={{ mb: 3, textAlign: 'center', color: colors.primary }}
+            <Typography
+                variant="h5"
+                sx={{
+                    mb: 3,
+                    textAlign: 'center',
+                    color: colors.primary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1
+                }}
             >
-                Selecciona Fecha y Hora
+                <EventIcon /> Selecciona la fecha
             </Typography>
 
             {isLoading ? (
@@ -107,89 +129,141 @@ const StepThree = ({
                 </Box>
             ) : (
                 <>
-                    <Typography 
-                        variant="h6" 
-                        sx={{ mb: 2, color: colors.secondary }}
+                    <Card
+                        elevation={4}
+                        sx={{
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            mb: 3
+                        }}
                     >
-                        Fechas Disponibles
-                    </Typography>
-                    <Grid container spacing={2} mb={4}>
-                        {availableDates.map((date) => (
-                            <Grid item xs={6} sm={4} md={3} key={date.toISOString()}>
-                                <Card
-                                    elevation={isSameDate(selectedDate, date) ? 6 : 3}
-                                    sx={{
-                                        borderRadius: 3,
-                                        overflow: 'hidden',
-                                        border: isSameDate(selectedDate, date)
-                                            ? `2px solid ${colors.primary}`
-                                            : '2px solid transparent',
-                                        '&:hover': {
-                                            boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
-                                            transform: 'translateY(-3px)'
-                                        },
-                                        transition: 'all 0.3s ease',
-                                        cursor: 'pointer'
-                                    }}
-                                    onClick={() => handleSelectDate(date)}
-                                >
-                                    <CardContent 
+                        <CardContent sx={{ p: 0 }}>
+                            {/* Días de la semana */}
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(7, 1fr)',
+                                    p: 2,
+                                    backgroundColor: colors.primary,
+                                    color: 'white'
+                                }}
+                            >
+                                {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'].map((day) => (
+                                    <Typography
+                                        key={day}
                                         sx={{
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
-                                            p: 2
+                                            textAlign: 'center',
+                                            fontWeight: 'bold',
+                                            fontSize: '1rem'
                                         }}
                                     >
-                                        <CalendarIcon sx={{ color: colors.accent, mb: 1 }} />
-                                        <Typography 
-                                            variant="body2" 
-                                            sx={{ color: colors.text }}
-                                        >
-                                            {date.toLocaleDateString('es-ES', {
-                                                weekday: 'short',
-                                                day: 'numeric',
-                                                month: 'short'
-                                            }).replace('.', '')}
-                                        </Typography>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        ))}
-                    </Grid>
+                                        {day}
+                                    </Typography>
+                                ))}
+                            </Box>
 
-                    <Typography 
-                        variant="h6" 
-                        sx={{ mb: 2, color: colors.secondary }}
-                    >
-                        Horarios Disponibles
-                    </Typography>
-                    <Grid container spacing={2}>
-                        {availableTimes.map((time) => (
-                            <Grid item xs={6} sm={4} md={3} key={time}>
+                            {/* Calendario */}
+                            <Box
+                                sx={{
+                                    display: 'grid',
+                                    gridTemplateColumns: 'repeat(7, 1fr)',
+                                    gap: 1,
+                                    p: 2
+                                }}
+                            >
+                                {availableDates.map((date, index) => {
+                                    const disabled = isDateDisabled(date);
+                                    return (
+                                        <Button
+                                            key={date.toISOString()}
+                                            onClick={() => !disabled && handleSelectDate(date)}
+                                            disabled={disabled}
+                                            sx={{
+                                                minHeight: '80px',
+                                                borderRadius: 2,
+                                                border: isSameDate(selectedDate, date)
+                                                    ? `2px solid ${colors.primary}`
+                                                    : '1px solid transparent',
+                                                backgroundColor: disabled
+                                                    ? `rgba(0, 0, 0, 0.12)`
+                                                    : isSameDate(selectedDate, date)
+                                                        ? `${colors.primary}15`
+                                                        : 'transparent',
+                                                '&:hover': {
+                                                    backgroundColor: disabled
+                                                        ? `rgba(0, 0, 0, 0.12)`
+                                                        : `${colors.primary}25`
+                                                },
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: 1
+                                            }}
+                                        >
+                                            {disabled ? (
+                                                <EventBusyIcon sx={{ color: 'text.disabled', fontSize: '1.5rem' }} />
+                                            ) : (
+                                                <EventAvailableIcon sx={{ color: colors.primary, fontSize: '1.5rem' }} />
+                                            )}
+                                            <Typography
+                                                sx={{
+                                                    fontSize: '1.2rem',
+                                                    fontWeight: 'bold',
+                                                    color: disabled ? 'text.disabled' : 'text.primary'
+                                                }}
+                                            >
+                                                {date.getDate()}
+                                            </Typography>
+                                        </Button>
+                                    )
+                                })}
+                            </Box>
+                        </CardContent>
+                    </Card>
+
+                    <Collapse in={showTimes}>
+                        <Divider sx={{ my: 3 }} />
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                mb: 2,
+                                color: colors.secondary,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                            }}
+                        >
+                            <TimeIcon /> Horas Disponibles
+                        </Typography>
+                        <Box
+                            sx={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+                                gap: 2,
+                                mb: 3
+                            }}
+                        >
+                            {availableTimes.map((time) => (
                                 <Button
-                                    fullWidth
+                                    key={time}
                                     variant={selectedTime === time ? "contained" : "outlined"}
                                     color="primary"
                                     onClick={() => handleSelectTime(time)}
-                                    startIcon={<TimeIcon />}
                                     sx={{
-                                        textTransform: 'none',
-                                        py: 1.5,
-                                        fontWeight: 'bold',
+                                        py: 2,
                                         borderRadius: 2,
-                                        transition: 'all 0.3s ease',
+                                        transition: 'all 0.2s ease',
                                         '&:hover': {
-                                            transform: 'scale(1.05)',
-                                            boxShadow: 1
+                                            transform: 'scale(1.05)'
                                         }
                                     }}
                                 >
                                     {time}
                                 </Button>
-                            </Grid>
-                        ))}
-                    </Grid>
+                            ))}
+                        </Box>
+                    </Collapse>
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
                         <Button
