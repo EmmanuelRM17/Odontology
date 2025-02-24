@@ -23,7 +23,13 @@ import {
     Email,
     Lock,
     Visibility,
-    VisibilityOff
+    VisibilityOff,
+    MedicalServices,
+    CalendarToday,
+    FolderSpecial,
+    Notifications,
+    AttachMoney,
+    ArrowForward
 } from '@mui/icons-material';
 
 import { motion } from 'framer-motion';
@@ -111,17 +117,17 @@ const Login = () => {
         let checkInterval;
         let retries = 0;
         const MAX_RETRIES = 50; // 🔹 Máximo de intentos (cada 100ms = 5s)
-    
+
         const loadRecaptcha = () => {
             setIsCaptchaLoading(true);
-    
+
             if (!window.grecaptcha) {
                 // Timeout para marcar error si no carga en 2 segundos
                 timeoutId = setTimeout(() => {
                     setIsCaptchaLoading(false);
                     console.error("❌ reCAPTCHA no se cargó en el tiempo esperado.");
                 }, 2000);
-    
+
                 // Revisión periódica con límite de intentos
                 checkInterval = setInterval(() => {
                     if (window.grecaptcha) {
@@ -141,15 +147,15 @@ const Login = () => {
                 setIsCaptchaLoading(false);
             }
         };
-    
+
         loadRecaptcha();
-    
+
         return () => {
             if (timeoutId) clearTimeout(timeoutId);
             if (checkInterval) clearInterval(checkInterval);
         };
     }, []);
-    
+
     // Función helper para manejar el timeout en fetch
     const fetchWithTimeout = async (url, options, timeout = 10000) => {
         const controller = new AbortController();
@@ -435,7 +441,7 @@ const Login = () => {
             setNotificationMessage(data.message || 'Código verificado correctamente.');
             setOpenNotification(true);
             setVerificationCode('');
-            setShowVerificationModal(false); 
+            setShowVerificationModal(false);
 
             // Guardar en localStorage y redireccionar según el tipo de usuario
             if (data.userType === 'administradores') {
@@ -447,9 +453,9 @@ const Login = () => {
                 localStorage.setItem('userType', 'pacientes');
                 navigate('/Paciente/principal');
             } else if (data.userType === 'empleados') {
-                    localStorage.setItem('loggedIn', true);
-                    localStorage.setItem('userType', 'empleados');
-                    navigate('/Empleado/principal'); 
+                localStorage.setItem('loggedIn', true);
+                localStorage.setItem('userType', 'empleados');
+                navigate('/Empleado/principal');
             } else {
                 setErrorMessage('Tipo de usuario desconocido. Inténtalo nuevamente.');
             }
@@ -474,7 +480,8 @@ const Login = () => {
                 minHeight: '100vh',
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
-                bgcolor: isDarkMode ? '#1C2A38' : '#F9FDFF'            }}
+                bgcolor: isDarkMode ? '#1C2A38' : '#F9FDFF'
+            }}
         >
             {/* Sección Principal - Formulario */}
             <Box
@@ -891,14 +898,16 @@ const Login = () => {
                     flexDirection: 'column',
                     justifyContent: 'center',
                     alignItems: 'center',
-                    bgcolor: '#03427c',
+                    background: 'linear-gradient(135deg, #0a3d7c 0%, #051f40 100%)',
                     color: 'white',
-                    p: 6,
+                    p: 8,
                     position: 'relative',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
+                    borderRadius: '0 16px 16px 0',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)'
                 }}
             >
-                {/* Patrón de fondo */}
+                {/* Patrón de fondo animado */}
                 <Box
                     sx={{
                         position: 'absolute',
@@ -906,25 +915,109 @@ const Login = () => {
                         left: 0,
                         right: 0,
                         bottom: 0,
-                        opacity: 0.1,
+                        opacity: 0.07,
                         backgroundImage: 'repeating-linear-gradient(45deg, #ffffff 0, #ffffff 1px, transparent 0, transparent 50%)',
-                        backgroundSize: '20px 20px'
+                        backgroundSize: '20px 20px',
+                        animation: 'patternMove 40s linear infinite',
+                        '@keyframes patternMove': {
+                            '0%': { backgroundPosition: '0 0' },
+                            '100%': { backgroundPosition: '100px 100px' }
+                        }
                     }}
                 />
 
+                {/* Elementos decorativos flotantes */}
+                {[1, 2, 3, 4, 5].map((item) => (
+                    <Box
+                        key={item}
+                        sx={{
+                            position: 'absolute',
+                            width: Math.random() * 60 + 20,
+                            height: Math.random() * 60 + 20,
+                            borderRadius: '50%',
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            left: `${Math.random() * 100}%`,
+                            top: `${Math.random() * 100}%`,
+                            animation: `float${item} ${Math.random() * 10 + 15}s linear infinite`,
+                            '@keyframes float1': {
+                                '0%, 100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                                '50%': { transform: 'translate(20px, 30px) rotate(10deg)' }
+                            },
+                            '@keyframes float2': {
+                                '0%, 100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                                '50%': { transform: 'translate(-30px, 40px) rotate(-15deg)' }
+                            },
+                            '@keyframes float3': {
+                                '0%, 100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                                '50%': { transform: 'translate(25px, -20px) rotate(8deg)' }
+                            },
+                            '@keyframes float4': {
+                                '0%, 100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                                '50%': { transform: 'translate(-20px, -30px) rotate(-12deg)' }
+                            },
+                            '@keyframes float5': {
+                                '0%, 100%': { transform: 'translate(0px, 0px) rotate(0deg)' },
+                                '50%': { transform: 'translate(15px, 25px) rotate(20deg)' }
+                            }
+                        }}
+                    />
+                ))}
+
+                {/* Icono de diente animado */}
+                <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 0.12 }}
+                    transition={{
+                        type: "spring",
+                        stiffness: 100,
+                        delay: 0.1,
+                    }}
+                    style={{
+                        position: 'absolute',
+                        top: '10%',
+                        right: '10%',
+                        zIndex: 0
+                    }}
+                >
+                    <MedicalServices
+                        sx={{
+                            fontSize: 200,
+                            opacity: 0.2,
+                            filter: 'drop-shadow(0 0 30px rgba(255,255,255,0.2))'
+                        }}
+                    />
+                </motion.div>
+
                 {/* Contenido */}
-                <Box sx={{ position: 'relative', textAlign: 'center' }}>
+                <Box
+                    sx={{
+                        position: 'relative',
+                        textAlign: 'center',
+                        zIndex: 1,
+                        maxWidth: 500
+                    }}
+                >
                     <motion.div
-                        initial={{ y: 20, opacity: 0 }}
+                        initial={{ y: -30, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 100,
+                            delay: 0.2
+                        }}
                     >
                         <Typography
                             variant="h3"
                             sx={{
-                                mb: 4,
-                                fontWeight: 700,
-                                fontFamily: '"Poppins", sans-serif'
+                                mb: 3,
+                                fontWeight: 800,
+                                fontFamily: '"Poppins", sans-serif',
+                                background: 'linear-gradient(90deg, #ffffff 0%, #e0f2ff 100%)',
+                                backgroundClip: 'text',
+                                textFillColor: 'transparent',
+                                WebkitBackgroundClip: 'text',
+                                WebkitTextFillColor: 'transparent',
+                                letterSpacing: '0.5px'
                             }}
                         >
                             Bienvenido a Carol
@@ -932,9 +1025,13 @@ const Login = () => {
                     </motion.div>
 
                     <motion.div
-                        initial={{ y: 20, opacity: 0 }}
+                        initial={{ y: 30, opacity: 0 }}
                         animate={{ y: 0, opacity: 1 }}
-                        transition={{ delay: 0.4 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 50,
+                            delay: 0.4
+                        }}
                     >
                         <Typography
                             variant="h6"
@@ -942,42 +1039,66 @@ const Login = () => {
                                 mb: 6,
                                 opacity: 0.9,
                                 maxWidth: 500,
-                                mx: 'auto'
+                                mx: 'auto',
+                                fontWeight: 300,
+                                lineHeight: 1.5
                             }}
                         >
-                            Tu salud dental es nuestra prioridad. Accede para gestionar tus citas y consultar tu historial.
+                            Tu salud dental es nuestra prioridad. Accede para gestionar tus citas y consultar tu historial médico de forma segura.
                         </Typography>
                     </motion.div>
 
-                    {/* Características */}
-                    <Box sx={{ textAlign: 'left', maxWidth: 400, mx: 'auto' }}>
+                    {/* Características con animación secuencial */}
+                    <Box sx={{ textAlign: 'left', maxWidth: 450, mx: 'auto' }}>
                         {[
-                            'Agenda y gestiona tus citas en línea',
-                            'Accede a tu historial dental completo',
-                            'Recibe recordatorios de tus próximas citas',
-                            'Consulta tratamientos y presupuestos'
+                            {
+                                text: 'Agenda y gestiona tus citas en línea',
+                                icon: <CalendarToday sx={{ mr: 2, color: '#5CC9F5' }} />
+                            },
+                            {
+                                text: 'Accede a tu historial dental completo',
+                                icon: <FolderSpecial sx={{ mr: 2, color: '#5CF5A0' }} />
+                            },
+                            {
+                                text: 'Recibe recordatorios personalizados',
+                                icon: <Notifications sx={{ mr: 2, color: '#F5C45C' }} />
+                            },
+                            {
+                                text: 'Consulta tratamientos y presupuestos',
+                                icon: <AttachMoney sx={{ mr: 2, color: '#F55C9F' }} />
+                            }
                         ].map((feature, index) => (
                             <motion.div
                                 key={index}
-                                initial={{ x: -20, opacity: 0 }}
+                                initial={{ x: -50, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: 0.6 + index * 0.1 }}
+                                transition={{
+                                    type: "spring",
+                                    stiffness: 70,
+                                    delay: 0.6 + index * 0.15
+                                }}
                             >
                                 <Box
                                     sx={{
                                         display: 'flex',
                                         alignItems: 'center',
-                                        mb: 2
+                                        mb: 3,
+                                        py: 1,
+                                        px: 2,
+                                        borderRadius: 2,
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        backdropFilter: 'blur(10px)',
+                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                                        transition: 'all 0.3s ease',
+                                        '&:hover': {
+                                            background: 'rgba(255, 255, 255, 0.1)',
+                                            transform: 'translateX(5px)'
+                                        }
                                     }}
                                 >
-                                    <CheckCircle
-                                        sx={{
-                                            mr: 2,
-                                            color: '#4CAF50'
-                                        }}
-                                    />
-                                    <Typography>
-                                        {feature}
+                                    {feature.icon}
+                                    <Typography fontWeight={500}>
+                                        {feature.text}
                                     </Typography>
                                 </Box>
                             </motion.div>
