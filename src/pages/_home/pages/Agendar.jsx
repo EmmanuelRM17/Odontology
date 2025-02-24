@@ -83,6 +83,7 @@ const ReservaCitas = () => {
         correo: '',
         telefono: '',
         especialista: '',
+        odontologo_id:'',
         lugar: '',
         otroLugar: '',
         servicio: '',
