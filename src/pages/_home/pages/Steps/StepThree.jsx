@@ -76,8 +76,8 @@ const StepThree = ({
                     type: 'error',
                 });
                 setTimeout(() => {
-                    setNotification({ open: false, message: '', type: '' });
-                }, 3000);
+    setNotification({ open: false, message: '', type: '' });
+}, 3000);
             })
             .finally(() => setIsLoading(false));
     }, [formData.odontologo_id]);

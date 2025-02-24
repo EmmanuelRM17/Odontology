@@ -88,8 +88,8 @@ const ReservaCitas = () => {
         servicio: '',
         fechaCita: '',
         horaCita: '',
-        omitCorreo: false, 
-        omitTelefono: false 
+        omitCorreo: false, // Valor predeterminado booleano
+        omitTelefono: false // Valor predeterminado booleano
     });
     
 
