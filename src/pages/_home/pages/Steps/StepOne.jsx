@@ -12,7 +12,6 @@ import {
     Tooltip,
     Alert,
     Paper,
-    Snackbar,
     Dialog,
     DialogTitle,
     DialogContent,
@@ -76,26 +75,17 @@ const StepOne = ({
     useEffect(() => {
         const fetchServices = async () => {
             try {
-                const response = await axios.get('https://back-end-4803.onrender.com/api/servicios/all');
-                setAvailableServices(response.data);
+                const { data } = await axios.get('https://back-end-4803.onrender.com/api/servicios/all');
+                setAvailableServices(data);
             } catch (error) {
-                setNotification({
-                    open: true,
-                    message: 'Error al cargar los servicios',
-                    type: 'error'
-                });
-
-                setTimeout(() => {
-                    setNotification({ open: false, message: '', type: '' });
-                }, 3000);
-            }
-            finally {
+                setNotification({ open: true, message: 'Error al cargar los servicios', type: 'error' });
+            } finally {
                 setLoadingServices(false);
             }
         };
         fetchServices();
     }, []);
-
+    
     // Modal handlers
     const handleOpenPrivacyModal = async (event) => {
         event.preventDefault();

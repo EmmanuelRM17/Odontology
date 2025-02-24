@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { LocalHospital } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
@@ -45,7 +45,6 @@ const StyledAlert = styled(Alert)(({ theme, severity, open }) => ({
   '& .MuiAlert-action': {
     padding: '0 0 0 16px',
   },
-  // Estilos específicos por tipo de alerta
   ...(severity === 'success' && {
     background: 'linear-gradient(45deg, #43a047 30%, #4caf50 90%)',
     color: '#fff',
@@ -62,7 +61,6 @@ const StyledAlert = styled(Alert)(({ theme, severity, open }) => ({
     background: 'linear-gradient(45deg, #ffa000 30%, #ffb300 90%)',
     color: '#fff',
   }),
-  // Añadir un efecto de hover suave
   '&:hover': {
     transform: 'scale(1.02)',
     transition: 'transform 0.2s ease-in-out',
@@ -90,32 +88,42 @@ const DentalIcon = styled(LocalHospital)(({ theme }) => ({
   },
 }));
 
-const Notificaciones = ({ open, message, type, handleClose }) => {
+const Notificaciones = ({ open, message, type }) => {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setVisible(true);
+      const timer = setTimeout(() => {
+        setVisible(false);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+
   return (
     <Snackbar
-      open={open}
-      autoHideDuration={3000}
-      onClose={handleClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} // Cambiado a bottom-center
+      open={visible}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       sx={{
         '& .MuiSnackbar-root': {
           maxWidth: { xs: '90%', sm: '400px' },
         },
-        mb: 2, // Margen inferior
+        mb: 2,
       }}
       TransitionProps={{
-        timeout: 500, // Duración de la transición
+        timeout: 500,
       }}
     >
       <StyledAlert
-        onClose={handleClose}
         severity={type}
         icon={<DentalIcon />}
-        open={open}
+        open={visible}
         sx={{
           minWidth: { xs: '280px', sm: '344px' },
           maxWidth: { xs: '90vw', sm: '400px' },
-          transform: 'translateZ(0)', // Mejora el rendimiento de las animaciones
+          transform: 'translateZ(0)',
         }}
       >
         {message}

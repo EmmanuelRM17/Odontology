@@ -42,6 +42,7 @@ const StepFour = ({
     const [serviceDetails, setServiceDetails] = useState(null);
     const [loading, setLoading] = useState(false);
 
+    
     useEffect(() => {
         const fetchServiceDetails = async () => {
             if (!formData.servicio) return;
@@ -64,15 +65,65 @@ const StepFour = ({
         fetchServiceDetails();
     }, [formData.servicio]);
 
-    const handleConfirm = () => {
-        setNotification({
-            open: true,
-            message: '¡Cita confirmada con éxito!',
-            type: 'success'
-        });
-        onStepCompletion('step4', true);
+    const handleConfirm = async () => {
+        try {
+            setLoading(true);
+    
+            // Preparar los datos para el envío, incluyendo formateos necesarios
+            const citaData = {
+                paciente_id: formData.paciente_id || null,
+                nombre: formData.nombre,
+                apellido_patern: formData.apellidoPaterno,
+                apellido_matern: formData.apellidoMaterno,
+                genero: formData.genero,
+                fecha_nacimient: formData.fechaNacimiento,
+                correo: formData.correo || null,
+                telefono: formData.telefono || null,
+                odontologo_id: formData.odontologo_id || null,
+                odontologo_nomb: formData.especialista,
+                servicio_id: formData.servicio_id,
+                servicio_nombre: formData.servicio,
+                categoria_servi: serviceDetails?.category || null,
+                precio_servicio: serviceDetails?.price || 0.00,
+                fecha_hora: `${formData.fechaCita}T${formData.horaCita}`,
+                estado: 'Pendiente',
+                notas: formData.notas || null
+            };
+    
+            const response = await axios.post('https://back-end-4803.onrender.com/api/citas/nueva', citaData);
+    
+            if (response.status === 201) {
+                setNotification({
+                    open: true,
+                    message: '¡Cita guardada exitosamente!',
+                    type: 'success'
+                });
+    
+                // Cerrar automáticamente la notificación después de 3 segundos
+                setTimeout(() => {
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
+    
+                onStepCompletion('step4', true);
+                navigate('/confirmacion'); 
+            }
+        } catch (error) {
+            console.error('Error al guardar la cita:', error);
+            setNotification({
+                open: true,
+                message: 'Error al guardar la cita. Inténtalo de nuevo.',
+                type: 'error'
+            });
+    
+            setTimeout(() => {
+                setNotification({ open: false, message: '', type: '' });
+            }, 3000);
+            
+        } finally {
+            setLoading(false);
+        }
     };
-
+    
     const formattedDate = formData.fechaCita
         ? new Date(formData.fechaCita).toLocaleDateString('es-ES', {
             weekday: 'long',
