@@ -162,14 +162,19 @@ const ReservaCitas = () => {
     const handleDateTimeSelection = (date, time) => {
         setSelectedDate(date);
         setSelectedTime(time);
-
-        if (date) {
+    
+        // Validar si 'date' es un objeto Date válido antes de usar toISOString()
+        if (date instanceof Date && !isNaN(date)) {
             handleFormDataChange({ fechaCita: date.toISOString().split('T')[0] });
+        } else {
+            console.error('Fecha no válida en handleDateTimeSelection:', date);
         }
+    
         if (time) {
             handleFormDataChange({ horaCita: time });
         }
     };
+    
 
     const renderStep = () => {
         const commonProps = {

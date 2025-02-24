@@ -85,7 +85,7 @@ const StepOne = ({
         };
         fetchServices();
     }, []);
-    
+
     // Modal handlers
     const handleOpenPrivacyModal = async (event) => {
         event.preventDefault();
@@ -227,6 +227,7 @@ const StepOne = ({
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
 
+        // Manejar los checkboxes
         if (type === 'checkbox') {
             onFormDataChange({ [name]: checked });
 
@@ -243,17 +244,40 @@ const StepOne = ({
             return;
         }
 
-        onFormDataChange({ [name]: value });
-        const errorMessage = validateField(name, value);
-        setErrors((prev) => ({ ...prev, [name]: errorMessage }));
         if (name === 'servicio') {
             const selectedService = availableServices.find(service => service.title === value);
-            const fullDescription = selectedService ? selectedService.description : '';
-            const shortDescription = fullDescription.split('.')[0] + '.';
-            setSelectedServiceDescription(shortDescription);
+
+            if (selectedService) {
+                // Actualizar todos los campos del servicio, incluyendo el nombre seleccionado
+                onFormDataChange({
+                    servicio: selectedService.title, // Mantener el valor del select
+                    servicio_id: selectedService.id,
+                    categoria_servi: selectedService.category,
+                    precio_servicio: selectedService.price
+                });
+
+                const fullDescription = selectedService.description || '';
+                const shortDescription = fullDescription.split('.')[0] + '.';
+                setSelectedServiceDescription(shortDescription);
+            } else {
+                onFormDataChange({
+                    servicio: '',
+                    servicio_id: null,
+                    categoria_servi: '',
+                    precio_servicio: 0.00
+                });
+                setSelectedServiceDescription('');
+            }
+        } else {
+            onFormDataChange({ [name]: value });
         }
 
+        const errorMessage = validateField(name, value);
+        setErrors((prev) => ({ ...prev, [name]: errorMessage }));
+
+        console.log('Datos actualizados:', { [name]: value });
     };
+
 
     // Next step handler
     const handleNext = () => {
@@ -301,15 +325,15 @@ const StepOne = ({
                 message: 'Debes aceptar los términos y condiciones y resolver el captcha.',
                 type: 'error',
             });
-        
+
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
             }, 3000);
-        
+
             return;
         }
-        
-        onStepCompletion('step1', true);      
+
+        onStepCompletion('step1', true);
     };
 
 

@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-import DEFAULT_IMAGE from "../../../../assets/iconos/Sin título.png";
+import DEFAULT_IMAGE from '../../../../assets/iconos/Sin título.png';
 
 const StepTwo = ({
     colors,
@@ -36,7 +36,7 @@ const StepTwo = ({
             .then((response) => {
                 const odontologoActivo = response.data
                     .find(odontologo => odontologo.puesto === 'Odontólogo');
-                
+
                 if (odontologoActivo) {
                     const odontologoData = {
                         id: odontologoActivo.id,
@@ -45,12 +45,10 @@ const StepTwo = ({
                         image: odontologoActivo.imagen || DEFAULT_IMAGE
                     };
                     setOdontologo(odontologoData);
-                    // Automatically set the dentist data since there's only one
-                    onFormDataChange({ 
-                        especialista: odontologoData.name, 
-                        odontologo_id: odontologoData.id 
+                    onFormDataChange({
+                        especialista: odontologoData.name,
+                        odontologo_id: odontologoData.id
                     });
-                    onStepCompletion('step2', true);
                 }
             })
             .catch((error) => {
@@ -59,7 +57,11 @@ const StepTwo = ({
             .finally(() => {
                 setIsLoading(false);
             });
-    }, [onFormDataChange, onStepCompletion]);
+    }, []); // Se elimina el ciclo infinito al usar un arreglo vacío
+
+    const handleNext = () => {
+        onStepCompletion('step2', true);
+    };
 
     return (
         <Paper
@@ -148,7 +150,7 @@ const StepTwo = ({
                 <Button
                     variant="contained"
                     color="primary"
-                    onClick={onNext}
+                    onClick={handleNext}
                     startIcon={<CheckCircleIcon />}
                     sx={{
                         textTransform: 'none',
