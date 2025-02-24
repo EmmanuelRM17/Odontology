@@ -7,17 +7,14 @@ import {
     CircularProgress,
     Collapse,
     Divider,
-    Grid
+    Grid,
+    TextField
 } from '@mui/material';
 import {
     Event as EventIcon,
     AccessTime as TimeIcon
 } from '@mui/icons-material';
 import axios from 'axios';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import esLocale from 'date-fns/locale/es';
 
 const StepThree = ({
     colors,
@@ -31,28 +28,24 @@ const StepThree = ({
     const [availableTimes, setAvailableTimes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [showTimes, setShowTimes] = useState(false);
-    const [workDays, setWorkDays] = useState([]); // Días laborales dinámicos
+    const [workDays, setWorkDays] = useState([]);
 
     useEffect(() => {
         if (!formData.odontologo_id) return;
-
         setIsLoading(true);
 
-        // Obtener los días laborales del odontólogo
         axios.get(`https://back-end-4803.onrender.com/api/horarios/dias_laborales?odontologo_id=${formData.odontologo_id}`)
             .then((response) => {
                 const daysMap = {
+                    'Domingo': 0,
                     'Lunes': 1,
                     'Martes': 2,
                     'Miércoles': 3,
                     'Jueves': 4,
                     'Viernes': 5,
-                    'Sábado': 6,
-                    'Domingo': 0
+                    'Sábado': 6
                 };
-
-                // Convertir los nombres de los días a índices numéricos (0=Domingo, 6=Sábado)
-                const availableDays = response.data.map(day => daysMap[day.dia_semana]);
+                const availableDays = response.data.map(day => daysMap[day]);
                 setWorkDays(availableDays);
             })
             .catch(() => {
@@ -62,29 +55,27 @@ const StepThree = ({
                     type: 'error',
                 });
             })
-            .finally(() => {
-                setIsLoading(false);
-            });
+            .finally(() => setIsLoading(false));
     }, [formData.odontologo_id]);
+
+    const isWorkDay = (dateString) => {
+        const date = new Date(dateString);
+        const day = date.getDay();
+        return workDays.includes(day);
+    };
 
     useEffect(() => {
         if (!selectedDate) return;
-        
+
         setIsLoading(true);
         const odontologoId = formData.odontologo_id;
-        const formattedDate = selectedDate.toISOString().split('T')[0];
 
-        if (!odontologoId || !formattedDate) {
-            setIsLoading(false);
-            return;
-        }
-
-        axios.get(`https://back-end-4803.onrender.com/api/horarios/disponibilidad?odontologo_id=${odontologoId}&fecha=${formattedDate}`)
+        axios.get(`https://back-end-4803.onrender.com/api/horarios/disponibilidad?odontologo_id=${odontologoId}&fecha=${selectedDate}`)
             .then((response) => {
                 const times = [];
                 response.data.forEach((item) => {
-                    const startTime = new Date(`${formattedDate}T${item.hora_inicio}`);
-                    const endTime = new Date(`${formattedDate}T${item.hora_fin}`);
+                    const startTime = new Date(`${selectedDate}T${item.hora_inicio}`);
+                    const endTime = new Date(`${selectedDate}T${item.hora_fin}`);
                     const duracion = item.duracion || 30;
 
                     while (startTime < endTime) {
@@ -102,25 +93,19 @@ const StepThree = ({
                     type: 'error',
                 });
             })
-            .finally(() => {
-                setIsLoading(false);
-            });
+            .finally(() => setIsLoading(false));
     }, [selectedDate, formData.odontologo_id]);
 
-    const handleSelectDate = (date) => {
+    const handleSelectDate = (e) => {
+        const date = e.target.value;
         onDateTimeChange(date, null);
         setShowTimes(false);
-        onFormDataChange({ fechaCita: date.toISOString().split('T')[0] });
+        onFormDataChange({ fechaCita: date });
     };
 
     const handleSelectTime = (time) => {
         onDateTimeChange(selectedDate, time);
         onFormDataChange({ horaCita: time });
-    };
-
-    const disableNonWorkDays = (date) => {
-        const day = date.getDay(); 
-        return !workDays.includes(day);
     };
 
     return (
@@ -129,16 +114,19 @@ const StepThree = ({
                 <EventIcon /> Selecciona la fecha
             </Typography>
 
-            <LocalizationProvider dateAdapter={AdapterDateFns} locale={esLocale}>
-                <DatePicker
-                    label="Elige una fecha"
-                    value={selectedDate}
-                    onChange={handleSelectDate}
-                    shouldDisableDate={disableNonWorkDays}
-                    disablePast
-                    sx={{ mb: 3, width: '100%' }}
-                />
-            </LocalizationProvider>
+            <TextField
+                type="date"
+                label="Elige una fecha"
+                value={selectedDate || ''}
+                onChange={handleSelectDate}
+                fullWidth
+                InputLabelProps={{ shrink: true }}
+                inputProps={{
+                    min: new Date().toISOString().split('T')[0],
+                }}
+                sx={{ mb: 3 }}
+                color="primary"
+            />
 
             {isLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>

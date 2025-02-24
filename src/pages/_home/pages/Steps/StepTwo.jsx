@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import {
     Box,
     Typography,
-    Grid,
     Paper,
     Card,
     CardContent,
@@ -17,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-import DEFAULT_IMAGE from "../../../../assets/iconos/Sin título.png"; // Imagen por defecto para odontólogos sin imagen
+import DEFAULT_IMAGE from "../../../../assets/iconos/Sin título.png";
 
 const StepTwo = ({
     colors,
@@ -27,38 +26,40 @@ const StepTwo = ({
     onStepCompletion,
     onFormDataChange
 }) => {
-    const [odontologos, setOdontologos] = useState([]);
+    const [odontologo, setOdontologo] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
-    const [selectedSpecialist, setSelectedSpecialist] = useState(null);
 
     useEffect(() => {
         setIsLoading(true);
 
         axios.get('https://back-end-4803.onrender.com/api/empleados/odontologos/activos')
             .then((response) => {
-                const filteredOdontologos = response.data
-                    .filter(odontologo => odontologo.puesto === 'Odontólogo')
-                    .map(odontologo => ({
-                        id: odontologo.id,
-                        name: `${odontologo.nombre} ${odontologo.aPaterno} ${odontologo.aMaterno}`,
-                        email: odontologo.email,
-                        image: odontologo.imagen || DEFAULT_IMAGE // Asigna la imagen por defecto si no hay una
-                    }));
-                setOdontologos(filteredOdontologos);
+                const odontologoActivo = response.data
+                    .find(odontologo => odontologo.puesto === 'Odontólogo');
+                
+                if (odontologoActivo) {
+                    const odontologoData = {
+                        id: odontologoActivo.id,
+                        name: `${odontologoActivo.nombre} ${odontologoActivo.aPaterno} ${odontologoActivo.aMaterno}`,
+                        email: odontologoActivo.email,
+                        image: odontologoActivo.imagen || DEFAULT_IMAGE
+                    };
+                    setOdontologo(odontologoData);
+                    // Automatically set the dentist data since there's only one
+                    onFormDataChange({ 
+                        especialista: odontologoData.name, 
+                        odontologo_id: odontologoData.id 
+                    });
+                    onStepCompletion('step2', true);
+                }
             })
             .catch((error) => {
-                console.error('Error al obtener odontólogos:', error);
+                console.error('Error al obtener odontólogo:', error);
             })
             .finally(() => {
                 setIsLoading(false);
             });
-    }, []);
-
-    const handleSelectSpecialist = (specialist) => {
-        setSelectedSpecialist(specialist.id);
-        onFormDataChange({ especialista: specialist.name, odontologo_id: specialist.id });
-        onStepCompletion('step2', true);
-    };
+    }, [onFormDataChange, onStepCompletion]);
 
     return (
         <Paper
@@ -76,74 +77,60 @@ const StepTwo = ({
                 variant="h5"
                 sx={{ mb: 3, textAlign: 'center', color: colors.primary }}
             >
-                Selecciona un Especialista
+                Tu Odontólogo Asignado
             </Typography>
 
             {isLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 5 }}>
                     <CircularProgress color="primary" />
                 </Box>
-            ) : (
-                <Grid container spacing={3} justifyContent="center">
-                    {odontologos.map((specialist) => (
-                        <Grid item xs={12} sm={6} md={4} key={specialist.id}>
-                            <Card
-                                elevation={4}
-                                sx={{
-                                    borderRadius: 3,
-                                    overflow: 'hidden',
-                                    border: selectedSpecialist === specialist.id
-                                        ? `2px solid ${colors.primary}`
-                                        : '1px solid transparent',
-                                    mb: 3,
-                                    transition: 'all 0.3s ease',
-                                    '&:hover': {
-                                        transform: 'scale(1.05)'
-                                    }
-                                }}
+            ) : odontologo ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                    <Card
+                        elevation={4}
+                        sx={{
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            maxWidth: 400,
+                            width: '100%',
+                            border: `2px solid ${colors.primary}`,
+                            mb: 3
+                        }}
+                    >
+                        <CardMedia
+                            component="img"
+                            height="250"
+                            image={odontologo.image}
+                            alt={odontologo.name}
+                            sx={{ objectFit: 'cover' }}
+                        />
+                        <CardContent>
+                            <Typography
+                                variant="h6"
+                                sx={{ color: colors.primary, fontWeight: 600, mb: 1 }}
                             >
-                                <CardMedia
-                                    component="img"
-                                    height="250"
-                                    image={specialist.image}
-                                    alt={specialist.name}
-                                    sx={{ objectFit: 'cover' }}
-                                />
-                                <CardContent>
-                                    <Typography
-                                        variant="h6"
-                                        sx={{ color: colors.primary, fontWeight: 600, mb: 1 }}
-                                    >
-                                        {specialist.name}
-                                    </Typography>
-                                    <Typography
-                                        variant="body1"
-                                        sx={{ color: colors.text, mb: 2 }}
-                                    >
-                                        Odontólogo
-                                    </Typography>
-                                    <Chip
-                                        icon={<MedicalServicesIcon />}
-                                        label="Especialista Activo"
-                                        variant="outlined"
-                                        color="primary"
-                                        size="medium"
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        fullWidth
-                                        onClick={() => handleSelectSpecialist(specialist)}
-                                        startIcon={<CheckCircleIcon />}
-                                        sx={{ mt: 2, textTransform: 'none', fontWeight: 'bold' }}
-                                    >
-                                        Seleccionar
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        </Grid>
-                    ))}
-                </Grid>
+                                {odontologo.name}
+                            </Typography>
+                            <Typography
+                                variant="body1"
+                                sx={{ color: colors.text, mb: 2 }}
+                            >
+                                Odontólogo
+                            </Typography>
+                            <Chip
+                                icon={<MedicalServicesIcon />}
+                                label="Especialista Activo"
+                                variant="outlined"
+                                color="primary"
+                                size="medium"
+                            />
+                        </CardContent>
+                    </Card>
+                </Box>
+            ) : (
+                <Typography variant="body1" sx={{ textAlign: 'center', color: colors.text }}>
+                    No hay odontólogos disponibles en este momento.
+                </Typography>
             )}
 
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
@@ -162,7 +149,6 @@ const StepTwo = ({
                     variant="contained"
                     color="primary"
                     onClick={onNext}
-                    disabled={!selectedSpecialist}
                     startIcon={<CheckCircleIcon />}
                     sx={{
                         textTransform: 'none',
