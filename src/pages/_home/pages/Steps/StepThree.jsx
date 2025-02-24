@@ -75,6 +75,9 @@ const StepThree = ({
                     message: 'Error al obtener los días laborales del odontólogo.',
                     type: 'error',
                 });
+                setTimeout(() => {
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
             })
             .finally(() => setIsLoading(false));
     }, [formData.odontologo_id]);
@@ -109,6 +112,9 @@ const StepThree = ({
                     message: 'Error al obtener los horarios disponibles.',
                     type: 'error',
                 });
+                setTimeout(() => {
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
             })
             .finally(() => setIsLoading(false));
     };

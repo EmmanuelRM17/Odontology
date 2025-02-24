@@ -87,8 +87,11 @@ const ReservaCitas = () => {
         otroLugar: '',
         servicio: '',
         fechaCita: '',
-        horaCita: ''
+        horaCita: '',
+        omitCorreo: false, 
+        omitTelefono: false 
     });
+    
 
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -417,7 +420,7 @@ const ReservaCitas = () => {
                 message={notification.message}
                 type={notification.type}
                 onClose={() => setNotification({ ...notification, open: false })}
-                autoHideDuration={5000}
+                autoHideDuration={3000}
             />
         </Box>
     );

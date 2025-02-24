@@ -167,7 +167,7 @@ const StepFour = ({
         <Paper
             elevation={3}
             sx={{
-                p: 4,
+                p: { xs: 2, sm: 4 },
                 backgroundColor: colors.cardBg,
                 borderRadius: 3,
                 boxShadow: isDarkTheme
@@ -177,28 +177,37 @@ const StepFour = ({
         >
             <Typography
                 variant="h5"
-                sx={{ mb: 3, textAlign: 'center', color: colors.primary }}
+                sx={{ mb: 3, textAlign: 'center', color: colors.primary, fontWeight: 'bold' }}
             >
-                Detalles de la Cita
+                Resumen de tu Cita
             </Typography>
-
+    
             <Card
                 elevation={6}
                 sx={{
-                    p: 3,
-                    borderRadius: 3,
-                    border: `2px solid ${colors.primary}`,
-                    mb: 4
+                    borderRadius: 2,
+                    border: `1px solid ${colors.primary}`,
+                    mb: 4,
+                    overflow: 'visible'
                 }}
             >
-                <CardContent>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
+                    {/* Información del Paciente */}
+                    <Box sx={{ 
+                        display: 'flex', 
+                        flexDirection: { xs: 'column', sm: 'row' }, 
+                        alignItems: { xs: 'flex-start', sm: 'center' }, 
+                        mb: 3, 
+                        pb: 2,
+                        borderBottom: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
+                    }}>
                         <Avatar
                             sx={{
                                 bgcolor: colors.accent,
                                 width: 60,
                                 height: 60,
-                                mr: 2
+                                mr: 2,
+                                mb: { xs: 2, sm: 0 }
                             }}
                         >
                             <PersonIcon sx={{ fontSize: 32, color: '#ffffff' }} />
@@ -212,150 +221,179 @@ const StepFour = ({
                             </Typography>
                         </Box>
                     </Box>
-
+    
+                    {/* Sección de Información de Contacto */}
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: colors.secondary }}>
+                            Información de Contacto
+                        </Typography>
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                    <EmailIcon sx={{ mr: 1, color: colors.primary }} />
+                                    <Typography variant="body2">{formattedEmail}</Typography>
+                                </Box>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                    <PhoneIcon sx={{ mr: 1, color: colors.primary }} />
+                                    <Typography variant="body2">{formattedPhone}</Typography>
+                                </Box>
+                            </Grid>
+                        </Grid>
+                    </Box>
+    
                     <Divider sx={{ my: 2 }} />
-
-                    <Grid container spacing={2} mb={2}>
-                        <Grid item xs={12} sm={6}>
-                            <Chip
-                                icon={<EmailIcon />}
-                                label={formattedEmail}
-                                color="primary"
-                                variant="outlined"
-                                fullWidth
-                                sx={{ mb: 1 }}
-                            />
+    
+                    {/* Sección de Detalles de la Cita */}
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
+                            Detalles de la Cita
+                        </Typography>
+                        
+                        <Grid container spacing={2}>
+                            <Grid item xs={12} sm={6}>
+                                <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
+                                    <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                        Fecha
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <CalendarIcon sx={{ mr: 1, fontSize: 20, color: colors.primary }} />
+                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            {formattedDate}
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                            <Grid item xs={12} sm={6}>
+                                <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
+                                    <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                        Hora
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <TimeIcon sx={{ mr: 1, fontSize: 20, color: colors.primary }} />
+                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            {formattedTime}
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Grid>
+                            <Grid item xs={12}>
+                                <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
+                                    <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                        Especialista
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <EventAvailableIcon sx={{ mr: 1, fontSize: 20, color: colors.primary }} />
+                                        <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                            {formData.especialista || 'No seleccionado'}
+                                        </Typography>
+                                    </Box>
+                                </Paper>
+                            </Grid>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <Chip
-                                icon={<PhoneIcon />}
-                                label={formattedPhone}
-                                color="primary"
-                                variant="outlined"
-                                fullWidth
-                                sx={{ mb: 1 }}
-                            />
-                        </Grid>
-                    </Grid>
-
+                    </Box>
+    
                     <Divider sx={{ my: 2 }} />
-
-                    <Typography variant="h6" sx={{ mb: 2, color: colors.secondary }}>
-                        Detalles de la Cita
-                    </Typography>
-
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
-                            <Chip
-                                icon={<CalendarIcon />}
-                                label={formattedDate}
-                                color="primary"
-                                variant="outlined"
-                                fullWidth
-                                sx={{ mb: 1 }}
-                            />
-                        </Grid>
-                        <Grid item xs={12} sm={6}>
-                            <Chip
-                                icon={<TimeIcon />}
-                                label={formattedTime}
-                                color="primary"
-                                variant="outlined"
-                                fullWidth
-                                sx={{ mb: 1 }}
-                            />
-                        </Grid>
-                        <Grid item xs={12}>
-                            <Chip
-                                icon={<EventAvailableIcon />}
-                                label={`Especialista: ${formData.especialista || 'No seleccionado'}`}
-                                color="primary"
-                                variant="outlined"
-                                fullWidth
-                                sx={{ mb: 1 }}
-                            />
-                        </Grid>
-                    </Grid>
-                    <Divider sx={{ my: 2 }} />
-
-                    <Typography variant="h6" sx={{ mb: 2, color: colors.secondary }}>
-                        Detalles del Servicio
-                    </Typography>
-                    {loading ? (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : (
-                        serviceDetails ? (
+    
+                    {/* Sección de Detalles del Servicio */}
+                    <Box>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
+                            Detalles del Servicio
+                        </Typography>
+                        
+                        {loading ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                                <CircularProgress size={30} />
+                            </Box>
+                        ) : serviceDetails ? (
                             <Grid container spacing={2}>
                                 <Grid item xs={12}>
-                                    <Chip
-                                        icon={<MedicalServicesIcon />}
-                                        label={`Servicio: ${serviceDetails.title}`}
-                                        color="primary"
-                                        variant="outlined"
-                                        fullWidth
-                                        sx={{ mb: 1 }}
-                                    />
+                                    <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.accent}` }}>
+                                        <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                            Servicio
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <MedicalServicesIcon sx={{ mr: 1, fontSize: 20, color: colors.accent }} />
+                                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                {serviceDetails.title}
+                                            </Typography>
+                                        </Box>
+                                    </Paper>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Chip
-                                        icon={<CategoryIcon />}
-                                        label={`Categoría: ${serviceDetails.category || 'Sin categoría'}`}
-                                        color="primary"
-                                        variant="outlined"
-                                        fullWidth
-                                        sx={{ mb: 1 }}
-                                    />
+                                <Grid item xs={12} sm={6}>
+                                    <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.accent}` }}>
+                                        <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                            Categoría
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <CategoryIcon sx={{ mr: 1, fontSize: 20, color: colors.accent }} />
+                                            <Typography variant="body2" sx={{ fontWeight: 'medium' }}>
+                                                {serviceDetails.category || 'Sin categoría'}
+                                            </Typography>
+                                        </Box>
+                                    </Paper>
                                 </Grid>
-                                <Grid item xs={12}>
-                                    <Chip
-                                        icon={<PriceIcon />}
-                                        label={`Precio: $${serviceDetails.price || 'N/A'}`}
-                                        color="primary"
-                                        variant="outlined"
-                                        fullWidth
-                                        sx={{ mb: 1 }}
-                                    />
+                                <Grid item xs={12} sm={6}>
+                                    <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.accent}`, borderRadius: 1 }}>
+                                        <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
+                                            Precio
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <PriceIcon sx={{ mr: 1, fontSize: 20, color: colors.accent }} />
+                                            <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
+                                                ${serviceDetails.price || 'N/A'}
+                                            </Typography>
+                                        </Box>
+                                    </Paper>
                                 </Grid>
                             </Grid>
                         ) : (
-                            <Typography variant="body1" color="error" sx={{ mt: 2 }}>
-                                No se encontraron detalles del servicio.
-                            </Typography>
-                        )
-                    )}
-
+                            <Box sx={{ p: 2, bgcolor: isDarkTheme ? 'rgba(255,0,0,0.1)' : '#fff8f8', borderRadius: 1, border: '1px solid #ffcccc' }}>
+                                <Typography variant="body2" color="error">
+                                    No se encontraron detalles del servicio seleccionado.
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
                 </CardContent>
             </Card>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
+    
+            <Box sx={{ 
+                display: 'flex', 
+                flexDirection: { xs: 'column', sm: 'row' }, 
+                justifyContent: 'space-between', 
+                gap: 2, 
+                mt: 4 
+            }}>
                 <Button
                     variant="outlined"
                     color="primary"
                     onClick={onPrev}
                     startIcon={<HomeIcon />}
+                    fullWidth={window.innerWidth < 600}
                     sx={{
                         textTransform: 'none',
-                        fontWeight: 'bold'
+                        fontWeight: 'bold',
+                        order: { xs: 2, sm: 1 }
                     }}
                 >
                     Atrás
                 </Button>
-                <Tooltip title="Confirmar cita" placement="top">
-                    <Button
-                        variant="contained"
-                        color="primary"
-                        onClick={handleConfirm}
-                        startIcon={<CheckCircleIcon />}
-                        sx={{
-                            textTransform: 'none',
-                            fontWeight: 'bold'
-                        }}
-                    >
-                        Confirmar Cita
-                    </Button>
-                </Tooltip>
+                <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleConfirm}
+                    startIcon={<CheckCircleIcon />}
+                    fullWidth={window.innerWidth < 600}
+                    sx={{
+                        textTransform: 'none',
+                        fontWeight: 'bold',
+                        order: { xs: 1, sm: 2 }
+                    }}
+                >
+                    Confirmar Cita
+                </Button>
             </Box>
         </Paper>
     );

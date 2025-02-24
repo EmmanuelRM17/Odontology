@@ -20,6 +20,7 @@ import Reset from "./pages/_home/pages/CambiarContrasena";
 import Preguntas from "./pages/_home/pages/Preguntas";
 import Contactanos from "./pages/_home/pages/Contactanos";
 import Agendar from "./pages/_home/pages/Agendar";
+import Confirmacion from "./pages/_home/pages/Steps/Confirmacion";
 import Acerca from "./pages/_home/pages/AcerdaDe";
 import Ubicacion from './pages/_home/pages/Ubicacion'
 
@@ -35,13 +36,13 @@ import Configuracion from "./pages/administrador/pages/Configuracion";
 import Reportes from "./pages/administrador/pages/reportes";
 import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
-import ServicioForm from "./pages/administrador/pages/ServicioForm.jsx";
+import ServicioForm from "./pages/administrador/pages/ServicioForm";
 
 //Rutas del empleado
-import LayoutEmpleado from "./pages/empleado/LayoutEmpleado.jsx";
-import PrincipalEmpleado from "./pages/empleado/Principal.jsx";
-import GestionPacient from "./pages/empleado/pages/Gestionpacient.jsx";
-import ExpedienteClinico from "./pages/empleado/pages/ExpedientPacient.jsx";
+import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
+import PrincipalEmpleado from "./pages/empleado/Principal";
+import GestionPacient from "./pages/empleado/pages/Gestionpacient";
+import ExpedienteClinico from "./pages/empleado/pages/ExpedientPacient";
 
 function App() {
   const [tituloPagina, setTituloPagina] = useState("_");
@@ -130,11 +131,6 @@ function App() {
     }
   }, [fetchErrors]);
 
-  useEffect(() => {
-    if (loading) {
-      console.log("Cargando configuración de empresa...");
-    }
-  }, [loading]);
 
   if (!isOnline) {
     return (
@@ -158,6 +154,7 @@ function App() {
         <Route path="/register" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Registro' }]} /><Register /></LayoutConEncabezado>} />
         <Route path="/login" element={<Login />} />
         <Route path="/agendar-cita" element={<><Chatbot /><Agendar /></>} />
+        <Route path="/confirmacion" element={<Confirmacion/>} />
         <Route path="/about" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
         <Route path="/servicios" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
         <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />

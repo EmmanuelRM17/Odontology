@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert, Snackbar } from '@mui/material';
 import { LocalHospital } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
@@ -91,31 +91,70 @@ const DentalIcon = styled(LocalHospital)(({ theme }) => ({
 }));
 
 const Notificaciones = ({ open, message, type, handleClose }) => {
+  // Estado local para manejar la visibilidad de forma segura
+  const [isVisible, setIsVisible] = useState(open);
+  
+  // Sincronizar el estado local con la prop open
+  useEffect(() => {
+    setIsVisible(open);
+  }, [open]);
+  
+  // Función segura para manejar el cierre
+  const handleSafeClose = (event, reason) => {
+    // Ignorar clics fuera de la notificación para evitar cierres no deseados
+    if (reason === 'clickaway') return;
+    
+    // Primero actualizar el estado local
+    setIsVisible(false);
+    
+    // Dar tiempo para la animación de salida antes de llamar al handleClose del padre
+    setTimeout(() => {
+      if (handleClose) {
+        // Usar un reason personalizado para evitar errores de timeout
+        handleClose(event, 'customClose');
+      }
+    }, 400); // Ligeramente menor que la duración de la animación (500ms)
+  };
+  
+  // Manejar el cierre automático después de 3 segundos
+  useEffect(() => {
+    let timer;
+    if (isVisible) {
+      timer = setTimeout(() => {
+        handleSafeClose(null, 'customTimeout');
+      }, 3000);
+    }
+    
+    // Limpiar el temporizador si el componente se desmonta o cambia el estado
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [isVisible]);
+
   return (
     <Snackbar
-      open={open}
-      autoHideDuration={3000}
-      onClose={handleClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} // Cambiado a bottom-center
+      open={isVisible}
+      onClose={handleSafeClose}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       sx={{
         '& .MuiSnackbar-root': {
           maxWidth: { xs: '90%', sm: '400px' },
         },
-        mb: 2, // Margen inferior
+        mb: 2,
       }}
       TransitionProps={{
-        timeout: 500, // Duración de la transición
+        timeout: 500,
       }}
     >
       <StyledAlert
-        onClose={handleClose}
+        onClose={handleSafeClose}
         severity={type}
         icon={<DentalIcon />}
-        open={open}
+        open={isVisible}
         sx={{
           minWidth: { xs: '280px', sm: '344px' },
           maxWidth: { xs: '90vw', sm: '400px' },
-          transform: 'translateZ(0)', // Mejora el rendimiento de las animaciones
+          transform: 'translateZ(0)',
         }}
       >
         {message}
