@@ -12,7 +12,8 @@ import {
 } from '@mui/material';
 import {
     MedicalServices as MedicalServicesIcon,
-    CheckCircle as CheckCircleIcon
+    CheckCircle as CheckCircleIcon,
+    ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -140,9 +141,12 @@ const StepTwo = ({
                     variant="outlined"
                     color="primary"
                     onClick={onPrev}
+
                     sx={{
                         textTransform: 'none',
-                        fontWeight: 'bold'
+                        borderRadius: 8,
+                        px: 3,
+                        py: 1.2
                     }}
                 >
                     Atrás
@@ -151,10 +155,14 @@ const StepTwo = ({
                     variant="contained"
                     color="primary"
                     onClick={handleNext}
-                    startIcon={<CheckCircleIcon />}
+                    endIcon={<ArrowForwardIcon />}
                     sx={{
                         textTransform: 'none',
-                        fontWeight: 'bold'
+                        borderRadius: 8,
+                        px: 3,
+                        py: 1.2,
+                        fontWeight: 'bold',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                     }}
                 >
                     Continuar

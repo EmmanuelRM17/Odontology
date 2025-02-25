@@ -28,22 +28,22 @@ import {
     Person as PersonIcon,
     Email as EmailIcon,
     Phone as PhoneIcon,
-    CheckCircle as CheckCircleIcon,
-    HelpOutline as HelpOutlineIcon, 
+    HelpOutline as HelpOutlineIcon,
     CalendarMonth as CalendarIcon,
     Assignment as AssignmentIcon,
     GavelRounded as TermsIcon,
     PrivacyTip as PrivacyIcon,
     MedicalServices as MedicalIcon,
     ContactMail as ContactIcon,
-    Info as InfoIcon, 
-    ErrorOutline as ErrorOutlineIcon, 
-    LocationOn as LocationOnIcon, 
-    LocalHospital as LocalHospitalIcon, 
-    Description as DescriptionIcon 
+    Info as InfoIcon,
+    ErrorOutline as ErrorOutlineIcon,
+    CheckCircleOutline as CheckCircleOutlineIcon,
+    AccountCircle as AccountCircleIcon,
+    ArrowBack as ArrowBackIcon,
+    VerifiedUser as VerifiedUserIcon,
+    ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
-
-import { alpha } from '@mui/material/styles'; 
+import { alpha } from '@mui/material/styles';
 import axios from 'axios';
 import CustomRecaptcha from '../../../../components/Tools/Captcha';
 
@@ -66,7 +66,6 @@ const StepOne = ({
     const [privacyAccepted, setPrivacyAccepted] = useState(false);
     const [captchaValue, setCaptchaValue] = useState(null);
     const [showAlert, setShowAlert] = useState(false);
-    const [openSnackbar, setOpenSnackbar] = useState(false);
     const [openTermsModal, setOpenTermsModal] = useState(false);
     const [openPrivacyModal, setOpenPrivacyModal] = useState(false);
     const [termsConditions, setTermsConditions] = useState('');
@@ -75,6 +74,9 @@ const StepOne = ({
     const [loadingServices, setLoadingServices] = useState(true);
     const [selectedServiceDescription, setSelectedServiceDescription] = useState('');
     const [captchaVerified, setCaptchaVerified] = useState(false);
+    const [openLoginDialog, setOpenLoginDialog] = useState(false);
+    const [email, setEmail] = useState('');
+    const [emailError, setEmailError] = useState('');
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -90,7 +92,69 @@ const StepOne = ({
         fetchServices();
     }, []);
 
-    // Modal handlers
+    const validateEmail = (value) => {
+        if (value && !emailRegex.test(value)) {
+            setEmailError('Correo electrónico inválido.');
+            return false;
+        } else {
+            setEmailError('');
+            return true;
+        }
+    };
+
+    const checkPatientExists = async (email) => {
+        try {
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/citas/pacientes/exists?email=${email}`);
+
+            if (response.data.exists && response.data.data) {
+                const patientData = response.data.data;
+
+                onFormDataChange({
+                    nombre: patientData.nombre,
+                    apellidoPaterno: patientData.aPaterno,
+                    apellidoMaterno: patientData.aMaterno,
+                    genero: patientData.genero,
+                    fechaNacimiento: patientData.fechaNacimiento,
+                    correo: patientData.email,
+                    telefono: patientData.telefono,
+                    lugar: patientData.lugar,
+                    omitCorreo: true,
+                    omitTelefono: true,
+                    pacienteExistente: true // Nueva bandera para deshabilitar los campos
+                });
+
+                setNotification({
+                    open: true,
+                    message: 'Datos del paciente cargados correctamente.',
+                    type: 'success',
+                });
+
+                setTimeout(() => {
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
+
+                setOpenLoginDialog(false);
+
+            } else {
+                setNotification({
+                    open: true,
+                    message: 'No se encontró un paciente registrado con este correo.',
+                    type: 'warning',
+                });
+                onFormDataChange({ pacienteExistente: false });
+            }
+        } catch (error) {
+            console.error('Error al verificar el paciente:', error);
+            setNotification({
+                open: true,
+                message: 'Error al verificar el correo electrónico. Inténtalo de nuevo.',
+                type: 'error',
+            });
+            onFormDataChange({ pacienteExistente: false });
+        }
+    };
+
+
     const handleOpenPrivacyModal = async (event) => {
         event.preventDefault();
         if (!privacyPolicy) await fetchPrivacyPolicy();
@@ -105,9 +169,7 @@ const StepOne = ({
 
     const handleClosePrivacyModal = () => setOpenPrivacyModal(false);
     const handleCloseTermsModal = () => setOpenTermsModal(false);
-    const handleCloseSnackbar = () => setOpenSnackbar(false);
 
-    // API calls
     const fetchPrivacyPolicy = async () => {
         try {
             const response = await axios.get('https://back-end-4803.onrender.com/api/politicas/politicas_privacidad');
@@ -152,9 +214,6 @@ const StepOne = ({
         return allFieldsFilled && termsAccepted && captchaVerified;
     };
 
-
-
-    // Field validation
     const validateField = (name, value) => {
         let errorMessage = '';
 
@@ -227,35 +286,34 @@ const StepOne = ({
         return errorMessage;
     };
 
-    // Change handlers
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-    
+
         // Manejar los checkboxes
         if (type === 'checkbox') {
             onFormDataChange({ [name]: checked });
-    
+
             if (name === 'omitCorreo' && checked) {
                 onFormDataChange({ correo: '' });
                 setErrors((prev) => ({ ...prev, correo: '' }));
             } else if (name === 'omitCorreo' && !checked) {
                 onFormDataChange({ correo: formData.correo || '' });
             }
-    
+
             if (name === 'omitTelefono' && checked) {
                 onFormDataChange({ telefono: '' });
                 setErrors((prev) => ({ ...prev, telefono: '' }));
             } else if (name === 'omitTelefono' && !checked) {
                 onFormDataChange({ telefono: formData.telefono || '' });
             }
-    
+
             return;
         }
-    
+
         // Manejar la selección del servicio
         if (name === 'servicio') {
             const selectedService = availableServices.find(service => service.title === value);
-    
+
             if (selectedService) {
                 onFormDataChange({
                     servicio: selectedService.title,
@@ -263,7 +321,7 @@ const StepOne = ({
                     categoria_servi: selectedService.category,
                     precio_servicio: selectedService.price
                 });
-    
+
                 const fullDescription = selectedService.description || '';
                 const shortDescription = fullDescription.split('.')[0] + '.';
                 setSelectedServiceDescription(shortDescription);
@@ -280,15 +338,13 @@ const StepOne = ({
             // Para todos los demás campos, asignar siempre un valor controlado
             onFormDataChange({ [name]: value || '' });
         }
-    
+
         const errorMessage = validateField(name, value);
         setErrors((prev) => ({ ...prev, [name]: errorMessage }));
-    
+
         console.log('Datos actualizados:', { [name]: value });
     };
-    
 
-    // Next step handler
     const handleNext = () => {
         const requiredFields = [
             'nombre',
@@ -318,11 +374,9 @@ const StepOne = ({
                 message: 'Por favor, completa todos los campos requeridos correctamente.',
                 type: 'error',
             });
-            setShowAlert(true);
 
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
-                setShowAlert(false);
             }, 3000);
 
             return;
@@ -376,64 +430,174 @@ const StepOne = ({
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                     Complete el formulario con sus datos personales para agendar una cita médica
                 </Typography>
-                
-                {/* Cuadro azul para pacientes registrados */}
+
+                {/* Sección de pacientes registrados con pregunta y diálogo */}
                 <Paper
                     elevation={0}
                     sx={{
                         p: 2,
                         bgcolor: 'primary.light',
                         color: 'primary.contrastText',
-                        borderRadius: 1,
+                        borderRadius: 2,
                         mb: 3,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between'
+                        justifyContent: 'space-between',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                        borderLeft: '4px solid',
+                        borderColor: 'primary.main'
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <InfoIcon color="inherit" />
-                        <Typography variant="body1">
-                            ¿Ya es paciente registrado? Por favor, ingrese su correo electrónico
+                        <HelpOutlineIcon color="inherit" sx={{ fontSize: 20 }} />
+                        <Typography variant="body1" fontWeight="500">
+                            ¿Ya eres paciente registrado?
                         </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+
+                    <Button
+                        variant="contained"
+                        color="secondary"
+                        onClick={() => setOpenLoginDialog(true)}
+                        startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 20 }} />} // Icono más pequeño
+                        sx={{
+                            fontWeight: 'bold',
+                            borderRadius: 4, // Bordes más pequeños
+                            px: 2, // Padding lateral reducido
+                            py: 0.5, // Padding vertical reducido
+                            fontSize: '0.875rem', // Texto más pequeño
+                            textTransform: 'none',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)' // Sombra más sutil
+                        }}
+                    >
+                        Sí, ya soy paciente
+                    </Button>
+
+                </Paper>
+
+                {/* Diálogo para verificación de pacientes registrados */}
+                <Dialog
+                    open={openLoginDialog}
+                    onClose={() => setOpenLoginDialog(false)}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 3,
+                            p: 1
+                        }
+                    }}
+                >
+                    <DialogTitle
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            pb: 1,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider'
+                        }}
+                    >
+                        <AccountCircleIcon color="primary" />
+                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                            Verificación de Paciente
+                        </Typography>
+                    </DialogTitle>
+
+                    <DialogContent sx={{ mt: 2, px: 3 }}>
+                        <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+                            Por favor, ingrese el correo electrónico con el que se registró anteriormente.
+                        </Typography>
+
                         <TextField
+                            label="Correo Electrónico"
                             placeholder="email@ejemplo.com"
-                            size="small"
                             variant="outlined"
+                            fullWidth
+                            autoFocus
+                            value={email}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                validateEmail(e.target.value);
+                            }}
+                            error={!!emailError}
+                            helperText={emailError}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <EmailIcon color="action" />
+                                    </InputAdornment>
+                                ),
+                            }}
                             sx={{
-                                bgcolor: alpha('#ffffff', 0.9),
-                                borderRadius: 1,
-                                width: '220px',
+                                mb: 2,
                                 '& .MuiOutlinedInput-root': {
-                                    '& fieldset': {
-                                        borderColor: alpha('#ffffff', 0.5)
-                                    }
+                                    borderRadius: 2
                                 }
                             }}
                         />
-                        <Tooltip title="Verificar paciente registrado">
-                            <Button 
-                                variant="contained" 
-                                color="secondary" 
-                                size="small"
-                                sx={{ 
-                                    fontWeight: 'bold',
-                                    boxShadow: 2
-                                }}
-                            >
-                                Verificar
-                            </Button>
-                        </Tooltip>
-                    </Box>
-                </Paper>
+
+                        <Alert
+                            severity="info"
+                            icon={<InfoIcon />}
+                            sx={{
+                                borderRadius: 2,
+                                mb: 2
+                            }}
+                        >
+                            Al verificar su correo, podremos cargar sus datos previos y agilizar el proceso.
+                        </Alert>
+                    </DialogContent>
+
+                    <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => setOpenLoginDialog(false)}
+                            startIcon={<ArrowBackIcon />}
+                            sx={{
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 2
+                            }}
+                        >
+                            Atrás
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={<VerifiedUserIcon />}
+                            onClick={() => {
+                                if (validateEmail(email)) {
+                                    checkPatientExists(email);
+                                } else {
+                                    setNotification({
+                                        open: true,
+                                        message: 'Por favor, ingrese un correo electrónico válido.',
+                                        type: 'error',
+                                    });
+                                }
+                            }}
+                            disabled={!email || !!emailError}
+                            sx={{
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 3,
+                                fontWeight: 'bold',
+                                boxShadow: '0 3px 10px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            Validar
+                        </Button>
+
+                    </DialogActions>
+                </Dialog>
             </Box>
-    
+
             {showAlert && (
-                <Alert 
-                    severity="error" 
-                    sx={{ 
+                <Alert
+                    severity="error"
+                    sx={{
                         mb: 3,
                         borderRadius: 1,
                         boxShadow: 1
@@ -443,16 +607,16 @@ const StepOne = ({
                     Por favor complete los campos obligatorios y verifique las casillas.
                 </Alert>
             )}
-    
+
             <Divider sx={{ mb: 3 }} />
-    
+
             <Grid container spacing={3}>
                 {/* Personal Information Section */}
                 <Grid item xs={12}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
                         mb: 2,
                         borderBottom: 1,
                         borderColor: 'divider',
@@ -467,7 +631,7 @@ const StepOne = ({
                         </Tooltip>
                     </Box>
                 </Grid>
-    
+
                 {/* Name Fields */}
                 <Grid item xs={12} md={4}>
                     <Tooltip title="Ingrese su nombre de pila" placement="top">
@@ -486,12 +650,13 @@ const StepOne = ({
                                         <PersonIcon color="primary" />
                                     </InputAdornment>
                                 ),
+                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
                             }}
                             variant="outlined"
                         />
                     </Tooltip>
                 </Grid>
-    
+
                 <Grid item xs={12} md={4}>
                     <TextField
                         fullWidth
@@ -502,10 +667,13 @@ const StepOne = ({
                         required
                         error={!!errors.apellidoPaterno}
                         helperText={errors.apellidoPaterno}
+                        InputProps={{
+                            readOnly: formData.pacienteExistente
+                        }}
                         variant="outlined"
                     />
                 </Grid>
-    
+
                 <Grid item xs={12} md={4}>
                     <TextField
                         fullWidth
@@ -516,33 +684,36 @@ const StepOne = ({
                         required
                         error={!!errors.apellidoMaterno}
                         helperText={errors.apellidoMaterno}
+                        InputProps={{
+                            readOnly: formData.pacienteExistente
+                        }}
                         variant="outlined"
                     />
                 </Grid>
-    
+
+
                 {/* Additional Personal Information */}
                 <Grid item xs={12} md={6}>
-                    <Tooltip title="Seleccione su género" placement="top">
-                        <TextField
-                            select
-                            fullWidth
-                            label="Género"
-                            name="genero"
-                            value={formData.genero}
-                            onChange={handleChange}
-                            required
-                            error={!!errors.genero}
-                            helperText={errors.genero}
-                            variant="outlined"
-                        >
-                            <MenuItem value="">Selecciona</MenuItem>
-                            <MenuItem value="Masculino">Masculino</MenuItem>
-                            <MenuItem value="Femenino">Femenino</MenuItem>
-                            <MenuItem value="Prefiero no decirlo">Prefiero no decirlo</MenuItem>
-                        </TextField>
-                    </Tooltip>
+                    <TextField
+                        select
+                        fullWidth
+                        label="Género"
+                        name="genero"
+                        value={formData.genero}
+                        onChange={handleChange}
+                        required
+                        error={!!errors.genero}
+                        helperText={errors.genero}
+                        variant="outlined"
+                        disabled={formData.pacienteExistente} // Deshabilitado si el paciente existe
+                    >
+                        <MenuItem value="">Selecciona</MenuItem>
+                        <MenuItem value="Masculino">Masculino</MenuItem>
+                        <MenuItem value="Femenino">Femenino</MenuItem>
+                        <MenuItem value="Prefiero no decirlo">Prefiero no decirlo</MenuItem>
+                    </TextField>
                 </Grid>
-    
+
                 <Grid item xs={12} md={6}>
                     <Tooltip title="Formato: YYYY-MM-DD" placement="top">
                         <TextField
@@ -562,41 +733,43 @@ const StepOne = ({
                                         <CalendarIcon color="primary" />
                                     </InputAdornment>
                                 ),
+                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
                             }}
                             variant="outlined"
                         />
                     </Tooltip>
                 </Grid>
-                
+
+                {/* Lugar de Proveniencia */}
                 {/* Lugar de Proveniencia */}
                 <Grid item xs={12}>
-                    <Tooltip title="Seleccione su localidad" placement="top">
-                        <FormControl fullWidth required error={!!errors.lugar} variant="outlined">
-                            <InputLabel>Lugar de Proveniencia</InputLabel>
-                            <Select
-                                value={formData.lugar}
-                                onChange={handleChange}
-                                label="Lugar de Proveniencia"
-                                name="lugar"
-                                endAdornment={
-                                    <InputAdornment position="end">
-                                        <LocationOnIcon color="primary" />
-                                    </InputAdornment>
-                                }
-                            >
-                                <MenuItem value="Ixcatlan">Ixcatlan</MenuItem>
-                                <MenuItem value="Tepemaxac">Tepemaxac</MenuItem>
-                                <MenuItem value="Pastora">Pastora</MenuItem>
-                                <MenuItem value="Ahuacatitla">Ahuacatitla</MenuItem>
-                                <MenuItem value="Tepeica">Tepeica</MenuItem>
-                                <MenuItem value="Axcaco">Axcaco</MenuItem>
-                                <MenuItem value="Otro">Otro</MenuItem>
-                            </Select>
-                            {errors.lugar && <FormHelperText error>{errors.lugar}</FormHelperText>}
-                        </FormControl>
-                    </Tooltip>
+                    <FormControl
+                        fullWidth
+                        required
+                        error={!!errors.lugar}
+                        variant="outlined"
+                        disabled={formData.pacienteExistente} // Deshabilitar si el paciente existe
+                    >
+                        <InputLabel>Lugar de Proveniencia</InputLabel>
+                        <Select
+                            value={formData.lugar}
+                            onChange={handleChange}
+                            label="Lugar de Proveniencia"
+                            name="lugar"
+                        >
+                            <MenuItem value="Ixcatlan">Ixcatlan</MenuItem>
+                            <MenuItem value="Tepemaxac">Tepemaxac</MenuItem>
+                            <MenuItem value="Pastora">Pastora</MenuItem>
+                            <MenuItem value="Ahuacatitla">Ahuacatitla</MenuItem>
+                            <MenuItem value="Tepeica">Tepeica</MenuItem>
+                            <MenuItem value="Axcaco">Axcaco</MenuItem>
+                            <MenuItem value="Otro">Otro</MenuItem>
+                        </Select>
+                        {errors.lugar && <FormHelperText error>{errors.lugar}</FormHelperText>}
+                    </FormControl>
                 </Grid>
-    
+
+
                 {/* Campo adicional si el lugar es "Otro" */}
                 {formData.lugar === 'Otro' && (
                     <Grid item xs={12}>
@@ -609,18 +782,21 @@ const StepOne = ({
                             required
                             error={!!errors.otroLugar}
                             helperText={errors.otroLugar || 'Escribe el lugar específico'}
+                            InputProps={{
+                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
+                            }}
                             variant="outlined"
                         />
                     </Grid>
                 )}
-    
+
                 {/* Contact Information Section */}
                 <Grid item xs={12}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
-                        mb: 2, 
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
                         mt: 1,
                         borderBottom: 1,
                         borderColor: 'divider',
@@ -635,94 +811,59 @@ const StepOne = ({
                         </Tooltip>
                     </Box>
                 </Grid>
-    
-                {/* Email Field and Checkbox */}
+
+                {/* Email Field */}
                 <Grid item xs={12} md={6}>
-                    <Box>
-                        <TextField
-                            fullWidth
-                            label="Correo Electrónico"
-                            name="correo"
-                            value={formData.correo}
-                            onChange={handleChange}
-                            disabled={formData.omitCorreo}
-                            error={!!errors.correo}
-                            helperText={errors.correo || (formData.omitCorreo ? 'Has decidido omitir el correo' : '')}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <EmailIcon color="primary" />
-                                    </InputAdornment>
-                                ),
-                            }}
-                            variant="outlined"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formData.omitCorreo}
-                                    onChange={handleChange}
-                                    name="omitCorreo"
-                                    color="primary"
-                                />
-                            }
-                            label={
-                                <Typography variant="body2" color="text.secondary">
-                                    No dispongo de correo electrónico
-                                </Typography>
-                            }
-                            sx={{ mt: 1 }}
-                        />
-                    </Box>
+                    <TextField
+                        fullWidth
+                        label="Correo Electrónico"
+                        name="correo"
+                        value={formData.correo}
+                        onChange={handleChange}
+                        error={!!errors.correo}
+                        helperText={errors.correo || 'Correo no editable'}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <EmailIcon color="primary" />
+                                </InputAdornment>
+                            ),
+                            readOnly: formData.pacienteExistente
+                        }}
+                        variant="outlined"
+                    />
                 </Grid>
-    
-                {/* Phone Field and Checkbox */}
+
+                {/* Phone Field */}
                 <Grid item xs={12} md={6}>
-                    <Box>
-                        <TextField
-                            fullWidth
-                            label="Teléfono"
-                            name="telefono"
-                            value={formData.telefono}
-                            onChange={handleChange}
-                            disabled={formData.omitTelefono}
-                            error={!!errors.telefono}
-                            helperText={errors.telefono || (formData.omitTelefono ? 'Has decidido omitir el teléfono' : '')}
-                            InputProps={{
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <PhoneIcon color="primary" />
-                                    </InputAdornment>
-                                ),
-                            }}
-                            variant="outlined"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formData.omitTelefono}
-                                    onChange={handleChange}
-                                    name="omitTelefono"
-                                    color="primary"
-                                />
-                            }
-                            label={
-                                <Typography variant="body2" color="text.secondary">
-                                    No dispongo de teléfono
-                                </Typography>
-                            }
-                            sx={{ mt: 1 }}
-                        />
-                    </Box>
+                    <TextField
+                        fullWidth
+                        label="Teléfono"
+                        name="telefono"
+                        value={formData.telefono}
+                        onChange={handleChange}
+                        error={!!errors.telefono}
+                        helperText={errors.telefono || 'Teléfono no editable'}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <PhoneIcon color="primary" />
+                                </InputAdornment>
+                            ),
+                            readOnly: formData.pacienteExistente
+                        }}
+                        variant="outlined"
+                    />
                 </Grid>
-    
+
+
                 {/* Selección del Servicio Section */}
                 <Grid item xs={12}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
-                        mb: 2, 
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
                         mt: 1,
                         borderBottom: 1,
                         borderColor: 'divider',
@@ -737,7 +878,7 @@ const StepOne = ({
                         </Tooltip>
                     </Box>
                 </Grid>
-    
+
                 {/* Servicio Seleccionado */}
                 <Grid item xs={12} md={6}>
                     <Tooltip title="Escoja el servicio que necesita" placement="top">
@@ -766,7 +907,7 @@ const StepOne = ({
                         </FormControl>
                     </Tooltip>
                 </Grid>
-    
+
                 {/* Descripción del Servicio */}
                 {selectedServiceDescription && (
                     <Grid item xs={12} md={6}>
@@ -805,14 +946,14 @@ const StepOne = ({
                         </Box>
                     </Grid>
                 )}
-    
+
                 {/* Términos, Política y Captcha */}
                 <Grid item xs={12}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 1, 
-                        mb: 2, 
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
                         mt: 1,
                         borderBottom: 1,
                         borderColor: 'divider',
@@ -827,15 +968,15 @@ const StepOne = ({
                         </Tooltip>
                     </Box>
                 </Grid>
-    
+
                 {/* Checkbox para Aceptar Términos y Política */}
                 <Grid item xs={12}>
-                    <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: 'column', 
-                        gap: 2, 
-                        alignItems: 'center', 
-                        mb: 3, 
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                        alignItems: 'center',
+                        mb: 3,
                         p: 2,
                         border: 1,
                         borderColor: 'divider',
@@ -857,7 +998,7 @@ const StepOne = ({
                                 </Typography>
                             }
                         />
-    
+
                         {/* Captcha Centrado */}
                         <Box sx={{ maxWidth: '300px', width: '100%' }}>
                             <CustomRecaptcha
@@ -867,14 +1008,14 @@ const StepOne = ({
                         </Box>
                     </Box>
                 </Grid>
-    
+
                 {/* Continue Button */}
                 <Grid item xs={12} sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
                     <Button
                         variant="contained"
                         color="primary"
                         onClick={handleNext}
-                        startIcon={<CheckCircleIcon />}
+                        endIcon={<ArrowForwardIcon />}
                         sx={{
                             textTransform: 'none',
                             fontWeight: 'bold',
@@ -889,7 +1030,7 @@ const StepOne = ({
                         Continuar
                     </Button>
                 </Grid>
-    
+
                 {/* Terms Modal */}
                 <Dialog
                     open={openTermsModal}
@@ -911,7 +1052,7 @@ const StepOne = ({
                         </Button>
                     </DialogActions>
                 </Dialog>
-    
+
                 {/* Privacy Modal */}
                 <Dialog
                     open={openPrivacyModal}

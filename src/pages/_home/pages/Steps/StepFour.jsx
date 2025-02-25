@@ -25,7 +25,9 @@ import {
     MedicalServices as MedicalServicesIcon,
     Place as PlaceIcon,
     MonetizationOn as PriceIcon,
-    Category as CategoryIcon
+    Category as CategoryIcon,
+    ArrowBack as ArrowBackIcon,
+    ArrowForward as ArrowForwardIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -91,12 +93,12 @@ const StepFour = ({
             });
             return;
         }
-    
+
         try {
             setLoading(true);
-    
+
             const citaData = {
-                paciente_id: formData.paciente_id ? parseInt(formData.paciente_id) : null, 
+                paciente_id: formData.paciente_id ? parseInt(formData.paciente_id) : null,
                 nombre: formData.nombre,
                 apellido_paterno: formData.apellidoPaterno,
                 apellido_materno: formData.apellidoMaterno,
@@ -115,22 +117,22 @@ const StepFour = ({
                 notas: formData.notas || '',
                 horario_id: formData.horario_id || null
             };
-    
+
             console.log('Datos enviados para la cita:', citaData);
-    
+
             const response = await axios.post('https://back-end-4803.onrender.com/api/citas/nueva', citaData);
-    
+
             if (response.status === 201) {
                 setNotification({
                     open: true,
                     message: '¡Cita guardada exitosamente!',
                     type: 'success'
                 });
-    
+
                 setTimeout(() => {
                     setNotification({ open: false, message: '', type: '' });
                 }, 3000);
-    
+
                 onStepCompletion('step4', true);
                 navigate('/confirmacion');
             }
@@ -147,8 +149,8 @@ const StepFour = ({
         } finally {
             setLoading(false);
         }
-    };    
-    
+    };
+
     const formattedDate = formData.fechaCita
         ? new Date(formData.fechaCita).toLocaleDateString('es-ES', {
             weekday: 'long',
@@ -181,7 +183,7 @@ const StepFour = ({
             >
                 Resumen de tu Cita
             </Typography>
-    
+
             <Card
                 elevation={6}
                 sx={{
@@ -193,11 +195,11 @@ const StepFour = ({
             >
                 <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                     {/* Información del Paciente */}
-                    <Box sx={{ 
-                        display: 'flex', 
-                        flexDirection: { xs: 'column', sm: 'row' }, 
-                        alignItems: { xs: 'flex-start', sm: 'center' }, 
-                        mb: 3, 
+                    <Box sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        mb: 3,
                         pb: 2,
                         borderBottom: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`
                     }}>
@@ -221,7 +223,7 @@ const StepFour = ({
                             </Typography>
                         </Box>
                     </Box>
-    
+
                     {/* Sección de Información de Contacto */}
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1, color: colors.secondary }}>
@@ -242,15 +244,15 @@ const StepFour = ({
                             </Grid>
                         </Grid>
                     </Box>
-    
+
                     <Divider sx={{ my: 2 }} />
-    
+
                     {/* Sección de Detalles de la Cita */}
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
                             Detalles de la Cita
                         </Typography>
-                        
+
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
@@ -293,15 +295,15 @@ const StepFour = ({
                             </Grid>
                         </Grid>
                     </Box>
-    
+
                     <Divider sx={{ my: 2 }} />
-    
+
                     {/* Sección de Detalles del Servicio */}
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
                             Detalles del Servicio
                         </Typography>
-                        
+
                         {loading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                                 <CircularProgress size={30} />
@@ -358,24 +360,25 @@ const StepFour = ({
                     </Box>
                 </CardContent>
             </Card>
-    
-            <Box sx={{ 
-                display: 'flex', 
-                flexDirection: { xs: 'column', sm: 'row' }, 
-                justifyContent: 'space-between', 
-                gap: 2, 
-                mt: 4 
+
+            <Box sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                justifyContent: 'space-between',
+                gap: 2,
+                mt: 4
             }}>
                 <Button
                     variant="outlined"
                     color="primary"
                     onClick={onPrev}
-                    startIcon={<HomeIcon />}
                     fullWidth={window.innerWidth < 600}
+                    startIcon={<ArrowBackIcon />}
                     sx={{
                         textTransform: 'none',
-                        fontWeight: 'bold',
-                        order: { xs: 2, sm: 1 }
+                        borderRadius: 8,
+                        px: 3,
+                        py: 1.2
                     }}
                 >
                     Atrás
@@ -388,8 +391,11 @@ const StepFour = ({
                     fullWidth={window.innerWidth < 600}
                     sx={{
                         textTransform: 'none',
+                        borderRadius: 8,
+                        px: 3,
+                        py: 1.2,
                         fontWeight: 'bold',
-                        order: { xs: 1, sm: 2 }
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                     }}
                 >
                     Confirmar Cita

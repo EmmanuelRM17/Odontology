@@ -15,6 +15,7 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
+    DialogActions, 
     Grid,
     Alert
 } from '@mui/material';
@@ -27,7 +28,9 @@ import {
     CalendarMonth as CalendarMonthIcon,
     Schedule as ScheduleIcon,
     ArrowForward as ArrowForwardIcon,
-    ArrowBack as ArrowBackIcon
+    ArrowBack as ArrowBackIcon,
+    Close as CloseIcon, 
+    Info as InfoIcon 
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -76,8 +79,8 @@ const StepThree = ({
                     type: 'error',
                 });
                 setTimeout(() => {
-    setNotification({ open: false, message: '', type: '' });
-}, 3000);
+                    setNotification({ open: false, message: '', type: '' });
+                }, 3000);
             })
             .finally(() => setIsLoading(false));
     }, [formData.odontologo_id]);
@@ -123,10 +126,10 @@ const StepThree = ({
         // Validar si date es un objeto Date válido
         if (date instanceof Date && !isNaN(date) && !isDateDisabled(date)) {
             setSelectedDateForTimes(date);
-            
+
             // Asegurarse de que date sea siempre un objeto Date antes de formatear
             const formattedDate = date.toISOString().split('T')[0];
-    
+
             if (formattedDate) {
                 onDateTimeChange(formattedDate, null);
                 onFormDataChange({ fechaCita: formattedDate });
@@ -139,12 +142,12 @@ const StepThree = ({
             console.error('Fecha no válida seleccionada:', date);
         }
     };
-    
+
     const handleTimeSelection = (time) => {
         // Verificar que selectedDateForTimes sea un objeto Date válido
         if (selectedDateForTimes instanceof Date && !isNaN(selectedDateForTimes)) {
             const formattedDate = selectedDateForTimes.toISOString().split('T')[0];
-            
+
             onDateTimeChange(formattedDate, time);
             onFormDataChange({
                 fechaCita: formattedDate,
@@ -155,14 +158,14 @@ const StepThree = ({
             console.error('Fecha no válida en handleTimeSelection:', selectedDateForTimes);
         }
     };
-    
+
     const handleContinue = () => {
         if (selectedDate && selectedTime) {
             if (!(selectedDate instanceof Date)) {
                 console.warn('selectedDate no es un objeto Date, convirtiendo...');
                 selectedDate = new Date(selectedDate);
             }
-            
+
             if (selectedDate instanceof Date && !isNaN(selectedDate)) {
                 onStepCompletion('step3', true);
             } else {
@@ -170,7 +173,7 @@ const StepThree = ({
             }
         }
     };
-    
+
 
     const isDateDisabled = (date) => {
         const today = new Date();
@@ -238,36 +241,64 @@ const StepThree = ({
                 p: 4,
                 borderRadius: 3,
                 backgroundColor: colors.cardBg,
-                boxShadow: isDarkTheme ? '0 4px 20px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.1)'
+                boxShadow: isDarkTheme ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.15)',
+                border: `1px solid ${colors.primary}20`
             }}
         >
-            <Typography variant="h5" sx={{ textAlign: 'center', mb: 3, color: colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <CalendarMonthIcon sx={{ mr: 1 }} />
+            <Typography variant="h5" sx={{
+                textAlign: 'center',
+                mb: 4,
+                color: colors.primary,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 'bold'
+            }}>
+                <CalendarMonthIcon sx={{ mr: 1, fontSize: 28 }} />
                 Agenda tu Cita
             </Typography>
 
             <Paper
                 elevation={2}
                 sx={{
-                    p: 2,
-                    mb: 3,
+                    p: 3,
+                    mb: 4,
                     backgroundColor: colors.cardBg,
-                    border: `1px solid ${colors.primary}`,
-                    borderRadius: 2
+                    border: `1px solid ${colors.primary}40`,
+                    borderRadius: 2,
+                    borderLeft: `4px solid ${colors.primary}`
                 }}
             >
-                <Typography variant="h6" sx={{ color: colors.primary, mb: 2, display: 'flex', alignItems: 'center' }}>
+                <Typography variant="h6" sx={{
+                    color: colors.primary,
+                    mb: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    fontWeight: 'bold'
+                }}>
                     <EditCalendarIcon sx={{ mr: 1 }} />
                     Detalles de tu Cita
                 </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 1,
+                        borderRadius: 1,
+                        backgroundColor: `${colors.primary}10`
+                    }}>
                         <EventIcon sx={{ mr: 1, color: colors.secondary }} />
                         <Typography>
                             <strong>Fecha:</strong> {selectedDate ? formatDate(selectedDate) : 'No seleccionada'}
                         </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 1,
+                        borderRadius: 1,
+                        backgroundColor: `${colors.primary}10`
+                    }}>
                         <ScheduleIcon sx={{ mr: 1, color: colors.secondary }} />
                         <Typography>
                             <strong>Hora:</strong> {selectedTime || 'No seleccionada'}
@@ -283,7 +314,13 @@ const StepThree = ({
                                 setShowTimeDialog(true);
                             }}
                             startIcon={<EditCalendarIcon />}
-                            sx={{ alignSelf: 'flex-start', mt: 1 }}
+                            sx={{
+                                alignSelf: 'flex-start',
+                                mt: 1,
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 2
+                            }}
                         >
                             Cambiar Horario
                         </Button>
@@ -293,98 +330,228 @@ const StepThree = ({
 
             {isLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
-                    <CircularProgress />
+                    <CircularProgress size={60} thickness={4} />
                 </Box>
             ) : (
                 <>
-                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                        <IconButton onClick={handlePreviousMonth}>
-                            <ChevronLeftIcon />
-                        </IconButton>
-                        <Typography variant="h6" sx={{ color: colors.primary }}>
-                            {months[currentDate.getMonth()]} {currentDate.getFullYear()}
-                        </Typography>
-                        <IconButton onClick={handleNextMonth}>
-                            <ChevronRightIcon />
-                        </IconButton>
-                    </Box>
+                    <Paper
+                        elevation={1}
+                        sx={{
+                            p: 3,
+                            mb: 3,
+                            backgroundColor: colors.cardBg,
+                            borderRadius: 2
+                        }}
+                    >
+                        <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            mb: 3
+                        }}>
+                            <IconButton
+                                onClick={handlePreviousMonth}
+                                sx={{
+                                    backgroundColor: `${colors.primary}20`,
+                                    '&:hover': {
+                                        backgroundColor: `${colors.primary}40`,
+                                    }
+                                }}
+                            >
+                                <ChevronLeftIcon />
+                            </IconButton>
+                            <Typography variant="h6" sx={{
+                                color: colors.primary,
+                                fontWeight: 'bold',
+                                px: 2,
+                                py: 1,
+                                borderRadius: 2,
+                                backgroundColor: `${colors.primary}15`
+                            }}>
+                                {months[currentDate.getMonth()]} {currentDate.getFullYear()}
+                            </Typography>
+                            <IconButton
+                                onClick={handleNextMonth}
+                                sx={{
+                                    backgroundColor: `${colors.primary}20`,
+                                    '&:hover': {
+                                        backgroundColor: `${colors.primary}40`,
+                                    }
+                                }}
+                            >
+                                <ChevronRightIcon />
+                            </IconButton>
+                        </Box>
 
-                    <TableContainer>
-                        <Table>
-                            <TableHead>
-                                <TableRow>
-                                    {weekDays.map((day) => (
-                                        <TableCell
-                                            key={day}
-                                            align="center"
-                                            sx={{
-                                                color: colors.primary,
-                                                fontWeight: 'bold'
-                                            }}
-                                        >
-                                            {day}
-                                        </TableCell>
-                                    ))}
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {getDaysInMonth(currentDate).map((week, weekIndex) => (
-                                    <TableRow key={weekIndex}>
-                                        {week.map((date, dayIndex) => (
+                        <TableContainer sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow sx={{ backgroundColor: colors.primary }}>
+                                        {weekDays.map((day) => (
                                             <TableCell
-                                                key={dayIndex}
+                                                key={day}
                                                 align="center"
                                                 sx={{
-                                                    height: '60px',
-                                                    border: '1px solid rgba(224, 224, 224, 0.3)'
+                                                    color: 'white',
+                                                    fontWeight: 'bold',
+                                                    py: 2
                                                 }}
                                             >
-                                                {date && (
-                                                    <Button
-                                                        onClick={() => handleDateClick(date)}
-                                                        disabled={isDateDisabled(date)}
-                                                        sx={{
-                                                            minWidth: '40px',
-                                                            height: '40px',
-                                                            borderRadius: '50%',
-                                                            backgroundColor: selectedDate === date.toISOString().split('T')[0] ? colors.primary : 'transparent',
-                                                            color: selectedDate === date.toISOString().split('T')[0] ? 'white' : isDateDisabled(date) ? 'grey.400' : colors.text,
-                                                            '&:hover': {
-                                                                backgroundColor: selectedDate === date.toISOString().split('T')[0] ? colors.primary : 'rgba(0,0,0,0.1)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        {date.getDate()}
-                                                    </Button>
-                                                )}
+                                                {day}
                                             </TableCell>
                                         ))}
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                                </TableHead>
+                                <TableBody>
+                                    {getDaysInMonth(currentDate).map((week, weekIndex) => (
+                                        <TableRow key={weekIndex}>
+                                            {week.map((date, dayIndex) => (
+                                                <TableCell
+                                                    key={dayIndex}
+                                                    align="center"
+                                                    sx={{
+                                                        height: '70px',
+                                                        border: '1px solid rgba(224, 224, 224, 0.3)',
+                                                        backgroundColor: date && isDateDisabled(date) ? `${colors.primary}05` : 'transparent',
+                                                        position: 'relative'
+                                                    }}
+                                                >
+                                                    {date && (
+                                                        <>
+                                                            <Button
+                                                                onClick={() => handleDateClick(date)}
+                                                                disabled={isDateDisabled(date)}
+                                                                sx={{
+                                                                    minWidth: '45px',
+                                                                    height: '45px',
+                                                                    borderRadius: '50%',
+                                                                    backgroundColor: selectedDate === date.toISOString().split('T')[0]
+                                                                        ? colors.primary
+                                                                        : isDateDisabled(date)
+                                                                            ? 'transparent'
+                                                                            : `${colors.secondary}20`,
+                                                                    color: selectedDate === date.toISOString().split('T')[0]
+                                                                        ? 'white'
+                                                                        : isDateDisabled(date)
+                                                                            ? 'grey.500'
+                                                                            : colors.text,
+                                                                    fontWeight: 'bold',
+                                                                    border: isDateDisabled(date)
+                                                                        ? 'none'
+                                                                        : selectedDate === date.toISOString().split('T')[0]
+                                                                            ? 'none'
+                                                                            : `2px solid ${colors.secondary}40`,
+                                                                    '&:hover': {
+                                                                        backgroundColor: selectedDate === date.toISOString().split('T')[0]
+                                                                            ? colors.primary
+                                                                            : isDateDisabled(date)
+                                                                                ? 'transparent'
+                                                                                : `${colors.secondary}40`
+                                                                    }
+                                                                }}
+                                                            >
+                                                                {date.getDate()}
+                                                            </Button>
+                                                            {isDateDisabled(date) && (
+                                                                <Box sx={{
+                                                                    position: 'absolute',
+                                                                    top: '50%',
+                                                                    left: '50%',
+                                                                    transform: 'translate(-50%, -50%)',
+                                                                    pointerEvents: 'none',
+                                                                    zIndex: 1
+                                                                }}>
+                                                                    <CloseIcon sx={{
+                                                                        color: 'grey.400',
+                                                                        opacity: 0.8,
+                                                                        fontSize: 20
+                                                                    }} />
+                                                                </Box>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </TableCell>
+                                            ))}
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    </Paper>
+
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: 3,
+                        mb: 3,
+                        mt: 2
+                    }}>
+                        <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}>
+                            <Box sx={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                backgroundColor: colors.primary
+                            }} />
+                            <Typography variant="body2">Seleccionado</Typography>
+                        </Box>
+                        <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}>
+                            <Box sx={{
+                                width: 12,
+                                height: 12,
+                                borderRadius: '50%',
+                                backgroundColor: `${colors.secondary}30`
+                            }} />
+                            <Typography variant="body2">Disponible</Typography>
+                        </Box>
+                        <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                        }}>
+                            <CloseIcon sx={{ color: 'grey.400', fontSize: 14 }} />
+                            <Typography variant="body2">No disponible</Typography>
+                        </Box>
+                    </Box>
 
                     <Dialog
                         open={showTimeDialog}
                         onClose={() => setShowTimeDialog(false)}
                         maxWidth="sm"
                         fullWidth
+                        PaperProps={{
+                            sx: {
+                                borderRadius: 3,
+                                backgroundColor: colors.cardBg
+                            }
+                        }}
                     >
                         <DialogTitle sx={{
                             color: colors.primary,
                             display: 'flex',
                             alignItems: 'center',
-                            gap: 1
+                            gap: 1,
+                            borderBottom: `1px solid ${colors.primary}20`,
+                            pb: 2
                         }}>
                             <TimeIcon />
-                            Horarios Disponibles
-                            <Typography variant="subtitle2" sx={{ ml: 'auto', color: colors.secondary }}>
+                            <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                                Horarios Disponibles
+                            </Typography>
+                            <Typography variant="subtitle1" sx={{ ml: 'auto', color: colors.secondary, fontWeight: 'medium' }}>
                                 {selectedDateForTimes && formatDate(selectedDateForTimes)}
                             </Typography>
                         </DialogTitle>
-                        <DialogContent>
-                            <Grid container spacing={1} sx={{ mt: 1 }}>
+                        <DialogContent sx={{ mt: 2 }}>
+                            <Grid container spacing={2} sx={{ mt: 1 }}>
                                 {availableTimes.length > 0 ? (
                                     availableTimes.map((time) => (
                                         <Grid item xs={4} key={time}>
@@ -393,7 +560,15 @@ const StepThree = ({
                                                 color="primary"
                                                 fullWidth
                                                 onClick={() => handleTimeSelection(time)}
-                                                sx={{ mb: 1 }}
+                                                sx={{
+                                                    mb: 1,
+                                                    py: 1.5,
+                                                    borderRadius: 8,
+                                                    fontWeight: 'bold',
+                                                    '&.MuiButton-contained': {
+                                                        boxShadow: `0 4px 8px ${colors.primary}40`
+                                                    }
+                                                }}
                                                 startIcon={<ScheduleIcon />}
                                             >
                                                 {time}
@@ -402,13 +577,33 @@ const StepThree = ({
                                     ))
                                 ) : (
                                     <Grid item xs={12}>
-                                        <Alert severity="info">
+                                        <Alert
+                                            severity="info"
+                                            icon={<InfoIcon />}
+                                            sx={{
+                                                borderRadius: 2,
+                                                py: 2
+                                            }}
+                                        >
                                             No hay horarios disponibles para esta fecha
                                         </Alert>
                                     </Grid>
                                 )}
                             </Grid>
                         </DialogContent>
+                        <DialogActions sx={{ p: 2, pt: 0 }}>
+                            <Button
+                                onClick={() => setShowTimeDialog(false)}
+                                variant="outlined"
+                                sx={{
+                                    borderRadius: 6,
+                                    px: 3,
+                                    textTransform: 'none'
+                                }}
+                            >
+                                Cerrar
+                            </Button>
+                        </DialogActions>
                     </Dialog>
 
                     <Box sx={{
@@ -422,7 +617,12 @@ const StepThree = ({
                             color="primary"
                             onClick={onPrev}
                             startIcon={<ArrowBackIcon />}
-                            sx={{ textTransform: 'none' }}
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: 8,
+                                px: 3,
+                                py: 1.2
+                            }}
                         >
                             Atrás
                         </Button>
@@ -432,7 +632,15 @@ const StepThree = ({
                             onClick={handleContinue}
                             disabled={!selectedDate || !selectedTime}
                             endIcon={<ArrowForwardIcon />}
-                            sx={{ textTransform: 'none' }}>
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: 8,
+                                px: 3,
+                                py: 1.2,
+                                fontWeight: 'bold',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                            }}
+                        >
                             Continuar
                         </Button>
                     </Box>

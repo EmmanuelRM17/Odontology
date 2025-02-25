@@ -83,7 +83,7 @@ const ReservaCitas = () => {
         correo: '',
         telefono: '',
         especialista: '',
-        odontologo_id:'',
+        odontologo_id: '',
         lugar: '',
         otroLugar: '',
         servicio: '',
@@ -92,7 +92,7 @@ const ReservaCitas = () => {
         omitCorreo: false, // Valor predeterminado booleano
         omitTelefono: false // Valor predeterminado booleano
     });
-    
+
 
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -162,23 +162,23 @@ const ReservaCitas = () => {
             return updatedData;
         });
     };
-    
+
     const handleDateTimeSelection = (date, time) => {
         setSelectedDate(date);
         setSelectedTime(time);
-    
+
         // Validar si 'date' es un objeto Date válido antes de usar toISOString()
         if (date instanceof Date && !isNaN(date)) {
             handleFormDataChange({ fechaCita: date.toISOString().split('T')[0] });
         } else {
             console.error('Fecha no válida en handleDateTimeSelection:', date);
         }
-    
+
         if (time) {
             handleFormDataChange({ horaCita: time });
         }
     };
-    
+
 
     const renderStep = () => {
         const commonProps = {
@@ -208,7 +208,7 @@ const ReservaCitas = () => {
                         selectedTime={selectedTime}
                         onDateTimeChange={handleDateTimeSelection}
                         onFormDataChange={handleFormDataChange}
-                        />
+                    />
                 );
             case 3:
                 return <StepFour {...commonProps} />;
@@ -420,9 +420,9 @@ const ReservaCitas = () => {
                 open={notification.open}
                 message={notification.message}
                 type={notification.type}
-                onClose={() => setNotification({ ...notification, open: false })}
-                autoHideDuration={3000}
+                onClose={() => setNotification({ open: false, message: '', type: '' })}
             />
+
         </Box>
     );
 };
