@@ -21,7 +21,8 @@ import {
     InputLabel,
     Select,
     FormHelperText,
-    Divider
+    Divider,
+    CircularProgress
 } from '@mui/material';
 
 import {
@@ -77,6 +78,7 @@ const StepOne = ({
     const [openLoginDialog, setOpenLoginDialog] = useState(false);
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -104,6 +106,7 @@ const StepOne = ({
 
     const checkPatientExists = async (email) => {
         try {
+            setLoading(true);
             const response = await axios.get(`https://back-end-4803.onrender.com/api/citas/pacientes/exists?email=${email}`);
 
             if (response.data.exists && response.data.data) {
@@ -111,15 +114,15 @@ const StepOne = ({
 
                 onFormDataChange({
                     nombre: patientData.nombre,
-                    apellidoPaterno: patientData.aPaterno,
-                    apellidoMaterno: patientData.aMaterno,
+                    apellidoPaterno: patientData.aPaterno.trim(),
+                    apellidoMaterno: patientData.aMaterno.trim(),
                     genero: patientData.genero,
-                    fechaNacimiento: patientData.fechaNacimiento,
+                    fechaNacimiento: patientData.fechaNacimiento.split('T')[0], // Formato YYYY-MM-DD
                     correo: patientData.email,
                     telefono: patientData.telefono,
                     lugar: patientData.lugar,
-                    omitCorreo: true,
-                    omitTelefono: true,
+                    omitCorreo: false, // Ahora se muestra el correo real
+                    omitTelefono: false, // Ahora se muestra el teléfono real
                     pacienteExistente: true // Nueva bandera para deshabilitar los campos
                 });
 
@@ -566,9 +569,10 @@ const StepOne = ({
                         <Button
                             variant="contained"
                             color="primary"
-                            startIcon={<VerifiedUserIcon />}
+                            startIcon={!loading && <VerifiedUserIcon />}
                             onClick={() => {
                                 if (validateEmail(email)) {
+                                    setLoading(true); // Activar el estado de carga
                                     checkPatientExists(email);
                                 } else {
                                     setNotification({
@@ -578,7 +582,7 @@ const StepOne = ({
                                     });
                                 }
                             }}
-                            disabled={!email || !!emailError}
+                            disabled={!email || !!emailError || loading} // Deshabilitar mientras carga
                             sx={{
                                 borderRadius: 6,
                                 textTransform: 'none',
@@ -587,8 +591,9 @@ const StepOne = ({
                                 boxShadow: '0 3px 10px rgba(0,0,0,0.2)'
                             }}
                         >
-                            Validar
+                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Validar'}
                         </Button>
+
 
                     </DialogActions>
                 </Dialog>
@@ -650,7 +655,8 @@ const StepOne = ({
                                         <PersonIcon color="primary" />
                                     </InputAdornment>
                                 ),
-                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
+                               readOnly: formData.pacienteExistente,
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                             }}
                             variant="outlined"
                         />
@@ -668,7 +674,8 @@ const StepOne = ({
                         error={!!errors.apellidoPaterno}
                         helperText={errors.apellidoPaterno}
                         InputProps={{
-                            readOnly: formData.pacienteExistente
+                            readOnly: formData.pacienteExistente,
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                         }}
                         variant="outlined"
                     />
@@ -685,7 +692,8 @@ const StepOne = ({
                         error={!!errors.apellidoMaterno}
                         helperText={errors.apellidoMaterno}
                         InputProps={{
-                            readOnly: formData.pacienteExistente
+                           readOnly: formData.pacienteExistente,
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                         }}
                         variant="outlined"
                     />
@@ -721,7 +729,7 @@ const StepOne = ({
                             label="Fecha de Nacimiento"
                             name="fechaNacimiento"
                             type="date"
-                            value={formData.fechaNacimiento}
+                            value={formData.fechaNacimiento || ''}
                             onChange={handleChange}
                             required
                             error={!!errors.fechaNacimiento}
@@ -733,14 +741,15 @@ const StepOne = ({
                                         <CalendarIcon color="primary" />
                                     </InputAdornment>
                                 ),
-                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
+                                readOnly: formData.pacienteExistente, // Bloqueado si el paciente existe
+                                style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {}, // Indicador visual de solo lectura
                             }}
                             variant="outlined"
                         />
+
                     </Tooltip>
                 </Grid>
 
-                {/* Lugar de Proveniencia */}
                 {/* Lugar de Proveniencia */}
                 <Grid item xs={12}>
                     <FormControl
@@ -783,7 +792,8 @@ const StepOne = ({
                             error={!!errors.otroLugar}
                             helperText={errors.otroLugar || 'Escribe el lugar específico'}
                             InputProps={{
-                                readOnly: formData.pacienteExistente // Solo lectura si el paciente existe
+                                readOnly: formData.pacienteExistente,
+                                style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                             }}
                             variant="outlined"
                         />
@@ -828,7 +838,8 @@ const StepOne = ({
                                     <EmailIcon color="primary" />
                                 </InputAdornment>
                             ),
-                            readOnly: formData.pacienteExistente
+                            readOnly: formData.pacienteExistente,
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                         }}
                         variant="outlined"
                     />
@@ -850,7 +861,8 @@ const StepOne = ({
                                     <PhoneIcon color="primary" />
                                 </InputAdornment>
                             ),
-                            readOnly: formData.pacienteExistente
+                            readOnly: formData.pacienteExistente,
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                         }}
                         variant="outlined"
                     />

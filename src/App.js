@@ -6,7 +6,6 @@ import ErrorPage from "./components/Tools/ErrorPage";
 import Chatbot from "./components/Tools/Chatbot.jsx";
 import Breadcrumbs from './pages/_home/tools/Breadcrumbs';
 
-
 // Componentes Importados
 import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
 import Home from "./pages/_home/pages/Home";
