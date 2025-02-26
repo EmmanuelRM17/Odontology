@@ -15,11 +15,12 @@ import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { motion } from 'framer-motion';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from '../../../components/Tools/Captcha';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const Contacto = () => {
   const theme = useTheme();
   const [captchaVerified, setCaptchaVerified] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkTheme } = useThemeContext(); // ✅ Correcto
   const [empresa, setEmpresa] = useState({
     nombre_empresa: 'Nombre de la Empresa',
     slogan: 'Slogan de la empresa',
@@ -53,18 +54,6 @@ const Contacto = () => {
     lat: 21.081734,
     lng: -98.536002
   };
-
-  // Detectar el tema
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
 
   // Obtener datos de la empresa
   useEffect(() => {
@@ -155,11 +144,11 @@ const Contacto = () => {
 
   const commonStyles = {
     '& .MuiOutlinedInput-root': {
-      backgroundColor: isDarkMode ? '#1B2A3A' : '#ffffff',
+      backgroundColor: isDarkTheme ? '#1B2A3A' : '#ffffff',
       borderRadius: '12px',
       transition: 'all 0.3s ease',
       '& fieldset': {
-        borderColor: isDarkMode ? '#475569' : '#e0e0e0',
+        borderColor: isDarkTheme ? '#475569' : '#e0e0e0',
         borderWidth: '2px',
       },
       '&:hover fieldset': {
@@ -170,11 +159,11 @@ const Contacto = () => {
         borderWidth: '2px',
       },
       '& input, & textarea': {
-        color: isDarkMode ? '#ffffff' : '#000000',
+        color: isDarkTheme ? '#ffffff' : '#000000',
       },
     },
     '& .MuiInputLabel-root': {
-      color: isDarkMode ? '#94A3B8' : '#666666',
+      color: isDarkTheme ? '#94A3B8' : '#666666',
       '&.Mui-focused': {
         color: '#0052A3',
       },
@@ -198,7 +187,7 @@ const Contacto = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: isDarkMode ? '#1B2A3A' : '#F9FDFF',
+        bgcolor: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
         py: 4
       }}
     >
@@ -207,7 +196,7 @@ const Contacto = () => {
           elevation={3}
           sx={{
             p: { xs: 2, sm: 4 },
-            bgcolor: isDarkMode ? '#2A3648' : '#ffffff',
+            bgcolor: isDarkTheme ? '#2A3648' : '#ffffff',
             borderRadius: 2
           }}
         >
@@ -216,7 +205,7 @@ const Contacto = () => {
             component="h1"
             align="center"
             sx={{
-              color: isDarkMode ? '#ffffff' : '#0052A3',
+              color: isDarkTheme ? '#ffffff' : '#0052A3',
               fontWeight: 'bold',
               mb: 4,
               fontFamily: 'Montserrat, sans-serif'
@@ -228,7 +217,7 @@ const Contacto = () => {
             variant="body1"
             sx={{
               mb: 3,
-              color: isDarkMode ? '#94A3B8' : '#666',
+              color: isDarkTheme ? '#94A3B8' : '#666',
               textAlign: 'center'
             }}
           >
@@ -251,9 +240,9 @@ const Contacto = () => {
                       alignItems: 'center',
                       mb: 2,
                       p: 2,
-                      bgcolor: isDarkMode ? '#1B2A3A' : '#f5f5f5',
+                      bgcolor: isDarkTheme ? '#1B2A3A' : '#f5f5f5',
                       borderRadius: 1,
-                      color: isDarkMode ? '#94A3B8' : 'inherit'
+                      color: isDarkTheme ? '#94A3B8' : 'inherit'
                     }}
                   >
                     <Box sx={{ color: '#0052A3' }}>{item.icon}</Box>
@@ -265,7 +254,7 @@ const Contacto = () => {
                   variant="body1"
                   sx={{
                     mb: 3,
-                    color: isDarkMode ? '#94A3B8' : '#666',
+                    color: isDarkTheme ? '#94A3B8' : '#666',
                     textAlign: 'center'
                   }}
                 >
@@ -292,7 +281,7 @@ const Contacto = () => {
                   variant="body1"
                   sx={{
                     mb: 3,
-                    color: isDarkMode ? '#94A3B8' : '#666',
+                    color: isDarkTheme ? '#94A3B8' : '#666',
                     textAlign: 'center'
                   }}
                 >
@@ -304,9 +293,9 @@ const Contacto = () => {
                   onSubmit={handleSubmit}
                   sx={{
                     p: 4,
-                    bgcolor: isDarkMode ? '#1B2A3A' : '#ffffff',
+                    bgcolor: isDarkTheme ? '#1B2A3A' : '#ffffff',
                     borderRadius: '16px',
-                    boxShadow: isDarkMode
+                    boxShadow: isDarkTheme
                       ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.24)'
                       : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
                     '& > *:not(:last-child)': {
@@ -367,7 +356,7 @@ const Contacto = () => {
                       my: 3,
                     }}
                   >
-                    <CustomRecaptcha onCaptchaChange={setCaptchaVerified} isDarkMode={isDarkMode} />
+                    <CustomRecaptcha onCaptchaChange={setCaptchaVerified} isDarkTheme={isDarkTheme} />
                   </Box>
                   <Button
                     type="submit"
@@ -415,7 +404,7 @@ const Contacto = () => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      bgcolor: isDarkMode ? '#2A3648' : '#f5f5f5'
+                      bgcolor: isDarkTheme ? '#2A3648' : '#f5f5f5'
                     }}
                   >
                     <CircularProgress />
@@ -430,7 +419,7 @@ const Contacto = () => {
                       streetViewControl: true,
                       mapTypeControl: true,
                       fullscreenControl: true,
-                      styles: isDarkMode
+                      styles: isDarkTheme
                         ? [
                           {
                             elementType: 'geometry',
@@ -471,11 +460,11 @@ const Contacto = () => {
                   startIcon={<OpenInNew />}
                   sx={{
                     flex: 1,
-                    color: isDarkMode ? '#ffffff' : '#0052A3',
-                    borderColor: isDarkMode ? '#ffffff' : '#0052A3',
+                    color: isDarkTheme ? '#ffffff' : '#0052A3',
+                    borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
                     '&:hover': {
-                      borderColor: isDarkMode ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkMode
+                      borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
+                      bgcolor: isDarkTheme
                         ? 'rgba(255,255,255,0.1)'
                         : 'rgba(0,82,163,0.1)'
                     }
@@ -491,11 +480,11 @@ const Contacto = () => {
                   startIcon={<LocationOn />}
                   sx={{
                     flex: 1,
-                    color: isDarkMode ? '#ffffff' : '#0052A3',
-                    borderColor: isDarkMode ? '#ffffff' : '#0052A3',
+                    color: isDarkTheme ? '#ffffff' : '#0052A3',
+                    borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
                     '&:hover': {
-                      borderColor: isDarkMode ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkMode
+                      borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
+                      bgcolor: isDarkTheme
                         ? 'rgba(255,255,255,0.1)'
                         : 'rgba(0,82,163,0.1)'
                     }

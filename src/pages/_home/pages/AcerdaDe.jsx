@@ -25,9 +25,10 @@ import {
 } from '@mui/icons-material';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { Link } from 'react-router-dom';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; 
 
 const AboutPage = () => {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { isDarkTheme } = useThemeContext();
   const [info, setInfo] = useState({
     historia: "",
     mision: "",
@@ -42,17 +43,6 @@ const AboutPage = () => {
 
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
-
   useEffect(() => {
     const fetchInfo = async () => {
       try {

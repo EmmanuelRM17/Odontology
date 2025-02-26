@@ -15,9 +15,10 @@ import {
     Warning as WarningIcon
 } from '@mui/icons-material';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const CategoryService = ({ open, handleClose }) => {
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const [categories, setCategories] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingCategory, setEditingCategory] = useState(null);
@@ -26,19 +27,6 @@ const CategoryService = ({ open, handleClose }) => {
     const [error, setError] = useState('');
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
     const [deleteDialog, setDeleteDialog] = useState({ open: false, category: null });
-
-    // Theme detection
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener("change", handleThemeChange);
-        return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
-    }, []);
 
     const colors = {
         primary: '#03427C',

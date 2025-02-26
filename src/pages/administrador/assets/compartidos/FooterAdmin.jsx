@@ -1,24 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Container, Typography, useTheme } from '@mui/material';
 import { FaTooth } from 'react-icons/fa';
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 const FooterAdmin = () => {
-  // Control del tema oscuro
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-    
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-    
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
-  // Definición de colores según el tema
   const colors = {
     background: isDarkTheme ? '#1B2A3A' : '#F8FAFC',
     text: isDarkTheme ? '#E8F1FF' : '#64748B',

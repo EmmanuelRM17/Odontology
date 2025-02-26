@@ -4,22 +4,12 @@ import { FaSignInAlt, FaFileAlt, FaUserFriends } from 'react-icons/fa';
 import LoginAttemptsReport from './LoginAttemptsReport';
 import LogsReport from './LogsReport';
 import { Link } from 'react-router-dom';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const Reportes = () => {
   const [selectedTab, setSelectedTab] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  // Configuración del tema oscuro
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   // Definición de colores
   const colors = {

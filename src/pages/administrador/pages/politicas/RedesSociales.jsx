@@ -18,6 +18,7 @@ import {
 import { Edit as EditIcon, Delete as DeleteIcon, Save as SaveIcon } from '@mui/icons-material';
 import axios from 'axios';
 import Notificaciones from '../../../../components/Layout/Notificaciones'; 
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 // Redes sociales disponibles
 const availableSocials = [
@@ -40,21 +41,7 @@ const RedesSociales = () => {
     message: '',
     type: 'success',  // success, error, warning, info
   });
-
-  // Primero, agregamos el hook para el tema oscuro
-const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-useEffect(() => {
-  const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-  setIsDarkTheme(matchDarkTheme.matches);
-
-  const handleThemeChange = (e) => {
-    setIsDarkTheme(e.matches);
-  };
-
-  matchDarkTheme.addEventListener('change', handleThemeChange);
-  return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-}, []);
+  const { isDarkTheme } = useThemeContext();
 
 // Definición de colores
 const colors = {

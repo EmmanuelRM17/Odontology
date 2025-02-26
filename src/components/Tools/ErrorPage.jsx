@@ -11,13 +11,28 @@ import {
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Refresh, Home } from "@mui/icons-material";
+import { useThemeContext } from '../../components/Tools/ThemeContext';
 
 // Dental Tooth Icon component
-const ToothIcon = (props) => (
-  <SvgIcon {...props} viewBox="0 0 512 512" sx={{ width: '120px', height: '120px' }}>
-    <path d="M256 0c-62.4 0-115.4 21.9-157.6 64C56.2 106.1 34.3 159.1 34.3 221.5c0 35.2 5.3 66.8 15.8 94.9 10.5 28.1 23.8 52.5 39.7 73.2 15.9 20.7 32.2 39.5 48.9 56.3 16.7 16.8 31.8 33.5 45.3 50 13.5 16.5 24 34.4 31.5 53.6 2.9 7.5 6.5 11.2 10.7 11.2 4.2 0 7.7-3.7 10.7-11.2 7.5-19.2 18-37 31.5-53.6 13.5-16.5 28.6-33.2 45.3-50 16.7-16.8 33-35.6 48.9-56.3 15.9-20.7 29.2-45.1 39.7-73.2 10.5-28.1 15.8-59.7 15.8-94.9 0-62.4-21.9-115.4-64-157.6C371.4 21.9 318.4 0 256 0zm0 384c-44.2 0-81.6-15.6-112.2-46.2C113.2 307.2 97.6 269.8 97.6 225.6c0-44.2 15.6-81.6 46.2-112.2C174.4 82.8 211.8 67.2 256 67.2c44.2 0 81.6 15.6 112.2 46.2 30.6 30.6 46.2 68 46.2 112.2 0 44.2-15.6 81.6-46.2 112.2C337.6 368.4 300.2 384 256 384z" />
-  </SvgIcon>
-);
+// Dental Tooth Icon component
+const ToothIcon = (props) => {
+  const { isDarkTheme } = useThemeContext();
+
+  return (
+    <SvgIcon
+      {...props}
+      viewBox="0 0 512 512"
+      sx={{
+        width: '120px',
+        height: '120px',
+        fill: isDarkTheme ? '#000' : '#000', // Cambia dinámicamente según el tema
+        transition: 'fill 0.3s ease', // Suaviza la transición de color
+      }}
+    >
+      <path d="M256 0c-62.4 0-115.4 21.9-157.6 64C56.2 106.1 34.3 159.1 34.3 221.5c0 35.2 5.3 66.8 15.8 94.9 10.5 28.1 23.8 52.5 39.7 73.2 15.9 20.7 32.2 39.5 48.9 56.3 16.7 16.8 31.8 33.5 45.3 50 13.5 16.5 24 34.4 31.5 53.6 2.9 7.5 6.5 11.2 10.7 11.2 4.2 0 7.7-3.7 10.7-11.2 7.5-19.2 18-37 31.5-53.6 13.5-16.5 28.6-33.2 45.3-50 16.7-16.8 33-35.6 48.9-56.3 15.9-20.7 29.2-45.1 39.7-73.2 10.5-28.1 15.8-59.7 15.8-94.9 0-62.4-21.9-115.4-64-157.6C371.4 21.9 318.4 0 256 0zm0 384c-44.2 0-81.6-15.6-112.2-46.2C113.2 307.2 97.6 269.8 97.6 225.6c0-44.2 15.6-81.6 46.2-112.2C174.4 82.8 211.8 67.2 256 67.2c44.2 0 81.6 15.6 112.2 46.2 30.6 30.6 46.2 68 46.2 112.2 0 44.2-15.6 81.6-46.2 112.2C337.6 368.4 300.2 384 256 384z" />
+    </SvgIcon>
+  );
+};
 
 const errorTypes = {
   400: {
@@ -54,9 +69,9 @@ const errorTypes = {
 
 const ErrorPage = () => {
   const theme = useTheme();
+  const { isDarkTheme } = useThemeContext();
   const location = useLocation();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // Determinar el error
   const errorCode = !isOnline ? 502 : location.state?.errorCode || 404;
   const errorMessage = location.state?.errorMessage || errorTypes[errorCode].description;
   const errorInfo = errorTypes[errorCode] || errorTypes[404];
@@ -143,12 +158,12 @@ const ErrorPage = () => {
               position: 'absolute',
               top: -60,
               right: -60,
-              opacity: 0.1
+              opacity: isDarkTheme ? 0.2 : 0.1, // Más opaco en tema oscuro
+              color: isDarkTheme ? '#FFFFFF' : '#B0B0B0' // Blanco en oscuro, gris en claro
             }}
           >
             <ToothIcon />
           </Box>
-
           <Box
             component={motion.div}
             variants={iconVariants}
@@ -158,8 +173,9 @@ const ErrorPage = () => {
               position: 'absolute',
               bottom: -60,
               left: -60,
-              opacity: 0.1,
-              transform: 'rotate(180deg)'
+              opacity: isDarkTheme ? 0.2 : 0.1,
+              transform: 'rotate(180deg)',
+              color: isDarkTheme ? '#FFFFFF' : '#B0B0B0'
             }}
           >
             <ToothIcon />
@@ -185,7 +201,7 @@ const ErrorPage = () => {
             variant="h4"
             sx={{
               mb: 1,
-              color: 'text.primary',
+              color: isDarkTheme ? '#000000' : '#B0B0B0', // Color claro para el tema oscuro y azul para el tema claro
               fontWeight: 700
             }}
           >
@@ -196,7 +212,7 @@ const ErrorPage = () => {
             variant="h6"
             sx={{
               mb: 4,
-              color: 'text.secondary',
+              color: isDarkTheme ? '#000000' : '#B0B0B0', // Color claro para el tema oscuro y azul para el tema claro
               maxWidth: '600px',
               mx: 'auto'
             }}

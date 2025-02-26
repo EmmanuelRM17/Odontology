@@ -35,14 +35,14 @@ import {
     CalendarMonth,
     HelpOutline
 } from '@mui/icons-material';
-
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 const ServicioDetalle = () => {
     const { servicioId } = useParams();
     const [service, setService] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const theme = useTheme();
 
     useEffect(() => {
@@ -67,12 +67,6 @@ const ServicioDetalle = () => {
         fetchService();
         window.scrollTo(0, 0);
     
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-        
-        const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, [servicioId]);
     
 

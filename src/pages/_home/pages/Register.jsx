@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import zxcvbn from 'zxcvbn';
 import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import Notificaciones from '../../../components/Layout/Notificaciones';
-
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -62,19 +62,7 @@ const Register = () => {
   const [openPrivacyModal, setOpenPrivacyModal] = useState(false);
   const [openTermsModal, setOpenTermsModal] = useState(false);
   const [allAccepted, setAllAccepted] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   const handleAcceptChange = (event) => {
     setAllAccepted(event.target.checked);
@@ -730,7 +718,7 @@ const Register = () => {
   const commonTextFieldStyles = {
     '& .MuiOutlinedInput-root': {
       borderRadius: '8px',
-      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+      backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
       transition: 'all 0.3s ease',
       '&:hover fieldset': {
         borderColor: '#03427c',
@@ -958,10 +946,10 @@ const Register = () => {
                   sx={{
                     '& .MuiOutlinedInput-root': {
                       borderRadius: '8px',
-                      backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+                      backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,1)',
+                        backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,1)',
                       },
                       '&:hover fieldset': {
                         borderColor: '#03427c',
@@ -976,7 +964,7 @@ const Register = () => {
                         padding: '8px',
                         position: 'absolute',
                         right: '8px',
-                        filter: isDarkMode ? 'invert(1)' : 'none',
+                        filter: isDarkTheme ? 'invert(1)' : 'none',
                         opacity: 0.7,
                         '&:hover': {
                           opacity: 1
@@ -990,7 +978,7 @@ const Register = () => {
                       }
                     },
                     '& .MuiInputBase-input': {
-                      color: isDarkMode ? '#ffffff' : '#000000',
+                      color: isDarkTheme ? '#ffffff' : '#000000',
                     }
                   }}
                 />
@@ -1056,7 +1044,7 @@ const Register = () => {
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: '8px',
-                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
                           '&:hover fieldset': {
                             borderColor: '#03427c',
                           },
@@ -1110,7 +1098,7 @@ const Register = () => {
                         sx={{
                           '& .MuiOutlinedInput-root': {
                             borderRadius: '8px',
-                            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+                            backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
                             '&:hover fieldset': {
                               borderColor: '#03427c',
                             },
@@ -1153,7 +1141,7 @@ const Register = () => {
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: '8px',
-                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
                           '&:hover fieldset': {
                             borderColor: '#03427c',
                           },
@@ -1194,7 +1182,7 @@ const Register = () => {
                       sx={{
                         '& .MuiOutlinedInput-root': {
                           borderRadius: '8px',
-                          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
+                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
                           '&:hover fieldset': {
                             borderColor: '#03427c',
                           },
@@ -2007,7 +1995,7 @@ const Register = () => {
       <Box
         sx={{
           minHeight: '100vh',
-          background: isDarkMode
+          background: isDarkTheme
             ? '#1D2A38'
             : 'linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%)',
           py: { xs: 4, md: 8 }
@@ -2020,18 +2008,20 @@ const Register = () => {
             type={notificationType}
             handleClose={handleCloseNotification}
           />
-
           <Card
             elevation={0}
             sx={{
               p: { xs: 2, sm: 4 },
               boxShadow: '0 8px 32px rgba(3, 66, 124, 0.08)',
               borderRadius: '20px',
-              background: 'rgba(255, 255, 255, 0.95)',
+              background: isDarkTheme
+                ? 'rgba(51, 59, 95, 0.41)'  // Fondo gris claro en tema oscuro
+                : 'rgba(255, 255, 255, 0.95)', // Fondo blanco en tema claro
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(3, 66, 124, 0.1)',
             }}
           >
+
             <CardContent>
               <Typography
                 variant="h4"

@@ -3,6 +3,7 @@ import { Box, Typography, IconButton, Modal, Button, Grid, Container, Divider } 
 import { FaFacebook, FaTwitter, FaLinkedin, FaInstagram, FaWhatsapp } from 'react-icons/fa';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useThemeContext } from '../Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 // Función auxiliar para formatear URLs de redes sociales
 const formatSocialUrl = (network, url) => {
@@ -66,24 +67,8 @@ const Footer = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState('');
   const [modalTitle, setModalTitle] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
-
-  // Your existing useEffect hooks remain the same...
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-
-    return () => {
-      matchDarkTheme.removeEventListener('change', handleThemeChange);
-    };
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   useEffect(() => {
     const fetchSocials = async () => {
@@ -148,7 +133,7 @@ const Footer = () => {
   return (
     <footer
       style={{
-        backgroundColor: isDarkMode ? '#0D1B2A' : '#03427C',
+        backgroundColor: isDarkTheme ? '#0D1B2A' : '#03427C',
         color: '#ffffff',
         padding: '20px 0',
         textAlign: 'center',

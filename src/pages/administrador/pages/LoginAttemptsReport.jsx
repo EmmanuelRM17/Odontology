@@ -3,6 +3,7 @@ import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper
 import { FaInfoCircle, FaTimes, FaIdCard, FaCalendarAlt, FaPhone, FaEnvelope } from 'react-icons/fa'; // Íconos
 import { format } from 'date-fns';
 import Notificaciones from '../../../components/Layout/Notificaciones'; // Importar Notificaciones
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const LoginAttemptsReport = () => {
   const [loginAttempts, setLoginAttempts] = useState([]);
@@ -15,19 +16,7 @@ const LoginAttemptsReport = () => {
   const [notificationOpen, setNotificationOpen] = useState(false); // Controlar notificación
   const [notificationMessage, setNotificationMessage] = useState(''); // Mensaje de notificación
   const [notificationType, setNotificationType] = useState('success'); // Tipo de notificación
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   // Definición de colores
   const colors = {
@@ -180,12 +169,12 @@ const LoginAttemptsReport = () => {
   return (
     <Box sx={{ padding: 3 }}>
       {error && <Typography color="error">{error}</Typography>}
-      <Typography 
-        variant="h5" 
-        sx={{ 
-          marginBottom: 2, 
-          fontWeight: 'bold', 
-          color: colors.primary 
+      <Typography
+        variant="h5"
+        sx={{
+          marginBottom: 2,
+          fontWeight: 'bold',
+          color: colors.primary
         }}
       >
         Reporte de Intentos de Login
@@ -198,7 +187,7 @@ const LoginAttemptsReport = () => {
           value={maxAttempts}
           onChange={handleInputChange(setMaxAttempts)}
           fullWidth
-          sx={{ 
+          sx={{
             mb: 2,
             ...inputStyles
           }}
@@ -209,7 +198,7 @@ const LoginAttemptsReport = () => {
           value={lockTimeMinutes}
           onChange={handleInputChange(setLockTimeMinutes)}
           fullWidth
-          sx={{ 
+          sx={{
             mb: 2,
             ...inputStyles
           }}
@@ -218,9 +207,9 @@ const LoginAttemptsReport = () => {
 
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mt: 2 }}>
           {!isEditing ? (
-            <Button 
-              variant="contained" 
-              sx={{ 
+            <Button
+              variant="contained"
+              sx={{
                 backgroundColor: colors.primary,
                 '&:hover': {
                   backgroundColor: colors.hover
@@ -232,9 +221,9 @@ const LoginAttemptsReport = () => {
             </Button>
           ) : (
             <>
-              <Button 
+              <Button
                 variant="contained"
-                sx={{ 
+                sx={{
                   backgroundColor: colors.primary,
                   '&:hover': {
                     backgroundColor: colors.hover
@@ -244,9 +233,9 @@ const LoginAttemptsReport = () => {
               >
                 Guardar
               </Button>
-              <Button 
+              <Button
                 variant="outlined"
-                sx={{ 
+                sx={{
                   color: colors.primary,
                   borderColor: colors.primary,
                   '&:hover': {
@@ -270,9 +259,9 @@ const LoginAttemptsReport = () => {
       />
 
       {/* Tabla */}
-      <TableContainer 
-        component={Paper} 
-        sx={{ 
+      <TableContainer
+        component={Paper}
+        sx={{
           boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
           backgroundColor: colors.paper
         }}
@@ -290,7 +279,7 @@ const LoginAttemptsReport = () => {
           </TableHead>
           <TableBody>
             {loginAttempts.map((attempt) => (
-              <TableRow 
+              <TableRow
                 key={attempt.id}
                 sx={{
                   '&:hover': {
@@ -301,15 +290,15 @@ const LoginAttemptsReport = () => {
                 <TableCell sx={{ color: colors.text }}>{attempt.id}</TableCell>
                 <TableCell sx={{ color: colors.text }}>{attempt.ip_address}</TableCell>
                 <TableCell>
-                  <Button 
-                    variant="contained" 
-                    sx={{ 
+                  <Button
+                    variant="contained"
+                    sx={{
                       backgroundColor: colors.primary,
                       '&:hover': {
                         backgroundColor: colors.hover
                       }
                     }}
-                    startIcon={<FaInfoCircle />} 
+                    startIcon={<FaInfoCircle />}
                     onClick={() => handleMoreInfo(attempt.paciente_id)}
                   >
                     Más información
@@ -329,10 +318,10 @@ const LoginAttemptsReport = () => {
       </TableContainer>
 
       {/* Modal */}
-      <Dialog 
-        open={open} 
-        onClose={handleClose} 
-        maxWidth="md" 
+      <Dialog
+        open={open}
+        onClose={handleClose}
+        maxWidth="md"
         fullWidth
         PaperProps={{
           sx: {
@@ -341,17 +330,17 @@ const LoginAttemptsReport = () => {
           }
         }}
       >
-        <DialogTitle sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           color: colors.primary
         }}>
           <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
             Información del Paciente
           </Typography>
-          <IconButton 
-            aria-label="close" 
+          <IconButton
+            aria-label="close"
             onClick={handleClose}
             sx={{ color: colors.text }}
           >
@@ -361,21 +350,21 @@ const LoginAttemptsReport = () => {
         <DialogContent>
           {selectedPaciente ? (
             <Box sx={{ p: 2 }}>
-              <Card sx={{ 
-                mb: 3, 
+              <Card sx={{
+                mb: 3,
                 boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
                 backgroundColor: colors.paper
               }}>
                 <CardContent>
                   <Grid container spacing={2} alignItems="center">
                     <Grid item xs={12} sm={4} sx={{ display: 'flex', justifyContent: 'center' }}>
-                      <Avatar 
-                        sx={{ 
-                          width: 100, 
-                          height: 100, 
+                      <Avatar
+                        sx={{
+                          width: 100,
+                          height: 100,
                           bgcolor: colors.primary,
                           color: '#fff',
-                          fontSize: '2rem' 
+                          fontSize: '2rem'
                         }}
                       >
                         {selectedPaciente.nombre.charAt(0)}

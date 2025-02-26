@@ -28,6 +28,7 @@ import axios from 'axios';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { Link } from 'react-router-dom';
 import RedesSociales from './politicas/RedesSociales';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const PerfilEmpresa = () => {
     const [formData, setFormData] = useState({
@@ -55,25 +56,12 @@ const PerfilEmpresa = () => {
     });
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [openImageModal, setOpenImageModal] = useState(false); // Para controlar el modal de la imagen
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
 
     const [isLoading, setIsLoading] = useState(true);
     const [previewChanges, setPreviewChanges] = useState(false);
     const [logoHistory, setLogoHistory] = useState([]);
     const theme = useTheme();
-
-    // Efecto para detectar tema oscuro
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     // Definición mejorada de colores para mejor contraste
     const colors = {

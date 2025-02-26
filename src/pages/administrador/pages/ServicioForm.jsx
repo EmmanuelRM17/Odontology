@@ -17,9 +17,10 @@ import EditServiceDialog from './EditService';
 import NewService from './newService';
 import CategoryService from './CategoryService';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const ServicioForm = () => {
-  const [isDarkTheme] = useState(false);
+  const { isDarkTheme } = useThemeContext();
   const [openDialog, setOpenDialog] = useState(false);
   const [openNewServiceForm, setOpenNewServiceForm] = useState(false);
   const [selectedService, setSelectedService] = useState(null);

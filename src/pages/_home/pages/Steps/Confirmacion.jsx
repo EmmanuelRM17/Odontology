@@ -8,7 +8,6 @@ import {
   Grid, 
   Fade, 
   Zoom,
-  useTheme,
   CircularProgress,
   Divider,
   Avatar,
@@ -25,6 +24,7 @@ import {
 } from '@mui/icons-material';
 import { styled, keyframes } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
+import { useThemeContext} from '../../../../components/Tools/ThemeContext';
 
 // Animación de pulso para el ícono principal
 const pulse = keyframes`
@@ -72,16 +72,16 @@ const successRays = keyframes`
 `;
 
 // Componente estilizado para el ícono principal con animación
-const AnimatedIcon = styled(Box)(({ theme }) => ({
+const AnimatedIcon = styled(Box)(({ isDarkTheme }) => ({
   position: 'relative',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   margin: '0 auto',
-  marginBottom: theme.spacing(4),
+  marginBottom: '32px', // Reemplazar por un valor fijo en píxeles
   '& .icon': {
     fontSize: '80px',
-    color: theme.palette.primary.main,
+    color: isDarkTheme ? '#FFFFFF' : '#03427c',
     animation: `${pulse} 2s infinite ease-in-out`,
     zIndex: 2,
   },
@@ -91,7 +91,7 @@ const AnimatedIcon = styled(Box)(({ theme }) => ({
     width: '120px',
     height: '120px',
     borderRadius: '50%',
-    background: `radial-gradient(circle, ${theme.palette.primary.light}44 0%, transparent 70%)`,
+    background: `radial-gradient(circle, ${isDarkTheme ? '#CCCCCC44' : '#03427c44'} 0%, transparent 70%)`,
     animation: `${successRays} 3s infinite ease-in-out`,
   },
   '&::after': {
@@ -100,41 +100,41 @@ const AnimatedIcon = styled(Box)(({ theme }) => ({
     width: '100px',
     height: '100px',
     borderRadius: '50%',
-    border: `2px solid ${theme.palette.primary.light}`,
+    border: `2px solid ${isDarkTheme ? '#CCCCCC' : '#03427c'}`,
     animation: `${successRays} 3s infinite ease-in-out 0.5s`,
   }
 }));
 
 // Componente de Avatar estilizado para los íconos de información
-const InfoIconAvatar = styled(Avatar)(({ theme }) => ({
-  backgroundColor: theme.palette.primary.main + '15',
-  color: theme.palette.primary.main,
-  marginRight: theme.spacing(2),
+const InfoIconAvatar = styled(Avatar)(({ isDarkTheme }) => ({
+  backgroundColor: isDarkTheme ? '#555555' : '#03427c',
+  color: isDarkTheme ? '#FFFFFF' : '#FFFFFF',
+  marginRight: '16px', // En lugar de isDarkTheme.spacing(2)  
   boxShadow: '0 4px 8px rgba(0,0,0,0.05)',
 }));
 
 // Componente estilizado para las filas de información
-const InfoRow = styled(Box)(({ theme }) => ({
+const InfoRow = styled(Box)(({ isDarkTheme }) => ({
   display: 'flex',
   alignItems: 'center',
-  marginBottom: theme.spacing(2),
-  padding: theme.spacing(1.5),
+  marginBottom: '16px', // En lugar de isDarkTheme.spacing(2)
+  padding: '12px', // En lugar de isDarkTheme.spacing(1.5)
   borderRadius: '8px',
-  backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
+  backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
   transition: 'all 0.3s ease',
   '&:hover': {
-    backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
+    backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.01)',
     transform: 'translateX(5px)',
   },
 }));
 
 // Componente estilizado para el contenedor de información
-const InfoContainer = styled(Box)(({ theme }) => ({
-  backgroundColor: theme.palette.background.paper,
-  padding: theme.spacing(3),
+const InfoContainer = styled(Box)(({ isDarkTheme }) => ({
+  backgroundColor: isDarkTheme ? '#2C2C2C' : '#FFFFFF',
+  padding: '24px', // En lugar de isDarkTheme.spacing(3)
   borderRadius: '16px',
   boxShadow: 'rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px',
-  border: `1px solid ${theme.palette.divider}`,
+  border: `1px solid ${isDarkTheme ? '#333333' : '#E0E0E0'}`,
   position: 'relative',
   overflow: 'hidden',
   '&::after': {
@@ -144,21 +144,21 @@ const InfoContainer = styled(Box)(({ theme }) => ({
     left: 0,
     right: 0,
     height: '4px',
-    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main}, ${theme.palette.primary.main})`,
+    background: `linear-gradient(90deg, ${isDarkTheme ? '#8A8A8A' : '#03427c'}, ${isDarkTheme ? '#6D6D6D' : '#02305c'})`,
     backgroundSize: '200% 200%',
     animation: `${gradientMove} 3s ease infinite`,
   }
 }));
 
 // Componente estilizado para el papel con efecto de degradado
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(6),
+const StyledPaper = styled(Paper)(({ isDarkTheme }) => ({
+  padding: '48px', // En lugar de isDarkTheme.spacing(6)
   borderRadius: '16px',
   textAlign: 'center',
   boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
   position: 'relative',
   overflow: 'hidden',
-  background: theme.palette.background.paper,
+  background: isDarkTheme ? '#2C2C2C' : '#FFFFFF',
   '&::before': {
     content: '""',
     position: 'absolute',
@@ -166,22 +166,22 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     left: 0,
     width: '100%',
     height: '6px',
-    background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.secondary.main})`,
+    background: `linear-gradient(90deg, ${isDarkTheme ? '#8A8A8A' : '#03427c'}, ${isDarkTheme ? '#6D6D6D' : '#02305c'})`,
     zIndex: 1,
   },
 }));
 
 // Botón estilizado con animación hover
-const AnimatedButton = styled(Button)(({ theme }) => ({
-  marginTop: theme.spacing(4),
-  padding: theme.spacing(1.2, 3),
+const AnimatedButton = styled(Button)(({ isDarkTheme }) => ({
+  marginTop: '32px', // En lugar de isDarkTheme.spacing(4)
+  padding: '10px 24px', // Reemplazar por un valor fijo en píxeles
   borderRadius: '30px',
   transition: 'all 0.3s ease',
   position: 'relative',
   overflow: 'hidden',
   '&:hover': {
     transform: 'translateY(-3px)',
-    boxShadow: theme.shadows[4],
+    boxShadow: isDarkTheme ? '0px 4px 8px rgba(0,0,0,0.2)' : '0px 4px 8px rgba(3, 66, 124, 0.2)',
   },
   '&::after': {
     content: '""',
@@ -201,7 +201,7 @@ const AnimatedButton = styled(Button)(({ theme }) => ({
 
 const Confirmacion = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
+  const { isDarkTheme } =  useThemeContext(); // ✅ Correcto
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [openBackdrop, setOpenBackdrop] = useState(false);
@@ -247,11 +247,10 @@ const Confirmacion = () => {
                 variant="h4" 
                 component="h1" 
                 gutterBottom 
-                color="primary"
                 sx={{ 
                   fontWeight: 700,
                   mb: 2,
-                  background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                  background: `linear-gradient(90deg, ${isDarkTheme ? '#FFFFFF' : '#03427c'}, ${isDarkTheme ? '#000000' : '#02305c'})`,
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
@@ -265,13 +264,13 @@ const Confirmacion = () => {
                   mb: 4,
                   maxWidth: '80%',
                   mx: 'auto',
-                  color: theme.palette.text.secondary 
+                  color: isDarkTheme ? '#000000' : '#03427c',
                 }}
               >
                 Gracias por confiar en nuestra clínica dental. Le enviaremos un recordatorio antes de su cita.
               </Typography>
               
-              <Divider sx={{ mb: 4 }} />
+              <Divider sx={{ mb: 4, backgroundColor: isDarkTheme ? '#000000' : '#03427c' }} />
               
               <Grid container spacing={3} justifyContent="center">
                 <Grid item xs={12} md={10}>
@@ -283,49 +282,50 @@ const Confirmacion = () => {
                         fontWeight: 600,
                         display: 'flex',
                         alignItems: 'center',
+                        color: isDarkTheme ? '#000000' : '#03427c',
                       }}
                     >
-                      <MedicalServices sx={{ mr: 1, color: theme.palette.primary.main }} />
+                      <MedicalServices sx={{ mr: 1, color: isDarkTheme ? '#000000' : '#03427c' }} />
                       Información importante
                     </Typography>
                     
                     <InfoRow>
-                      <InfoIconAvatar>
+                      <InfoIconAvatar sx={{ backgroundColor: isDarkTheme ? '#555555' : '#03427c' }}>
                         <Notifications />
                       </InfoIconAvatar>
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: isDarkTheme ? '#FFFFFF' : '#000000' }}>
                           Notificaciones
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: isDarkTheme ? '#000000' : '#666666' }}>
                           Le notificaremos sobre cualquier cambio o recordatorio vía email o SMS.
                         </Typography>
                       </Box>
                     </InfoRow>
                     
                     <InfoRow>
-                      <InfoIconAvatar>
+                      <InfoIconAvatar sx={{ backgroundColor: isDarkTheme ? '#555555' : '#03427c' }}>
                         <AccessTime />
                       </InfoIconAvatar>
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: isDarkTheme ? '#FFFFFF' : '#000000' }}>
                           Llegada anticipada
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: isDarkTheme ? '#000000' : '#666666' }}>
                           Por favor, llegue 15 minutos antes de su hora agendada para el proceso de registro.
                         </Typography>
                       </Box>
                     </InfoRow>
                     
                     <InfoRow>
-                      <InfoIconAvatar>
+                      <InfoIconAvatar sx={{ backgroundColor: isDarkTheme ? '#555555' : '#03427c' }}>
                         <CalendarMonth />
                       </InfoIconAvatar>
                       <Box>
-                        <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                        <Typography variant="body1" sx={{ fontWeight: 500, color: isDarkTheme ? '#FFFFFF' : '#000000' }}>
                           Fecha de solicitud
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ color: isDarkTheme ? '#000000' : '#666666' }}>
                           {fechaActual}
                         </Typography>
                       </Box>
@@ -336,12 +336,15 @@ const Confirmacion = () => {
               
               <AnimatedButton
                 variant="contained"
-                color="primary"
                 size="large"
                 onClick={handleVolver}
                 disabled={loading}
                 endIcon={loading ? null : <ArrowForward />}
-                sx={{ mt: 5 }}
+                sx={{ 
+                  mt: 5,
+                  backgroundColor: isDarkTheme ? '#8A8A8A' : '#03427c',
+                  '&:hover': { backgroundColor: isDarkTheme ? '#6D6D6D' : '#02305c' }
+                }}
               >
                 {loading ? (
                   <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -359,9 +362,10 @@ const Confirmacion = () => {
       
       <Backdrop
         sx={{ 
-          color: '#fff', 
-          zIndex: (theme) => theme.zIndex.drawer + 1,
-          flexDirection: 'column'
+          color: '#FFFFFF', 
+          zIndex: 1201,
+          flexDirection: 'column',
+          backgroundColor: isDarkTheme ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.8)'
         }}
         open={openBackdrop}
       >
@@ -372,6 +376,7 @@ const Confirmacion = () => {
       </Backdrop>
     </Container>
   );
+
 };
 
 export default Confirmacion;

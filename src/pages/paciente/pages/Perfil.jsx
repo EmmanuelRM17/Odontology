@@ -12,9 +12,9 @@ import {
     SupervisorAccount as SupervisorAccountIcon
 } from '@mui/icons-material';
 import { useAuth } from '../../../components/Tools/AuthContext';
-
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 const Profile = () => {
-    const theme = useTheme();
+    const { isDarkTheme } = useThemeContext();
     const [validationErrors, setValidationErrors] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -56,7 +56,7 @@ const Profile = () => {
                 }
 
                 const data = await response.json();
-                console.log("Perfil completo obtenido:", data); 
+                console.log("Perfil completo obtenido:", data);
 
                 setProfileData({
                     nombre: data.nombre || '',
@@ -193,24 +193,23 @@ const Profile = () => {
     const handleEdit = () => {
         setIsEditing(true);
     };
-    
 
     return (
-        <Container maxWidth="lg" sx={{ 
+        <Container maxWidth="lg" sx={{
             py: 4,
-            bgcolor: theme.palette.mode === 'dark' ? '#1B2A3A' : '#F9FDFF'
+            bgcolor: isDarkTheme ? '#1B2A3A' : '#F9FDFF'
         }}>
             <Paper
                 elevation={3}
                 sx={{
                     p: { xs: 2, md: 4 },
-                    bgcolor: theme.palette.mode === 'dark' ? '#1B2A3A' : '#FFFFFF',
+                    bgcolor: isDarkTheme ? '#1B2A3A' : '#FFFFFF',
                     borderRadius: 3,
-                    boxShadow: theme.palette.mode === 'dark' 
-                        ? '0 4px 20px rgba(255, 255, 255, 0.2)' 
+                    boxShadow: isDarkTheme
+                        ? '0 4px 20px rgba(255, 255, 255, 0.2)'
                         : '0 4px 20px rgba(0, 0, 0, 0.1)',
-                    border: theme.palette.mode === 'dark' 
-                        ? '1px solid rgba(255, 255, 255, 0.2)' 
+                    border: isDarkTheme
+                        ? '1px solid rgba(255, 255, 255, 0.2)'
                         : '1px solid rgba(0, 0, 0, 0.1)'
                 }}
             >
@@ -221,10 +220,10 @@ const Profile = () => {
                 ) : (
                     <>
                         {/* Cabecera */}
-                        <Box 
-                            mb={4} 
+                        <Box
+                            mb={4}
                             sx={{
-                                background: theme.palette.mode === 'dark' 
+                                background: isDarkTheme
                                     ? 'linear-gradient(45deg, #03427c, #1B2A3A)'
                                     : 'linear-gradient(45deg, #03427c, #0561b3)',
                                 borderRadius: 2,
@@ -246,7 +245,7 @@ const Profile = () => {
                                     Perfil del Paciente
                                 </Typography>
                                 <IconButton
-                                    onClick={() => isEditing ? handleCancel() :handleEdit()}
+                                    onClick={() => isEditing ? handleCancel() : handleEdit()}
                                     sx={{
                                         bgcolor: 'white',
                                         '&:hover': {
@@ -256,18 +255,18 @@ const Profile = () => {
                                         }
                                     }}
                                 >
-                                    {isEditing ? 
-                                        <CancelIcon sx={{ color: '#dc3545' }} /> : 
+                                    {isEditing ?
+                                        <CancelIcon sx={{ color: '#dc3545' }} /> :
                                         <EditIcon sx={{ color: '#03427c' }} />
                                     }
                                 </IconButton>
                             </Box>
                         </Box>
-    
+
                         {/* Alertas */}
                         {error && (
-                            <Alert 
-                                severity="error" 
+                            <Alert
+                                severity="error"
                                 sx={{ mb: 3, borderRadius: 2 }}
                                 onClose={() => setError(null)}
                             >
@@ -275,35 +274,35 @@ const Profile = () => {
                             </Alert>
                         )}
                         {success && (
-                            <Alert 
+                            <Alert
                                 severity="success"
                                 sx={{ mb: 3, borderRadius: 2 }}
                             >
                                 Cambios guardados exitosamente
                             </Alert>
                         )}
-    
+
                         {/* Formulario */}
                         <form onSubmit={handleSubmit}>
                             <Grid container spacing={3}>
                                 {/* Información Personal */}
                                 <Grid item xs={12}>
-                                    <Typography 
-                                        variant="h6" 
-                                        sx={{ 
-                                            mb: 2, 
-                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
-                                            fontWeight: 'bold' 
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            mb: 2,
+                                            color: isDarkTheme ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold'
                                         }}
                                     >
                                         <PersonIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                                         Información Personal
                                     </Typography>
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={4}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Nombre"
                                         name="nombre"
                                         value={profileData.nombre}
@@ -326,10 +325,10 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={4}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Apellido Paterno"
                                         name="aPaterno"
                                         value={profileData.aPaterno}
@@ -345,10 +344,10 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={4}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Apellido Materno"
                                         name="aMaterno"
                                         value={profileData.aMaterno}
@@ -364,7 +363,7 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
@@ -382,7 +381,7 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={6}>
                                     <TextField
                                         fullWidth
@@ -398,26 +397,26 @@ const Profile = () => {
                                         InputLabelProps={{ shrink: true }}
                                     />
                                 </Grid>
-    
+
                                 {/* Información de Contacto */}
                                 <Grid item xs={12}>
-                                    <Typography 
-                                        variant="h6" 
-                                        sx={{ 
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
                                             mt: 4,
-                                            mb: 2, 
-                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
-                                            fontWeight: 'bold' 
+                                            mb: 2,
+                                            color: isDarkTheme ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold'
                                         }}
                                     >
                                         <ContactPhoneIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                                         Información de Contacto
                                     </Typography>
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={6}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Teléfono"
                                         name="telefono"
                                         value={profileData.telefono}
@@ -432,10 +431,10 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12} md={6}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Email"
                                         name="email"
                                         type="email"
@@ -452,10 +451,10 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 <Grid item xs={12}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Dirección"
                                         name="lugar"
                                         value={profileData.lugar}
@@ -470,26 +469,26 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 {/* Información Médica */}
                                 <Grid item xs={12}>
-                                    <Typography 
-                                        variant="h6" 
-                                        sx={{ 
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
                                             mt: 4,
-                                            mb: 2, 
-                                            color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
-                                            fontWeight: 'bold' 
+                                            mb: 2,
+                                            color: isDarkTheme ? '#FFFFFF' : '#03427c',
+                                            fontWeight: 'bold'
                                         }}
                                     >
                                         <LocalHospitalIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
                                         Información Médica
                                     </Typography>
                                 </Grid>
-    
+
                                 <Grid item xs={12}>
-                                    <TextField 
-                                        fullWidth 
+                                    <TextField
+                                        fullWidth
                                         label="Alergias"
                                         name="alergias"
                                         value={profileData.alergias}
@@ -506,18 +505,18 @@ const Profile = () => {
                                         }}
                                     />
                                 </Grid>
-    
+
                                 {/* Información del Tutor */}
                                 {profileData.tipoTutor && (
                                     <>
                                         <Grid item xs={12}>
-                                            <Typography 
-                                                variant="h6" 
-                                                sx={{ 
+                                            <Typography
+                                                variant="h6"
+                                                sx={{
                                                     mt: 4,
-                                                    mb: 2, 
-                                                    color: theme.palette.mode === 'dark' ? '#FFFFFF' : '#03427c',
-                                                    fontWeight: 'bold' 
+                                                    mb: 2,
+                                                    color: isDarkTheme ? '#FFFFFF' : '#03427c',
+                                                    fontWeight: 'bold'
                                                 }}
                                             >
                                                 <SupervisorAccountIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -525,8 +524,8 @@ const Profile = () => {
                                             </Typography>
                                         </Grid>
                                         <Grid item xs={12} md={6}>
-                                            <TextField 
-                                                fullWidth 
+                                            <TextField
+                                                fullWidth
                                                 label="Tipo de Tutor"
                                                 name="tipoTutor"
                                                 value={profileData.tipoTutor}
@@ -535,8 +534,8 @@ const Profile = () => {
                                             />
                                         </Grid>
                                         <Grid item xs={12} md={6}>
-                                            <TextField 
-                                                fullWidth 
+                                            <TextField
+                                                fullWidth
                                                 label="Nombre del Tutor"
                                                 name="nombreTutor"
                                                 value={profileData.nombreTutor}
@@ -546,13 +545,13 @@ const Profile = () => {
                                         </Grid>
                                     </>
                                 )}
-    
+
                                 {/* Botón de Guardar */}
                                 {isEditing && (
                                     <Grid item xs={12}>
-                                        <Box 
-                                            display="flex" 
-                                            justifyContent="flex-end" 
+                                        <Box
+                                            display="flex"
+                                            justifyContent="flex-end"
                                             gap={2}
                                             sx={{ mt: 4 }}
                                         >

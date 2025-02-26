@@ -12,9 +12,10 @@ import {
   EventAvailable
 } from '@mui/icons-material';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { isDarkTheme } = useThemeContext();
   const [editedService, setEditedService] = useState(null);
   const [errors, setErrors] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', type: '' });
@@ -23,23 +24,6 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
-
-  // Theme detection effect
-  useEffect(() => {
-    try {
-      const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
-      setIsDarkTheme(matchDarkTheme.matches);
-
-      const handleThemeChange = (e) => {
-        setIsDarkTheme(e.matches);
-      };
-
-      matchDarkTheme.addEventListener("change", handleThemeChange);
-      return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
-    } catch (error) {
-      console.error("Error en la detección del tema:", error);
-    }
-  }, []);
 
   // Theme colors
   const colors = {

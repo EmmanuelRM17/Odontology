@@ -2,30 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, Grid, Card, CardContent, CardActions, Button } from '@mui/material';
 import { Settings, Assessment, Business } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const Principal = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   const colors = {
-    background: isDarkMode 
+    background: isDarkTheme 
       ? 'linear-gradient(135deg, #1B2A3A 0%, #2C3E50 100%)'
       : 'linear-gradient(135deg, #03427c 0%, #0557A5 100%)',
-    cardBg: isDarkMode ? '#243447' : '#ffffff',
-    text: isDarkMode ? '#FFFFFF' : '#424242',
-    subtext: isDarkMode ? '#B0B0B0' : '#757575',
+    cardBg: isDarkTheme ? '#243447' : '#ffffff',
+    text: isDarkTheme ? '#FFFFFF' : '#424242',
+    subtext: isDarkTheme ? '#B0B0B0' : '#757575',
     primary: '#03427c'
   };
 
@@ -56,7 +45,7 @@ const Principal = () => {
         <Typography 
           variant="body1" 
           sx={{ 
-            color: isDarkMode ? '#E0E0E0' : '#e3f2fd', 
+            color: isDarkTheme ? '#E0E0E0' : '#e3f2fd', 
             mb: { xs: 4, sm: 6 } 
           }}
         >
@@ -91,11 +80,11 @@ const Principal = () => {
           <Grid item xs={12} sm={6} md={4} key={index}>
             <Card
               sx={{
-                boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : 6,
+                boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.3)' : 6,
                 borderRadius: '16px',
                 transition: 'transform 0.3s ease, box-shadow 0.3s ease',
                 '&:hover': {
-                  boxShadow: isDarkMode ? '0 8px 24px rgba(0,0,0,0.4)' : 10,
+                  boxShadow: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : 10,
                   transform: 'scale(1.05)',
                 },
                 backgroundColor: colors.cardBg,

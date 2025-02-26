@@ -14,34 +14,21 @@ import {
   History,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 const Principal = () => {
   const navigate = useNavigate();
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Detectar modo oscuro del sistema
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext();
 
   // Colores según el modo del sistema con mejor contraste
   const colors = {
-    background: isDarkMode ? '#1B2A3A' : '#F9FDFF',
+    background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
     primary: '#03427c',
-    primaryLight: isDarkMode ? '#4B88CD' : '#03427c',
-    text: isDarkMode ? '#FFFFFF' : '#424242',
-    subtext: isDarkMode ? '#E0E0E0' : '#757575',
-    cardBg: isDarkMode ? '#2C3E50' : '#ffffff',
-    cardHoverBg: isDarkMode ? '#34495E' : '#ffffff',
-    buttonHover: isDarkMode ? '#0557A5' : '#03427c',
+    primaryLight: isDarkTheme ? '#4B88CD' : '#03427c',
+    text: isDarkTheme ? '#FFFFFF' : '#424242',
+    subtext: isDarkTheme ? '#E0E0E0' : '#757575',
+    cardBg: isDarkTheme ? '#2C3E50' : '#ffffff',
+    cardHoverBg: isDarkTheme ? '#34495E' : '#ffffff',
+    buttonHover: isDarkTheme ? '#0557A5' : '#03427c',
   };
 
   return (
@@ -91,13 +78,13 @@ const Principal = () => {
             sx={{
               height: '100%',
               backgroundColor: colors.cardBg,
-              boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
+              boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
               borderRadius: '16px',
               transition: 'all 0.3s ease',
               '&:hover': {
                 transform: 'translateY(-8px)',
                 backgroundColor: colors.cardHoverBg,
-                boxShadow: isDarkMode ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
+                boxShadow: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
               },
             }}
           >
@@ -132,7 +119,7 @@ const Principal = () => {
                 onClick={() => navigate('/Usuarios/Paciente/citas')}
                 sx={{
                   backgroundColor: colors.primaryLight,
-                  color: isDarkMode ? '#FFFFFF' : '#FFFFFF',
+                  color: isDarkTheme ? '#FFFFFF' : '#FFFFFF',
                   '&:hover': {
                     backgroundColor: colors.buttonHover,
                   },
@@ -155,13 +142,13 @@ const Principal = () => {
             sx={{
               height: '100%',
               backgroundColor: colors.cardBg,
-              boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
+              boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
               borderRadius: '16px',
               transition: 'all 0.3s ease',
               '&:hover': {
                 transform: 'translateY(-8px)',
                 backgroundColor: colors.cardHoverBg,
-                boxShadow: isDarkMode ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
+                boxShadow: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
               },
             }}
           >
@@ -196,7 +183,7 @@ const Principal = () => {
                 onClick={() => navigate('/Usuarios/Paciente/tratamientos')}
                 sx={{
                   backgroundColor: colors.primaryLight,
-                  color: isDarkMode ? '#FFFFFF' : '#FFFFFF',
+                  color: isDarkTheme ? '#FFFFFF' : '#FFFFFF',
                   '&:hover': {
                     backgroundColor: colors.buttonHover,
                   },
@@ -219,13 +206,13 @@ const Principal = () => {
             sx={{
               height: '100%',
               backgroundColor: colors.cardBg,
-              boxShadow: isDarkMode ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
+              boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.3)' : 3,
               borderRadius: '16px',
               transition: 'all 0.3s ease',
               '&:hover': {
                 transform: 'translateY(-8px)',
                 backgroundColor: colors.cardHoverBg,
-                boxShadow: isDarkMode ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
+                boxShadow: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : 6,
               },
             }}
           >
@@ -260,7 +247,7 @@ const Principal = () => {
                 onClick={() => navigate('/Usuarios/Paciente/historial')}
                 sx={{
                   backgroundColor: colors.primaryLight,
-                  color: isDarkMode ? '#FFFFFF' : '#FFFFFF',
+                  color: isDarkTheme ? '#FFFFFF' : '#FFFFFF',
                   '&:hover': {
                     backgroundColor: colors.buttonHover,
                   },

@@ -22,10 +22,11 @@ import {
 } from 'react-icons/fa';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 const BarraAdmin = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const [anchorEl, setAnchorEl] = useState(null);
     const [openNotification, setOpenNotification] = useState(false);
     const [pendingNotifications, setPendingNotifications] = useState(3);
@@ -34,18 +35,6 @@ const BarraAdmin = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { setUser } = useAuth();
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     const colors = {
         background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',

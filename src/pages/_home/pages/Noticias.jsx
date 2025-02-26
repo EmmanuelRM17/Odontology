@@ -9,12 +9,13 @@ import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import axios from 'axios';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const Noticias = () => {
     const [articles, setArticles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext(); // Obtener el tema global desde el contexto
     const [currentSlide, setCurrentSlide] = useState(0);
     const [autoplay, setAutoplay] = useState(true);
 
@@ -31,37 +32,19 @@ const Noticias = () => {
 
     const fetchNews = async () => {
         try {
-            const response = await axios.get("https://newsapi.org/v2/everything", {
-                params: {
-                    q: "salud dental OR odontología OR cuidado dental",
-                    language: "es",
-                    sortBy: "publishedAt",
-                    apiKey: "7c2adb0e70724b1b80db152b87b901fa",
-                },
-            });
-            setArticles(response.data.articles);
-            setError(null);
+          const response = await axios.get("https://back-end-4803.onrender.com/api/servicios/noticias");
+          setArticles(response.data);
+          setError(null);
         } catch (error) {
-            console.error("Error fetching news:", error);
-            setError("No pudimos cargar las noticias. Por favor, intenta más tarde.");
+          console.error("Error fetching news:", error);
+          setError("No pudimos cargar las noticias. Por favor, intenta más tarde.");
         } finally {
-            setLoading(false);
+          setLoading(false);
         }
-    };
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
-
-    // Fetch initial data and set up periodic updates
+      };
+      
     useEffect(() => {
         fetchNews();
-        // Actualizar datos cada 30 minutos
         const updateInterval = setInterval(fetchNews, 40 * 60 * 1000);
         return () => clearInterval(updateInterval);
     }, []);

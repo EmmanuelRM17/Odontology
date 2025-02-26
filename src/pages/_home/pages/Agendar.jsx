@@ -29,6 +29,7 @@ import {
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 // Importación de los pasos
 import StepOne from './Steps/StepOne';
@@ -60,8 +61,7 @@ const steps = [
 ];
 
 const ReservaCitas = () => {
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
-    const [activeStep, setActiveStep] = useState(0);
+    const { isDarkTheme } = useThemeContext();    const [activeStep, setActiveStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [stepsCompleted, setStepsCompleted] = useState({
         step1: false,
@@ -112,15 +112,6 @@ const ReservaCitas = () => {
         success: '#4caf50',
         warning: '#ff9800'
     };
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     const handleStepCompletion = (step, isCompleted, stepData = {}) => {
         setStepsCompleted((prev) => ({

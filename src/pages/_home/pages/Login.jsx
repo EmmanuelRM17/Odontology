@@ -37,6 +37,7 @@ import ReCAPTCHA from 'react-google-recaptcha';
 import { FaTooth } from 'react-icons/fa';
 import { Link, useNavigate } from 'react-router-dom';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const Login = () => {
     const [formData, setFormData] = useState({ email: '', password: '' });
@@ -46,8 +47,8 @@ const Login = () => {
     const [openNotification, setOpenNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [isDarkMode, setIsDarkMode] = useState(false);
-    const [, setIsCaptchaLocked] = useState(false);
+    const { isDarkTheme } = useThemeContext();
+        const [, setIsCaptchaLocked] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
     const [showVerificationModal, setShowVerificationModal] = useState(false);
     const [verificationCode, setVerificationCode] = useState('');
@@ -60,20 +61,6 @@ const Login = () => {
     const recaptchaRef = useRef(null);
     const navigate = useNavigate();
 
-
-
-    // Detectar el tema 
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkMode(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkMode(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     // Eliminar notificación después de un tiempo específico
     useEffect(() => {
@@ -480,7 +467,7 @@ const Login = () => {
                 minHeight: '100vh',
                 display: 'flex',
                 flexDirection: { xs: 'column', md: 'row' },
-                bgcolor: isDarkMode ? '#1C2A38' : '#F9FDFF'
+                bgcolor: isDarkTheme ? '#1C2A38' : '#F9FDFF'
             }}
         >
             {/* Sección Principal - Formulario */}
@@ -493,7 +480,8 @@ const Login = () => {
                     alignItems: 'center',
                     p: { xs: 2, sm: 3, md: 4 },
                     position: 'relative',
-                    minHeight: { xs: '100vh', md: 'auto' }
+                    minHeight: { xs: '100vh', md: 'auto' },
+                    
                 }}
             >
                 {/* Botón Regresar */}
@@ -528,7 +516,9 @@ const Login = () => {
                         p: { xs: 3, sm: 4 },
                         borderRadius: 2,
                         bgcolor: 'white',
-                        boxShadow: '0 4px 20px rgba(0, 82, 163, 0.1)'
+                        boxShadow: '0 4px 20px rgba(0, 82, 163, 0.1)',
+                        bgcolor: isDarkTheme ? '#2a3649' : '#F9FDFF'
+                        
                     }}
                 >
                     {/* Logo y Título */}
@@ -724,7 +714,7 @@ const Login = () => {
                                         setCaptchaValue(null);
                                         setErrorMessage('El captcha ha expirado. Por favor, complétalo nuevamente.');
                                     }}
-                                    theme={isDarkMode ? 'dark' : 'light'}
+                                    theme={isDarkTheme ? 'dark' : 'light'}
                                 />
                             )}
                         </Box>

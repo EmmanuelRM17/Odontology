@@ -22,12 +22,13 @@ import { CircularProgress } from "@mui/material";
 import { useCallback } from "react";
 import Notificaciones from '../../../components/Layout/Notificaciones'; // Importamos el componente de notificaciones
 import CustomRecaptcha from "../../../components/Tools/Captcha";
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const FAQ = () => {
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { isDarkTheme } = useThemeContext(); // Obtener el tema global desde el contexto
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loadingFaqs, setLoadingFaqs] = useState(true);
   const [faqs, setFaqs] = useState([]);
@@ -68,25 +69,6 @@ const FAQ = () => {
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
-
-  // Theme detection effect
-  useEffect(() => {
-    try {
-      const matchDarkTheme = window.matchMedia("(prefers-color-scheme: dark)");
-      setIsDarkTheme(matchDarkTheme.matches);
-      setIsDarkMode(matchDarkTheme.matches);
-
-      const handleThemeChange = (e) => {
-        setIsDarkTheme(e.matches);
-        setIsDarkMode(e.matches);
-      };
-
-      matchDarkTheme.addEventListener("change", handleThemeChange);
-      return () => matchDarkTheme.removeEventListener("change", handleThemeChange);
-    } catch (error) {
-      console.error("Error en la detección del tema:", error);
-    }
-  }, []);
 
   const fetchFAQs = useCallback(async () => {
     const controller = new AbortController();  // 📌 Controlador para abortar la solicitud si tarda demasiado

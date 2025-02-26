@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { lazy } from 'react';
 import { useRef } from 'react';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 import img1 from '../../../assets/imagenes/img_1.jpg';
 import img2 from '../../../assets/imagenes/img_2.jpg';
@@ -29,7 +30,7 @@ const rotatingTexts = [
 ];
 
 const Home = () => {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
+  const { isDarkTheme } = useThemeContext(); // Obtener el tema global desde el contexto
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [scrollOpacity, setScrollOpacity] = useState(1);
@@ -137,16 +138,6 @@ const Home = () => {
       }
     };
     fetchServices();
-  }, []);
-
-  // Theme detection
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
   }, []);
 
   // Mejorada la transición de imágenes de fondo

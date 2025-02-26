@@ -4,6 +4,7 @@ import { Breadcrumbs as MuiBreadcrumbs, Typography, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { Home, ChevronRight } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const fadeIn = keyframes`
   from {
@@ -30,17 +31,7 @@ const pulse = keyframes`
 
 const Breadcrumbs = ({ paths }) => {
   const theme = useTheme();
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-
-  // Theme detection
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-
-    const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
+  const { isDarkTheme } = useThemeContext(); // ✅ Correcto
   
   const colors = {
     text: isDarkTheme ? '#ffffff' : theme.palette.grey[900],

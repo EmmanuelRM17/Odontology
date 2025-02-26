@@ -9,7 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
-
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 const TerminosCondiciones = () => {
     const [titulo, setTitulo] = useState('');
@@ -22,25 +22,13 @@ const TerminosCondiciones = () => {
     const [terminoActivo, setTerminoActivo] = useState(null);
     const [notification, setNotification] = useState({ open: false, message: '', type: 'success' });
     const [isAddingNewTermino, setIsAddingNewTermino] = useState(false);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     useEffect(() => {
         fetchTerminos();
         fetchTerminoActivo(); // Cargar término activo
-    }, []);
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, []);
 
     // Definición de colores según el tema

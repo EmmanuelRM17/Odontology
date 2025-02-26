@@ -33,10 +33,11 @@ import {
 } from 'react-icons/fa';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../components/Tools/AuthContext';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const BarraPaciente = () => {
     const [notificationMessage, setNotificationMessage] = useState('');
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const [anchorEl, setAnchorEl] = useState(null);
     const [openNotification, setOpenNotification] = useState(false);
     const [notificationCount, setNotificationCount] = useState(2);
@@ -47,18 +48,6 @@ const BarraPaciente = () => {
     const { setUser } = useAuth();
 
     const menuWidth = isMobile ? '100%' : '220px';
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     useEffect(() => {
         const updateNotifications = () => {

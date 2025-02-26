@@ -9,6 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddIcon from '@mui/icons-material/Add';
 import axios from 'axios';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 
 const PoliticasPrivacidad = () => {
@@ -22,7 +23,7 @@ const PoliticasPrivacidad = () => {
     const [politicaActiva, setPoliticaActiva] = useState(null);
     const [notification, setNotification] = useState({ open: false, message: '', type: 'success' });
     const [isAddingNewPolicy, setIsAddingNewPolicy] = useState(false);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -31,19 +32,6 @@ const PoliticasPrivacidad = () => {
         fetchPoliticas();
         fetchPoliticaActiva();
     }, []);
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => {
-            setIsDarkTheme(e.matches);
-        };
-
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
-
     // Definición de colores según el tema
     const colors = {
         background: isDarkTheme ? '#243447' : '#f9fafc',

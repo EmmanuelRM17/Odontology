@@ -25,8 +25,10 @@ import {
   FaUserCheck,
   FaVenusMars
 } from 'react-icons/fa';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const PatientsReport = () => {
+  const { isDarkTheme } = useThemeContext();
   const [patients, setPatients] = useState([]);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [open, setOpen] = useState(false);
@@ -54,18 +56,6 @@ const PatientsReport = () => {
     }));
     filterPatients(formData.searchTerm, formData.estado, value);
   };
-
-  // Configuración del tema oscuro
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkTheme(matchDarkTheme.matches);
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
 
   // Definición de colores
   const colors = {

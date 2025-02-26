@@ -16,56 +16,37 @@ import {
   ListItemIcon,
   Divider
 } from '@mui/material';
-import { FaSignInAlt, FaCalendarAlt, FaHome, FaInfoCircle, FaMapMarkerAlt, FaPhoneAlt, FaClock } from 'react-icons/fa';
+import {
+  FaSignInAlt,
+  FaCalendarAlt,
+  FaHome,
+  FaInfoCircle,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaClock
+} from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
+import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
+import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material'; // ✅ Agregado correctamente
+import { useThemeContext } from '../Tools/ThemeContext';
 
-const LoadingNavBar = ({ isDarkTheme }) => (
-  <AppBar
-    position="static"
-    sx={{
-      backgroundColor: isDarkTheme ? '#2A3A4A' : '#f0f0f0',
-      boxShadow: 'none',
-      borderBottom: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e0e0e0'}`,
-    }}
-  >
-    <Toolbar sx={{ justifyContent: 'space-between', px: { xs: 2, md: 4 } }}>
-      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-        <Skeleton variant="circular" width={40} height={40} />
-        <Skeleton variant="text" width={200} sx={{ ml: 2, display: { xs: 'none', sm: 'block' } }} />
-      </Box>
-      <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2 }}>
-        <Skeleton variant="text" width={60} />
-        <Skeleton variant="text" width={80} />
-        <Skeleton variant="rectangular" width={140} height={36} />
-        <Skeleton variant="rectangular" width={120} height={36} />
-      </Box>
-      <Skeleton
-        variant="circular"
-        width={40}
-        height={40}
-        sx={{ display: { xs: 'block', md: 'none' } }}
-      />
-    </Toolbar>
-  </AppBar>
-);
 
 const BarraNav = () => {
-  const [isDarkTheme, setIsDarkTheme] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [logo, setLogo] = useState(null);
   const [companyName, setCompanyName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  const { isDarkTheme, toggleTheme } = useThemeContext();
   const navigate = useNavigate();
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
-      const response = await axios.get('https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo', {
-        timeout: 10000, // ⏳ Tiempo máximo de espera (5 segundos)
-      });
-
+      const response = await axios.get(
+        'https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo',
+        { timeout: 10000 }
+      );
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
@@ -74,50 +55,25 @@ const BarraNav = () => {
       }
 
       if (logo) {
-        setLogo(`data:image/png;base64,${logo}`);
+        const formattedLogo = logo.startsWith('data:image')
+          ? logo
+          : `data:image/jpeg;base64,${logo}`;
+        setLogo(formattedLogo);
       }
-
-      setLoading(false);
     } catch (error) {
-      if (axios.isCancel(error)) {
-        console.warn("La petición fue cancelada:", error.message);
-      } else if (error.code === 'ECONNABORTED') {
-        console.error("⏳ Timeout: El servidor tardó demasiado en responder.");
-      } else {
-        console.error("Error al obtener logo y título:", error.message);
-      }
+      console.error('Error al obtener datos:', error.message);
       if (retries > 0) {
-        console.log(`Reintentando... (${retries} intentos restantes)`);
-        setTimeout(() => fetchTitleAndLogo(retries - 1), 2000); // Espera 2 segundos antes de reintentar
-
+        setTimeout(() => fetchTitleAndLogo(retries - 1), 2000);
       } else {
-        setError("No se pudo cargar la configuración de la empresa.");
-        setLoading(false);
+        setError('No se pudo cargar la configuración de la empresa.');
       }
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Detectar el tema del sistema
   useEffect(() => {
-    setIsDarkTheme(false);
-
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-
-    if (matchDarkTheme.matches) {
-      setIsDarkTheme(true);
-    }
-
-    const handleThemeChange = (e) => {
-      setIsDarkTheme(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-
     fetchTitleAndLogo();
-
-    return () => {
-      matchDarkTheme.removeEventListener('change', handleThemeChange);
-    };
   }, []);
 
   // Función para abrir/cerrar el Drawer
@@ -177,17 +133,52 @@ const BarraNav = () => {
             {companyName || 'Odontología Carol'}
           </Typography>
         </Box>
-        <IconButton
-          onClick={toggleDrawer(false)}
-          sx={{
-            color: isDarkTheme ? '#fff' : '#1a2027',
-            '&:hover': {
-              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'
-            }
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
+        {/* Contenedor para el cambio de tema y el botón de cerrar */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Botón de Cambio de Tema */}
+          <IconButton
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTheme();
+            }}
+            color="inherit"
+            sx={{
+              color: isDarkTheme ? '#FFC107' : '#5E35B1',
+              backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
+              borderRadius: '50%',
+              padding: '8px',
+              width: '36px',
+              height: '36px',
+              transition: 'background-color 0.3s ease',
+              '&:hover': {
+                backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
+              }
+            }}
+          >
+            <motion.div
+              animate={{ rotate: isDarkTheme ? 180 : 0 }}
+              transition={{ duration: 0.5, ease: 'easeInOut' }}
+            >
+              {isDarkTheme ? (
+                <WbSunnyRounded sx={{ fontSize: '20px' }} />
+              ) : (
+                <NightsStayRounded sx={{ fontSize: '20px' }} />
+              )}
+            </motion.div>
+          </IconButton>
+
+          <IconButton
+            onClick={toggleDrawer(false)}
+            sx={{
+              color: isDarkTheme ? '#fff' : '#1a2027',
+              '&:hover': {
+                backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)'
+              }
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       <List sx={{ flex: 1, pt: 2 }}>
@@ -302,10 +293,6 @@ const BarraNav = () => {
       </List>
     </Box>
   )
-
-  if (loading) {
-    return <LoadingNavBar isDarkTheme={isDarkTheme} />;
-  }
 
   return (
     <>
@@ -429,12 +416,12 @@ const BarraNav = () => {
           sx={{
             justifyContent: 'space-between',
             alignItems: 'center',
-            px: { xs: 2, md: 6 },
-            minHeight: '64px', // Mantener la altura original
-            py: 0.5, // Reducir el padding vertical
+            px: { xs: 2, md: 4 },
+            minHeight: '64px',
+            py: 0.5,
           }}
         >
-          {/* Logo y nombre de la empresa */}
+          {/* Logo and company name with enhanced styling */}
           <Box
             component={Link}
             to="/"
@@ -443,9 +430,13 @@ const BarraNav = () => {
               alignItems: 'center',
               textDecoration: 'none',
               color: isDarkTheme ? 'white' : '#333',
-              transition: 'color 0.3s ease',
+              transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+              padding: '8px',
+              borderRadius: '8px',
               '&:hover': {
                 color: isDarkTheme ? '#82B1FF' : '#0066cc',
+                transform: 'scale(1.03)',
+                backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.08)' : 'rgba(0, 102, 204, 0.05)',
               },
             }}
           >
@@ -455,55 +446,121 @@ const BarraNav = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginRight: '12px',
+                  marginRight: '14px',
                   width: '48px',
                   height: '48px',
                   borderRadius: '50%',
                   border: '2px solid',
-                  borderColor: isDarkTheme ? '#5d7ea9' : '#e6f0ff',
+                  borderColor: isDarkTheme ? '#82B1FF' : '#0066cc',
                   overflow: 'hidden',
                   padding: '2px',
-                  boxShadow: '0 3px 5px rgba(0,0,0,0.08)',
+                  position: 'relative',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    borderRadius: '50%',
+                    background: isDarkTheme
+                      ? 'linear-gradient(135deg, rgba(130, 177, 255, 0.5) 0%, transparent 50%)'
+                      : 'linear-gradient(135deg, rgba(0, 102, 204, 0.3) 0%, transparent 50%)',
+                    opacity: 0,
+                    transition: 'opacity 0.4s ease',
+                  },
+                  '&:hover::after': {
+                    opacity: 1,
+                  },
+                  boxShadow: isDarkTheme
+                    ? '0 10px 20px rgba(130, 177, 255, 0.3), inset 0 0 10px rgba(130, 177, 255, 0.2)'
+                    : '0 10px 20px rgba(0, 102, 204, 0.15), inset 0 0 10px rgba(0, 102, 204, 0.1)',
+                  animation: 'pulse 2s infinite',
+                  '@keyframes pulse': {
+                    '0%': {
+                      boxShadow: isDarkTheme
+                        ? '0 0 0 0 rgba(130, 177, 255, 0.5)'
+                        : '0 0 0 0 rgba(0, 102, 204, 0.5)'
+                    },
+                    '70%': {
+                      boxShadow: isDarkTheme
+                        ? '0 0 0 8px rgba(130, 177, 255, 0)'
+                        : '0 0 0 8px rgba(0, 102, 204, 0)'
+                    },
+                    '100%': {
+                      boxShadow: isDarkTheme
+                        ? '0 0 0 0 rgba(130, 177, 255, 0)'
+                        : '0 0 0 0 rgba(0, 102, 204, 0)'
+                    }
+                  }
                 }}
               >
                 <img
-                  src={logo}
+                  src={logo.startsWith('data:image') ? logo : `data:image/png;base64,${logo}`}
                   alt="Logo"
                   style={{
                     width: '100%',
                     height: '100%',
                     borderRadius: '50%',
                     objectFit: 'cover',
+                    transition: 'transform 0.5s ease',
+                  }}
+                  onError={(e) => {
+                    console.error("Error al cargar el logo:", e);
+                    e.target.src = '';
                   }}
                 />
               </Box>
             )}
-            <Typography
-              variant="h6"
+            <Box
               sx={{
-                fontFamily: '"Montserrat", "Roboto", sans-serif',
-                fontWeight: 700,
-                letterSpacing: '-0.5px',
-                display: { xs: 'none', sm: 'block' },
-                fontSize: { sm: '1.2rem', md: '1.4rem' },
-                background: isDarkTheme
-                  ? 'linear-gradient(90deg, #FFFFFF 0%, #82B1FF 100%)'
-                  : 'linear-gradient(90deg, #03427C 0%, #0066cc 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                marginLeft: '4px',
+                position: 'relative',
+                overflow: 'hidden',
               }}
             >
-              {companyName || 'Odontología Carol'}
-            </Typography>
+              <Typography
+                variant="h6"
+                sx={{
+                  fontFamily: '"Montserrat", "Roboto", sans-serif',
+                  fontWeight: 700,
+                  letterSpacing: '-0.25px',
+                  display: { xs: 'none', sm: 'block' },
+                  fontSize: { sm: '1.25rem', md: '1.5rem' },
+                  background: isDarkTheme
+                    ? 'linear-gradient(90deg, #FFFFFF 0%, #82B1FF 100%)'
+                    : 'linear-gradient(90deg, #03427C 0%, #0066cc 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  marginLeft: '4px',
+                  position: 'relative',
+                  paddingBottom: '2px',
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '0%',
+                    height: '2px',
+                    background: isDarkTheme
+                      ? 'linear-gradient(90deg, #FFFFFF 0%, #82B1FF 100%)'
+                      : 'linear-gradient(90deg, #03427C 0%, #0066cc 100%)',
+                    transition: 'width 0.4s ease',
+                  },
+                  '$:hover::after': {
+                    width: '100%',
+                  }
+                }}
+              >
+                {companyName || 'Odontología'}
+              </Typography>
+            </Box>
           </Box>
-
           {/* Enlaces de navegación para pantallas grandes */}
           <Box
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: 3.5
+              gap: 2.5 // Reducido el espaciado entre elementos
             }}
           >
             <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
@@ -621,12 +678,13 @@ const BarraNav = () => {
                 padding: '6px 16px',
                 boxShadow: '0 4px 8px rgba(3, 66, 124, 0.25)',
                 height: '36px',
+                ml: 1, // Margen izquierdo para separar de los enlaces
                 '&:hover': {
                   backgroundImage: 'linear-gradient(135deg, #0052a3 0%, #0074e8 100%)',
                   boxShadow: '0 6px 12px rgba(3, 66, 124, 0.35)',
                   transform: 'translateY(-2px)',
                 },
-                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease, background-image 0.3s ease',
                 textTransform: 'none',
               }}
             >
@@ -644,10 +702,11 @@ const BarraNav = () => {
                 fontSize: '0.875rem',
                 color: isDarkTheme ? 'white' : '#03427C',
                 borderColor: isDarkTheme ? 'rgba(255,255,255,0.5)' : '#03427C',
-                borderWidth: '1px', // Reducido de 2px a 1px
+                borderWidth: '1px',
                 borderRadius: '24px',
-                padding: '6px 16px', // Reducido
+                padding: '6px 16px',
                 height: '36px',
+                ml: 1,
                 '&:hover': {
                   backgroundColor: isDarkTheme
                     ? 'rgba(255,255,255,0.08)'
@@ -655,12 +714,42 @@ const BarraNav = () => {
                   borderColor: isDarkTheme ? 'white' : '#0066cc',
                   transform: 'translateY(-2px)',
                 },
-                transition: 'transform 0.2s ease',
+                transition: 'transform 0.2s ease, background-color 0.3s ease, border-color 0.3s ease',
                 textTransform: 'none',
               }}
             >
               Iniciar sesión
             </Button>
+
+            {/* Botón de Cambio de Tema Mejorado */}
+            <IconButton
+              onClick={toggleTheme}
+              color="inherit"
+              sx={{
+                color: isDarkTheme ? '#FFC107' : '#5E35B1',
+                backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
+                borderRadius: '50%',
+                padding: '8px',
+                ml: 1,
+                width: '36px',
+                height: '36px',
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
+                }
+              }}
+            >
+              <motion.div
+                animate={{ rotate: isDarkTheme ? 180 : 0 }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              >
+                {isDarkTheme ? (
+                  <WbSunnyRounded sx={{ fontSize: '20px' }} />
+                ) : (
+                  <NightsStayRounded sx={{ fontSize: '20px' }} />
+                )}
+              </motion.div>
+            </IconButton>
           </Box>
 
           {/* Menú en pantallas pequeñas */}

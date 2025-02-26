@@ -3,23 +3,13 @@ import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
 import { motion } from 'framer-motion';
 import { OpenInNew, LocationOn } from '@mui/icons-material';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const Ubicacion = () => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkTheme } = useThemeContext(); // ✅ Correcto
   const [map, setMap] = useState(null);
   const [loadError, setLoadError] = useState(null);
-  // Theme detection
-  useEffect(() => {
-    const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-    setIsDarkMode(matchDarkTheme.matches);
 
-    const handleThemeChange = (e) => {
-      setIsDarkMode(e.matches);
-    };
-
-    matchDarkTheme.addEventListener('change', handleThemeChange);
-    return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-  }, []);
 
   const darkMapStyle = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
@@ -32,8 +22,8 @@ const Ubicacion = () => {
     streetViewControl: true, // Habilitamos el Street View
     mapTypeControl: true,    // Habilitamos el control de tipo de mapa
     fullscreenControl: true, // Habilitamos el control de pantalla completa
-    styles: isDarkMode ? darkMapStyle : [],
-    backgroundColor: isDarkMode ? '#242f3e' : '#ffffff',
+    styles: isDarkTheme ? darkMapStyle : [],
+    backgroundColor: isDarkTheme ? '#242f3e' : '#ffffff',
     mapTypeId: 'roadmap',    // Tipo de mapa por defecto
     gestureHandling: 'cooperative', // Mejor control del zoom
     mapTypeControlOptions: {
@@ -57,10 +47,10 @@ const Ubicacion = () => {
 
 
   const colors = {
-    cardBackground: isDarkMode ? '#0D1B2A' : '#ffffff',
-    primaryText: isDarkMode ? '#ffffff' : '#1a1a1a',
-    secondaryText: isDarkMode ? '#A0AEC0' : '#666666',
-    primaryColor: isDarkMode ? '#00BCD4' : '#1976d2',
+    cardBackground: isDarkTheme ? '#0D1B2A' : '#ffffff',
+    primaryText: isDarkTheme ? '#ffffff' : '#1a1a1a',
+    secondaryText: isDarkTheme ? '#A0AEC0' : '#666666',
+    primaryColor: isDarkTheme ? '#00BCD4' : '#1976d2',
   };
 
   // Configuración del mapa
@@ -105,7 +95,7 @@ const Ubicacion = () => {
           textAlign: 'center',
           bgcolor: colors.cardBackground,
           borderRadius: '8px',
-          boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+          boxShadow: isDarkTheme ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
         }}
       >
         <Typography color="error" gutterBottom>
@@ -133,7 +123,7 @@ const Ubicacion = () => {
         sx={{
           backgroundColor: colors.cardBackground,
           borderRadius: '8px',
-          boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+          boxShadow: isDarkTheme ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
         }}
       >
         <CircularProgress
@@ -163,7 +153,7 @@ const Ubicacion = () => {
       initial="hidden"
       animate="visible"
       style={{
-        background: isDarkMode
+        background: isDarkTheme
         ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" 
         : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)", 
         transition: 'background-color 0.3s ease',   
@@ -181,7 +171,7 @@ const Ubicacion = () => {
           backgroundColor: colors.cardBackground,
           py: 4,
           borderRadius: '16px',
-          boxShadow: isDarkMode ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
+          boxShadow: isDarkTheme ? '0 4px 20px rgba(0, 0, 0, 0.5)' : '0 4px 20px rgba(0, 0, 0, 0.1)',
           px: 3,
           transition: 'all 0.3s ease',
         }}
@@ -190,14 +180,14 @@ const Ubicacion = () => {
           variant="h4"
           sx={{
             fontWeight: 'bold',
-            color: isDarkMode ? '#ffffff' : '#03427C',
+            color: isDarkTheme ? '#ffffff' : '#03427C',
             textTransform: 'uppercase',
             fontFamily: 'Montserrat, sans-serif',
             letterSpacing: '2px',
             position: 'relative',
             display: 'inline-block',
             paddingBottom: '0.5rem',
-            borderBottom: `4px solid ${isDarkMode ? '#fff' : '#03427C'}`,
+            borderBottom: `4px solid ${isDarkTheme ? '#fff' : '#03427C'}`,
             textShadow: '2px 2px 5px rgba(0,0,0,0.2)',
             textAlign: 'center',
             width: '100%',
@@ -250,7 +240,7 @@ const Ubicacion = () => {
               color: colors.primaryColor,
               '&:hover': {
                 borderColor: colors.primaryColor,
-                backgroundColor: isDarkMode ? 'rgba(0, 188, 212, 0.08)' : 'rgba(25, 118, 210, 0.08)',
+                backgroundColor: isDarkTheme ? 'rgba(0, 188, 212, 0.08)' : 'rgba(25, 118, 210, 0.08)',
               },
               fontFamily: 'Roboto, sans-serif',
               fontWeight: 500
@@ -273,7 +263,7 @@ const Ubicacion = () => {
               color: colors.primaryColor,
               '&:hover': {
                 borderColor: colors.primaryColor,
-                backgroundColor: isDarkMode ? 'rgba(0, 188, 212, 0.08)' : 'rgba(25, 118, 210, 0.08)',
+                backgroundColor: isDarkTheme ? 'rgba(0, 188, 212, 0.08)' : 'rgba(25, 118, 210, 0.08)',
               },
               fontFamily: 'Roboto, sans-serif',
               fontWeight: 500

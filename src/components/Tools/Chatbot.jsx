@@ -15,6 +15,7 @@ import {
     Chat as ChatIcon
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
+import { useThemeContext } from '../Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 // Definimos las animaciones
 const fadeIn = keyframes`
@@ -83,22 +84,12 @@ const DentalChat = () => {
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const [showTooltip, setShowTooltip] = useState(false);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext(); 
     const [showQuickQuestions, setShowQuickQuestions] = useState(false);
     const messagesEndRef = useRef(null);
     const tooltipTimeoutRef = useRef(null);
     const [isClosing, setIsClosing] = useState(false);
     const [currentTooltipIndex, setCurrentTooltipIndex] = useState(0);
-
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
-    }, []);
 
     useEffect(() => {
         if (showTooltip && !isOpen) {

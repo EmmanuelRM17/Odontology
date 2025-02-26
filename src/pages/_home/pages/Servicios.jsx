@@ -27,6 +27,7 @@ import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
 
 const Servicios = () => {
     const [services, setServices] = useState([]);
@@ -35,7 +36,7 @@ const Servicios = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
-    const [isDarkTheme, setIsDarkTheme] = useState(false);
+    const { isDarkTheme } = useThemeContext();
     const navigate = useNavigate();
     const isMobile = useMediaQuery('(max-width:600px)');
 
@@ -53,15 +54,6 @@ const Servicios = () => {
             }
         };
         fetchServices();
-    }, []);
-
-    useEffect(() => {
-        const matchDarkTheme = window.matchMedia('(prefers-color-scheme: dark)');
-        setIsDarkTheme(matchDarkTheme.matches);
-
-        const handleThemeChange = (e) => setIsDarkTheme(e.matches);
-        matchDarkTheme.addEventListener('change', handleThemeChange);
-        return () => matchDarkTheme.removeEventListener('change', handleThemeChange);
     }, []);
 
     const theme = createTheme({
