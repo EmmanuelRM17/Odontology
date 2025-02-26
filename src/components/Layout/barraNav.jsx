@@ -63,7 +63,7 @@ const BarraNav = () => {
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
       const response = await axios.get('https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo', {
-        timeout: 5000, // ⏳ Tiempo máximo de espera (5 segundos)
+        timeout: 10000, // ⏳ Tiempo máximo de espera (5 segundos)
       });
 
       const { nombre_empresa, logo } = response.data;
@@ -86,10 +86,10 @@ const BarraNav = () => {
       } else {
         console.error("Error al obtener logo y título:", error.message);
       }
-
       if (retries > 0) {
-        await new Promise((res) => setTimeout(res, 1000));
-        fetchTitleAndLogo(retries - 1);
+        console.log(`Reintentando... (${retries} intentos restantes)`);
+        setTimeout(() => fetchTitleAndLogo(retries - 1), 2000); // Espera 2 segundos antes de reintentar
+
       } else {
         setError("No se pudo cargar la configuración de la empresa.");
         setLoading(false);
@@ -416,20 +416,22 @@ const BarraNav = () => {
           </Typography>
         </Box>
       </Box>
-
       <AppBar
         position="static"
+        elevation={0}
         sx={{
-          backgroundColor: isDarkTheme ? '#2A3A4A' : '#f0f0f0',
-          boxShadow: 'none',
-          borderBottom: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e0e0e0'}`,
+          backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+          boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.15)' : '0 4px 12px rgba(0,0,0,0.05)',
+          borderBottom: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
         }}
       >
         <Toolbar
           sx={{
             justifyContent: 'space-between',
             alignItems: 'center',
-            px: { xs: 2, md: 4 }, // Añadir padding horizontal
+            px: { xs: 2, md: 6 },
+            minHeight: '64px', // Mantener la altura original
+            py: 0.5, // Reducir el padding vertical
           }}
         >
           {/* Logo y nombre de la empresa */}
@@ -441,30 +443,55 @@ const BarraNav = () => {
               alignItems: 'center',
               textDecoration: 'none',
               color: isDarkTheme ? 'white' : '#333',
+              transition: 'color 0.3s ease',
               '&:hover': {
                 color: isDarkTheme ? '#82B1FF' : '#0066cc',
               },
             }}
           >
             {logo && (
-              <img
-                src={logo}
-                alt="Logo"
-                style={{
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                   marginRight: '12px',
-                  width: '40px',
-                  height: '40px',
+                  width: '48px',
+                  height: '48px',
                   borderRadius: '50%',
+                  border: '2px solid',
+                  borderColor: isDarkTheme ? '#5d7ea9' : '#e6f0ff',
+                  overflow: 'hidden',
+                  padding: '2px',
+                  boxShadow: '0 3px 5px rgba(0,0,0,0.08)',
                 }}
-              />
+              >
+                <img
+                  src={logo}
+                  alt="Logo"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                  }}
+                />
+              </Box>
             )}
             <Typography
               variant="h6"
               sx={{
                 fontFamily: '"Montserrat", "Roboto", sans-serif',
-                fontWeight: 600,
+                fontWeight: 700,
                 letterSpacing: '-0.5px',
-                display: { xs: 'none', sm: 'block' }
+                display: { xs: 'none', sm: 'block' },
+                fontSize: { sm: '1.2rem', md: '1.4rem' },
+                background: isDarkTheme
+                  ? 'linear-gradient(90deg, #FFFFFF 0%, #82B1FF 100%)'
+                  : 'linear-gradient(90deg, #03427C 0%, #0066cc 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                marginLeft: '4px',
               }}
             >
               {companyName || 'Odontología Carol'}
@@ -472,13 +499,40 @@ const BarraNav = () => {
           </Box>
 
           {/* Enlaces de navegación para pantallas grandes */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 2 }}>
+          <Box
+            sx={{
+              display: { xs: 'none', md: 'flex' },
+              alignItems: 'center',
+              gap: 3.5
+            }}
+          >
             <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
               <Typography
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
-                  '&:hover': { color: '#0066cc' },
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  position: 'relative',
+                  padding: '4px 0',
+                  '&:hover': {
+                    color: '#0066cc',
+                  },
+                  '&:hover:after': {
+                    width: '100%',
+                    opacity: 1,
+                  },
+                  '&:after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '0%',
+                    height: '2px',
+                    backgroundColor: '#0066cc',
+                    transition: 'width 0.3s ease, opacity 0.3s ease',
+                    opacity: 0,
+                  }
                 }}
               >
                 Inicio
@@ -490,21 +544,64 @@ const BarraNav = () => {
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
-                  '&:hover': { color: '#0066cc' },
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  position: 'relative',
+                  padding: '4px 0',
+                  '&:hover': {
+                    color: '#0066cc',
+                  },
+                  '&:hover:after': {
+                    width: '100%',
+                    opacity: 1,
+                  },
+                  '&:after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '0%',
+                    height: '2px',
+                    backgroundColor: '#0066cc',
+                    transition: 'width 0.3s ease, opacity 0.3s ease',
+                    opacity: 0,
+                  }
                 }}
               >
                 Acerca de
               </Typography>
             </Link>
+
             <Link to="/Contact" style={{ textDecoration: 'none', color: 'inherit' }}>
               <Typography
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
-                  '&:hover': { color: '#0066cc' },
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  position: 'relative',
+                  padding: '4px 0',
+                  '&:hover': {
+                    color: '#0066cc',
+                  },
+                  '&:hover:after': {
+                    width: '100%',
+                    opacity: 1,
+                  },
+                  '&:after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    width: '0%',
+                    height: '2px',
+                    backgroundColor: '#0066cc',
+                    transition: 'width 0.3s ease, opacity 0.3s ease',
+                    opacity: 0,
+                  }
                 }}
               >
-                Contactanos
+                Contáctanos
               </Typography>
             </Link>
 
@@ -516,10 +613,20 @@ const BarraNav = () => {
               startIcon={<FaCalendarAlt />}
               sx={{
                 fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.875rem',
                 backgroundColor: '#03427C',
+                backgroundImage: 'linear-gradient(135deg, #03427C 0%, #0066cc 100%)',
+                borderRadius: '24px',
+                padding: '6px 16px',
+                boxShadow: '0 4px 8px rgba(3, 66, 124, 0.25)',
+                height: '36px',
                 '&:hover': {
-                  backgroundColor: '#0052a3',
+                  backgroundImage: 'linear-gradient(135deg, #0052a3 0%, #0074e8 100%)',
+                  boxShadow: '0 6px 12px rgba(3, 66, 124, 0.35)',
+                  transform: 'translateY(-2px)',
                 },
+                transition: 'transform 0.2s ease, box-shadow 0.2s ease',
                 textTransform: 'none',
               }}
             >
@@ -533,14 +640,22 @@ const BarraNav = () => {
               startIcon={<FaSignInAlt />}
               sx={{
                 fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 600,
+                fontSize: '0.875rem',
                 color: isDarkTheme ? 'white' : '#03427C',
-                borderColor: isDarkTheme ? 'white' : '#03427C',
+                borderColor: isDarkTheme ? 'rgba(255,255,255,0.5)' : '#03427C',
+                borderWidth: '1px', // Reducido de 2px a 1px
+                borderRadius: '24px',
+                padding: '6px 16px', // Reducido
+                height: '36px',
                 '&:hover': {
                   backgroundColor: isDarkTheme
-                    ? 'rgba(255,255,255,0.1)'
-                    : 'rgba(0,102,204,0.1)',
-                  borderColor: isDarkTheme ? 'white' : '#03427C',
+                    ? 'rgba(255,255,255,0.08)'
+                    : 'rgba(3,66,124,0.05)',
+                  borderColor: isDarkTheme ? 'white' : '#0066cc',
+                  transform: 'translateY(-2px)',
                 },
+                transition: 'transform 0.2s ease',
                 textTransform: 'none',
               }}
             >
@@ -553,7 +668,13 @@ const BarraNav = () => {
             edge="end"
             sx={{
               display: { xs: 'block', md: 'none' },
-              color: isDarkTheme ? 'white' : '#333',
+              color: isDarkTheme ? 'white' : '#03427C',
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(3,66,124,0.05)',
+              borderRadius: '12px',
+              padding: '6px',
+              '&:hover': {
+                backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(3,66,124,0.1)',
+              },
             }}
             onClick={toggleDrawer(true)}
           >
@@ -561,7 +682,6 @@ const BarraNav = () => {
           </IconButton>
         </Toolbar>
       </AppBar>
-
       {/* Drawer para el menú en pantallas pequeñas */}
       <Drawer
         anchor="right"
