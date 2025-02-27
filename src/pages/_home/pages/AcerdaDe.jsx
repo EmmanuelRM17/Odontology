@@ -1,31 +1,28 @@
-import React, { useState, useEffect } from 'react';
 import {
-  Box,
-  Typography,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  useMediaQuery,
-  useTheme,
-  Link as MuiLink,
-  Button,
-  Divider
-} from '@mui/material';
-import { motion } from 'framer-motion';
-import {
-  Phone,
+  ArrowForward,
   Email,
   LocationOn,
   OpenInNew,
-  MedicalServices,
-  Star,
-  Assistant,
-  ArrowForward
+  Phone
 } from '@mui/icons-material';
-import Notificaciones from '../../../components/Layout/Notificaciones';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Container,
+  Grid,
+  Link as MuiLink,
+  Typography,
+  useMediaQuery,
+  useTheme
+} from '@mui/material';
+import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useThemeContext } from '../../../components/Tools/ThemeContext'; 
+import Notificaciones from '../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
+const AboutIlustracion = process.env.PUBLIC_URL + '/assets/svg/acerca.svg';
 
 const AboutPage = () => {
   const { isDarkTheme } = useThemeContext();
@@ -77,14 +74,15 @@ const AboutPage = () => {
       : 'linear-gradient(135deg, #e6f2ff, #ffffff)',
     minHeight: '100vh',
     color: isDarkTheme ? '#ffffff' : '#333333',
-    transition: 'all 0.3s ease'
+    transition: 'all 0.3s ease',
+    position: 'relative',
   };
 
   const cardStyle = {
     background: isDarkTheme ? 'rgba(45, 55, 72, 0.7)' : 'rgba(255, 255, 255, 0.9)',
     borderRadius: 3,
     boxShadow: isDarkTheme ? '0 4px 6px rgba(0,0,0,0.5)' : '0 4px 6px rgba(0,0,0,0.1)',
-    transition: 'all 0.3s ease',
+    transition: 'background-color 0.3s ease, box-shadow 0.3s ease',
     backdropFilter: 'blur(10px)',
     border: isDarkTheme ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.05)'
   };
@@ -93,13 +91,14 @@ const AboutPage = () => {
 
   return (
     <Box sx={backgroundStyle}>
-      <Container maxWidth="lg" sx={{ py: 5 }}>
+      <Container maxWidth="lg" sx={{ py: 5, position: 'relative' }}>
         {/* Título principal con animación de zoom */}
         <motion.div
           initial={{ opacity: 0, scale: 0.5 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8 }}
+          transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
         >
+
           <Typography
             variant={isSmallScreen ? 'h4' : 'h3'}
             align="center"
@@ -119,9 +118,12 @@ const AboutPage = () => {
         {/* Historia - Animación desde la izquierda */}
         <motion.div
           initial={{ opacity: 0, x: -100 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
         >
+
+
           <Card elevation={0} sx={cardStyle} style={{ marginBottom: 24 }}>
             <CardContent sx={{ background: '#0052A3', color: 'white' }}>
               <Typography variant="h5" gutterBottom>
@@ -137,9 +139,11 @@ const AboutPage = () => {
         {/* Contacto - Animación desde la derecha */}
         <motion.div
           initial={{ opacity: 0, x: 100 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, amount: 0.5 }}
+          transition={{ duration: 1.2, ease: "easeInOut" }}
         >
+
           <Grid container spacing={4}>
             {/* Contacto */}
             <Grid item xs={12} md={6}>
@@ -186,50 +190,88 @@ const AboutPage = () => {
 
             {/* Explorar Servicios con fondo transparente */}
             <Grid item xs={12} md={6}>
-              <Card elevation={0} sx={{
-                background: 'transparent',
-                height: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                textAlign: 'center',
-                boxShadow: 'none'
-              }}>
+              <Card
+                elevation={0}
+                sx={{
+                  background: 'transparent',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  boxShadow: 'none',
+                }}
+              >
                 <CardContent>
-                  <Typography
-                    variant="h5"
-                    sx={{
-                      color: isDarkTheme ? '#fff' : '#0052A3',
-                      mb: 3,
-                      fontWeight: 'bold',
-                      fontSize: { xs: '1.2rem', sm: '1.5rem' }
-                    }}
+                  <Grid
+                    container
+                    direction="column"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    spacing={2}
+                    sx={{ height: '100%' }}
                   >
-                    ¿Quieres conocer nuestros servicios?
-                  </Typography>
-                  <Button
-                    component={Link}
-                    to="/servicios"
-                    variant="contained"
-                    size="large"
-                    endIcon={<ArrowForward />}
-                    sx={{
-                      bgcolor: '#0052A3',
-                      color: 'white',
-                      padding: '12px 30px',
-                      fontSize: '1.1rem',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        bgcolor: '#003d7a',
-                        transform: 'scale(1.05)'
-                      }
-                    }}
-                  >
-                    Explorar Servicios
-                  </Button>
+                    {/* Título */}
+                    <Grid item>
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          color: isDarkTheme ? '#fff' : '#0052A3',
+                          mb: 2,
+                          fontWeight: 'bold',
+                          fontSize: { xs: '1.2rem', sm: '1.5rem' },
+                        }}
+                      >
+                        ¿Quieres conocer nuestros servicios?
+                      </Typography>
+                    </Grid>
+
+                    {/* SVG animado arriba del botón */}
+                    <Grid item>
+                      <motion.img
+                        src={`${process.env.PUBLIC_URL}/assets/svg/acerca.svg`}
+                        alt="Decoración"
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 1, ease: 'easeInOut' }}
+                        style={{
+                          marginBottom: '16px',
+                          width: '120px',
+                          opacity: 0.9,
+                        }}
+                      />
+                    </Grid>
+
+                    {/* Botón centrado */}
+                    <Grid item>
+                      <Button
+                        component={Link}
+                        to="/servicios"
+                        variant="contained"
+                        size="medium"
+                        endIcon={<ArrowForward />}
+                        sx={{
+                          bgcolor: '#0052A3',
+                          color: 'white',
+                          padding: '8px 20px',
+                          borderRadius: '20px',
+                          fontSize: '0.9rem',
+                          transition:
+                            'background-color 0.3s ease-in-out, transform 0.2s ease-in-out',
+                          '&:hover': {
+                            bgcolor: '#003d7a',
+                            transform: 'scale(1.05)',
+                          },
+                        }}
+                      >
+                        Explorar Servicios
+                      </Button>
+                    </Grid>
+                  </Grid>
                 </CardContent>
               </Card>
             </Grid>
+
           </Grid>
         </motion.div>
         {/* Misión y Visión - Animaciones desde abajo */}
@@ -237,9 +279,12 @@ const AboutPage = () => {
           <Grid item xs={12} md={6}>
             <motion.div
               initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.6 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
             >
+
+
               <Card elevation={0} sx={cardStyle}>
                 <CardContent sx={{ background: '#0052A3', color: 'white' }}>
                   <Typography variant="h5">Misión</Typography>
@@ -253,9 +298,11 @@ const AboutPage = () => {
           <Grid item xs={12} md={6}>
             <motion.div
               initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.5 }}
+              transition={{ duration: 1.2, ease: "easeInOut" }}
             >
+
               <Card elevation={0} sx={cardStyle}>
                 <CardContent sx={{ background: '#0052A3', color: 'white' }}>
                   <Typography variant="h5">Visión</Typography>
@@ -268,7 +315,6 @@ const AboutPage = () => {
           </Grid>
         </Grid>
       </Container>
-
       <Notificaciones
         open={notification.open}
         message={notification.message}

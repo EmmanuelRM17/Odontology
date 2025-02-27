@@ -16,9 +16,9 @@ import { motion } from 'framer-motion';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from '../../../components/Tools/Captcha';
 import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+const ContactoIlustracion = '/assets/svg/contact.svg';
 
 const Contacto = () => {
-  const theme = useTheme();
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const { isDarkTheme } = useThemeContext(); // ✅ Correcto
   const [empresa, setEmpresa] = useState({
@@ -375,7 +375,11 @@ const Contacto = () => {
                       textTransform: 'none',
                       fontSize: '1.1rem',
                       fontWeight: 500,
-                      transition: 'all 0.3s ease',
+                      transition: 'background-color 0.3s ease, transform 0.3s ease',
+                      '&:hover': {
+                        bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,82,163,0.1)',
+                        transform: 'scale(1.05)'
+                      },
                       boxShadow: '0 4px 6px -1px rgba(0, 82, 163, 0.2)',
                     }}
                   >
@@ -386,7 +390,14 @@ const Contacto = () => {
             </Grid>
 
             {/* Lado Derecho: Mapa */}
-            <Grid item xs={12} md={6}>
+            <Grid
+              item
+              xs={12}
+              md={6}
+              sx={{
+                display: { xs: 'none', md: 'block' }
+              }}
+            >
               <Box
                 sx={{
                   height: { xs: '400px' },
@@ -497,6 +508,40 @@ const Contacto = () => {
                   Cómo Llegar
                 </Button>
               </Box>
+              {/* SVG Debajo del Mapa */}
+              <Grid
+                item
+                xs={12}
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  minHeight: '54vh' // Asegura que ocupe toda la altura de la pantalla
+                }}
+              >
+                <motion.div
+                  initial={{ opacity: 0, x: 50 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.5 }}
+                  transition={{ duration: 1, ease: "easeOut" }}
+                >
+                  <Box
+                    component="img"
+                    src={ContactoIlustracion}
+                    alt="Ilustración de contacto"
+                    sx={{
+                      width: '100%',
+                      maxHeight: '180px',
+                      objectFit: 'contain',
+                      mt: 'auto', // Empuja el SVG hacia el fondo
+                      transform: 'scaleX(-1)', // Voltear la imagen horizontalmente
+                      display: 'block',
+                      marginLeft: 'auto',
+                      marginRight: 'auto'
+                    }}
+                  />
+                </motion.div>
+              </Grid>
             </Grid>
           </Grid>
         </Paper>

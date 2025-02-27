@@ -57,15 +57,12 @@ function App() {
   useEffect(() => {
     const timer = setTimeout(() => {
       setForceLoading(false);
-    }, 3000); // 8 segundos
+    }, 3500);
 
     return () => clearTimeout(timer);
   }, []);
   useEffect(() => {
-    const handleOnline = () => {
-      window.location.reload();
-    };
-
+    const handleOnline = () => setIsOnline(true);
     const handleOffline = () => {
       setIsOnline(false);
     };
@@ -82,7 +79,8 @@ function App() {
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
       const response = await axios.get(
-        "https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo"
+        "https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo",
+        { timeout: 5000 } // Timeout de 5 segundos
       );
       const { nombre_empresa, logo } = response.data;
 
@@ -119,9 +117,8 @@ function App() {
   useEffect(() => {
     fetchTitleAndLogo();
     if (fetchErrors < 5) {
-      intervalRef.current = setInterval(fetchTitleAndLogo, 4500);
+      intervalRef.current = setInterval(fetchTitleAndLogo, 10000); // 10 segundos
     }
-
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
