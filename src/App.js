@@ -61,6 +61,7 @@ function App() {
 
     return () => clearTimeout(timer);
   }, []);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => {
@@ -75,13 +76,19 @@ function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
   const fetchTitleAndLogo = async (retries = 3) => {
+    if (!navigator.onLine) {
+      console.warn("Sin conexión a Internet. Reintentando...");
+      setTimeout(() => fetchTitleAndLogo(retries), 5000);
+      return;
+    }
+
     try {
       const response = await axios.get(
         "https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo",
-        { timeout: 5000 } // Timeout de 5 segundos
+        { timeout: 5000 }
       );
+
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
@@ -89,13 +96,11 @@ function App() {
         setTituloPagina(nombre_empresa);
       }
       if (logo) {
-        const link =
-          document.querySelector("link[rel*='icon']") ||
-          document.createElement("link");
+        const link = document.querySelector("link[rel*='icon']") || document.createElement("link");
         link.type = "image/x-icon";
         link.rel = "shortcut icon";
         link.href = `data:image/png;base64,${logo}`;
-        document.getElementsByTagName("head")[0].appendChild(link);
+        document.head.appendChild(link);
         setLogo(`data:image/png;base64,${logo}`);
       }
 
@@ -103,12 +108,11 @@ function App() {
       setLoading(false);
     } catch (error) {
       console.error("Error en la solicitud:", error.message);
-
       if (retries > 0) {
         await new Promise((res) => setTimeout(res, 1000));
         fetchTitleAndLogo(retries - 1);
       } else {
-        setFetchErrors((prev) => prev + 1);
+        setFetchErrors(prev => prev + 1);
         setLoading(false);
       }
     }

@@ -1,25 +1,13 @@
-import React, { useState, useEffect } from 'react'; // Importar Suspense aquí
+import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
-import { useMediaQuery, Tooltip } from '@mui/material';
+import { useMediaQuery, Tooltip, Card, CardContent } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { ExpandLess, ExpandMore, ArrowBackIos, ArrowForwardIos, ChevronLeft, ChevronRight } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { lazy } from 'react';
 import { useRef } from 'react';
-import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-import img1 from '../../../assets/imagenes/img_1.jpg';
-import img2 from '../../../assets/imagenes/img_2.jpg';
-import img3 from '../../../assets/imagenes/img_3.jpg';
-import img4 from '../../../assets/imagenes/img_4.jpg';
-import img5 from '../../../assets/imagenes/img_5.jpg';
-import img6 from '../../../assets/imagenes/img_6.jpg';
-import img7 from '../../../assets/imagenes/img_7.jpg';
-import img8 from '../../../assets/imagenes/img_8.jpg';
-import img9 from '../../../assets/imagenes/img_9.jpg';
-import img10 from '../../../assets/imagenes/img_10.jpg';
-import img11 from '../../../assets/imagenes/img_11.jpg';
-import img12 from '../../../assets/imagenes/img_12.jpg';
+import images from '../../../utils/imageLoader';
 
 const rotatingTexts = [
   "Cuidamos tu sonrisa",
@@ -30,14 +18,14 @@ const rotatingTexts = [
 ];
 
 const Home = () => {
-  const { isDarkTheme } = useThemeContext(); // Obtener el tema global desde el contexto
+  const { isDarkTheme } = useThemeContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [scrollOpacity, setScrollOpacity] = useState(1);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const isMobile = useMediaQuery('(max-width:600px)');
+  const isMobile = useMediaQuery('(max-width:900px)');
   const isSmallScreen = useMediaQuery('(max-width:600px)');
   const [currentText, setCurrentText] = useState(rotatingTexts[0]);
   const [index, setIndex] = useState(0);
@@ -51,12 +39,12 @@ const Home = () => {
   const imageIndexRef = useRef(0);
 
   useEffect(() => {
-    if (isPaused || services.length === 0) return; 
-  
+    if (isPaused || services.length === 0) return;
+
     let frame;
     let startTime = performance.now();
     const duration = autoRotateDelay;
-  
+
     const animate = (currentTime) => {
       if (currentTime - startTime >= duration) {
         serviceIndexRef.current = (serviceIndexRef.current + 1) % services.length;
@@ -65,7 +53,7 @@ const Home = () => {
       }
       frame = requestAnimationFrame(animate);
     };
-  
+
     frame = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(frame);
   }, [isPaused, services]);
@@ -81,36 +69,36 @@ const Home = () => {
   };
 
   const startTypingEffect = (text) => {
-    if (!text) return; // Evitar valores undefined
-    setDisplayedText(''); // Limpiar el texto antes de escribir
+    if (!text) return;
+    setDisplayedText('');
     let index = 0;
 
     const typeNextLetter = () => {
       if (index <= text.length) {
-        setDisplayedText(text.slice(0, index)); // Agregar letra sin concatenar manualmente
+        setDisplayedText(text.slice(0, index));
         index++;
-        setTimeout(typeNextLetter, 100); // Velocidad de escritura (ajustable)
+        setTimeout(typeNextLetter, 100);
       }
     };
 
-    typeNextLetter(); // Iniciar la animación
+    typeNextLetter();
   };
 
   useEffect(() => {
     let frame;
     let startTime = performance.now();
-    const duration = 10000; // Cambia el texto cada 5 segundos
+    const duration = 10000;
 
     const animate = (currentTime) => {
       if (currentTime - startTime >= duration) {
         textIndexRef.current = (textIndexRef.current + 1) % rotatingTexts.length;
-        startTypingEffect(rotatingTexts[textIndexRef.current]); // Iniciar escritura del nuevo texto
+        startTypingEffect(rotatingTexts[textIndexRef.current]);
         startTime = currentTime;
       }
       frame = requestAnimationFrame(animate);
     };
 
-    startTypingEffect(rotatingTexts[0]); // Iniciar el primer texto
+    startTypingEffect(rotatingTexts[0]);
     frame = requestAnimationFrame(animate);
 
     return () => cancelAnimationFrame(frame);
@@ -119,8 +107,6 @@ const Home = () => {
   useEffect(() => {
     setCurrentText(rotatingTexts[index]);
   }, [index]);
-
-  const images = [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12];
 
   useEffect(() => {
     const fetchServices = async () => {
@@ -140,7 +126,6 @@ const Home = () => {
     fetchServices();
   }, []);
 
-  // Mejorada la transición de imágenes de fondo
   useEffect(() => {
     let frame;
     let startTime = performance.now();
@@ -162,13 +147,12 @@ const Home = () => {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  // Nuevo efecto para manejar el scroll
   useEffect(() => {
     const handleScroll = () => {
       const scrollPosition = window.scrollY;
       const windowHeight = window.innerHeight;
-      const fadeStart = windowHeight * 0.3; // Comienza a desvanecer al 30% del scroll
-      const fadeEnd = windowHeight * 0.8; // Completamente desvanecido al 80% del scroll
+      const fadeStart = windowHeight * 0.3;
+      const fadeEnd = windowHeight * 0.8;
 
       if (scrollPosition <= fadeStart) {
         setScrollOpacity(1);
@@ -184,7 +168,6 @@ const Home = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-
   return (
     <Box
       sx={{
@@ -193,118 +176,154 @@ const Home = () => {
           : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
         transition: 'background 0.5s ease',
         position: 'relative',
-        minHeight: '100vh',
+        minHeight: '90vh',
         overflow: 'hidden'
       }}
     >
+      {/* Semi-circular background for the right side */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: -100,
+          top: 0,
+          height: '100%',
+          width: '55%',
+          borderTopLeftRadius: '50%',
+          borderBottomLeftRadius: '50%',
+          bgcolor: 'rgba(3, 66, 124, 0.1)',
+          zIndex: 1
+        }}
+      />
 
-      {/* Background Carousel */}
-      <AnimatePresence initial={false}>
-        <motion.div
-          key={currentImageIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: scrollOpacity }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 1 }}
-          style={{
-            position: 'absolute', // Cambiado a absolute para que se mantenga en su posición original
-            top: 0,
-            left: 0,
-            width: '100%',
-            height: '90vh',
-            backgroundImage: `url(${images[currentImageIndex]})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            filter: 'brightness(0.7)',
-            willChange: 'opacity', // Optimización de rendimiento
-          }}
-        />
-      </AnimatePresence>
-
-      {/* Content Container */}
       <Box
         sx={{
           position: 'relative',
           zIndex: 2,
           height: '100vh',
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: isMobile ? 'column-reverse' : 'row', // Column-reverse on mobile to show image first
           padding: { xs: '1rem', md: '2rem' },
         }}
       >
-        {/* Título Bienvenido con Estilo y Animación */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.8, ease: "easeOut" }}
-          style={{ textAlign: 'center', marginTop: '4rem', marginBottom: '3rem' }} // 🔹 Ajustamos márgenes
-        >
-          <Typography
-            variant={isSmallScreen ? 'h4' : 'h2'}
-            sx={{
-              color: '#03427C',
-              fontWeight: 700,
-              fontFamily: 'Montserrat, sans-serif',
-              textTransform: 'capitalize',
-              letterSpacing: '1.5px',
-              position: 'relative',
-              display: 'inline-block',
-              paddingBottom: '0.3rem',
-              borderBottom: '3px solid #03427C',
-              textShadow: '4px 4px 6px rgba(0,0,0,0.3)', // Sombra oscura para resaltar
-              WebkitTextStroke: '.5px rgba(255,255,255,0.8)',
-              minHeight: '80px',
-            }}
-          >
-            {displayedText}
-          </Typography>
-        </motion.div>
-
-
-
-        {/* Services Carousel Container */}
+        {/* Left Side - Service Cards */}
         <Box
           sx={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            width: isMobile ? '100%' : '50%',
+            height: isMobile ? '60vh' : '100%',
+            display: 'block',
             position: 'relative',
-            my: { xs: 2, md: 4 },
-            overflow: 'visible',
+            pl: isMobile ? 0 : 4,
+            pt: isMobile ? 4 : 0,
           }}
         >
-          {/* Navigation Buttons */}
-          <IconButton
-            onClick={prevService}
-            sx={{
-              position: 'absolute',
-              left: { xs: '5px', md: '50px' },
-              zIndex: 5,
-              color: 'white',
-              backgroundColor: 'rgba(3, 66, 124, 0.2)',
-              '&:hover': { backgroundColor: 'rgba(3, 66, 124, 0.4)' }
-            }}
-          >
-            <ChevronLeft />
-          </IconButton>
+          {/* Título principal para servicios con diseño mejorado */}
+          <Box sx={{ textAlign: 'center', mb: 1 }}>
+            <Typography
+              variant={isSmallScreen ? "h5" : "h4"}
+              component="h1"
+              sx={{
+                color: isDarkTheme ? '#ffffff' : '#03427C',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                textTransform: 'uppercase',
+                letterSpacing: 2,
+                position: 'relative',
+                display: 'inline-block',
+                padding: '0 1rem 0.5rem',
+                '&:after': {
+                  content: '""',
+                  position: 'absolute',
+                  bottom: 0,
+                  left: '50%',
+                  width: '60%',
+                  height: '3px',
+                  background: isDarkTheme ? 'linear-gradient(90deg, rgba(41,98,155,0), rgba(41,98,155,1), rgba(41,98,155,0))' : 'linear-gradient(90deg, rgba(3,66,124,0), rgba(3,66,124,1), rgba(3,66,124,0))',
+                  transform: 'translateX(-50%)'
+                }
+              }}
+            >
+              Nuestros Servicios
+            </Typography>
 
-          {/* Services Display */}
+            {/* Subtítulo descriptivo */}
+            <Typography
+              variant="subtitle1"
+              sx={{
+                color: isDarkTheme ? 'rgba(255,255,255,0.7)' : 'rgba(3,66,124,0.7)',
+                fontSize: '0.9rem',
+                mt: 1,
+                fontStyle: 'italic',
+                maxWidth: '80%',
+                mx: 'auto'
+              }}
+            >
+              Conoce nuestra amplia gama de servicios - Haz clic para más detalles
+            </Typography>
+          </Box>
+
+          {/* Botones de navegación reposicionados */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 6,
+            width: '100%',
+            mb: 3,
+            mt: 2
+          }}>
+            <IconButton
+              onClick={prevService}
+              sx={{
+                color: 'white',
+                backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 1)' : 'rgba(3, 66, 124, 1)',
+                  transform: 'scale(1.1)',
+                },
+                width: '45px',
+                height: '45px',
+                borderRadius: '50%',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <ChevronLeft />
+            </IconButton>
+            <IconButton
+              onClick={nextService}
+              sx={{
+                color: 'white',
+                backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 1)' : 'rgba(3, 66, 124, 1)',
+                  transform: 'scale(1.1)',
+                },
+                width: '45px',
+                height: '45px',
+                borderRadius: '50%',
+                boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <ChevronRight />
+            </IconButton>
+          </Box>
+
+          {/* Visualización de Servicios en Diagonal */}
           <Box
             sx={{
               position: 'relative',
               width: '100%',
-              height: '400px',
+              height: isMobile ? '50vh' : '70vh',
+              perspective: '1000px',
+              overflow: 'visible',
               display: 'flex',
-              alignItems: 'center',
               justifyContent: 'center',
-              perspective: '1500px',
-              overflow: 'hidden'
+              alignItems: 'center',
+              mt: 2
             }}
           >
-            {/* 🔹 Manejo de Carga */}
             {loading ? (
-              <Typography sx={{ color: 'white', textAlign: 'center' }}>
+              <Typography sx={{ color: isDarkTheme ? 'white' : '#03427C', textAlign: 'center' }}>
                 Cargando servicios...
               </Typography>
             ) : error ? (
@@ -312,7 +331,7 @@ const Home = () => {
                 {error}
               </Typography>
             ) : services.length === 0 ? (
-              <Typography sx={{ color: 'white', textAlign: 'center' }}>
+              <Typography sx={{ color: isDarkTheme ? 'white' : '#03427C', textAlign: 'center' }}>
                 No hay servicios disponibles en este momento.
               </Typography>
             ) : (
@@ -321,25 +340,69 @@ const Home = () => {
                 let offset = i - currentServiceIndex;
                 if (offset > totalServices / 2) offset -= totalServices;
                 if (offset < -totalServices / 2) offset += totalServices;
-                const isCenter = offset === 0;
-                const position = offset * (isMobile ? 120 : 180);
-                const opacity = Math.abs(offset) <= 2 ? 1 - Math.abs(offset) * 0.2 : 0.2;
-                const scale = isCenter ? 1 : 0.8 - Math.abs(offset) * 0.1;
-                const rotation = offset * -25;
+
+                // Determinamos si es la tarjeta activa
+                const isActive = offset === 0;
+
+                // Calculamos posiciones para una trayectoria diagonal pero más alineadas
+                const containerWidth = isMobile ? window.innerWidth * 0.8 : window.innerWidth * 0.4;
+                const containerHeight = isMobile ? window.innerHeight * 0.5 : window.innerHeight * 0.7;
+
+                // Cálculo para trayectoria diagonal pero con rotación mínima
+                let x, y, rotate, scale, opacity, zIndex;
+
+                if (offset < 0) {
+                  // Tarjetas a la izquierda del centro (arriba-izquierda)
+                  const factor = Math.abs(offset);
+                  x = -containerWidth * 0.3 * factor;
+                  y = -containerHeight * 0.2 * factor;
+                  rotate = -2 - (factor * 1);
+                  opacity = 1 - (factor * 0.3); // Más transparentes
+                  scale = 0.85 - (factor * 0.12); // Más pequeñas
+                  zIndex = 10 - factor;
+                } else if (offset > 0) {
+                  // Tarjetas a la derecha del centro (abajo-izquierda)
+                  const factor = Math.abs(offset);
+                  x = -containerWidth * 0.3 * factor;
+                  y = containerHeight * 0.2 * factor;
+                  rotate = 2 + (factor * 1);
+                  opacity = 1 - (factor * 0.3); // Más transparentes
+                  scale = 0.85 - (factor * 0.12); // Más pequeñas
+                  zIndex = 10 - factor;
+                } else {
+                  // Tarjeta central - destacamos más esta tarjeta
+                  x = 0;
+                  y = 0;
+                  rotate = 0;
+                  opacity = 1;
+                  // Aumentamos escala de la tarjeta central para destacarla aún más
+                  scale = 1.2; // Más grande que antes
+                  zIndex = 20;
+                }
+
+                // Limitamos la visibilidad a solo 3 tarjetas
+                if (Math.abs(offset) > 2) {
+                  opacity = 0;
+                }
 
                 return (
                   <motion.div
-                    key={service.id} // Asegura que cada servicio tenga una clave única
+                    key={service.id}
                     style={{
                       position: 'absolute',
-                      width: isMobile ? '280px' : '320px',
+                      top: '50%',
+                      left: '50%',
+                      width: '320px',
+                      maxWidth: isMobile ? '85%' : '320px',
+                      transformOrigin: 'center center',
                     }}
                     animate={{
-                      x: `${position}%`,
+                      x: x,
+                      y: y,
+                      rotate: rotate,
                       scale: scale,
                       opacity: opacity,
-                      zIndex: isCenter ? 3 : 2 - Math.abs(offset),
-                      rotateY: rotation,
+                      zIndex: zIndex,
                     }}
                     transition={{
                       type: 'spring',
@@ -347,36 +410,84 @@ const Home = () => {
                       damping: 30
                     }}
                   >
-                    <Tooltip title="Click para más información" arrow>
-                      <Box
-                        onClick={() => navigate(`/servicios/detalle/${service.id}`)}
-                        onMouseEnter={() => setIsPaused(true)}
-                        onMouseLeave={() => setIsPaused(false)}
-                        sx={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                          backdropFilter: 'blur(10px)',
-                          borderRadius: '15px',
-                          padding: '2rem',
-                          border: '1px solid rgba(255, 255, 255, 0.3)',
-                          cursor: 'pointer',
-                          transition: 'all 0.3s ease',
-                          boxShadow: isCenter
-                            ? '0 0 30px rgba(3, 66, 124, 0.8), 0 0 50px rgba(3, 66, 124, 0.4)'
-                            : '0 0 15px rgba(3, 66, 124, 0.2)',
-                          '&:hover': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                            transform: 'translateY(-5px)',
-                          },
-                        }}
-                      >
+                    <Box
+                      onClick={() => navigate(`/servicios/detalle/${service.id}`)}
+                      onMouseEnter={() => setIsPaused(true)}
+                      onMouseLeave={() => setIsPaused(false)}
+                      sx={{
+                        background: isDarkTheme
+                          ? isActive
+                            ? 'linear-gradient(135deg, #1C2A38 0%, #2C3E50 100%)'
+                            : 'linear-gradient(135deg, #1C2A38 0%, #253545 100%)'
+                          : isActive
+                            ? 'linear-gradient(135deg, #ffffff 0%, #E5F3FD 100%)'
+                            : 'linear-gradient(135deg, #F8FCFF 0%, #EBF5FC 100%)',
+                        borderRadius: '16px',
+                        padding: '1.8rem',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s ease',
+                        // Cambio: Eliminar efectos exagerados, borde más limpio y profesional
+                        border: isActive
+                          ? isDarkTheme
+                            ? '2px solid rgba(41, 98, 155, 0.8)'
+                            : '2px solid rgba(3, 66, 124, 0.8)'
+                          : 'none',
+                        boxShadow: isActive
+                          ? isDarkTheme
+                            ? '0 10px 20px rgba(0, 0, 0, 0.2)'
+                            : '0 10px 20px rgba(3, 66, 124, 0.15)'
+                          : isDarkTheme
+                            ? '0 5px 15px rgba(0, 0, 0, 0.15)'
+                            : '0 5px 15px rgba(3, 66, 124, 0.1)',
+                        '&:hover': {
+                          transform: 'translateY(-5px)',
+                          boxShadow: isDarkTheme
+                            ? '0 12px 25px rgba(0, 0, 0, 0.25)'
+                            : '0 12px 25px rgba(3, 66, 124, 0.2)',
+                        },
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {/* Decoración de la tarjeta, un pequeño círculo decorativo en la esquina */}
+                      {isActive && (
+                        <Box
+                          sx={{
+                            position: 'absolute',
+                            top: '-15px',
+                            right: '-15px',
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: isDarkTheme
+                              ? 'rgba(41, 98, 155, 0.5)'
+                              : 'rgba(3, 66, 124, 0.2)',
+                            zIndex: 0,
+                            filter: 'blur(5px)',
+                          }}
+                        />
+                      )}
+
+                      {/* Contenido de la tarjeta */}
+                      <Box sx={{ zIndex: 1 }}>
                         <Typography
                           variant="h6"
                           sx={{
-                            color: 'white',
-                            textAlign: 'center',
+                            color: isDarkTheme ? '#ffffff' : '#03427C',
                             fontWeight: 'bold',
                             mb: 2,
-                            fontSize: { xs: '1.1rem', md: '1.25rem' }
+                            fontSize: { xs: '1.1rem', md: '1.25rem' },
+                            textAlign: 'left',
+                            transform: 'rotate(0deg)',
+                            borderBottom: isActive
+                              ? isDarkTheme
+                                ? '2px solid rgba(41, 98, 155, 0.4)'
+                                : '2px solid rgba(3, 66, 124, 0.4)'
+                              : 'none',
+                            paddingBottom: isActive ? '8px' : '0',
                           }}
                         >
                           {service.title}
@@ -384,35 +495,177 @@ const Home = () => {
                         <Typography
                           variant="body2"
                           sx={{
-                            color: 'rgba(255, 255, 255, 0.9)',
-                            textAlign: 'center',
-                            fontSize: { xs: '0.875rem', md: '1rem' }
+                            color: isDarkTheme ? 'rgba(255, 255, 255, 0.85)' : 'rgba(3, 66, 124, 0.85)',
+                            fontSize: { xs: '0.875rem', md: '1rem' },
+                            textAlign: 'left',
+                            transform: 'rotate(0deg)',
+                            lineHeight: 1.6,
                           }}
                         >
                           {service.description.split('.')[0] + '.'}
                         </Typography>
-
                       </Box>
-                    </Tooltip>
+
+                      {/* Indicador visual para la tarjeta activa */}
+                      {isActive && (
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            mt: 2,
+                            borderTop: isDarkTheme
+                              ? '1px solid rgba(255, 255, 255, 0.1)'
+                              : '1px solid rgba(3, 66, 124, 0.1)',
+                            paddingTop: 1,
+                          }}
+                        >
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                              mr: 1,
+                              fontSize: '0.8rem',
+                              fontWeight: 'medium'
+                            }}
+                          >
+                            Ver detalles
+                          </Typography>
+                          <Box
+                            sx={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.3)' : 'rgba(3, 66, 124, 0.2)',
+                              transition: 'all 0.3s ease',
+                              animation: 'pulse 1.5s infinite',
+                              '@keyframes pulse': {
+                                '0%': { transform: 'scale(1)' },
+                                '50%': { transform: 'scale(1.1)' },
+                                '100%': { transform: 'scale(1)' },
+                              }
+                            }}
+                          >
+                            <ChevronRight
+                              sx={{
+                                fontSize: '16px',
+                                color: isDarkTheme ? 'rgba(255, 255, 255, 0.9)' : 'rgba(3, 66, 124, 0.9)'
+                              }}
+                            />
+                          </Box>
+                        </Box>
+                      )}
+                    </Box>
                   </motion.div>
                 );
               })
             )}
           </Box>
 
-          <IconButton
-            onClick={nextService}
+          {/* Estilo para animación de resplandor del borde */}
+          <style jsx global>{`
+    @keyframes borderGlow {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  `}</style>
+        </Box>
+
+        {/* Right Side - Circular Image with Text Overlay */}
+        <Box
+          sx={{
+            width: isMobile ? '100%' : '60%',
+            height: isMobile ? '40vh' : '100%',
+            display: 'flex',
+            justifyContent: 'flex-end',
+            alignItems: 'center',
+            position: 'relative',
+          }}
+        >
+
+          {/* Circular Image */}
+          <Box
             sx={{
-              position: 'absolute',
-              right: { xs: '5px', md: '50px' },
-              zIndex: 5,
-              color: 'white',
-              backgroundColor: 'rgba(3, 66, 124, 0.2)',
-              '&:hover': { backgroundColor: 'rgba(3, 66, 124, 0.4)' }
+              position: 'relative',
+              width: isMobile ? '90%' : '80%',
+              height: 0,
+              paddingBottom: isMobile ? '90%' : '80%',
+              maxHeight: '500px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              boxShadow: '0 0 30px rgba(3, 66, 124, 0.6)',
+              border: '4px solid rgba(255, 255, 255, 0.3)',
+              mr: isMobile ? 0 : 5,
             }}
           >
-            <ChevronRight />
-          </IconButton>
+            {/* Imágenes dentro del círculo */}
+            <AnimatePresence initial={false}>
+              <motion.div
+                key={currentImageIndex}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: scrollOpacity }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1 }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  backgroundImage: `url(${images[currentImageIndex]})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  filter: 'brightness(0.9)',
+                  willChange: 'opacity',
+                }}
+              />
+            </AnimatePresence>
+
+            {/* Texto centrado dentro del círculo */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '80%',
+                textAlign: 'center',
+                zIndex: 5,
+                backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                padding: '1rem',
+                borderRadius: '10px',
+              }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeOut" }}
+              >
+                <Typography
+                  variant={isSmallScreen ? 'h5' : 'h4'}
+                  sx={{
+                    color: 'white',
+                    fontWeight: 700,
+                    fontFamily: 'Montserrat, sans-serif',
+                    textTransform: 'capitalize',
+                    letterSpacing: '1.5px',
+                    position: 'relative',
+                    display: 'inline-block',
+                    paddingBottom: '0.3rem',
+                    borderBottom: '3px solid white',
+                    textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
+                    minHeight: '80px',
+                  }}
+                >
+                  {displayedText}
+                </Typography>
+              </motion.div>
+            </Box>
+
+          </Box>
         </Box>
       </Box>
     </Box>

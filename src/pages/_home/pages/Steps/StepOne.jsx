@@ -655,8 +655,8 @@ const StepOne = ({
                                         <PersonIcon color="primary" />
                                     </InputAdornment>
                                 ),
-                               readOnly: formData.pacienteExistente,
-                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
+                                readOnly: formData.pacienteExistente,
+                                style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                             }}
                             variant="outlined"
                         />
@@ -692,7 +692,7 @@ const StepOne = ({
                         error={!!errors.apellidoMaterno}
                         helperText={errors.apellidoMaterno}
                         InputProps={{
-                           readOnly: formData.pacienteExistente,
+                            readOnly: formData.pacienteExistente,
                             style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
                         }}
                         variant="outlined"
@@ -799,8 +799,7 @@ const StepOne = ({
                         />
                     </Grid>
                 )}
-
-                {/* Contact Information Section */}
+                {/* Información de Contacto */}
                 <Grid item xs={12}>
                     <Box sx={{
                         display: 'flex',
@@ -820,6 +819,86 @@ const StepOne = ({
                             <HelpOutlineIcon fontSize="small" color="action" />
                         </Tooltip>
                     </Box>
+                </Grid>
+
+                {/* Correo Electrónico */}
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label="Correo Electrónico"
+                        name="correo"
+                        value={formData.correo}
+                        onChange={handleChange}
+                        error={!!errors.correo}
+                        helperText={
+                            formData.pacienteExistente ? 'Correo no editable' : errors.correo || 'Ingrese su correo electrónico'
+                        }
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <EmailIcon color="primary" />
+                                </InputAdornment>
+                            ),
+                            readOnly: formData.pacienteExistente, // Solo lectura si el paciente es existente
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
+                        }}
+                        variant="outlined"
+                        required={!formData.omitCorreo && !formData.pacienteExistente}
+                        disabled={formData.omitCorreo && !formData.pacienteExistente} // Deshabilitar si se marca "Omitir correo"
+                    />
+
+                    {!formData.pacienteExistente && (
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={formData.omitCorreo}
+                                    onChange={(e) => onFormDataChange({ omitCorreo: e.target.checked })}
+                                    color="primary"
+                                />
+                            }
+                            label="Omitir correo"
+                        />
+                    )}
+                </Grid>
+
+                {/* Teléfono */}
+                <Grid item xs={12} md={6}>
+                    <TextField
+                        fullWidth
+                        label="Teléfono"
+                        name="telefono"
+                        value={formData.telefono}
+                        onChange={handleChange}
+                        error={!!errors.telefono}
+                        helperText={
+                            formData.pacienteExistente ? 'Teléfono no editable' : errors.telefono || 'Ingrese su teléfono'
+                        }
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <PhoneIcon color="primary" />
+                                </InputAdornment>
+                            ),
+                            readOnly: formData.pacienteExistente, // Solo lectura si el paciente es existente
+                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
+                        }}
+                        variant="outlined"
+                        required={!formData.omitTelefono && !formData.pacienteExistente}
+                        disabled={formData.omitTelefono && !formData.pacienteExistente} // Deshabilitar si se marca "Omitir teléfono"
+                    />
+
+                    {!formData.pacienteExistente && (
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={formData.omitTelefono}
+                                    onChange={(e) => onFormDataChange({ omitTelefono: e.target.checked })}
+                                    color="primary"
+                                />
+                            }
+                            label="Omitir teléfono"
+                        />
+                    )}
                 </Grid>
 
                 {/* Email Field */}
