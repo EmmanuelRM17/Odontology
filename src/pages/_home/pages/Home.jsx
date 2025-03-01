@@ -176,7 +176,7 @@ const Home = () => {
           : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
         transition: 'background 0.5s ease',
         position: 'relative',
-        minHeight: '90vh',
+        minHeight: '80vh',
         overflow: 'hidden'
       }}
     >
@@ -186,10 +186,10 @@ const Home = () => {
           position: 'absolute',
           right: -100,
           top: 0,
-          height: '100%',
-          width: '55%',
-          borderTopLeftRadius: '50%',
-          borderBottomLeftRadius: '50%',
+          height: '97%',
+          width: isMobile ? '55%' : '50%',
+          borderTopLeftRadius: isMobile ? '55%' : '45%',
+          borderBottomLeftRadius: isMobile ? '55%' : '45%',
           bgcolor: 'rgba(3, 66, 124, 0.1)',
           zIndex: 1
         }}
@@ -199,9 +199,9 @@ const Home = () => {
         sx={{
           position: 'relative',
           zIndex: 2,
-          height: '100vh',
+          height: '90vh',
           display: 'flex',
-          flexDirection: isMobile ? 'column-reverse' : 'row', // Column-reverse on mobile to show image first
+          flexDirection: isMobile ? 'column-reverse' : 'row', 
           padding: { xs: '1rem', md: '2rem' },
         }}
       >
@@ -209,7 +209,7 @@ const Home = () => {
         <Box
           sx={{
             width: isMobile ? '100%' : '50%',
-            height: isMobile ? '60vh' : '100%',
+            height: isMobile ? '50vh' : '85%',
             display: 'block',
             position: 'relative',
             pl: isMobile ? 0 : 4,
@@ -313,7 +313,7 @@ const Home = () => {
             sx={{
               position: 'relative',
               width: '100%',
-              height: isMobile ? '50vh' : '70vh',
+              height: isMobile ? '30vh' : '40vh',
               perspective: '1000px',
               overflow: 'visible',
               display: 'flex',
@@ -577,8 +577,8 @@ const Home = () => {
         {/* Right Side - Circular Image with Text Overlay */}
         <Box
           sx={{
-            width: isMobile ? '100%' : '60%',
-            height: isMobile ? '40vh' : '100%',
+            width: isMobile ? '85%' : '50%',
+            height: isMobile ? '35vh' : '96%',
             display: 'flex',
             justifyContent: 'flex-end',
             alignItems: 'center',
