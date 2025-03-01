@@ -332,10 +332,12 @@ const Register = () => {
     }
 
     if (name === 'email') {
-      if (value !== trimmedValue || !emailRegex.test(trimmedValue)) {
+      const trimmedValue = value.trim(); 
+    
+      if (!emailRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          email: 'Verifique que su correo sea valido',
+          email: 'Verifique que su correo sea válido',
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -344,6 +346,7 @@ const Register = () => {
         }));
       }
     }
+    
 
     if (name === 'telefono') {
       if (!phoneRegex.test(value)) {
