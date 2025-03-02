@@ -10,7 +10,7 @@ import {
 } from '@mui/material';
 import MuiAlert from '@mui/material/Alert';
 import axios from 'axios';
-import { format } from 'date-fns';
+import format from 'date-fns/format';
 import { es } from 'date-fns/locale';
 import React, { useEffect, useState } from 'react';
 import {

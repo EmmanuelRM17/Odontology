@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, Button, Dialog, DialogTitle, DialogContent, Grid, IconButton, Card, CardContent, Avatar, TextField } from '@mui/material';
 import { FaInfoCircle, FaTimes, FaIdCard, FaCalendarAlt, FaPhone, FaEnvelope } from 'react-icons/fa'; // Íconos
-import { format } from 'date-fns';
+import format from 'date-fns/format';
 import Notificaciones from '../../../components/Layout/Notificaciones'; // Importar Notificaciones
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Typography, Box, CircularProgress, Chip } from '@mui/material';
-import { format } from 'date-fns';
+import format from 'date-fns/format';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const LogsReport = ({ isDarkTheme, colors }) => {

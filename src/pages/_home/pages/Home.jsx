@@ -77,7 +77,7 @@ const Home = () => {
       if (index <= text.length) {
         setDisplayedText(text.slice(0, index));
         index++;
-        setTimeout(typeNextLetter, 100);
+        setTimeout(typeNextLetter, 150);
       }
     };
 
@@ -87,7 +87,7 @@ const Home = () => {
   useEffect(() => {
     let frame;
     let startTime = performance.now();
-    const duration = 10000;
+    const duration = 12000;
 
     const animate = (currentTime) => {
       if (currentTime - startTime >= duration) {
