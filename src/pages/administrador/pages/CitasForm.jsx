@@ -100,11 +100,23 @@ const CitasForm = () => {
             setIsProcessing(false);
         }
     };
+const handleViewDetails = async (cita) => {
+    try {
+        const response = await fetch(`https://back-end-4803.onrender.com/api/citas/all`);
+        if (!response.ok) throw new Error('Error al obtener las citas');
 
-    const handleViewDetails = (cita) => {
-        setSelectedCita(cita);
+        const updatedCitas = await response.json();
+        setCitas(updatedCitas); // 🟢 Actualizar el estado con los datos más recientes
+
+        const updatedCita = updatedCitas.find(c => c.consulta_id === cita.consulta_id);
+        setSelectedCita(updatedCita || cita); // Mostrar la cita actualizada en los detalles
         setOpenDialog(true);
-    };
+
+    } catch (error) {
+        console.error('Error al obtener los detalles de la cita:', error);
+    }
+};
+
 
     // Función para obtener citas
     const fetchCitas = async () => {

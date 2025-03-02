@@ -110,47 +110,50 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
     if (!validateForm()) return;
     setLoading(true);
     setNotification({ open: false, message: '', type: '' });
+
     try {
-      // Combinar fecha y hora para crear fecha_consulta
-      const fechaHora = `${formData.fecha}T${formData.hora}:00`;
-      const fecha_consulta = new Date(fechaHora);
+        const fechaHora = `${formData.fecha}T${formData.hora}:00`;
+        const fecha_consulta = new Date(fechaHora);
 
-      const response = await fetch(`https://back-end-4803.onrender.com/api/citas/update/${appointmentData.consulta_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          servicio_id: formData.servicio_id,
-          categoria_servicio: formData.categoria_servicio,
-          precio_servicio: formData.precio_servicio,
-          fecha_consulta: fecha_consulta.toISOString(),
-          estado: formData.estado,
-          notas: formData.notas
-        }),
-      });
-      if (!response.ok) throw new Error('Error al actualizar la cita');
+        const response = await fetch(`https://back-end-4803.onrender.com/api/citas/update/${appointmentData.consulta_id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                servicio_id: formData.servicio_id,
+                categoria_servicio: formData.categoria_servicio,
+                precio_servicio: formData.precio_servicio,
+                fecha_consulta: fecha_consulta.toISOString(),
+                estado: formData.estado,
+                notas: formData.notas
+            }),
+        });
 
-      setNotification({
-        open: true,
-        message: '¡Cita actualizada con éxito!',
-        type: 'success'
-      });
-      setTimeout(() => {
-        handleClose();
-        if (onUpdate) onUpdate();
-      }, 1500);
+        if (!response.ok) throw new Error('Error al actualizar la cita');
+
+        setNotification({
+            open: true,
+            message: '¡Cita actualizada con éxito!',
+            type: 'success'
+        });
+
+        setTimeout(() => {
+            handleClose();
+            if (onUpdate) onUpdate(); // 🟢 Asegurar que se refrescan los datos en la tabla
+        }, 1500);
+
     } catch (error) {
-      console.error('Error al actualizar la cita:', error);
-      setNotification({
-        open: true,
-        message: 'Ocurrió un error al actualizar la cita. Por favor intente nuevamente.',
-        type: 'error'
-      });
+        console.error('Error al actualizar la cita:', error);
+        setNotification({
+            open: true,
+            message: 'Ocurrió un error al actualizar la cita. Por favor intente nuevamente.',
+            type: 'error'
+        });
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   // Definición de colores según el tema
   const colors = {
