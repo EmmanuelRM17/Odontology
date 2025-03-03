@@ -39,6 +39,7 @@ import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm.jsx";
+import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas.jsx";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
@@ -215,6 +216,8 @@ function App() {
           <Route path="/Empleado/principal" element={<LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado>} />
           <Route path="/Empleado/gestionPacient" element={<LayoutEmpleado><GestionPacient /></LayoutEmpleado>} />
           <Route path="/Empleado/ExpedienteClinico" element={<LayoutEmpleado><ExpedienteClinico /></LayoutEmpleado>} />
+          <Route path="/Empleado/CalendarioCita" element={<LayoutEmpleado><CalendarioCitas /></LayoutEmpleado>} />
+
           {/* Ruta para manejo de errores */}
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
