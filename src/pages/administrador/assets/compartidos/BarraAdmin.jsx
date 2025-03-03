@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-    FaHome, FaUsers, FaCalendarAlt, FaChartLine, FaMoneyBillWave,
+    FaHome, FaUsers, FaCalendarAlt, FaChartLine, FaMoneyBillWave, FaCalendarCheck,
     FaClock, FaBell, FaCog, FaSignOutAlt, FaFileAlt, FaTooth, FaUserCircle
 } from 'react-icons/fa';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
@@ -52,6 +52,7 @@ const BarraAdmin = () => {
         { icon: FaHome, text: 'Panel Principal', path: '/Administrador/principal', divider: false },
         { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes', divider: false },
         { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios', divider: false },
+        { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas', divider: false },
         { icon: FaCalendarAlt, text: 'Agenda', path: '/Administrador/agenda', divider: false },
         { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/estadisticas', divider: false },
         { icon: FaFileAlt, text: 'Reportes', path: '/Administrador/reportes', divider: false },

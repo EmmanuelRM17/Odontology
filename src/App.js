@@ -38,6 +38,7 @@ import Reportes from "./pages/administrador/pages/reportes";
 import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
+import CitasForm from "./pages/administrador/pages/CitasForm.jsx";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
@@ -58,14 +59,12 @@ function App() {
     const timer = setTimeout(() => {
       setForceLoading(false);
     }, 3500);
-
     return () => clearTimeout(timer);
   }, []);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => {
-      setIsOnline(false);
-    };
+    const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -77,11 +76,26 @@ function App() {
   }, []);
 
   const fetchTitleAndLogo = async (retries = 3) => {
+    if (!isOnline) {
+      console.warn("Sin conexión a Internet. No se realizará la solicitud.");
+      return;
+    }
+
+    if (fetchErrors >= 5) {
+      console.error("Demasiados errores al intentar conectarse con el backend.");
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // Timeout de 5 segundos
+
     try {
       const response = await axios.get(
         "https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo",
-        { timeout: 5000 } // Timeout de 5 segundos
+        { signal: controller.signal }
       );
+      clearTimeout(timeoutId);
+
       const { nombre_empresa, logo } = response.data;
 
       if (nombre_empresa) {
@@ -89,48 +103,48 @@ function App() {
         setTituloPagina(nombre_empresa);
       }
       if (logo) {
-        const link =
-          document.querySelector("link[rel*='icon']") ||
-          document.createElement("link");
+        const link = document.querySelector("link[rel*='icon']") || document.createElement("link");
         link.type = "image/x-icon";
         link.rel = "shortcut icon";
         link.href = `data:image/png;base64,${logo}`;
-        document.getElementsByTagName("head")[0].appendChild(link);
+        document.head.appendChild(link);
         setLogo(`data:image/png;base64,${logo}`);
       }
 
       setFetchErrors(0);
       setLoading(false);
+
+      if (!intervalRef.current) {
+        intervalRef.current = setInterval(fetchTitleAndLogo, 60000); // 60 segundos solo si la primera llamada fue exitosa
+      }
     } catch (error) {
-      console.error("Error en la solicitud:", error.message);
+      clearTimeout(timeoutId);
+
+      if (axios.isCancel(error)) {
+        console.warn("Solicitud cancelada por timeout.");
+      } else {
+        console.error("Error en la solicitud:", error.message);
+      }
+
+      setFetchErrors(prev => prev + 1);
+      setLoading(false);
 
       if (retries > 0) {
-        await new Promise((res) => setTimeout(res, 1000));
+        await new Promise(res => setTimeout(res, 2000));
         fetchTitleAndLogo(retries - 1);
-      } else {
-        setFetchErrors((prev) => prev + 1);
-        setLoading(false);
       }
     }
   };
 
+
   useEffect(() => {
     fetchTitleAndLogo();
-    if (fetchErrors < 5) {
-      intervalRef.current = setInterval(fetchTitleAndLogo, 10000); // 10 segundos
-    }
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
+    return () => clearInterval(intervalRef.current);
   }, []);
 
   useEffect(() => {
     if (fetchErrors >= 5) {
-      console.error(
-        "Demasiados errores al intentar conectarse con el backend."
-      );
+      console.error("Deteniendo reintentos después de múltiples fallos.");
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
@@ -138,7 +152,7 @@ function App() {
   }, [fetchErrors]);
 
   if (loading) {
-    return <FullPageLoader message="Cargando la página principal..." />;
+    return <FullPageLoader message="Cargando la página..." />;
   }
 
   if (!isOnline) {
@@ -194,6 +208,7 @@ function App() {
           <Route path="/Administrador/reportes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Reportes' }]} /><Reportes /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/pacientes" element={<LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin>} />
           <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/citas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de citas' }]} /><CitasForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
 
           {/* Rutas protegidas del empleado */}

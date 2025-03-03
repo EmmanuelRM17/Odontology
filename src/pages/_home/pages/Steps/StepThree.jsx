@@ -15,7 +15,7 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
-    DialogActions, 
+    DialogActions,
     Grid,
     Alert
 } from '@mui/material';
@@ -29,8 +29,8 @@ import {
     Schedule as ScheduleIcon,
     ArrowForward as ArrowForwardIcon,
     ArrowBack as ArrowBackIcon,
-    Close as CloseIcon, 
-    Info as InfoIcon 
+    Close as CloseIcon,
+    Info as InfoIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -123,16 +123,14 @@ const StepThree = ({
     };
 
     const handleDateClick = (date) => {
-        // Validar si date es un objeto Date válido
         if (date instanceof Date && !isNaN(date) && !isDateDisabled(date)) {
             setSelectedDateForTimes(date);
 
-            // Asegurarse de que date sea siempre un objeto Date antes de formatear
             const formattedDate = date.toISOString().split('T')[0];
 
             if (formattedDate) {
-                onDateTimeChange(formattedDate, null);
-                onFormDataChange({ fechaCita: formattedDate });
+                onDateTimeChange(formattedDate, null); // Restablece la hora seleccionada
+                onFormDataChange({ fechaCita: formattedDate, horaCita: null });
                 fetchAvailableTimes(date);
                 setShowTimeDialog(true);
             } else {
@@ -143,8 +141,8 @@ const StepThree = ({
         }
     };
 
+
     const handleTimeSelection = (time) => {
-        // Verificar que selectedDateForTimes sea un objeto Date válido
         if (selectedDateForTimes instanceof Date && !isNaN(selectedDateForTimes)) {
             const formattedDate = selectedDateForTimes.toISOString().split('T')[0];
 
@@ -160,20 +158,29 @@ const StepThree = ({
     };
 
     const handleContinue = () => {
-        if (selectedDate && selectedTime) {
-            if (!(selectedDate instanceof Date)) {
-                console.warn('selectedDate no es un objeto Date, convirtiendo...');
-                selectedDate = new Date(selectedDate);
-            }
-
-            if (selectedDate instanceof Date && !isNaN(selectedDate)) {
-                onStepCompletion('step3', true);
-            } else {
-                console.error('Fecha no válida al continuar:', selectedDate);
-            }
+        if (!selectedDate || !selectedTime) {
+            setNotification({
+                open: true,
+                message: 'Por favor selecciona una fecha y un horario válido antes de continuar.',
+                type: 'warning',
+            });
+            setTimeout(() => {
+                setNotification({ open: false, message: '', type: '' });
+            }, 3000);
+            return;
         }
-    };
 
+        const formattedDate = selectedDate instanceof Date
+            ? selectedDate.toISOString().split('T')[0]
+            : selectedDate;
+
+        if (!formattedDate || !selectedTime) {
+            console.error('Datos incompletos para continuar:', formattedDate, selectedTime);
+            return;
+        }
+
+        onStepCompletion('step3', true);
+    };
 
     const isDateDisabled = (date) => {
         const today = new Date();
@@ -643,6 +650,7 @@ const StepThree = ({
                         >
                             Continuar
                         </Button>
+
                     </Box>
                 </>
             )}

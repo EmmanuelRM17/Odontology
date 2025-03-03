@@ -75,7 +75,6 @@ const EditService = ({ open, handleClose, serviceId, onUpdate }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditedService(prev => ({ ...prev, [name]: value }));
-    // Clear error when field is modified
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: null }));
     }

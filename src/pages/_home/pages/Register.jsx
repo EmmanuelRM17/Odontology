@@ -1,16 +1,16 @@
-import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Container, FormControl, FormControlLabel, FormHelperText, Grid, IconButton, InputAdornment, InputLabel, Link, MenuItem, Modal, Select, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
-import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
+import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Container, FormControl, FormControlLabel, FormHelperText, Grid, IconButton, InputAdornment, InputLabel, Link, MenuItem, Modal, Select, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
 import { motion } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { FaCheckCircle, FaEnvelope, FaEye, FaEyeSlash, FaInfoCircle, FaLock, FaPhone, FaPlusCircle, FaUser } from 'react-icons/fa'; // Importamos 
 import { useNavigate } from 'react-router-dom';
 import zxcvbn from 'zxcvbn';
-import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+
 const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [formData, setFormData] = useState({
@@ -188,7 +188,6 @@ const Register = () => {
     const { name, value } = e.target;
 
     // Remover espacios en blanco al principio y al final del valor
-    const trimmedValue = value.trim();
 
     setFormData((prevData) => ({
       ...prevData,
@@ -332,10 +331,12 @@ const Register = () => {
     }
 
     if (name === 'email') {
-      if (value !== trimmedValue || !emailRegex.test(trimmedValue)) {
+      const trimmedValue = value.trim(); 
+    
+      if (!emailRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
-          email: 'Verifique que su correo sea valido',
+          email: 'Verifique que su correo sea válido',
         }));
       } else {
         setErrors((prevErrors) => ({
@@ -344,6 +345,7 @@ const Register = () => {
         }));
       }
     }
+    
 
     if (name === 'telefono') {
       if (!phoneRegex.test(value)) {
@@ -386,13 +388,6 @@ const Register = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-  const updateTutorFullName = (nombre, apellidos) => {
-    const nombreCompleto = `${nombre || ''} ${apellidos || ''}`.trim();
-    setFormData(prev => ({
-      ...prev,
-      nombreTutor: nombreCompleto,
-    }));
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -715,34 +710,6 @@ const Register = () => {
     Acrílico: 'Presente en prótesis dentales.',
   };
 
-  const commonTextFieldStyles = {
-    '& .MuiOutlinedInput-root': {
-      borderRadius: '8px',
-      backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-      transition: 'all 0.3s ease',
-      '&:hover fieldset': {
-        borderColor: '#03427c',
-      },
-      '&.Mui-focused fieldset': {
-        borderColor: '#03427c',
-        borderWidth: '2px'
-      },
-      '& fieldset': {
-        borderColor: 'rgba(3, 66, 124, 0.2)'
-      }
-    },
-    '& .MuiInputLabel-root': {
-      color: 'rgba(3, 66, 124, 0.7)',
-      '&.Mui-focused': {
-        color: '#03427c',
-      }
-    },
-    '& .MuiInputAdornment-root': {
-      '& .MuiSvgIcon-root': {
-        color: '#03427c'
-      }
-    }
-  }
 
 
   const getStepContent = (step) => {
