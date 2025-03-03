@@ -21,7 +21,7 @@ const messages = {
   time: "Hora",
   event: "Evento",
   noEventsInRange: "No hay eventos en este período",
-  showMore: (total) => `+${total} más`, // Traduce "+X more" a "+X más"
+  showMore: (total) => `+${total} más`, 
 };
 
 // Nueva lista de colores (sin el verde y con dos nuevos colores)
