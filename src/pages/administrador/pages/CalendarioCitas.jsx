@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { Container, Box, Card, Typography } from "@mui/material";
+import { Container, Box, Card, Typography, CircularProgress } from "@mui/material";
 import axios from "axios";
+import DetalleCitaPaciente from "./DetalleCitaPaciente";
+import Notificaciones from "../../../components/Layout/Notificaciones";  // Importamos el componente de notificaciones
+import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Importamos el useThemeContext
 
 moment.locale("es");
 const localizer = momentLocalizer(moment);
@@ -24,12 +27,17 @@ const messages = {
   showMore: (total) => `+${total} más`, 
 };
 
-// Nueva lista de colores (sin el verde y con dos nuevos colores)
 const labelColors = ["#FF5733", "#3357FF", "#FF33A8", "#FF8C00", "#9C27B0", "#FF4500", "#1E90FF"];
 
 const CalendarioAgenda = () => {
+  const { isDarkTheme } = useThemeContext();  // Usamos el contexto para obtener el tema actual
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCita, setSelectedCita] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [openNotification, setOpenNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+  const [notificationType, setNotificationType] = useState("error");
 
   const fetchEvents = () => {
     axios
@@ -37,13 +45,13 @@ const CalendarioAgenda = () => {
       .then((response) => {
         const formattedEvents = response.data.map((event) => {
           const startDate = moment(event.fecha_consulta, "YYYY-MM-DD HH:mm:ss").toDate();
-          const duration = parseInt(event.duration.split("-")[1].trim()); // Duración en minutos
+          const duration = parseInt(event.duration.split("-")[1].trim());
           const endDate = new Date(startDate.getTime() + duration * 60000);
 
-          // Asignar color aleatorio
           const randomColor = labelColors[Math.floor(Math.random() * labelColors.length)];
 
           return {
+            id: event.cita_id,
             title: event.servicio_nombre,
             start: startDate,
             end: endDate,
@@ -63,28 +71,43 @@ const CalendarioAgenda = () => {
   };
 
   useEffect(() => {
-    fetchEvents(); // Carga inicial
-    const interval = setInterval(fetchEvents, 30000); // Actualiza cada 30 segundos
+    fetchEvents(); 
+    const interval = setInterval(fetchEvents, 30000); 
 
-    return () => clearInterval(interval); // Limpia el intervalo al desmontar
+    return () => clearInterval(interval); 
   }, []);
 
-  // Estilos de los eventos (más pequeños)
+  const handleSelectEvent = (event) => {
+    setLoading(true);  // Activa la animación de carga
+    axios
+      .get(`https://back-end-4803.onrender.com/api/calendario/agenda/${event.id}`)
+      .then((response) => {
+        setSelectedCita(response.data);
+        setOpenModal(true);
+        setLoading(false);  // Detiene la animación de carga cuando se obtienen los datos
+      })
+      .catch((error) => {
+        setLoading(false);  // Detiene la animación de carga
+        setNotificationMessage("No fue posible obtener el detalle. Intente más tarde.");
+        setNotificationType("error");
+        setOpenNotification(true);  // Muestra el mensaje de error
+      });
+  };
+
   const eventStyleGetter = (event) => {
     return {
       style: {
         backgroundColor: event.color,
         color: "white",
-        fontSize: "15px", // Texto más pequeño
-        padding: "3px", // Espacio reducido dentro del evento
-        borderRadius: "3px", // Bordes más pequeños
+        fontSize: "15px",
+        padding: "3px", 
+        borderRadius: "3px", 
         border: "none",
-        minHeight: "15px", // Altura mínima reducida
+        minHeight: "15px", 
       },
     };
   };
 
-  // Estilos para opacar días pasados
   const dayPropGetter = (date) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -101,60 +124,117 @@ const CalendarioAgenda = () => {
   };
 
   if (loading) {
-    return <Typography variant="h6" sx={{ textAlign: "center", marginTop: 10 }}>Cargando eventos...</Typography>;
-  }
-
-  return (
-    <Container maxWidth="lg">
-    <Box mt={8}>
-      <Card elevation={4} sx={{ padding: 3, borderRadius: "12px" }}>
-        <Typography
-          variant="h6"
-          sx={{
-            fontWeight: "bold",
-            color: "#0d47a1",
-            mb: 2,
-            textAlign: "center",
-            display: "block",
-            fontSize: "20px",
-          }}
-        >
-          📅 Agenda de Citas - Odontología
-        </Typography>
-        <Box
-          sx={{
-            "& .rbc-toolbar": {
-              fontSize: "17px",
-              fontWeight: "bold",
-              color: "#0D47A1",
-              textAlign: "center",
-              textTransform: "uppercase",
-              paddingBottom: "10px",
-            },
-            "& .rbc-header": {
-              fontSize: "15px",
-              fontWeight: "bold",
-              color: "#0D47A1",
-              textTransform: "uppercase",
-            },
-          }}
-        >
-          <Calendar
-            localizer={localizer}
-            events={events}
-            startAccessor="start"
-            endAccessor="end"
-            views={["month", "week", "day"]} // Manteniendo todas las vistas
-            eventPropGetter={eventStyleGetter}
-            dayPropGetter={dayPropGetter}
-            style={{ height: 600, marginTop: 10, fontSize: "15px" }}
-            messages={messages}
-          />
+    return (
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          width: "100vw",
+          height: "100vh",
+          backgroundColor: isDarkTheme ? "#001f3d" : "#f0f0f0",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          zIndex: 9999, // Asegura que esté por encima de otros elementos
+        }}
+      >
+        <Box sx={{ textAlign: "center" }}>
+          <CircularProgress size={80} thickness={5} />
+          <Typography variant="h6" sx={{ mt: 2, color: isDarkTheme ? "#ffffff" : "#333" }}>
+            Cargando eventos...
+          </Typography>
         </Box>
-      </Card>
-    </Box>
-  </Container>
+      </Box>
+    );
+  }
   
+  return (
+    <>
+    {/* Fondo fuera del container */}
+    <Box 
+      sx={{
+        position: "absolute", 
+        top: 0, 
+        left: 0, 
+        width: "100%", 
+        height: "150%", 
+        backgroundColor: isDarkTheme ? "#001f3d" : "#f0f0f0", 
+        zIndex: -1,  // Asegura que este div quede detrás del contenido
+      }} 
+    />
+    <Container maxWidth="lg">
+      <Box mt={8}>
+        <Card elevation={4} sx={{
+          padding: 3, 
+          borderRadius: "12px", 
+          backgroundColor: isDarkTheme ? "#001f3d" : "#ffffff",  // Fondo cambia según el tema
+        }}>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: "bold",
+              color: isDarkTheme ? "#ffffff" : "#0d47a1",  // Color del texto cambia según el tema
+              mb: 2,
+              textAlign: "center",
+              display: "block",
+              fontSize: "20px",
+            }}
+          >
+            📅 Agenda de Citas - Odontología
+          </Typography>
+          <Box
+            sx={{
+              "& .rbc-toolbar": {
+                fontSize: "17px",
+                fontWeight: "bold",
+                color: isDarkTheme ? "#ffffff" : "#0D47A1",  // Colores cambian según el tema
+                textAlign: "center",
+                textTransform: "uppercase",
+                paddingBottom: "10px",
+              },
+              "& .rbc-header": {
+                fontSize: "15px",
+                fontWeight: "bold",
+                color: isDarkTheme ? "#ffffff" : "#0D47A1", // Colores cambian según el tema
+                textTransform: "uppercase",
+              },
+            }}
+          >
+            <Calendar
+              localizer={localizer}
+              events={events}
+              startAccessor="start"
+              endAccessor="end"
+              views={["month", "week", "day"]}
+              eventPropGetter={eventStyleGetter}
+              dayPropGetter={dayPropGetter}
+              style={{ height: 600, marginTop: 10, fontSize: "15px" }}
+              messages={messages}
+              onSelectEvent={handleSelectEvent}
+            />
+          </Box>
+        </Card>
+      </Box>
+
+      {/* Notificación de error */}
+      <Notificaciones
+        open={openNotification}
+        message={notificationMessage}
+        type={notificationType}
+        handleClose={() => setOpenNotification(false)}
+      />
+
+      {/* Modal con detalles de la cita */}
+      {openModal && (
+        <DetalleCitaPaciente
+          open={openModal}
+          onClose={() => setOpenModal(false)}
+          cita={selectedCita}
+        />
+      )}
+    </Container>
+    </>
   );
 };
 
