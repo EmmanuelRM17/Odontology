@@ -40,6 +40,7 @@ import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm.jsx";
 import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas.jsx";
+import Graficas from "./pages/administrador/pages/Graficas.jsx";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
@@ -211,6 +212,8 @@ function App() {
           <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/citas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de citas' }]} /><CitasForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas/></LayoutAdmin>} />
+
 
           {/* Rutas protegidas del empleado */}
           <Route path="/Empleado/principal" element={<LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado>} />
@@ -227,5 +230,5 @@ function App() {
   );
 }
 //trozon
-
+//Mande bro
 export default App;
