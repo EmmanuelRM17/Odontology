@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import {
     Box,
     Typography,
@@ -12,7 +13,8 @@ import {
     Paper,
     Tooltip,
     Zoom,
-    CircularProgress
+    CircularProgress,
+    Snackbar 
 } from '@mui/material';
 import {
     ArrowBack,
@@ -101,6 +103,9 @@ const ReservaCitas = () => {
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
 
+    const location = useLocation();
+const servicioSeleccionado = location.state?.servicioSeleccionado || '';
+
     const colors = {
         background: isDarkTheme ? '#0A1929' : '#F5F7FA',
         primary: isDarkTheme ? '#1E88E5' : '#1976D2',
@@ -170,7 +175,20 @@ const ReservaCitas = () => {
         }
     };
 
-
+    useEffect(() => {
+        if (servicioSeleccionado) {
+            setFormData((prev) => ({
+                ...prev,
+                servicio: servicioSeleccionado.title // Asegúrate de que sea el campo correcto
+            }));
+            setNotification({
+                open: true,
+                message: `Servicio "${servicioSeleccionado.title}" seleccionado. Complete los campos restantes.`,
+                type: 'info',
+            });
+        }
+    }, [servicioSeleccionado]);
+    
     const renderStep = () => {
         const commonProps = {
             colors,

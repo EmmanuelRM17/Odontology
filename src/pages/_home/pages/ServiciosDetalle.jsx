@@ -35,7 +35,9 @@ import {
     CalendarMonth,
     HelpOutline
 } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+
 const ServicioDetalle = () => {
     const { servicioId } = useParams();
     const [service, setService] = useState(null);
@@ -43,12 +45,13 @@ const ServicioDetalle = () => {
     const [error, setError] = useState(null);
     const [isVisible, setIsVisible] = useState(false);
     const { isDarkTheme } = useThemeContext();
-    const theme = useTheme();
+    const [imageLoading, setImageLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
-    
+
     useEffect(() => {
         const fetchService = async () => {
             try {
@@ -63,12 +66,12 @@ const ServicioDetalle = () => {
                 setLoading(false);
             }
         };
-    
+
         fetchService();
         window.scrollTo(0, 0);
-    
+
     }, [servicioId]);
-    
+
 
     const colors = {
         background: isDarkTheme ? '#0D1B2A' : '#ffffff',
@@ -79,6 +82,10 @@ const ServicioDetalle = () => {
         accent: isDarkTheme ? '#4FD1C5' : '#2B6CB0',
     };
 
+    const handleAgendarCita = (service) => {
+        navigate('/agendar-cita', { state: { servicioSeleccionado: service } });
+    };
+    
     const SectionHeader = ({ icon: Icon, title, description }) => (
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
             <Icon sx={{ color: colors.primary, fontSize: 28, mr: 1 }} />
@@ -95,13 +102,13 @@ const ServicioDetalle = () => {
 
     if (loading) {
         return (
-            <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
                 minHeight: '100vh',
-                backgroundColor: colors.background 
+                backgroundColor: colors.background
             }}>
                 <CircularProgress size={60} thickness={4} sx={{ color: colors.primary }} />
                 <Typography sx={{ mt: 2, color: colors.text }}>Cargando servicio...</Typography>
@@ -111,10 +118,10 @@ const ServicioDetalle = () => {
 
     if (error || !service) {
         return (
-            <Box sx={{ 
-                textAlign: 'center', 
-                py: 5, 
-                backgroundColor: colors.background, 
+            <Box sx={{
+                textAlign: 'center',
+                py: 5,
+                backgroundColor: colors.background,
                 minHeight: '100vh',
                 display: 'flex',
                 alignItems: 'center',
@@ -146,16 +153,35 @@ const ServicioDetalle = () => {
                                 overflow: 'hidden',
                                 '&:hover': { transform: 'translateY(-5px)' }
                             }}>
-                                <CardMedia
-                                    component="img"
-                                    height="300"
-                                    image={`https://source.unsplash.com/1200x300/?dental,${service.title.replace(' ', ',')}`}
-                                    alt={service.title}
-                                    sx={{
-                                        objectFit: 'cover',
-                                        objectPosition: 'center'
-                                    }}
-                                />
+                                <Box sx={{ position: 'relative' }}>
+                                    {imageLoading && (
+                                        <Box sx={{
+                                            position: 'absolute',
+                                            top: '50%', left: '50%',
+                                            transform: 'translate(-50%, -50%)'
+                                        }}>
+                                            <CircularProgress size={50} thickness={4} />
+                                        </Box>
+                                    )}
+                                    <CardMedia
+                                        component="img"
+                                        height="300"
+                                        image={service.image_url
+                                            ? service.image_url.replace('/upload/', '/upload/w_800,h_600,c_fill,q_auto,f_auto/')
+                                            : `https://source.unsplash.com/1200x300/?dental,${service.title.replace(' ', ',')}`
+                                        }
+                                        alt={service.title}
+                                        loading="lazy"
+                                        onLoad={() => setImageLoading(false)}
+                                        sx={{
+                                            objectFit: 'cover',
+                                            objectPosition: 'center',
+                                            filter: imageLoading ? 'blur(10px)' : 'blur(0)',
+                                            transition: 'filter 0.5s ease-in-out'
+                                        }}
+                                    />
+                                </Box>
+
                                 <CardContent sx={{ textAlign: 'center', py: 4 }}>
                                     <Fade in timeout={1200}>
                                         <Typography variant="h3" sx={{
@@ -300,6 +326,7 @@ const ServicioDetalle = () => {
                                             variant="contained"
                                             size="large"
                                             startIcon={<CalendarMonth />}
+                                            onClick={() => handleAgendarCita(service)}
                                             sx={{
                                                 backgroundColor: colors.accent,
                                                 '&:hover': {

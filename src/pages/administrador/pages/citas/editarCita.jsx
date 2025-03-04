@@ -2,10 +2,9 @@ import React, { useState, useEffect } from 'react';
 import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, FormControl, InputLabel, Select, MenuItem,
-  Grid, Typography, Box, CircularProgress,
-  Divider, Tooltip, IconButton
+  Grid, Typography, Divider, CircularProgress,
 } from '@mui/material';
-import { Edit, Info, AttachMoney } from '@mui/icons-material';
+import { Edit, AttachMoney } from '@mui/icons-material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 
@@ -13,6 +12,7 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
   const { isDarkTheme } = useThemeContext();
   const [loading, setLoading] = useState(false);
   const [servicios, setServicios] = useState([]);
+  const [originalData, setOriginalData] = useState(null);
   const [formData, setFormData] = useState({
     paciente_id: '',
     servicio_id: '',
@@ -24,13 +24,13 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
     estado: 'Pendiente',
     notas: ''
   });
-  
+
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     type: ''
   });
-  
+
   const [formErrors, setFormErrors] = useState({
     servicio_id: false,
     fecha: false,
@@ -57,16 +57,20 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
     };
     fetchServicios();
   }, []);
-  
-  // Inicializar el formulario solo al abrir el diálogo
+
+  // Reiniciar notificaciones y formulario al abrir el diálogo
   useEffect(() => {
     if (open && appointmentData) {
-      setFormData({
+      // Limpiar notificaciones para evitar persistencia de mensajes antiguos
+      setNotification({ open: false, message: '', type: '' });
+
+      const newFormData = {
         paciente_id: appointmentData.paciente_id || '',
-        servicio_id: appointmentData.servicio_id || '',
+        servicio_id: appointmentData.servicio_id ? appointmentData.servicio_id.toString() : '',
         servicio_nombre: appointmentData.servicio_nombre || '',
+        // Se usa la propiedad 'categoria_servicio' si existe, sino cadena vacía
         categoria_servicio: appointmentData.categoria_servicio || '',
-        precio_servicio: appointmentData.precio_servicio || '',
+        precio_servicio: appointmentData.precio_servicio ? parseFloat(appointmentData.precio_servicio).toFixed(2) : '',
         fecha: appointmentData.fecha_consulta
           ? new Date(appointmentData.fecha_consulta).toISOString().split('T')[0]
           : '',
@@ -80,16 +84,37 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
           : '',
         estado: appointmentData.estado || 'Pendiente',
         notas: appointmentData.notas || ''
-      });
-    }
-  }, [open]); // Solo se ejecuta al abrir el diálogo
+      };
 
-  // Manejo de cambios en los inputs
+      setFormData(newFormData);
+      setOriginalData(newFormData);
+    }
+  }, [open, appointmentData]);
+
+  // Manejo de cambios en inputs generales
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: false }));
+    }
+  };
+
+  // Manejo de cambios en el servicio para actualizar nombre, categoría y precio
+  const handleServiceChange = (e) => {
+    const { value } = e.target;
+    const selectedService = servicios.find(servicio => servicio.id.toString() === value);
+    setFormData(prev => ({
+      ...prev,
+      servicio_id: value,
+      servicio_nombre: selectedService ? selectedService.title : prev.servicio_nombre,
+      categoria_servicio: selectedService ? selectedService.category : prev.categoria_servicio,
+      precio_servicio: selectedService
+        ? parseFloat(selectedService.price || 0).toFixed(2)
+        : prev.precio_servicio
+    }));
+    if (formErrors.servicio_id) {
+      setFormErrors(prev => ({ ...prev, servicio_id: false }));
     }
   };
 
@@ -105,55 +130,75 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
     return !Object.values(errors).some(err => err);
   };
 
+  const isEqual = (obj1, obj2) => {
+    return Object.keys(obj1).every(key => obj1[key] === obj2[key]);
+  };
+
   // Envío del formulario
   const handleSubmit = async () => {
     if (!validateForm()) return;
+
+    if (isEqual(formData, originalData)) {
+      setNotification({
+        open: true,
+        message: 'No se realizaron cambios en la cita.',
+        type: 'info'
+      });
+      // Mostrar notificación brevemente y luego cerrar
+      setTimeout(() => {
+        setNotification({ open: false, message: '', type: '' });
+        handleClose();
+      }, 1000);
+      return;
+    }
+
     setLoading(true);
     setNotification({ open: false, message: '', type: '' });
 
     try {
-        const fechaHora = `${formData.fecha}T${formData.hora}:00`;
-        const fecha_consulta = new Date(fechaHora);
+      const fechaHora = `${formData.fecha}T${formData.hora}:00`;
+      const fecha_consulta = new Date(fechaHora);
 
-        const response = await fetch(`https://back-end-4803.onrender.com/api/citas/update/${appointmentData.consulta_id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                servicio_id: formData.servicio_id,
-                categoria_servicio: formData.categoria_servicio,
-                precio_servicio: formData.precio_servicio,
-                fecha_consulta: fecha_consulta.toISOString(),
-                estado: formData.estado,
-                notas: formData.notas
-            }),
-        });
+      const response = await fetch(`https://back-end-4803.onrender.com/api/citas/update/${appointmentData.consulta_id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          servicio_id: formData.servicio_id,
+          categoria_servicio: formData.categoria_servicio,
+          precio_servicio: formData.precio_servicio,
+          fecha_consulta: fecha_consulta.toISOString(),
+          estado: formData.estado,
+          notas: formData.notas
+        }),
+      });
 
-        if (!response.ok) throw new Error('Error al actualizar la cita');
+      if (!response.ok) throw new Error('Error al actualizar la cita');
 
-        setNotification({
-            open: true,
-            message: '¡Cita actualizada con éxito!',
-            type: 'success'
-        });
+      setNotification({
+        open: true,
+        message: '¡Cita actualizada con éxito!',
+        type: 'success'
+      });
 
-        setTimeout(() => {
-            handleClose();
-            if (onUpdate) onUpdate(); // 🟢 Asegurar que se refrescan los datos en la tabla
-        }, 1500);
+      setTimeout(() => {
+        setNotification({ open: false, message: '', type: '' });
+        handleClose();
+        if (onUpdate) onUpdate();
+      }, 2500);
 
     } catch (error) {
-        console.error('Error al actualizar la cita:', error);
-        setNotification({
-            open: true,
-            message: 'Ocurrió un error al actualizar la cita. Por favor intente nuevamente.',
-            type: 'error'
-        });
+      console.error('Error al actualizar la cita:', error);
+      setNotification({
+        open: true,
+        message: 'Ocurrió un error al actualizar la cita. Por favor intente nuevamente.',
+        type: 'error'
+      });
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
 
   // Definición de colores según el tema
   const colors = {
@@ -166,7 +211,7 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
   return (
     <Dialog
       open={open}
-      onClose={loading ? null : handleClose}
+      onClose={loading ? null : () => { setNotification({ open: false, message: '', type: '' }); handleClose(); }}
       maxWidth="md"
       fullWidth
       PaperProps={{
@@ -203,127 +248,128 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
 
           {/* Sección del servicio */}
           <Grid item xs={12}>
-              <Divider sx={{ mb: 2 }} />
+            <Divider sx={{ mb: 2 }} />
           </Grid>
 
           <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo de Servicio</InputLabel>
-                <Select
-                  name="servicio_id"
-                  value={formData.servicio_id}
-                  onChange={handleChange}
-                  label="Tipo de Servicio"
-                >
-                  {servicios.map(servicio => (
-                    <MenuItem key={servicio.id} value={servicio.id.toString()}>
-                      {servicio.title}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+            <FormControl fullWidth>
+              <InputLabel>Tipo de Servicio</InputLabel>
+              <Select
+                name="servicio_id"
+                value={formData.servicio_id}
+                onChange={handleServiceChange}
+                label="Tipo de Servicio"
+              >
+                {servicios.map(servicio => (
+                  <MenuItem key={servicio.id} value={servicio.id.toString()}>
+                    {servicio.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12} md={6}>
-              <FormControl fullWidth disabled>
-                <TextField
-                  label="Categoría del Servicio"
-                  value={formData.categoria_servicio}
-                  fullWidth
-                  disabled
-                />
-              </FormControl>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
+            <FormControl fullWidth disabled>
               <TextField
-                name="precio_servicio"
-                label="Precio del Servicio"
-                value={formData.precio_servicio}
-                onChange={handleChange}
+                label="Categoría del Servicio"
+                value={formData.categoria_servicio}
                 fullWidth
-                type="number"
-                InputProps={{
-                  startAdornment: <AttachMoney sx={{ mr: 1, ml: -0.5 }} />
-                }}
-                error={formErrors.precio_servicio}
-                helperText={formErrors.precio_servicio ? "Ingrese un precio válido" : ""}
-                disabled={loading}
+                disabled
               />
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              name="precio_servicio"
+              label="Precio del Servicio"
+              value={formData.precio_servicio}
+              onChange={handleChange}
+              fullWidth
+              type="number"
+              inputProps={{ step: "0.01", min: "0" }}
+              InputProps={{
+                startAdornment: <AttachMoney sx={{ mr: 1, ml: -0.5 }} />
+              }}
+              error={formErrors.precio_servicio}
+              helperText={formErrors.precio_servicio ? "Ingrese un precio válido" : ""}
+              disabled={loading}
+            />
           </Grid>
 
           {/* Sección de detalles de la cita */}
           <Grid item xs={12}>
-              <Divider sx={{ mb: 2 }} />
+            <Divider sx={{ mb: 2 }} />
           </Grid>
 
           <Grid item xs={12} md={6}>
-              <TextField
-                type="date"
-                name="fecha"
-                label="Fecha"
-                value={formData.fecha}
+            <TextField
+              type="date"
+              name="fecha"
+              label="Fecha"
+              value={formData.fecha}
+              onChange={handleChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              error={formErrors.fecha}
+              helperText={formErrors.fecha ? "La fecha es requerida" : ""}
+              disabled={loading}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              type="time"
+              name="hora"
+              label="Hora"
+              value={formData.hora}
+              onChange={handleChange}
+              fullWidth
+              InputLabelProps={{ shrink: true }}
+              error={formErrors.hora}
+              helperText={formErrors.hora ? "La hora es requerida" : ""}
+              disabled={loading}
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <FormControl fullWidth>
+              <InputLabel>Estado de la Cita</InputLabel>
+              <Select
+                name="estado"
+                value={formData.estado}
                 onChange={handleChange}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                error={formErrors.fecha}
-                helperText={formErrors.fecha ? "La fecha es requerida" : ""}
+                label="Estado de la Cita"
                 disabled={loading}
-              />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-              <TextField
-                type="time"
-                name="hora"
-                label="Hora"
-                value={formData.hora}
-                onChange={handleChange}
-                fullWidth
-                InputLabelProps={{ shrink: true }}
-                error={formErrors.hora}
-                helperText={formErrors.hora ? "La hora es requerida" : ""}
-                disabled={loading}
-              />
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Estado de la Cita</InputLabel>
-                <Select
-                  name="estado"
-                  value={formData.estado}
-                  onChange={handleChange}
-                  label="Estado de la Cita"
-                  disabled={loading}
-                >
-                  <MenuItem value="Pendiente">Pendiente</MenuItem>
-                  <MenuItem value="Confirmada">Confirmada</MenuItem>
-                  <MenuItem value="Cancelada">Cancelada</MenuItem>
-                  <MenuItem value="Completada">Completada</MenuItem>
-                </Select>
-              </FormControl>
+              >
+                <MenuItem value="Pendiente">Pendiente</MenuItem>
+                <MenuItem value="Confirmada">Confirmada</MenuItem>
+                <MenuItem value="Cancelada">Cancelada</MenuItem>
+                <MenuItem value="Completada">Completada</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid item xs={12}>
-              <TextField
-                name="notas"
-                label="Notas adicionales"
-                multiline
-                rows={4}
-                fullWidth
-                value={formData.notas}
-                onChange={handleChange}
-                disabled={loading}
-                placeholder="Escriba aquí cualquier información adicional relevante para esta cita..."
-              />
+            <TextField
+              name="notas"
+              label="Notas adicionales"
+              multiline
+              rows={4}
+              fullWidth
+              value={formData.notas}
+              onChange={handleChange}
+              disabled={loading}
+              placeholder="Escriba aquí cualquier información adicional relevante para esta cita..."
+            />
           </Grid>
         </Grid>
       </DialogContent>
 
       <DialogActions sx={{ p: 3, borderTop: '1px solid', borderColor: 'divider' }}>
         <Button
-          onClick={handleClose}
+          onClick={() => { setNotification({ open: false, message: '', type: '' }); handleClose(); }}
           color="inherit"
           disabled={loading}
           variant="outlined"
@@ -351,8 +397,7 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
         open={notification.open}
         message={notification.message}
         type={notification.type}
-        handleClose={() => setNotification({ ...notification, open: false })}
-        autoHideDuration={5000}
+        handleClose={() => setNotification({ open: false, message: '', type: '' })}
       />
     </Dialog>
   );

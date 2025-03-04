@@ -122,7 +122,7 @@ const Notificaciones = ({ open, message, type, handleClose }) => {
     if (isVisible) {
       timer = setTimeout(() => {
         handleSafeClose(null, 'customTimeout');
-      }, 3000);
+      }, 2500);
     }
     
     // Limpiar el temporizador si el componente se desmonta o cambia el estado

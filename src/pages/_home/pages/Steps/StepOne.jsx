@@ -901,53 +901,6 @@ const StepOne = ({
                     )}
                 </Grid>
 
-                {/* Email Field */}
-                <Grid item xs={12} md={6}>
-                    <TextField
-                        fullWidth
-                        label="Correo Electrónico"
-                        name="correo"
-                        value={formData.correo}
-                        onChange={handleChange}
-                        error={!!errors.correo}
-                        helperText={errors.correo || 'Correo no editable'}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <EmailIcon color="primary" />
-                                </InputAdornment>
-                            ),
-                            readOnly: formData.pacienteExistente,
-                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
-                        }}
-                        variant="outlined"
-                    />
-                </Grid>
-
-                {/* Phone Field */}
-                <Grid item xs={12} md={6}>
-                    <TextField
-                        fullWidth
-                        label="Teléfono"
-                        name="telefono"
-                        value={formData.telefono}
-                        onChange={handleChange}
-                        error={!!errors.telefono}
-                        helperText={errors.telefono || 'Teléfono no editable'}
-                        InputProps={{
-                            startAdornment: (
-                                <InputAdornment position="start">
-                                    <PhoneIcon color="primary" />
-                                </InputAdornment>
-                            ),
-                            readOnly: formData.pacienteExistente,
-                            style: formData.pacienteExistente ? { backgroundColor: '#f5f5f5' } : {},
-                        }}
-                        variant="outlined"
-                    />
-                </Grid>
-
-
                 {/* Selección del Servicio Section */}
                 <Grid item xs={12}>
                     <Box sx={{

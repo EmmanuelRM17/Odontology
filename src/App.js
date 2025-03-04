@@ -226,6 +226,5 @@ function App() {
     </ThemeProviderComponent>
   );
 }
-//trozon
 
 export default App;

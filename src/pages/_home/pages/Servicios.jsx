@@ -18,7 +18,7 @@ import {
     CssBaseline,
     alpha,
     Fade,
-    CardMedia 
+    CardMedia,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
@@ -28,6 +28,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import { useNavigate } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+import ServiceImage from './Image'
 
 const Servicios = () => {
     const [services, setServices] = useState([]);
@@ -95,6 +96,10 @@ const Servicios = () => {
         return `https://source.unsplash.com/400x300/?dental,${title.replace(' ', ',')}`;
     };
 
+    const handleAgendarCita = (service) => {
+        navigate('/agendar-cita', { state: { selectedService: service } });
+    };
+
     return (
         <ThemeProvider theme={theme}>
             <CssBaseline />
@@ -134,12 +139,12 @@ const Servicios = () => {
                         </Typography>
 
                         {/* Search and Filter Section */}
-                        <Box sx={{ 
-                            display: 'flex', 
-                            gap: 2, 
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 2,
                             justifyContent: 'center',
                             flexWrap: 'wrap',
-                            mb: 4 
+                            mb: 4
                         }}>
                             <Paper
                                 elevation={0}
@@ -239,12 +244,16 @@ const Servicios = () => {
                                                     onClick={() => navigate(`/servicios/detalle/${service.id}`)}
                                                     sx={{ cursor: 'pointer' }}
                                                 >
-                                                    <CardMedia
-                                                        component="img"
-                                                        height="200"
-                                                        image={getPlaceholderImage(service.title)}
-                                                        alt={service.title}
+                                                    <ServiceImage
+                                                        imageUrl={service.image_url
+                                                            ? service.image_url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/')
+                                                            : getPlaceholderImage(service.title)
+                                                        }
+                                                        title={service.title}
                                                     />
+
+
+
                                                     <CardContent sx={{ flexGrow: 1, p: 3 }}>
                                                         <Typography
                                                             variant="overline"
@@ -280,11 +289,7 @@ const Servicios = () => {
                                                         variant="contained"
                                                         fullWidth
                                                         startIcon={<CalendarMonthIcon />}
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            // Aquí puedes agregar la lógica para agendar cita
-                                                            console.log('Agendar cita para:', service.title);
-                                                        }}
+                                                        onClick={() => handleAgendarCita(service)}
                                                         sx={{
                                                             borderRadius: '50px',
                                                             textTransform: 'none'
