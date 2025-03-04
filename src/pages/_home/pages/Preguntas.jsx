@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
   Typography,
@@ -13,42 +13,126 @@ import {
   TextField,
   useMediaQuery,
   useTheme,
+  IconButton,
+  Chip,
+  Paper,
+  Grow,
+  Zoom,
+  Divider,
+  CircularProgress,
+  alpha
 } from "@mui/material";
+import { motion, AnimatePresence } from "framer-motion";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import EmailIcon from "@mui/icons-material/Email";
+import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import CloseIcon from "@mui/icons-material/Close";
+import LiveHelpIcon from "@mui/icons-material/LiveHelp";
+import SendIcon from "@mui/icons-material/Send";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+import ContactSupportIcon from "@mui/icons-material/ContactSupport";
+import InfoIcon from "@mui/icons-material/Info";
+import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
 import { keyframes } from "@emotion/react";
-import { useRef } from "react";
-import { CircularProgress } from "@mui/material";
-import { useCallback } from "react";
-import Notificaciones from '../../../components/Layout/Notificaciones'; // Importamos el componente de notificaciones
+import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from "../../../components/Tools/Captcha";
-import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
+
+// Animaciones personalizadas
+const fadeIn = keyframes`
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+`;
+
+const slideFromRight = keyframes`
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+`;
+
+const pulseAnimation = keyframes`
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+`;
+
+const shimmer = keyframes`
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+`;
 
 const FAQ = () => {
+  // Estados
   const [captchaVerified, setCaptchaVerified] = useState(false);
   const [expandedPanel, setExpandedPanel] = useState(false);
   const [openModal, setOpenModal] = useState(false);
-  const { isDarkTheme } = useThemeContext(); // Obtener el tema global desde el contexto
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const { isDarkTheme } = useThemeContext();
   const [loadingFaqs, setLoadingFaqs] = useState(true);
   const [faqs, setFaqs] = useState([]);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [filteredFaqs, setFilteredFaqs] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeCategory, setActiveCategory] = useState("Todas");
+  const [categories, setCategories] = useState(["Todas"]);
+  const dialogRef = useRef(null);
+  const searchInputRef = useRef(null);
   const [notification, setNotification] = useState({
     open: false,
     message: "",
     type: "info"
   });
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
+  
   const [formData, setFormData] = useState({
     email: "",
     name: "",
     question: "",
     isRegistered: false,
-    paciente_id: null,
-    captchaVerified: false,
+    paciente_id: null
   });
+
+  // Theme y media queries
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
+  // Colores principales según el tema
+  const colors = {
+    primary: isDarkTheme ? "#90CAF9" : "#03427C",
+    secondary: isDarkTheme ? "#FF4081" : "#FF4081",
+    background: isDarkTheme
+      ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+      : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
+    cardBg: isDarkTheme ? "#1E2A3B" : "#ffffff",
+    text: isDarkTheme ? "#ffffff" : "#0A1929",
+    secondaryText: isDarkTheme ? "#cbd5e0" : "#555555",
+    border: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
+    hover: isDarkTheme ? "rgba(144, 202, 249, 0.15)" : "rgba(3, 66, 124, 0.08)",
+    shadow: isDarkTheme 
+      ? "0 8px 16px rgba(0,0,0,0.4)" 
+      : "0 8px 16px rgba(3,66,124,0.15)",
+    placeholder: isDarkTheme ? "#4a5568" : "#cccccc"
+  };
 
   // Helper function para mostrar notificaciones
   const showNotification = (message, type = "info", duration = 4000) => {
@@ -58,58 +142,73 @@ const FAQ = () => {
       type
     });
 
-    // Cerrar notificación después del tiempo definido
     setTimeout(() => {
       setNotification(prev => ({ ...prev, open: false }));
     }, duration);
   };
 
-
-  // Manejador para cerrar notificaciones
-  const handleNotificationClose = () => {
-    setNotification(prev => ({ ...prev, open: false }));
-  };
-
+  // Función para obtener FAQs
   const fetchFAQs = useCallback(async () => {
-    const controller = new AbortController();  // 📌 Controlador para abortar la solicitud si tarda demasiado
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // ⏳ 10 segundos de espera máximo
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     try {
-        const response = await fetch(
-            "https://back-end-4803.onrender.com/api/preguntas/get-all",
-            { signal: controller.signal } // Asociar el controlador de aborto
-        );
+      const response = await fetch(
+        "https://back-end-4803.onrender.com/api/preguntas/get-all",
+        { signal: controller.signal }
+      );
 
-        clearTimeout(timeoutId); // 🚀 Si la respuesta llega antes, cancelar el timeout
+      clearTimeout(timeoutId);
 
-        if (!response.ok) {
-            throw new Error(`Error HTTP: ${response.status}`);
-        }
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
 
-        const data = await response.json();
+      const data = await response.json();
 
-        if (!Array.isArray(data)) {
-            throw new Error("Formato de datos incorrecto");
-        }
+      if (!Array.isArray(data)) {
+        throw new Error("Formato de datos incorrecto");
+      }
 
-        setFaqs(data);
+      setFaqs(data);
+      setFilteredFaqs(data);
+      
     } catch (error) {
-        if (error.name === "AbortError") {
-            showNotification("Tiempo de espera agotado. Inténtalo más tarde.", "error");
-        } else {
-            showNotification("No se pudieron cargar las preguntas frecuentes", "error");
-        }
-        setFaqs([]);
+      if (error.name === "AbortError") {
+        showNotification("Tiempo de espera agotado. Inténtalo más tarde.", "error");
+      } else {
+        showNotification("No se pudieron cargar las preguntas frecuentes", "error");
+      }
+      setFaqs([]);
+      setFilteredFaqs([]);
     } finally {
-        setLoadingFaqs(false);
+      setLoadingFaqs(false);
     }
-}, []);
+  }, []);
 
+  // Filtrar preguntas por búsqueda
+  useEffect(() => {
+    let result = [...faqs];
+    
+    // Filtrar por búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(
+        faq => 
+          faq.question.toLowerCase().includes(query) || 
+          faq.answer.toLowerCase().includes(query)
+      );
+    }
+    
+    setFilteredFaqs(result);
+  }, [faqs, searchQuery]);
 
+  // Cargar preguntas al montar el componente
   useEffect(() => {
     fetchFAQs();
   }, [fetchFAQs]);
 
+  // Handlers para acordeón
   const handleChange = (panel) => (event, isExpanded) => {
     try {
       setExpandedPanel(isExpanded ? panel : false);
@@ -118,6 +217,7 @@ const FAQ = () => {
     }
   };
 
+  // Handlers de formulario
   const handleFormChange = (e) => {
     try {
       const { name, value } = e.target;
@@ -224,7 +324,7 @@ const FAQ = () => {
         throw new Error(`Error HTTP: ${response.status}`);
       }
 
-      showNotification("El administrador responderá su pregunta pronto.", "info", 5000);
+      showNotification("El administrador responderá su pregunta pronto.", "success", 5000);
       setOpenModal(false);
 
       fetchFAQs();
@@ -235,216 +335,351 @@ const FAQ = () => {
         name: "",
         question: "",
         isRegistered: false,
-        paciente_id: null,
-        captchaVerified: false,
+        paciente_id: null
       });
+      setCaptchaVerified(false);
     } catch (error) {
       showNotification("Error al enviar la pregunta", "error");
     }
   };
 
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
+  };
 
-  // Primero definimos las animaciones
-  const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
+  const handleCategoryChange = (category) => {
+    setActiveCategory(category);
+  };
 
-  const slideFromRight = keyframes`
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
+  // Componente de esqueleto para la carga
+  const SkeletonFAQ = () => (
+    <Box sx={{ my: 2, width: '100%' }}>
+      {[1, 2, 3, 4].map((_, index) => (
+        <Paper 
+          key={index} 
+          sx={{
+            my: 2,
+            p: 2,
+            borderRadius: '12px',
+            background: `linear-gradient(90deg, ${
+              isDarkTheme ? '#1E2A3B' : '#f5f5f5'
+            } 25%, ${
+              isDarkTheme ? '#2C3E50' : '#e0e0e0'
+            } 37%, ${
+              isDarkTheme ? '#1E2A3B' : '#f5f5f5'
+            } 63%)`,
+            backgroundSize: '1000px 100%',
+            animation: `${shimmer} 2s infinite linear`,
+            height: index === 0 ? '100px' : '80px',
+            opacity: 1 - (index * 0.2)
+          }}
+        />
+      ))}
+    </Box>
+  );
 
-  const pulseAnimation = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-`;
+  // Variantes de animación para Framer Motion
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
 
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 50,
+        damping: 10
+      }
+    }
+  };
+
+  const modalVariants = {
+    hidden: { 
+      opacity: 0,
+      scale: 0.8
+    },
+    visible: { 
+      opacity: 1,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 80,
+        damping: 15
+      }
+    },
+    exit: { 
+      opacity: 0,
+      scale: 0.8,
+      transition: {
+        duration: 0.2
+      }
+    }
+  };
+
+  // Estilos con animaciones mejoradas
   const styles = {
     container: {
-      background: isDarkTheme
-        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
-        : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
-      minHeight: "55vh",
+      background: colors.background,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      minHeight: "85vh",
       padding: isMobile ? "1.5rem" : "3rem",
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      justifyContent: "flex-start",
-      transition: "background 0.3s ease-in-out",
+      transition: "all 0.3s ease-in-out",
       position: "relative",
+      overflow: 'hidden'
+    },
+    header: {
+      width: '100%',
+      maxWidth: '800px',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      mb: isTablet ? 3 : 5,
+      position: 'relative',
+      zIndex: 1
     },
     title: {
-      marginBottom: "2rem",
-      color: isDarkTheme ? "#90CAF9" : "#03427C",
-      fontSize: isMobile ? "1.75rem" : "2rem",
-      fontWeight: "bold",
+      color: isDarkTheme ? "#ffffff" : "#0A1929",
+      fontWeight: 800,
+      fontSize: isMobile ? "1.75rem" : "2.5rem",
       textAlign: "center",
       fontFamily: "Montserrat, sans-serif",
+      marginBottom: '1rem',
       textTransform: "uppercase",
-      letterSpacing: "2px",
-      position: "relative",
-      display: "inline-block",
-      paddingBottom: "0.75rem",
-      borderBottom: `4px solid ${isDarkTheme ? "#90CAF9" : "#03427C"}`,
-      textShadow: "2px 2px 5px rgba(0,0,0,0.2)",
-      animation: `${fadeIn} 0.8s ease-out`,
-      "&::after": {
+      letterSpacing: "1px",
+      textShadow: isDarkTheme ? "0 2px 10px rgba(255, 255, 255, 0.3)" : "0 2px 5px rgba(3, 66, 124, 0.2)",
+      position: 'relative',
+      display: 'inline-block',
+      '&::after': {
         content: '""',
-        position: "absolute",
-        bottom: "-4px",
-        left: "0",
-        width: "100%",
-        height: "4px",
-        background: isDarkTheme ? "#90CAF9" : "#03427C",
-        transform: "scaleX(0)",
-        transformOrigin: "right",
-        transition: "transform 0.3s ease-out",
+        position: 'absolute',
+        left: '50%',
+        bottom: '-10px',
+        width: '80px',
+        height: '4px',
+        background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
+        transform: 'translateX(-50%)',
+        borderRadius: '4px'
+      }
+    },
+    subtitle: {
+      color: colors.secondaryText,
+      fontSize: isMobile ? "0.9rem" : "1rem",
+      textAlign: "center",
+      maxWidth: "600px",
+      mt: 3,
+      mb: 4,
+      lineHeight: 1.6
+    },
+    searchContainer: {
+      width: '100%',
+      maxWidth: '700px',
+      mb: 3,
+      mt: 2
+    },
+    searchField: {
+      "& .MuiOutlinedInput-root": {
+        borderRadius: "30px",
+        backgroundColor: alpha(colors.cardBg, 0.7),
+        backdropFilter: "blur(8px)",
+        boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+        transition: "all 0.3s ease",
+        "&:hover": {
+          boxShadow: "0 6px 16px rgba(0,0,0,0.15)",
+          transform: "translateY(-2px)"
+        },
+        "&.Mui-focused": {
+          boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+          transform: "translateY(-2px)"
+        }
       },
-      "&:hover::after": {
-        transform: "scaleX(1)",
-        transformOrigin: "left",
+      "& .MuiOutlinedInput-input": {
+        padding: "14px 16px",
+        fontFamily: "Montserrat, sans-serif",
+        color: colors.text
       },
+      "& .MuiInputAdornment-root": {
+        marginRight: "8px"
+      },
+      "& fieldset": {
+        borderColor: colors.border
+      }
+    },
+    categoriesContainer: {
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: isMobile ? 1 : 1.5,
+      width: '100%',
+      maxWidth: '800px',
+      mb: 4,
+      px: 1
+    },
+    categoryChip: {
+      borderRadius: '20px',
+      fontFamily: 'Montserrat, sans-serif',
+      fontWeight: 500,
+      fontSize: isMobile ? '0.7rem' : '0.85rem',
+      py: 1.5,
+      transition: 'all 0.3s ease',
+      '&:hover': {
+        transform: 'translateY(-2px)',
+        boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
+      }
+    },
+    faqContainer: {
+      width: '100%',
+      maxWidth: '800px',
+      position: 'relative',
+      zIndex: 1
     },
     accordion: {
-      background: isDarkTheme ? "#2d3748" : "white",
+      background: alpha(colors.cardBg, 0.8),
+      backdropFilter: "blur(10px)",
       borderRadius: "12px",
-      boxShadow: isDarkTheme
-        ? "0 8px 16px rgba(0,0,0,0.4)"
-        : "0 8px 16px rgba(0,0,0,0.1)",
-      margin: "0.75rem 0",
-      width: "100%",
-      maxWidth: "800px",
+      boxShadow: colors.shadow,
+      mb: 2.5,
+      overflow: 'hidden',
       transition: "all 0.3s ease-in-out",
-      animation: `${slideFromRight} 0.5s ease-out`,
+      border: `1px solid ${alpha(colors.border, 0.1)}`,
       "&:hover": {
         transform: "translateY(-2px)",
         boxShadow: isDarkTheme
           ? "0 12px 20px rgba(0,0,0,0.5)"
-          : "0 12px 20px rgba(0,0,0,0.15)",
+          : "0 12px 20px rgba(3,66,124,0.2)",
       },
+      "&:before": {
+        display: "none"
+      }
+    },
+    accordionSummary: {
+      minHeight: '64px',
+      padding: '0 16px',
+      "&.Mui-expanded": {
+        minHeight: '64px',
+        borderBottom: `1px solid ${alpha(colors.border, 0.1)}`
+      }
+    },
+    accordionDetails: {
+      padding: '16px',
+      backgroundColor: alpha(isDarkTheme ? "#1A2636" : "#f8f9fa", 0.5)
     },
     question: {
       fontFamily: '"Montserrat", sans-serif',
-      fontSize: isMobile ? "1rem" : "1.1rem",
-      fontWeight: 400,
-      color: isDarkTheme ? "#ffffff" : "#000000",
+      fontSize: isMobile ? "0.95rem" : "1.05rem",
+      fontWeight: 600,
+      color: colors.text,
       transition: "color 0.3s ease",
+      mr: 1
     },
     answer: {
       fontFamily: "Montserrat, sans-serif",
-      fontSize: isMobile ? "0.9rem" : "1rem",
-      color: isDarkTheme ? "#cbd5e0" : "#555555",
-      lineHeight: 1.6,
-      padding: "0.5rem 0",
+      fontSize: isMobile ? "0.9rem" : "0.95rem",
+      color: colors.secondaryText,
+      lineHeight: 1.8,
       transition: "all 0.3s ease",
     },
     askButton: {
-      marginTop: "2.5rem",
-      background: isDarkTheme ? "#90CAF9" : "#03427C",
+      background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
       color: isDarkTheme ? "#000000" : "white",
       fontFamily: "Montserrat, sans-serif",
       padding: "0.75rem 2rem",
       borderRadius: "30px",
       textTransform: "none",
-      fontSize: "1.1rem",
-      fontWeight: 500,
+      fontSize: isMobile ? "1rem" : "1.1rem",
+      fontWeight: 600,
+      mt: 4,
       transition: "all 0.3s ease",
-      animation: `${pulseAnimation} 2s infinite`,
       boxShadow: isDarkTheme
         ? "0 4px 15px rgba(144, 202, 249, 0.4)"
         : "0 4px 15px rgba(3, 66, 124, 0.4)",
       "&:hover": {
-        background: isDarkTheme ? "#63a4ff" : "#03427C",
-        transform: "translateY(-2px)",
         boxShadow: isDarkTheme
           ? "0 6px 20px rgba(144, 202, 249, 0.6)"
           : "0 6px 20px rgba(3, 66, 124, 0.6)",
-      },
+        transform: "translateY(-4px) scale(1.02)"
+      }
     },
     modal: {
       "& .MuiDialog-paper": {
         borderRadius: "16px",
-        padding: "1.5rem",
-        backgroundColor: isDarkTheme ? "#2d3748" : "white",
+        padding: "0",
         boxShadow: isDarkTheme
-          ? "0 12px 24px rgba(0,0,0,0.5)"
-          : "0 12px 24px rgba(0,0,0,0.2)",
-        animation: `${fadeIn} 0.3s ease-out`,
-      },
+          ? "0 24px 48px rgba(0,0,0,0.5)"
+          : "0 24px 48px rgba(0,0,0,0.2)",
+        backgroundColor: colors.cardBg,
+        overflow: "hidden",
+        maxWidth: "550px"
+      }
+    },
+    modalHeader: {
+      background: `linear-gradient(135deg, ${colors.primary}, ${colors.secondary})`,
+      color: "#ffffff",
+      padding: "20px 24px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between"
     },
     modalTitle: {
       fontFamily: "Montserrat, sans-serif",
-      color: isDarkTheme ? "#90CAF9" : "#03427C",
-      fontSize: "1.5rem",
+      color: "#ffffff",
+      fontSize: "1.4rem",
       fontWeight: "bold",
-      textTransform: "uppercase",
-      letterSpacing: "1px",
-      textAlign: "center",
-      marginBottom: "1.5rem",
-      borderBottom: `3px solid ${isDarkTheme ? "#90CAF9" : "#03427C"}`,
-      paddingBottom: "0.75rem",
+      display: "flex",
+      alignItems: "center",
+      gap: "10px"
+    },
+    modalContent: {
+      padding: "24px",
     },
     textField: {
       marginBottom: "1.5rem",
       "& label": {
         fontFamily: "Montserrat, sans-serif",
-        color: isDarkTheme ? "#cbd5e0" : undefined,
+        color: isDarkTheme ? alpha(colors.secondaryText, 0.7) : undefined,
         fontSize: "0.95rem",
       },
       "& input, & textarea": {
         fontFamily: "Montserrat, sans-serif",
-        color: isDarkTheme ? "#ffffff" : undefined,
+        color: colors.text,
         fontSize: "1rem",
-        padding: "0.75rem",
+        padding: "16px 14px",
       },
       "& .MuiOutlinedInput-root": {
-        borderRadius: "8px",
+        borderRadius: "12px",
         transition: "all 0.3s ease",
         "&:hover": {
           transform: "translateY(-1px)",
         },
         "& fieldset": {
-          borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.23)" : undefined,
+          borderColor: colors.border,
           transition: "border-color 0.3s ease",
         },
         "&:hover fieldset": {
-          borderColor: isDarkTheme ? "rgba(255, 255, 255, 0.5)" : undefined,
+          borderColor: colors.primary,
         },
         "&.Mui-focused fieldset": {
-          borderColor: isDarkTheme ? "#90CAF9" : "#03427C",
+          borderColor: colors.primary,
           borderWidth: "2px",
         },
       },
     },
     dialogActions: {
-      padding: "1rem",
-      "& .MuiButton-text": {
-        color: isDarkTheme ? "#90CAF9" : undefined,
-        transition: "all 0.3s ease",
-        "&:hover": {
-          transform: "translateY(-1px)",
-        },
-      },
+      padding: "16px 24px",
+      background: isDarkTheme ? alpha("#000000", 0.2) : alpha("#f5f5f5", 0.5),
+      borderTop: `1px solid ${colors.border}`
     },
     captchaContainer: {
       display: 'flex',
@@ -452,246 +687,374 @@ const FAQ = () => {
       alignItems: 'center',
       marginBottom: '1.5rem',
       minHeight: '78px',
-      transition: 'all 0.3s ease',
-      animation: `${fadeIn} 0.5s ease-out`,
+      transition: 'all 0.3s ease'
     },
     noFaqsMessage: {
       marginTop: "2rem",
-      color: isDarkTheme ? "#cbd5e0" : "#777",
+      color: colors.secondaryText,
       fontSize: "1.1rem",
       textAlign: "center",
       fontFamily: "Montserrat, sans-serif",
-      animation: `${fadeIn} 0.5s ease-out`,
       padding: "2rem",
       border: `2px dashed ${isDarkTheme ? "#4a5568" : "#ccc"}`,
       borderRadius: "12px",
+      backgroundColor: alpha(colors.cardBg, 0.5),
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: "1rem"
     },
     loadingSpinner: {
       marginTop: "2rem",
-      color: isDarkTheme ? "#90CAF9" : "#03427C",
-      animation: `${fadeIn} 0.5s ease-out`,
+      color: colors.primary
     },
+    decorativeIcon: {
+      position: 'absolute',
+      color: alpha(colors.primary, 0.05),
+      zIndex: 0
+    }
   };
 
   return (
-    <Box sx={styles.container}>
-      {/* Enhanced Animated Title */}
-      <Typography
-        variant="h4"
-        sx={{
-          fontWeight: 'bold',
-          color: isDarkMode ? '#ffffff' : '#03427C',
-          textTransform: 'uppercase',
-          fontFamily: 'Montserrat, sans-serif',
-          letterSpacing: '2px',
-          position: 'relative',
-          display: 'inline-block',
-          paddingBottom: '0.5rem',
-          borderBottom: `4px solid ${isDarkMode ? '#fff' : '#03427C'}`,
-          textShadow: '2px 2px 5px rgba(0,0,0,0.2)',
-          textAlign: 'center',
-          width: '45%',
-          mb: 2
-        }}
-      >
-        Preguntas Frecuentes
-      </Typography>
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+      style={{
+        background: colors.background,
+        minHeight: "85vh",
+        padding: isMobile ? "1.5rem" : "3rem",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        position: "relative",
+        overflow: 'hidden'
+      }}
+    >
+      {/* Decorative background icons */}
+      <Box sx={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
+        <LiveHelpIcon sx={{
+          ...styles.decorativeIcon,
+          fontSize: 300,
+          top: '5%',
+          left: '5%',
+          transform: 'rotate(-15deg)'
+        }} />
+        <QuestionAnswerIcon sx={{
+          ...styles.decorativeIcon,
+          fontSize: 200,
+          bottom: '10%',
+          right: '5%',
+          transform: 'rotate(10deg)'
+        }} />
+        <InfoIcon sx={{
+          ...styles.decorativeIcon,
+          fontSize: 180,
+          top: '30%',
+          right: '8%',
+          transform: 'rotate(-5deg)'
+        }} />
+        <HelpOutlineIcon sx={{
+          ...styles.decorativeIcon,
+          fontSize: 220,
+          bottom: '20%',
+          left: '8%',
+          transform: 'rotate(10deg)'
+        }} />
+      </Box>
 
-      {/* FAQs Container with Animation */}
-      <Box
-        sx={{
-          width: '100%',
-          maxWidth: '800px',
-          margin: '0 auto',
-          animation: `${fadeIn} 0.8s ease-out`
-        }}
-      >
-        {loadingFaqs ? (
-          <Box sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            mt: 4,
-            animation: `${pulseAnimation} 2s infinite`
-          }}>
-            <CircularProgress sx={styles.loadingSpinner} />
-          </Box>
-        ) : faqs.length > 0 ? (
-          faqs.map((faq, index) => (
-            <Accordion
-              key={index}
-              expanded={expandedPanel === `panel${index}`}
-              onChange={handleChange(`panel${index}`)}
-              sx={{
-                ...styles.accordion,
-                animation: `${slideFromRight} ${0.3 + index * 0.1}s ease-out`
-              }}
-              TransitionProps={{ unmountOnExit: true }}
-            >
-              <AccordionSummary
-                expandIcon={
-                  <ExpandMoreIcon
-                    sx={{
-                      color: isDarkTheme ? "#90CAF9" : "#03427C",
-                      transition: 'all 0.3s ease',
-                      transform: expandedPanel === `panel${index}` ? 'rotate(180deg)' : 'rotate(0deg)'
-                    }}
-                  />
-                }
-              >
-                <Typography sx={styles.question}>{faq.question}</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                <Typography sx={styles.answer}>{faq.answer}</Typography>
-              </AccordionDetails>
-            </Accordion>
-          ))
-        ) : (
-          <Typography sx={styles.noFaqsMessage}>
-            No hay preguntas frecuentes disponibles.
+      {/* Header Section */}
+      <motion.div variants={itemVariants} style={{ width: '100%', maxWidth: '800px' }}>
+        <Box sx={styles.header}>
+          <Typography variant="h3" sx={styles.title}>
+            Preguntas Frecuentes
           </Typography>
+          
+          {/* Search bar */}
+          <Box sx={styles.searchContainer}>
+            <TextField
+              fullWidth
+              placeholder="Buscar preguntas..."
+              variant="outlined"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              inputRef={searchInputRef}
+              InputProps={{
+                startAdornment: (
+                  <Box component={HelpOutlineIcon} sx={{ mr: 1.5, color: colors.primary }} />
+                ),
+                endAdornment: searchQuery && (
+                  <IconButton 
+                    size="small" 
+                    onClick={() => setSearchQuery("")}
+                    sx={{ color: colors.secondaryText }}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                )
+              }}
+              sx={styles.searchField}
+            />
+          </Box>
+        </Box>
+      </motion.div>
+      
+      {/* FAQs Section */}
+      <Box sx={styles.faqContainer}>
+        {loadingFaqs ? (
+          <SkeletonFAQ />
+        ) : filteredFaqs.length > 0 ? (
+          <AnimatePresence>
+            {filteredFaqs.map((faq, index) => (
+              <motion.div
+                key={`faq-${index}`}
+                variants={itemVariants}
+                initial="hidden"
+                animate="visible"
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Accordion
+                  expanded={expandedPanel === `panel${index}`}
+                  onChange={handleChange(`panel${index}`)}
+                  sx={styles.accordion}
+                  TransitionProps={{ unmountOnExit: true }}
+                >
+                  <AccordionSummary
+                    expandIcon={
+                      <ExpandMoreIcon
+                        sx={{
+                          color: colors.primary,
+                          transition: 'all 0.3s ease',
+                          transform: expandedPanel === `panel${index}` ? 'rotate(180deg)' : 'rotate(0deg)'
+                        }}
+                      />
+                    }
+                    sx={styles.accordionSummary}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      {faq.categoria && (
+                        <Chip 
+                          label={faq.categoria}
+                          size="small"
+                          sx={{ 
+                            mr: 2, 
+                            backgroundColor: `${colors.primary}30`,
+                            color: colors.primary,
+                            fontWeight: 500,
+                            fontSize: '0.7rem',
+                            height: '24px'
+                          }}
+                        />
+                      )}
+                      <Typography sx={styles.question}>{faq.question}</Typography>
+                    </Box>
+                  </AccordionSummary>
+                  <AccordionDetails sx={styles.accordionDetails}>
+                    <Typography sx={styles.answer}>
+                      {faq.answer}
+                    </Typography>
+                  </AccordionDetails>
+                </Accordion>
+              </motion.div>
+            ))}
+          </AnimatePresence>
+        ) : (
+          <motion.div
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+          >
+            <Box sx={styles.noFaqsMessage}>
+              <ContactSupportIcon fontSize="large" color="action" />
+              {searchQuery ? (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    No se encontraron resultados
+                  </Typography>
+                  <Typography variant="body2">
+                    No hay coincidencias para "{searchQuery}". Intenta con otra búsqueda o haz tu pregunta directamente.
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    No hay preguntas disponibles
+                  </Typography>
+                  <Typography variant="body2">
+                    Actualmente no hay preguntas frecuentes disponibles. Sé el primero en hacer una pregunta.
+                  </Typography>
+                </>
+              )}
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                onClick={() => setOpenModal(true)}
+                startIcon={<EmailIcon />}
+                sx={{ mt: 2 }}
+              >
+                Hacer una pregunta
+              </Button>
+            </Box>
+          </motion.div>
         )}
       </Box>
 
-      {/* Animated Ask Button */}
-      <Button
-        variant="contained"
-        startIcon={<EmailIcon />}
-        onClick={() => setOpenModal(true)}
-        sx={{
-          background: isDarkTheme ? "#90CAF9" : "#03427C",
-          color: isDarkTheme ? "#000000" : "white",
-          fontFamily: "Montserrat, sans-serif",
-          padding: "0.75rem 2rem",
-          borderRadius: "30px",
-          textTransform: "none",
-          fontSize: "1.1rem",
-          fontWeight: 500,
-          mt: 3,
-          transition: "all 0.3s ease",
-          animation: `${pulseAnimation} 2s infinite`,
-          boxShadow: isDarkTheme
-            ? "0 4px 15px rgba(144, 202, 249, 0.4)"
-            : "0 4px 15px rgba(3, 66, 124, 0.4)",
-          "&:hover": {
-            background: isDarkTheme ? "#63a4ff" : "#03427C",
-            transform: "translateY(-2px)",
-            boxShadow: isDarkTheme
-              ? "0 6px 20px rgba(144, 202, 249, 0.6)"
-              : "0 6px 20px rgba(3, 66, 124, 0.6)",
-          },
-        }}
-      >
-        ¿Tienes una duda?
-      </Button>
+      {/* Ask Question Button */}
+      {filteredFaqs.length > 0 && (
+        <motion.div
+          variants={itemVariants}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Button
+            variant="contained"
+            startIcon={<LiveHelpIcon />}
+            onClick={() => setOpenModal(true)}
+            sx={styles.askButton}
+          >
+            ¿Tienes otra pregunta?
+          </Button>
+        </motion.div>
+      )}
 
-      {/* Enhanced Modal with Animations */}
+      {/* Question Form Modal */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
         maxWidth="sm"
         fullWidth
-        sx={{
-          ...styles.modal,
-          '& .MuiDialog-paper': {
-            ...styles.modal['& .MuiDialog-paper'],
-            animation: `${fadeIn} 0.4s ease-out`
-          }
-        }}
+        sx={styles.modal}
+        ref={dialogRef}
       >
-        <DialogTitle sx={styles.modalTitle}>
-          Hacer una pregunta
-        </DialogTitle>
-        <DialogContent>
-          <Box
-            component="form"
-            sx={{
-              mt: 2,
-              '& > *': {
-                animation: `${slideFromRight} 0.5s ease-out`
-              }
-            }}
-          >
-            <TextField
-              name="email"
-              label="Correo electrónico"
-              fullWidth
-              value={formData.email}
-              onChange={handleFormChange}
-              onBlur={checkEmailInDatabase}
-              required
-              type="email"
-              sx={styles.textField}
-            />
+        <AnimatePresence>
+          {openModal && (
+            <motion.div
+              key="modal"
+              variants={modalVariants}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+            >
+              <Box sx={styles.modalHeader}>
+                <Typography variant="h6" sx={styles.modalTitle}>
+                  <QuestionAnswerIcon /> Hacer una pregunta
+                </Typography>
+                <IconButton
+                  aria-label="close"
+                  onClick={() => setOpenModal(false)}
+                  sx={{ color: '#ffffff' }}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+              
+              <DialogContent sx={styles.modalContent}>
+                <Box component="form">
+                  <TextField
+                    name="email"
+                    label="Correo electrónico"
+                    fullWidth
+                    value={formData.email}
+                    onChange={handleFormChange}
+                    onBlur={checkEmailInDatabase}
+                    required
+                    type="email"
+                    InputProps={{
+                      startAdornment: (
+                        <Box component={MarkEmailReadIcon} sx={{ mr: 1.5, color: colors.primary, opacity: formData.isRegistered ? 1 : 0.6 }} />
+                      )
+                    }}
+                    sx={styles.textField}
+                  />
 
-            <TextField
-              name="name"
-              label="Nombre"
-              fullWidth
-              value={formData.name}
-              onChange={handleFormChange}
-              required
-              disabled={formData.isRegistered}
-              sx={styles.textField}
-            />
+                  <TextField
+                    name="name"
+                    label="Nombre"
+                    fullWidth
+                    value={formData.name}
+                    onChange={handleFormChange}
+                    required
+                    disabled={formData.isRegistered}
+                    InputProps={{
+                      startAdornment: (
+                        <Box component={formData.isRegistered ? CheckCircleIcon : null} sx={{ mr: 1.5, color: 'success.main' }} />
+                      )
+                    }}
+                    sx={styles.textField}
+                  />
 
-            <TextField
-              name="question"
-              label="Tu pregunta"
-              fullWidth
-              value={formData.question}
-              onChange={handleFormChange}
-              sx={styles.textField}
-              required
-              multiline
-              rows={4}
-            />
-            <Box sx={styles.captchaContainer}>
-              <CustomRecaptcha onCaptchaChange={handleCaptchaChange} isDarkMode={isDarkMode} />
-            </Box>
-          </Box>
-        </DialogContent>
+                  <TextField
+                    name="question"
+                    label="Tu pregunta"
+                    fullWidth
+                    value={formData.question}
+                    onChange={handleFormChange}
+                    sx={styles.textField}
+                    required
+                    multiline
+                    rows={4}
+                  />
+                  
+                  <Box sx={styles.captchaContainer}>
+                    <CustomRecaptcha 
+                      onCaptchaChange={handleCaptchaChange} 
+                      isDarkMode={isDarkTheme} 
+                    />
+                  </Box>
+                </Box>
+              </DialogContent>
 
-        <DialogActions sx={styles.dialogActions}>
-          <Button
-            onClick={() => setOpenModal(false)}
-            sx={{
-              ...styles.dialogActions['& .MuiButton-text'],
-              fontFamily: "Montserrat, sans-serif"
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            variant="contained"
-            disabled={!captchaVerified}
-            sx={{
-              background: isDarkTheme ? "#90CAF9" : "#03427C",
-              color: isDarkTheme ? "#000000" : "white",
-              fontFamily: "Montserrat, sans-serif",
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                background: isDarkTheme ? "#63a4ff" : "#02315E",
-                transform: 'translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(3, 66, 124, 0.4)'
-              },
-              '&:disabled': {
-                background: isDarkTheme ? "#4a5568" : "#cccccc"
-              }
-            }}
-          >
-            Enviar
-          </Button>
-        </DialogActions>
+              <DialogActions sx={styles.dialogActions}>
+                <Button
+                  onClick={() => setOpenModal(false)}
+                  sx={{
+                    fontFamily: "Montserrat, sans-serif",
+                    color: colors.secondaryText
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={handleSubmit}
+                  variant="contained"
+                  disabled={!captchaVerified}
+                  startIcon={<SendIcon />}
+                  sx={{
+                    background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
+                    color: isDarkTheme ? "#000000" : "white",
+                    fontFamily: "Montserrat, sans-serif",
+                    transition: 'all 0.3s ease',
+                    borderRadius: '8px',
+                    padding: '8px 24px',
+                    fontWeight: 600,
+                    '&:hover': {
+                      boxShadow: '0 6px 12px rgba(0,0,0,0.2)',
+                      transform: 'translateY(-2px)'
+                    },
+                    '&:disabled': {
+                      background: colors.placeholder,
+                      color: isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)'
+                    }
+                  }}
+                >
+                  Enviar pregunta
+                </Button>
+              </DialogActions>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Dialog>
 
+      {/* Notification Component */}
       <Notificaciones
         open={notification.open}
         message={notification.message}
         type={notification.type}
-        onClose={handleNotificationClose}
+        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
       />
-    </Box>
+    </motion.div>
   );
 };
+
 export default FAQ;

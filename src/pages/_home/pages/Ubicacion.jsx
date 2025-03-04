@@ -1,25 +1,70 @@
-import React, { useState, useCallback } from 'react';
-import { Box, Typography, Button, CircularProgress, Grid, Divider, Card, CardContent, Chip, Tooltip } from '@mui/material';
+import React, { useState, useCallback, useEffect } from 'react';
+import {
+  Box,
+  Typography,
+  Button,
+  CircularProgress,
+  Grid,
+  Divider,
+  Card,
+  CardContent,
+  Chip,
+  Tooltip,
+  useMediaQuery,
+  useTheme,
+  IconButton
+} from '@mui/material';
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
 import { motion, AnimatePresence } from 'framer-motion';
-import { OpenInNew, LocationOn, AccessTime, Phone, Info, Navigation, Share } from '@mui/icons-material';
+import {
+  OpenInNew,
+  LocationOn,
+  AccessTime,
+  Phone,
+  Info,
+  Navigation,
+  Share,
+  Map,
+  Satellite,
+  ZoomIn,
+  ZoomOut,
+  DirectionsWalk,
+  LocationCity,
+  Star
+} from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const Ubicacion = () => {
   const { isDarkTheme } = useThemeContext();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
   const [map, setMap] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [showInfoWindow, setShowInfoWindow] = useState(false);
-  const [mapView, setMapView] = useState('roadmap'); // 'roadmap' o 'satellite'
+  const [mapView, setMapView] = useState('roadmap');
   const [isHovering, setIsHovering] = useState(false);
-  
+  const [mapZoom, setMapZoom] = useState(17);
+  const [showPage, setShowPage] = useState(false);
+
+  // Mostrar la página después de un breve retraso para la animación de entrada
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowPage(true);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   // Información de la clínica
   const clinicInfo = {
     nombre: "Clínica Dental Carol",
     direccion: "Ixcatlan, Huejutla de Reyes, Hidalgo, México",
     telefono: "+52 789 123 4567",
     horario: "Lunes a Viernes: 9:00 - 19:00, Sábados: 9:00 - 14:00",
-    indicaciones: "A una cuadra de la Plaza Principal, edificio con fachada azul"
+    indicaciones: "A una cuadra de la Plaza Principal, edificio con fachada azul",
+    reseñas: "4.8/5 basado en 45 reseñas"
   };
 
   // Centro del mapa (coordenadas de la clínica)
@@ -42,36 +87,60 @@ const Ubicacion = () => {
   const darkMapStyle = [
     { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
     { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] }
+    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+    { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
   ];
 
-  // Estilos para el modo claro - más vibrante que el predeterminado
+  // Estilos para el modo claro
   const lightMapStyle = [
     { featureType: "poi.medical", elementType: "labels", stylers: [{ visibility: "on", color: "#e74c3c" }] },
+    { featureType: "poi.business", stylers: [{ visibility: "on" }] },
+    { featureType: "poi.attraction", stylers: [{ visibility: "simplified" }] },
     { featureType: "water", elementType: "geometry", stylers: [{ color: "#a0d6f7" }] },
-    { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f2f2f2" }] }
+    { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f2f2f2" }] },
+    { featureType: "road", elementType: "geometry", stylers: [{ lightness: 100 }] },
+    { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
+    { featureType: "transit.line", stylers: [{ visibility: "on", lightness: 700 }] },
   ];
 
   // Colores dinámicos basados en el tema
   const colors = {
-    cardBackground: isDarkTheme ? '#0D1B2A' : '#ffffff',
-    primaryText: isDarkTheme ? '#ffffff' : '#1a1a1a',
-    secondaryText: isDarkTheme ? '#A0AEC0' : '#666666',
-    primaryColor: isDarkTheme ? '#00BCD4' : '#1976d2',
-    accentColor: isDarkTheme ? '#FF4081' : '#f50057',
-    gradientStart: isDarkTheme ? '#1C2A38' : '#f9f9f9',
-    gradientEnd: isDarkTheme ? '#2C3E50' : '#E5F3FD',
-    cardShadow: isDarkTheme ? '0 8px 32px rgba(0, 0, 0, 0.5)' : '0 8px 32px rgba(25, 118, 210, 0.15)',
-    buttonHover: isDarkTheme ? 'rgba(0, 188, 212, 0.15)' : 'rgba(25, 118, 210, 0.12)',
-    divider: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
-    chipBackground: isDarkTheme ? 'rgba(0, 188, 212, 0.2)' : 'rgba(25, 118, 210, 0.1)',
+    cardBackground: isDarkTheme ? '#0A1929' : '#ffffff',
+    primaryText: isDarkTheme ? '#ffffff' : '#0A1929',
+    secondaryText: isDarkTheme ? '#A0AEC0' : '#546E7A',
+    primaryColor: isDarkTheme ? '#4FC3F7' : '#0052CC',
+    secondaryColor: isDarkTheme ? '#FF4081' : '#FF5252',
+    accentColor: isDarkTheme ? '#FFC107' : '#FF9800',
+    gradientStart: isDarkTheme ? '#0A1929' : '#F8FDFF',
+    gradientEnd: isDarkTheme ? '#0F2942' : '#DDF4FF',
+    cardShadow: isDarkTheme ? '0 10px 30px rgba(0, 0, 0, 0.5)' : '0 10px 30px rgba(0, 82, 204, 0.15)',
+    buttonHover: isDarkTheme ? 'rgba(79, 195, 247, 0.15)' : 'rgba(0, 82, 204, 0.08)',
+    divider: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+    chipBackground: isDarkTheme ? 'rgba(79, 195, 247, 0.15)' : 'rgba(0, 82, 204, 0.08)',
+    backgroundPattern: isDarkTheme
+      ? 'radial-gradient(circle at 30% 30%, rgba(25, 118, 210, 0.1) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(25, 118, 210, 0.08) 0%, transparent 10%)'
+      : 'radial-gradient(circle at 30% 30%, rgba(25, 118, 210, 0.05) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(25, 118, 210, 0.03) 0%, transparent 10%)'
   };
 
   // Estilos del mapa
   const mapStyles = {
     height: "450px",
     width: "100%",
-    borderRadius: "12px",
+    borderRadius: "16px",
     marginTop: "20px",
     boxShadow: colors.cardShadow,
     border: `2px solid ${colors.primaryColor}`,
@@ -84,7 +153,7 @@ const Ubicacion = () => {
   // Callbacks para el mapa
   const onLoad = useCallback((map) => {
     setMap(map);
-    
+
     // Añadir efecto de zoom suave al cargar
     setTimeout(() => {
       map.setZoom(15);
@@ -96,9 +165,25 @@ const Ubicacion = () => {
     setMap(null);
   }, []);
 
-  // Toggle para cambiar entre mapa y satélite
+  // Funciones de control del mapa
   const toggleMapView = () => {
     setMapView(mapView === 'roadmap' ? 'satellite' : 'roadmap');
+  };
+
+  const zoomIn = () => {
+    if (map && mapZoom < 20) {
+      const newZoom = mapZoom + 1;
+      map.setZoom(newZoom);
+      setMapZoom(newZoom);
+    }
+  };
+
+  const zoomOut = () => {
+    if (map && mapZoom > 10) {
+      const newZoom = mapZoom - 1;
+      map.setZoom(newZoom);
+      setMapZoom(newZoom);
+    }
   };
 
   // Compartir ubicación
@@ -124,59 +209,102 @@ const Ubicacion = () => {
   };
 
   // Animaciones con Framer Motion
-  const mapContainerVariants = {
-    hidden: { opacity: 0, y: 50 },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { 
-        duration: 0.7,
-        ease: "easeOut"
-      } 
+  const pageAnimationVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.8,
+        when: "beforeChildren",
+        staggerChildren: 0.2
+      }
     },
-    exit: { 
+    exit: {
       opacity: 0,
-      y: -30,
-      transition: { duration: 0.3 } 
+      transition: { duration: 0.4 }
     }
   };
 
-  const titleVariants = {
-    hidden: { opacity: 0, x: -30 },
-    visible: { 
-      opacity: 1, 
-      x: 0, 
-      transition: { 
-        delay: 0.3, 
-        duration: 0.5 
-      } 
+  const titleAnimationVariants = {
+    hidden: { opacity: 0, y: -30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12,
+        duration: 0.7
+      }
+    }
+  };
+
+  const mapContainerVariants = {
+    hidden: { opacity: 0, y: 50, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        stiffness: 50,
+        damping: 12,
+        duration: 0.8
+      }
     }
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, scale: 0.95 },
-    visible: { 
-      opacity: 1, 
+    hidden: { opacity: 0, x: 30, scale: 0.95 },
+    visible: {
+      opacity: 1,
+      x: 0,
       scale: 1,
-      transition: { 
-        delay: 0.5, 
-        duration: 0.4, 
-        ease: "easeOut" 
-      } 
+      transition: {
+        type: "spring",
+        stiffness: 50,
+        damping: 12,
+        duration: 0.8
+      }
     },
     hover: {
       scale: 1.02,
-      boxShadow: "0px 10px 30px rgba(0,0,0,0.2)",
+      boxShadow: "0px 12px 30px rgba(0,0,0,0.2)",
       transition: { duration: 0.3 }
     }
   };
 
   const buttonVariants = {
-    hover: { 
+    hover: {
       scale: 1.05,
-      transition: { duration: 0.2, yoyo: Infinity, ease: "easeInOut" }
+      transition: { duration: 0.2 }
     },
     tap: { scale: 0.95 }
+  };
+
+  const staggerItemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 100,
+        damping: 12
+      }
+    }
+  };
+
+  const floatingIconVariants = {
+    initial: { y: 0 },
+    animate: {
+      y: [-5, 5, -5],
+      transition: {
+        duration: 3,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }
+    }
   };
 
   // Renderizado de pantalla de carga
@@ -187,54 +315,104 @@ const Ubicacion = () => {
         flexDirection="column"
         justifyContent="center"
         alignItems="center"
-        height="500px"
+        minHeight="600px"
         sx={{
-          backgroundColor: colors.cardBackground,
-          borderRadius: '12px',
+          background: isDarkTheme
+            ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+            : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
+          backgroundSize: "cover",
+          borderRadius: '16px',
           boxShadow: colors.cardShadow,
+          position: 'relative',
+          overflow: 'hidden'
         }}
       >
+        <Box
+          sx={{
+            position: 'absolute',
+            width: '100%',
+            height: '100%',
+            background: colors.backgroundPattern,
+            opacity: 0.6,
+            zIndex: 0
+          }}
+        />
+
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          style={{ zIndex: 1, textAlign: 'center' }}
         >
-          <CircularProgress
-            size={70}
-            thickness={4}
-            sx={{
-              color: colors.primaryColor,
-              mb: 3
+          <motion.div
+            animate={{
+              scale: [1, 1.2, 1],
+              rotate: [0, 0, 0]
             }}
-          />
-        </motion.div>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-        >
-          <Typography
-            variant="h5"
-            sx={{
-              color: colors.primaryText,
-              fontFamily: 'Montserrat, sans-serif',
-              fontWeight: 500,
-              textAlign: 'center'
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeInOut"
             }}
           >
-            Cargando mapa...
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: colors.secondaryText,
-              fontFamily: 'Roboto, sans-serif',
-              mt: 1,
-              textAlign: 'center'
-            }}
+            <CircularProgress
+              size={80}
+              thickness={4}
+              sx={{
+                color: colors.primaryColor,
+                mb: 4
+              }}
+            />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Preparando la ubicación de Clínica Dental Carol
-          </Typography>
+            <Typography
+              variant="h4"
+              sx={{
+                color: colors.primaryText,
+                fontFamily: 'Montserrat, sans-serif',
+                fontWeight: 600,
+                textAlign: 'center',
+                mb: 2
+              }}
+            >
+              Cargando mapa
+            </Typography>
+
+            <Typography
+              variant="body1"
+              sx={{
+                color: colors.secondaryText,
+                fontFamily: 'Roboto, sans-serif',
+                mt: 1,
+                textAlign: 'center',
+                maxWidth: '80%',
+                mx: 'auto'
+              }}
+            >
+              Estamos preparando la ubicación de Clínica Dental Carol para que puedas encontrarnos fácilmente.
+            </Typography>
+
+            <motion.div
+              animate={{
+                opacity: [0.5, 1, 0.5],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              style={{ marginTop: '24px' }}
+            >
+              <Typography variant="body2" color={colors.primaryColor}>
+                Por favor, espera un momento...
+              </Typography>
+            </motion.div>
+          </motion.div>
         </motion.div>
       </Box>
     );
@@ -247,42 +425,55 @@ const Ubicacion = () => {
         sx={{
           p: 4,
           textAlign: 'center',
-          bgcolor: colors.cardBackground,
-          borderRadius: '12px',
+          background: isDarkTheme
+            ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+            : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
+          borderRadius: '16px',
           boxShadow: colors.cardShadow,
         }}
       >
-        <Typography 
-          color="error" 
-          variant="h5" 
-          gutterBottom
-          sx={{ fontWeight: 500 }}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
         >
-          Error al cargar el mapa
-        </Typography>
-        <Typography 
-          color={colors.secondaryText} 
-          variant="body1" 
-          sx={{ mb: 3 }}
-        >
-          No se pudo cargar Google Maps. Por favor, verifica tu conexión a internet.
-        </Typography>
-        <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => window.location.reload()}
-            sx={{ 
-              mt: 2, 
-              bgcolor: colors.primaryColor,
-              boxShadow: '0 4px 12px rgba(0, 188, 212, 0.3)',
-              '&:hover': {
-                bgcolor: isDarkTheme ? '#00ACC1' : '#1565C0',
-              }
-            }}
+          <Typography
+            color="error"
+            variant="h4"
+            gutterBottom
+            sx={{ fontWeight: 600, mb: 3 }}
           >
-            Reintentar
-          </Button>
+            Error al cargar el mapa
+          </Typography>
+
+          <Typography
+            color={colors.secondaryText}
+            variant="body1"
+            sx={{ mb: 3, maxWidth: '600px', mx: 'auto' }}
+          >
+            No se pudo cargar Google Maps. Por favor, verifica tu conexión a internet o intenta nuevamente más tarde.
+          </Typography>
+
+          <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={() => window.location.reload()}
+              sx={{
+                mt: 3,
+                bgcolor: colors.primaryColor,
+                boxShadow: '0 4px 15px rgba(79, 195, 247, 0.3)',
+                px: 4,
+                py: 1.5,
+                borderRadius: '8px',
+                '&:hover': {
+                  bgcolor: isDarkTheme ? '#29B6F6' : '#0039CB',
+                }
+              }}
+            >
+              Reintentar
+            </Button>
+          </motion.div>
         </motion.div>
       </Box>
     );
@@ -291,451 +482,637 @@ const Ubicacion = () => {
   // Componente principal
   return (
     <AnimatePresence>
-      <motion.div
-        variants={mapContainerVariants}
-        initial="hidden"
-        animate="visible"
-        exit="exit"
-        style={{
-          background: isDarkTheme
-        ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)" 
-        : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)", 
-                transition: 'background 0.5s ease',
-          minHeight: '85vh',
-          width: '100%',
-          padding: '2rem 1rem',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Box
-          component="section"
-          sx={{
-            maxWidth: '1200px',
+      {showPage && (
+        <motion.div
+          key="ubicacion-page"
+          variants={pageAnimationVariants}
+          initial="hidden"
+          animate="visible"
+          exit="exit"
+          style={{
+            background: isDarkTheme
+              ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+              : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
+            backgroundSize: "cover",
+            backgroundAttachment: "fixed",
+            minHeight: '90vh',
             width: '100%',
-            margin: '0 auto',
-            py: 4,
-            px: { xs: 2, sm: 3, md: 4 },
+            padding: '2rem 1rem',
+            position: 'relative',
+            overflow: 'hidden'
           }}
         >
-          {/* Título animado */}
-          <motion.div variants={titleVariants} initial="hidden" animate="visible">
-            <Typography
-              variant="h3"
-              component="h1"
-              sx={{
-                fontWeight: 700,
-                color: isDarkTheme ? '#ffffff' : '#03427C',
-                fontFamily: '"Montserrat", sans-serif',
-                letterSpacing: '0.5px',
-                textAlign: 'center',
-                mb: 3,
-                position: 'relative',
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  bottom: '-10px',
+          {/* Fondo con patrón decorativo */}
+          <Box
+            sx={{
+              position: 'absolute',
+              width: '100%',
+              height: '100%',
+              background: colors.backgroundPattern,
+              opacity: 0.6,
+              top: 0,
+              left: 0,
+              zIndex: 0
+            }}
+          />
+
+          <Box
+            component="section"
+            sx={{
+              maxWidth: '1200px',
+              width: '100%',
+              margin: '0 auto',
+              py: 4,
+              px: { xs: 2, sm: 3, md: 4 },
+              position: 'relative',
+              zIndex: 1
+            }}
+          >
+            {/* Título principal animado */}
+            <motion.div variants={titleAnimationVariants}>
+              <Typography
+                variant={isMobile ? "h4" : "h3"}
+                component="h1"
+                sx={{
+                  fontWeight: 700,
+                  color: colors.primaryText,
+                  fontFamily: '"Montserrat", sans-serif',
+                  letterSpacing: '0.5px',
+                  textAlign: 'center',
+                  mb: 4,
+                  position: 'relative',
+                  display: 'inline-block',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  width: '80px',
-                  height: '4px',
-                  background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.accentColor})`,
-                  borderRadius: '2px',
-                }
-              }}
-            >
-              Encuéntranos
-            </Typography>
-          </motion.div>
-
-          <Grid container spacing={4} sx={{ mt: 2 }}>
-            {/* Columna izquierda - Mapa */}
-            <Grid item xs={12} md={8}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.6 }}
+                  '&::after': {
+                    content: '""',
+                    position: 'absolute',
+                    bottom: '-10px',
+                    left: '0',
+                    width: '100%',
+                    height: '4px',
+                    background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.secondaryColor})`,
+                    borderRadius: '2px',
+                  }
+                }}
               >
-                {/* Panel de controles del mapa */}
-                <Box 
-                  sx={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 2
+                Encuéntranos
+                <motion.span
+                  variants={floatingIconVariants}
+                  initial="initial"
+                  animate="animate"
+                  style={{
+                    display: 'inline-flex',
+                    marginLeft: '8px',
+                    verticalAlign: 'middle'
                   }}
                 >
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      fontWeight: 600,
-                      color: colors.primaryText,
-                      fontFamily: '"Montserrat", sans-serif',
-                    }}
-                  >
-                    Nuestra ubicación
-                  </Typography>
-                  
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        onClick={toggleMapView}
-                        sx={{
-                          borderColor: colors.primaryColor,
-                          color: colors.primaryColor,
-                          textTransform: 'none',
-                          fontWeight: 500,
-                          '&:hover': {
-                            backgroundColor: colors.buttonHover,
-                            borderColor: colors.primaryColor,
-                          }
-                        }}
-                      >
-                        {mapView === 'roadmap' ? 'Satélite' : 'Mapa'}
-                      </Button>
-                    </Tooltip>
-                  </Box>
-                </Box>
+                  <LocationOn sx={{ color: colors.secondaryColor, fontSize: isMobile ? 32 : 36 }} />
+                </motion.span>
+              </Typography>
+            </motion.div>
 
-                {/* Contenedor del mapa con animación al hacer hover */}
-                <motion.div
-                  onHoverStart={() => setIsHovering(true)}
-                  onHoverEnd={() => setIsHovering(false)}
-                  animate={isHovering ? { scale: 1.01 } : { scale: 1 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {isLoaded && (
-                    <GoogleMap
-                      mapContainerStyle={mapStyles}
-                      zoom={17}
-                      center={center}
-                      onLoad={onLoad}
-                      onUnmount={onUnmount}
-                      options={{
-                        zoomControl: true,
-                        streetViewControl: true,
-                        mapTypeControl: false,
-                        fullscreenControl: true,
-                        styles: isDarkTheme ? darkMapStyle : lightMapStyle,
-                        backgroundColor: isDarkTheme ? '#242f3e' : '#ffffff',
-                        mapTypeId: mapView,
-                        gestureHandling: 'cooperative',
-                      }}
-                    >
-                      <Marker
-                        position={center}
-                        title={clinicInfo.nombre}
-                        onClick={() => setShowInfoWindow(!showInfoWindow)}
-                        animation={window.google.maps.Animation.DROP}
-                      />
-                      
-                      {/* Ventana de información */}
-                      {showInfoWindow && (
-                        <InfoWindow
-                          position={center}
-                          onCloseClick={() => setShowInfoWindow(false)}
-                        >
-                          <Box sx={{ p: 1, maxWidth: 220 }}>
-                            <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1 }}>
-                              {clinicInfo.nombre}
-                            </Typography>
-                            <Typography variant="body2" sx={{ mb: 1 }}>
-                              {clinicInfo.direccion}
-                            </Typography>
-                            <Typography variant="body2" color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                              <AccessTime sx={{ fontSize: 16 }} />
-                              Abierto ahora
-                            </Typography>
-                            <Button 
-                              size="small" 
-                              variant="contained" 
-                              color="primary"
-                              fullWidth
-                              href={directionsLink}
-                              target="_blank"
-                              sx={{ mt: 1.5, textTransform: 'none' }}
-                              startIcon={<Navigation />}
-                            >
-                              Cómo llegar
-                            </Button>
-                          </Box>
-                        </InfoWindow>
-                      )}
-                    </GoogleMap>
-                  )}
-                </motion.div>
-
-                {/* Botones debajo del mapa */}
-                <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7, duration: 0.5 }}
-                >
+            <Grid container spacing={4} sx={{ mt: 1 }}>
+              {/* Columna izquierda - Mapa */}
+              <Grid item xs={12} md={8}>
+                <motion.div variants={mapContainerVariants}>
+                  {/* Panel de controles del mapa */}
                   <Box
                     sx={{
                       display: 'flex',
-                      flexWrap: 'wrap',
-                      gap: 2,
-                      justifyContent: { xs: 'center', sm: 'flex-start' },
-                      mt: 3
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 2
                     }}
                   >
-                    <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        href={directionsLink}
-                        target="_blank"
-                        startIcon={<Navigation />}
-                        sx={{
-                          textTransform: 'none',
-                          backgroundColor: colors.primaryColor,
-                          fontFamily: 'Roboto, sans-serif',
-                          fontWeight: 500,
-                          boxShadow: '0 4px 12px rgba(0, 188, 212, 0.3)',
-                          '&:hover': {
-                            backgroundColor: isDarkTheme ? '#00ACC1' : '#1565C0',
-                          }
-                        }}
-                      >
-                        Cómo Llegar
-                      </Button>
-                    </motion.div>
-
-                    <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        href={streetViewLink}
-                        target="_blank"
-                        startIcon={<OpenInNew />}
-                        sx={{
-                          textTransform: 'none',
-                          borderColor: colors.primaryColor,
-                          color: colors.primaryColor,
-                          '&:hover': {
-                            borderColor: colors.primaryColor,
-                            backgroundColor: colors.buttonHover,
-                          },
-                          fontFamily: 'Roboto, sans-serif',
-                          fontWeight: 500
-                        }}
-                      >
-                        Ver en Street View
-                      </Button>
-                    </motion.div>
-
-                    <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                      <Button
-                        variant="outlined"
-                        color="primary"
-                        onClick={handleShare}
-                        startIcon={<Share />}
-                        sx={{
-                          textTransform: 'none',
-                          borderColor: colors.primaryColor,
-                          color: colors.primaryColor,
-                          '&:hover': {
-                            borderColor: colors.primaryColor,
-                            backgroundColor: colors.buttonHover,
-                          },
-                          fontFamily: 'Roboto, sans-serif',
-                          fontWeight: 500
-                        }}
-                      >
-                        Compartir Ubicación
-                      </Button>
-                    </motion.div>
-                  </Box>
-                </motion.div>
-              </motion.div>
-            </Grid>
-
-            {/* Columna derecha - Información de contacto */}
-            <Grid item xs={12} md={4}>
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.5, duration: 0.6 }}
-                variants={cardVariants}
-                whileHover="hover"
-              >
-                <Card
-                  elevation={5}
-                  sx={{
-                    backgroundColor: colors.cardBackground,
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    height: '100%',
-                    boxShadow: colors.cardShadow,
-                    border: `1px solid ${colors.divider}`,
-                    position: 'relative',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '6px',
-                      background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.accentColor})`,
-                    }
-                  }}
-                >
-                  <CardContent sx={{ p: 3 }}>
                     <Typography
-                      variant="h5"
+                      variant="h6"
                       sx={{
-                        fontWeight: 700,
+                        fontWeight: 600,
                         color: colors.primaryText,
                         fontFamily: '"Montserrat", sans-serif',
-                        mb: 3,
-                        pt: 1
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
                       }}
                     >
-                      Información de Contacto
+                      <LocationCity sx={{ color: colors.primaryColor }} />
+                      Nuestra ubicación
                     </Typography>
-                    
-                    <Box sx={{ mb: 3 }}>
-                      <Chip
-                        label="Abierto ahora"
-                        size="small"
-                        color="success"
-                        sx={{ 
-                          fontWeight: 600,
-                          mb: 2
-                        }}
-                      />
-                      
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          color: colors.primaryText,
-                          fontFamily: '"Montserrat", sans-serif',
-                          mb: 0.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <LocationOn color="primary" fontSize="small" />
-                        Dirección
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: colors.secondaryText,
-                          fontFamily: 'Roboto, sans-serif',
-                          mb: 2,
-                          pl: 3.5
-                        }}
-                      >
-                        {clinicInfo.direccion}
-                      </Typography>
-                      
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          color: colors.primaryText,
-                          fontFamily: '"Montserrat", sans-serif',
-                          mb: 0.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <Phone color="primary" fontSize="small" />
-                        Teléfono
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        component="a"
-                        href={`tel:${clinicInfo.telefono}`}
-                        sx={{
-                          color: colors.primaryColor,
-                          fontFamily: 'Roboto, sans-serif',
-                          mb: 2,
-                          pl: 3.5,
-                          textDecoration: 'none',
-                          '&:hover': {
-                            textDecoration: 'underline'
-                          }
-                        }}
-                      >
-                        {clinicInfo.telefono}
-                      </Typography>
-                      
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          color: colors.primaryText,
-                          fontFamily: '"Montserrat", sans-serif',
-                          mb: 0.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <AccessTime color="primary" fontSize="small" />
-                        Horario de Atención
-                      </Typography>
-                      <Typography
-                        variant="body1"
-                        sx={{
-                          color: colors.secondaryText,
-                          fontFamily: 'Roboto, sans-serif',
-                          mb: 2,
-                          pl: 3.5
-                        }}
-                      >
-                        {clinicInfo.horario}
-                      </Typography>
+
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Tooltip title="Acercar">
+                        <IconButton
+                          size="small"
+                          onClick={zoomIn}
+                          sx={{
+                            color: colors.primaryColor,
+                            bgcolor: colors.chipBackground,
+                            '&:hover': {
+                              bgcolor: colors.buttonHover
+                            }
+                          }}
+                        >
+                          <ZoomIn />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title="Alejar">
+                        <IconButton
+                          size="small"
+                          onClick={zoomOut}
+                          sx={{
+                            color: colors.primaryColor,
+                            bgcolor: colors.chipBackground,
+                            '&:hover': {
+                              bgcolor: colors.buttonHover
+                            }
+                          }}
+                        >
+                          <ZoomOut />
+                        </IconButton>
+                      </Tooltip>
+
+                      <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          onClick={toggleMapView}
+                          startIcon={mapView === 'roadmap' ? <Satellite /> : <Map />}
+                          sx={{
+                            borderColor: colors.primaryColor,
+                            color: colors.primaryColor,
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            borderRadius: '8px',
+                            ml: 1,
+                            '&:hover': {
+                              backgroundColor: colors.buttonHover,
+                              borderColor: colors.primaryColor,
+                            }
+                          }}
+                        >
+                          {mapView === 'roadmap' ? 'Satélite' : 'Mapa'}
+                        </Button>
+                      </Tooltip>
                     </Box>
-                    
-                    <Divider sx={{ my: 2, borderColor: colors.divider }} />
-                    
-                    <Box sx={{ mt: 3 }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          color: colors.primaryText,
-                          fontFamily: '"Montserrat", sans-serif',
-                          mb: 1.5,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1
+                  </Box>
+
+                  {/* Contenedor del mapa con animación al hacer hover */}
+                  <motion.div
+                    onHoverStart={() => setIsHovering(true)}
+                    onHoverEnd={() => setIsHovering(false)}
+                    animate={isHovering ? { scale: 1.01 } : { scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                    whileHover={{ boxShadow: "0 12px 40px rgba(0,0,0,0.15)" }}
+                  >
+                    {isLoaded && (
+                      <GoogleMap
+                        mapContainerStyle={{
+                          ...mapStyles,
+                          boxShadow: isHovering ?
+                            `0 15px 35px rgba(${isDarkTheme ? '0,0,0,0.6' : '0,82,204,0.3'})`
+                            : mapStyles.boxShadow
+                        }}
+                        zoom={mapZoom}
+                        center={center}
+                        onLoad={onLoad}
+                        onUnmount={onUnmount}
+                        options={{
+                          zoomControl: false,
+                          streetViewControl: true,
+                          mapTypeControl: false,
+                          fullscreenControl: true,
+                          styles: isDarkTheme ? darkMapStyle : lightMapStyle,
+                          backgroundColor: isDarkTheme ? '#242f3e' : '#ffffff',
+                          mapTypeId: mapView,
+                          gestureHandling: 'cooperative',
                         }}
                       >
-                        <Info color="primary" fontSize="small" />
-                        Cómo encontrarnos
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: colors.secondaryText,
-                          fontFamily: 'Roboto, sans-serif',
-                          backgroundColor: colors.chipBackground,
-                          p: 2,
-                          borderRadius: '8px',
-                          borderLeft: `4px solid ${colors.primaryColor}`
-                        }}
-                      >
-                        {clinicInfo.indicaciones}
-                      </Typography>
+                        <Marker
+                          position={center}
+                          title={clinicInfo.nombre}
+                          onClick={() => setShowInfoWindow(!showInfoWindow)}
+                          animation={window.google.maps.Animation.DROP}
+                          icon={{
+                            path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
+                            fillColor: colors.secondaryColor,
+                            fillOpacity: 1,
+                            strokeWeight: 1,
+                            strokeColor: '#ffffff',
+                            scale: 2,
+                            anchor: new window.google.maps.Point(12, 22),
+                          }}
+                        />
+
+                        {/* Ventana de información */}
+                        {showInfoWindow && (
+                          <InfoWindow
+                            position={center}
+                            onCloseClick={() => setShowInfoWindow(false)}
+                            options={{
+                              pixelOffset: new window.google.maps.Size(0, -35),
+                              maxWidth: 300
+                            }}
+                          >
+                            <Box sx={{ p: 1, maxWidth: 280 }}>
+                              <Typography
+                                variant="subtitle1"
+                                fontWeight="bold"
+                                sx={{
+                                  mb: 1,
+                                  color: "#0A1929",
+                                  borderBottom: "2px solid #0052CC",
+                                  pb: 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1
+                                }}
+                              >
+                                <LocationCity fontSize="small" sx={{ color: "#0052CC" }} />
+                                {clinicInfo.nombre}
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  mb: 1,
+                                  display: 'flex',
+                                  alignItems: 'flex-start',
+                                  gap: 1
+                                }}
+                              >
+                                <LocationOn sx={{ fontSize: 18, color: "#FF5252", mt: 0.3 }} />
+                                <span>{clinicInfo.direccion}</span>
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  mb: 1,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1
+                                }}
+                              >
+                                <AccessTime sx={{ fontSize: 16, color: "#4CAF50" }} />
+                                <span style={{ color: "#4CAF50", fontWeight: 500 }}>Abierto ahora</span>
+                              </Typography>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  mb: 2,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1
+                                }}
+                              >
+                                <Star sx={{ fontSize: 16, color: "#FFC107" }} />
+                                <span>{clinicInfo.reseñas}</span>
+                              </Typography>
+                
+                            </Box>
+                          </InfoWindow>
+                        )}
+                      </GoogleMap>
+                    )}
+                  </motion.div>
+
+                  {/* Botones debajo del mapa */}
+                  <motion.div
+                    variants={staggerItemVariants}
+                    style={{ marginTop: '24px' }}
+                  >
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 2,
+                        justifyContent: { xs: 'center', sm: 'flex-start' }
+                      }}
+                    >
+
+                      <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          href={streetViewLink}
+                          target="_blank"
+                          startIcon={<OpenInNew />}
+                          sx={{
+                            textTransform: 'none',
+                            borderColor: colors.primaryColor,
+                            color: colors.primaryColor,
+                            borderRadius: '10px',
+                            px: 3,
+                            py: 1.2,
+                            '&:hover': {
+                              borderColor: colors.primaryColor,
+                              backgroundColor: colors.buttonHover,
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 6px 15px rgba(79, 195, 247, 0.15)',
+                            },
+                            fontFamily: 'Roboto, sans-serif',
+                            fontWeight: 500
+                          }}
+                        >
+                          Street View
+                        </Button>
+                      </motion.div>
+
+                      <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
+                        <Button
+                          variant="outlined"
+                          color="primary"
+                          onClick={handleShare}
+                          startIcon={<Share />}
+                          sx={{
+                            textTransform: 'none',
+                            borderColor: colors.primaryColor,
+                            color: colors.primaryColor,
+                            borderRadius: '10px',
+                            px: 3,
+                            py: 1.2,
+                            '&:hover': {
+                              borderColor: colors.primaryColor,
+                              backgroundColor: colors.buttonHover,
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 6px 15px rgba(79, 195, 247, 0.15)',
+                            },
+                            fontFamily: 'Roboto, sans-serif',
+                            fontWeight: 500
+                          }}
+                        >
+                          Compartir
+                        </Button>
+                      </motion.div>
                     </Box>
-                  </CardContent>
-                </Card>
-              </motion.div>
+                  </motion.div>
+                </motion.div>
+              </Grid>
+
+              {/* Columna derecha - Información de contacto */}
+              <Grid item xs={12} md={4}>
+                <motion.div
+                  variants={cardVariants}
+                  whileHover="hover"
+                >
+                  <Card
+                    elevation={0}
+                    sx={{
+                      backgroundColor: colors.cardBackground,
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      height: '100%',
+                      boxShadow: colors.cardShadow,
+                      border: `1px solid ${colors.divider}`,
+                      position: 'relative',
+                      '&::before': {
+                        content: '""',
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '6px',
+                        background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.secondaryColor})`,
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      <motion.div variants={staggerItemVariants}>
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            fontWeight: 700,
+                            color: colors.primaryText,
+                            fontFamily: '"Montserrat", sans-serif',
+                            mb: 3,
+                            pt: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          <Info sx={{ color: colors.primaryColor }} />
+                          Información de Contacto
+                        </Typography>
+                      </motion.div>
+
+                      <motion.div variants={staggerItemVariants}>
+                        <Box sx={{ mb: 3 }}>
+                          <Chip
+                            label="Abierto ahora"
+                            size="small"
+                            color="success"
+                            sx={{
+                              fontWeight: 600,
+                              mb: 2,
+                              borderRadius: '6px'
+                            }}
+                          />
+
+                          <Box
+                            sx={{
+                              p: 2,
+                              borderRadius: '12px',
+                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
+                              mb: 3,
+                              transition: 'transform 0.2s ease',
+                              '&:hover': {
+                                transform: 'translateX(5px)',
+                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
+                              }
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 600,
+                                color: colors.primaryText,
+                                fontFamily: '"Montserrat", sans-serif',
+                                mb: 0.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                              }}
+                            >
+                              <LocationOn color="primary" fontSize="small" />
+                              Dirección
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                color: colors.secondaryText,
+                                fontFamily: 'Roboto, sans-serif',
+                                pl: 3.5
+                              }}
+                            >
+                              {clinicInfo.direccion}
+                            </Typography>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              p: 2,
+                              borderRadius: '12px',
+                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
+                              mb: 3,
+                              transition: 'transform 0.2s ease',
+                              '&:hover': {
+                                transform: 'translateX(5px)',
+                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
+                              }
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 600,
+                                color: colors.primaryText,
+                                fontFamily: '"Montserrat", sans-serif',
+                                mb: 0.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                              }}
+                            >
+                              <Phone color="primary" fontSize="small" />
+                              Teléfono
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              component="a"
+                              href={`tel:${clinicInfo.telefono}`}
+                              sx={{
+                                color: colors.primaryColor,
+                                fontFamily: 'Roboto, sans-serif',
+                                pl: 3.5,
+                                textDecoration: 'none',
+                                display: 'block',
+                                fontWeight: 500,
+                                '&:hover': {
+                                  textDecoration: 'underline'
+                                }
+                              }}
+                            >
+                              {clinicInfo.telefono}
+                            </Typography>
+                          </Box>
+
+                          <Box
+                            sx={{
+                              p: 2,
+                              borderRadius: '12px',
+                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
+                              mb: 3,
+                              transition: 'transform 0.2s ease',
+                              '&:hover': {
+                                transform: 'translateX(5px)',
+                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
+                              }
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle1"
+                              sx={{
+                                fontWeight: 600,
+                                color: colors.primaryText,
+                                fontFamily: '"Montserrat", sans-serif',
+                                mb: 0.5,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1
+                              }}
+                            >
+                              <AccessTime color="primary" fontSize="small" />
+                              Horario de Atención
+                            </Typography>
+                            <Typography
+                              variant="body1"
+                              sx={{
+                                color: colors.secondaryText,
+                                fontFamily: 'Roboto, sans-serif',
+                                pl: 3.5
+                              }}
+                            >
+                              {clinicInfo.horario}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </motion.div>
+
+                      <Divider sx={{ my: 2, borderColor: colors.divider }} />
+
+                      <motion.div variants={staggerItemVariants} style={{ marginTop: '24px' }}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: '12px',
+                            background: `linear-gradient(135deg, ${isDarkTheme ? 'rgba(79, 195, 247, 0.1)' : 'rgba(0, 82, 204, 0.05)'} 0%, ${isDarkTheme ? 'rgba(79, 195, 247, 0.05)' : 'rgba(0, 82, 204, 0.02)'} 100%)`,
+                            border: `1px solid ${isDarkTheme ? 'rgba(79, 195, 247, 0.2)' : 'rgba(0, 82, 204, 0.1)'}`,
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
+                          }}
+                        >
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              fontWeight: 600,
+                              color: colors.primaryText,
+                              fontFamily: '"Montserrat", sans-serif',
+                              mb: 1.5,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1
+                            }}
+                          >
+                            <Info color="primary" fontSize="small" />
+                            Cómo encontrarnos
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: colors.secondaryText,
+                              fontFamily: 'Roboto, sans-serif',
+                              lineHeight: 1.6
+                            }}
+                          >
+                            {clinicInfo.indicaciones}
+                          </Typography>
+
+                          <motion.div
+                            whileHover="hover"
+                            whileTap="tap"
+                            variants={buttonVariants}
+                            style={{ marginTop: '16px', textAlign: 'center' }}
+                          >
+                            <Button
+                              variant="contained"
+                              size="medium"
+                              startIcon={<Navigation />}
+                              href={directionsLink}
+                              target="_blank"
+                              sx={{
+                                textTransform: 'none',
+                                bgcolor: isDarkTheme ? 'rgba(79, 195, 247, 0.9)' : colors.primaryColor,
+                                color: '#fff',
+                                fontWeight: 500,
+                                borderRadius: '8px',
+                                '&:hover': {
+                                  bgcolor: isDarkTheme ? 'rgba(79, 195, 247, 1)' : '#003D9C',
+                                }
+                              }}
+                            >
+                              Obtener indicaciones
+                            </Button>
+                          </motion.div>
+                        </Box>
+                      </motion.div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
             </Grid>
-          </Grid>
-        </Box>
-      </motion.div>
+          </Box>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };

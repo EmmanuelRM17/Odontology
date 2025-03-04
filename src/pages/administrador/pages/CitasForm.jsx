@@ -29,6 +29,12 @@ const CitasForm = () => {
     const [citaToDelete, setCitaToDelete] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+    
+    // Estados para la cancelación de citas
+    const [openCancelDialog, setOpenCancelDialog] = useState(false);
+    const [citaToCancel, setCitaToCancel] = useState(null);
+    const [cancelReason, setCancelReason] = useState('');
+    const [isCancelling, setIsCancelling] = useState(false);
 
     useEffect(() => {
         fetchCitas();
@@ -54,18 +60,24 @@ const CitasForm = () => {
         fetchCitas(); // Vuelve a cargar la lista de citas después de agregar una nueva
     };
 
+    // Función para abrir el diálogo de confirmación de archivado
+    const openArchiveConfirmation = (cita) => {
+        setCitaToDelete(cita);
+        setOpenConfirmDialog(true);
+    };
+
+    // Función para archivar cita
     const handleArchiveAppointment = async () => {
         if (!citaToDelete) return;
 
         setIsProcessing(true);
-
         try {
             const response = await fetch(`https://back-end-4803.onrender.com/api/citas/archive/${citaToDelete.consulta_id}`, {
-                method: 'DELETE',
+                method: 'PUT',
             });
 
             if (!response.ok) {
-                throw new Error('Error al arvhivar la cita');
+                throw new Error('Error al archivar la cita');
             }
 
             setNotification({
@@ -76,9 +88,7 @@ const CitasForm = () => {
 
             setOpenConfirmDialog(false);
             setCitaToDelete(null);
-
-            // 🔹 Remover la cita eliminada sin recargar la página
-            setCitas(prevCitas => prevCitas.filter(c => c.consulta_id !== citaToDelete.consulta_id));
+            fetchCitas(); // Recargar la lista de citas para que desaparezca
 
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
@@ -86,7 +96,6 @@ const CitasForm = () => {
 
         } catch (error) {
             console.error('Error al archivar la cita:', error);
-
             setNotification({
                 open: true,
                 message: 'Hubo un error al archivar la cita.',
@@ -96,29 +105,45 @@ const CitasForm = () => {
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
             }, 3000);
-
         } finally {
             setIsProcessing(false);
         }
     };
 
-    const handleCancelAppointment = async (cita) => {
+    // Función para abrir el diálogo de cancelación
+    const handleCancelAppointment = (cita) => {
+        setCitaToCancel(cita);
+        setOpenCancelDialog(true);
+        setCancelReason(''); // Reiniciar el motivo de cancelación
+    };
+
+    // Función para procesar la cancelación con el motivo
+    const processCancelAppointment = async () => {
+        if (!citaToCancel) return;
+        
+        setIsCancelling(true);
         try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${cita.consulta_id}`, {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${citaToCancel.consulta_id}`, {
                 method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ 
+                    motivo: cancelReason
+                }),
             });
 
             if (!response.ok) throw new Error("Error al cancelar la cita");
 
             setNotification({
                 open: true,
-                message: `La cita ha sido cancelada.`,
+                message: `La cita ha sido cancelada. Se notificará al paciente.`,
                 type: 'warning',
             });
 
-            setCitas(prevCitas => prevCitas.map(c =>
-                c.consulta_id === cita.consulta_id ? { ...c, estado: "Cancelada" } : c
-            ));
+            setOpenCancelDialog(false);
+            setCitaToCancel(null);
+            fetchCitas(); // Vuelve a cargar la lista de citas para actualizar el estado
 
         } catch (error) {
             console.error("Error al cancelar la cita:", error);
@@ -127,9 +152,10 @@ const CitasForm = () => {
                 message: "Hubo un error al cancelar la cita.",
                 type: 'error',
             });
+        } finally {
+            setIsCancelling(false);
         }
     };
-
 
     const handleViewDetails = (cita) => {
         const updatedCita = citas.find(c => c.consulta_id === cita.consulta_id);
@@ -156,13 +182,12 @@ const CitasForm = () => {
         }
     }, []);
 
-
     // Función para formatear la fecha
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
             const date = new Date(dateString);
-            date.setHours(date.getHours() + 6); // Ajustar 6 horas para corregir el desfase
+            date.setHours(date.getHours() + 6); // 6 horas mas 
             return date.toLocaleString('es-MX', {
                 year: 'numeric',
                 month: '2-digit',
@@ -176,7 +201,6 @@ const CitasForm = () => {
             return "Fecha inválida";
         }
     };
-
 
     // Función para obtener el color del estado
     const getStatusColor = (status) => {
@@ -326,9 +350,9 @@ const CitasForm = () => {
                                                         {/* 📁 Archivar Cita */}
                                                         <Tooltip title="Archivar cita" arrow>
                                                             <IconButton
-                                                                onClick={() => handleArchiveAppointment(cita)}
+                                                                onClick={() => openArchiveConfirmation(cita)}
                                                                 sx={{
-                                                                    backgroundColor: '#ff9800', // Color naranja
+                                                                    backgroundColor: '#ff9800',
                                                                     '&:hover': { backgroundColor: '#f57c00' },
                                                                     padding: '8px',
                                                                     borderRadius: '50%',
@@ -343,7 +367,7 @@ const CitasForm = () => {
                                                             <IconButton
                                                                 onClick={() => handleCancelAppointment(cita)}
                                                                 sx={{
-                                                                    backgroundColor: '#e53935', // Color rojo
+                                                                    backgroundColor: '#e53935',
                                                                     '&:hover': { backgroundColor: '#c62828' },
                                                                     padding: '8px',
                                                                     borderRadius: '50%',
@@ -354,7 +378,6 @@ const CitasForm = () => {
                                                         </Tooltip>
                                                     </Box>
                                                 </TableCell>
-
                                             </TableRow>
                                         ))
                                 ) : (
@@ -454,7 +477,7 @@ const CitasForm = () => {
                 )}
             </Dialog>
 
-            {/* Diálogo de eliminar la cita */}
+            {/* Diálogo de archivar la cita */}
             <Dialog
                 open={openConfirmDialog}
                 onClose={() => !isProcessing && setOpenConfirmDialog(false)}
@@ -476,13 +499,13 @@ const CitasForm = () => {
                         borderBottom: `1px solid ${colors.divider}`
                     }}
                 >
-                    <Warning sx={{ color: '#d32f2f' }} />
-                    Confirmar eliminación
+                    <MenuBook sx={{ color: '#ff9800' }} />
+                    Confirmar Archivado de Cita
                 </DialogTitle>
 
                 <DialogContent sx={{ mt: 2 }}>
                     <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                        ¿Estás seguro de que deseas eliminar la cita #{citaToDelete?.consulta_id}?
+                        ¿Estás seguro de que deseas archivar la cita #{citaToDelete?.consulta_id}?
                     </Typography>
 
                     {citaToDelete && (
@@ -490,19 +513,29 @@ const CitasForm = () => {
                             <Typography><strong>Paciente:</strong> {citaToDelete.paciente_nombre} {citaToDelete.paciente_apellido_paterno} {citaToDelete.paciente_apellido_materno}</Typography>
                             <Typography><strong>Servicio:</strong> {citaToDelete.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToDelete.fecha_consulta)}</Typography>
+                            <Typography><strong>Estado actual:</strong> <Chip 
+                                label={citaToDelete.estado || "Pendiente"}
+                                size="small"
+                                sx={{
+                                    backgroundColor: getStatusColor(citaToDelete.estado),
+                                    color: '#FFF',
+                                    fontWeight: '500',
+                                    fontSize: '0.75rem',
+                                    height: '24px',
+                                    ml: 1
+                                }}
+                            /></Typography>
                         </Box>
                     )}
 
                     <Alert
-                        severity="error"
+                        severity="info"
                         sx={{
-                            mt: 2,
-                            '& .MuiAlert-icon': {
-                                color: '#d32f2f'
-                            }
+                            mt: 2
                         }}
                     >
-                        <AlertTitle>Esta acción no se puede deshacer.</AlertTitle>
+                        <AlertTitle>Información</AlertTitle>
+                        Las citas archivadas no aparecerán en la lista principal, pero se mantendrán en la base de datos para consultas futuras.
                     </Alert>
                 </DialogContent>
 
@@ -521,19 +554,112 @@ const CitasForm = () => {
                     </Button>
                     <Button
                         variant="contained"
-                        onClick={handleDeleteAppointment}
+                        onClick={handleArchiveAppointment}
                         disabled={isProcessing}
                         sx={{
-                            bgcolor: '#d32f2f',
-                            '&:hover': {
-                                bgcolor: '#c62828'
-                            },
-                            '&:disabled': {
-                                bgcolor: alpha('#d32f2f', 0.5)
+                            bgcolor: '#ff9800',
+                            '&:hover': { bgcolor: '#f57c00' },
+                            '&:disabled': { bgcolor: alpha('#ff9800', 0.5) }
+                        }}
+                    >
+                        {isProcessing ? 'Archivando...' : 'Confirmar Archivado'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            
+            {/* Diálogo de cancelación de cita */}
+            <Dialog
+                open={openCancelDialog}
+                onClose={() => !isCancelling && setOpenCancelDialog(false)}
+                PaperProps={{
+                    sx: {
+                        backgroundColor: colors.paper,
+                        color: colors.text,
+                        maxWidth: '600px',
+                        width: '100%'
+                    }
+                }}
+            >
+                <DialogTitle
+                    sx={{
+                        color: colors.primary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        borderBottom: `1px solid ${colors.divider}`
+                    }}
+                >
+                    <Close sx={{ color: '#d32f2f' }} />
+                    Confirmar Cancelación de Cita
+                </DialogTitle>
+
+                <DialogContent sx={{ mt: 2 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                        ¿Estás seguro de que deseas cancelar la cita #{citaToCancel?.consulta_id}?
+                    </Typography>
+
+                    {citaToCancel && (
+                        <Box sx={{ mt: 2 }}>
+                            <Typography><strong>Paciente:</strong> {citaToCancel.paciente_nombre} {citaToCancel.paciente_apellido_paterno} {citaToCancel.paciente_apellido_materno}</Typography>
+                            <Typography><strong>Servicio:</strong> {citaToCancel.servicio_nombre}</Typography>
+                            <Typography><strong>Fecha:</strong> {formatDate(citaToCancel.fecha_consulta)}</Typography>
+                            <Typography><strong>Odontólogo:</strong> {citaToCancel.odontologo_nombre || "No asignado"}</Typography>
+                        </Box>
+                    )}
+
+                    <TextField
+                        label="Motivo de la cancelación"
+                        placeholder="Indique el motivo por el cual se cancela la cita..."
+                        multiline
+                        rows={3}
+                        fullWidth
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        margin="normal"
+                        variant="outlined"
+                        required
+                        helperText="Este mensaje será enviado al paciente como notificación"
+                        sx={{ mt: 3 }}
+                    />
+
+                    <Alert
+                        severity="warning"
+                        sx={{
+                            mt: 2,
+                            '& .MuiAlert-icon': {
+                                color: '#d32f2f'
                             }
                         }}
                     >
-                        {isProcessing ? 'Eliminando...' : 'Eliminar'}
+                        <AlertTitle>Importante</AlertTitle>
+                        Esta acción cambiará el estado de la cita a "Cancelada" y enviará una notificación al paciente.
+                    </Alert>
+                </DialogContent>
+
+                <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
+                    <Button
+                        onClick={() => setOpenCancelDialog(false)}
+                        disabled={isCancelling}
+                        sx={{
+                            color: colors.secondary,
+                            '&:hover': {
+                                backgroundColor: alpha(colors.secondary, 0.1)
+                            }
+                        }}
+                    >
+                        Volver
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={processCancelAppointment}
+                        disabled={isCancelling || !cancelReason.trim()}
+                        sx={{
+                            bgcolor: '#e53935',
+                            '&:hover': { bgcolor: '#c62828' },
+                            '&:disabled': { bgcolor: alpha('#e53935', 0.5) }
+                        }}
+                    >
+                        {isCancelling ? 'Procesando...' : 'Confirmar Cancelación'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -567,7 +693,7 @@ const CitasForm = () => {
                 open={openEditDialog}
                 handleClose={() => setOpenEditDialog(false)}
                 appointmentData={selectedCita}
-                onUpdate={fetchCitas} // 🔹 Esto recargará las citas después de editar
+                onUpdate={fetchCitas} // Esto recargará las citas después de editar
             />
             <Notificaciones
                 open={notification.open}
