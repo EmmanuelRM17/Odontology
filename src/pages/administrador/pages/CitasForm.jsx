@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback  } from 'react';
 import {
     TextField, Button, Grid, Card, CardContent, Typography, TableContainer, Table, TableBody, TableCell,
     TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -28,12 +28,12 @@ const CitasForm = () => {
     const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
     const [citaToDelete, setCitaToDelete] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
-    const [notification, setNotification] = useState({
-        open: false,
-        message: '',
-        type: '',
-    });
-
+    const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+    
+    useEffect(() => {
+        fetchCitas();
+    }, []);
+    
     // Colores del tema
     const colors = {
         background: isDarkTheme ? '#0D1B2A' : '#ffffff',
@@ -110,29 +110,24 @@ const CitasForm = () => {
     };
 
     // Función para obtener citas
-    const fetchCitas = async () => {
+    const fetchCitas = useCallback(async () => {
         try {
             const response = await fetch("https://back-end-4803.onrender.com/api/citas/all");
             if (!response.ok) throw new Error("Error al obtener las citas");
     
             const data = await response.json();
-    
-            const citasActivas = data.filter(cita => !cita.archivado); 
-            setCitas(citasActivas);
+            setCitas(data.filter(cita => !cita.archivado)); 
         } catch (error) {
             console.error("Error cargando citas:", error);
+            setCitas([]);
             setNotification({
                 open: true,
-                message: 'Error al cargar las citas. Por favor intente nuevamente.',
+                message: 'Error al cargar las citas.',
                 type: 'error',
             });
         }
-    };
-    
-
-    useEffect(() => {
-        fetchCitas();
     }, []);
+    
 
     // Función para formatear la fecha
     const formatDate = (dateString) => {
