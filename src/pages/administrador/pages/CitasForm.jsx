@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback  } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     TextField, Button, Grid, Card, CardContent, Typography, TableContainer, Table, TableBody, TableCell,
     TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
@@ -29,11 +29,11 @@ const CitasForm = () => {
     const [citaToDelete, setCitaToDelete] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
-    
+
     useEffect(() => {
         fetchCitas();
     }, []);
-    
+
     // Colores del tema
     const colors = {
         background: isDarkTheme ? '#0D1B2A' : '#ffffff',
@@ -54,54 +54,82 @@ const CitasForm = () => {
         fetchCitas(); // Vuelve a cargar la lista de citas después de agregar una nueva
     };
 
-    const handleDeleteAppointment = async () => {
+    const handleArchiveAppointment = async () => {
         if (!citaToDelete) return;
-    
+
         setIsProcessing(true);
-    
+
         try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/delete/${citaToDelete.consulta_id}`, {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/archive/${citaToDelete.consulta_id}`, {
                 method: 'DELETE',
             });
-    
+
             if (!response.ok) {
-                throw new Error('Error al eliminar la cita');
+                throw new Error('Error al arvhivar la cita');
             }
-    
+
             setNotification({
                 open: true,
-                message: `La cita ha sido eliminada correctamente.`,
+                message: `La cita ha sido archivada correctamente.`,
                 type: 'success',
             });
-    
+
             setOpenConfirmDialog(false);
             setCitaToDelete(null);
-    
+
             // 🔹 Remover la cita eliminada sin recargar la página
             setCitas(prevCitas => prevCitas.filter(c => c.consulta_id !== citaToDelete.consulta_id));
-    
+
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
             }, 3000);
-    
+
         } catch (error) {
-            console.error('Error al eliminar la cita:', error);
-    
+            console.error('Error al archivar la cita:', error);
+
             setNotification({
                 open: true,
-                message: 'Hubo un error al eliminar la cita.',
+                message: 'Hubo un error al archivar la cita.',
                 type: 'error',
             });
-    
+
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
             }, 3000);
-    
+
         } finally {
             setIsProcessing(false);
         }
     };
-    
+
+    const handleCancelAppointment = async (cita) => {
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${cita.consulta_id}`, {
+                method: 'PUT',
+            });
+
+            if (!response.ok) throw new Error("Error al cancelar la cita");
+
+            setNotification({
+                open: true,
+                message: `La cita ha sido cancelada.`,
+                type: 'warning',
+            });
+
+            setCitas(prevCitas => prevCitas.map(c =>
+                c.consulta_id === cita.consulta_id ? { ...c, estado: "Cancelada" } : c
+            ));
+
+        } catch (error) {
+            console.error("Error al cancelar la cita:", error);
+            setNotification({
+                open: true,
+                message: "Hubo un error al cancelar la cita.",
+                type: 'error',
+            });
+        }
+    };
+
 
     const handleViewDetails = (cita) => {
         const updatedCita = citas.find(c => c.consulta_id === cita.consulta_id);
@@ -114,9 +142,9 @@ const CitasForm = () => {
         try {
             const response = await fetch("https://back-end-4803.onrender.com/api/citas/all");
             if (!response.ok) throw new Error("Error al obtener las citas");
-    
+
             const data = await response.json();
-            setCitas(data.filter(cita => !cita.archivado)); 
+            setCitas(data.filter(cita => !cita.archivado));
         } catch (error) {
             console.error("Error cargando citas:", error);
             setCitas([]);
@@ -127,23 +155,28 @@ const CitasForm = () => {
             });
         }
     }, []);
-    
+
 
     // Función para formatear la fecha
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
-            return new Date(dateString).toLocaleString('es-ES', {
+            const date = new Date(dateString);
+            date.setHours(date.getHours() + 6); // Ajustar 6 horas para corregir el desfase
+            return date.toLocaleString('es-MX', {
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
+                hour12: true,
             });
         } catch (error) {
-            return dateString;
+            console.error("Error formateando fecha:", error);
+            return "Fecha inválida";
         }
     };
+
 
     // Función para obtener el color del estado
     const getStatusColor = (status) => {
@@ -290,15 +323,27 @@ const CitasForm = () => {
                                                             </IconButton>
                                                         </Tooltip>
 
-                                                        {/* ❌ Eliminar Cita */}
-                                                        <Tooltip title="Eliminar cita" arrow>
+                                                        {/* 📁 Archivar Cita */}
+                                                        <Tooltip title="Archivar cita" arrow>
                                                             <IconButton
-                                                                onClick={() => {
-                                                                    setCitaToDelete(cita);
-                                                                    setOpenConfirmDialog(true);
-                                                                }}
+                                                                onClick={() => handleArchiveAppointment(cita)}
                                                                 sx={{
-                                                                    backgroundColor: '#e53935',
+                                                                    backgroundColor: '#ff9800', // Color naranja
+                                                                    '&:hover': { backgroundColor: '#f57c00' },
+                                                                    padding: '8px',
+                                                                    borderRadius: '50%',
+                                                                }}
+                                                            >
+                                                                <MenuBook fontSize="medium" sx={{ color: 'white' }} />
+                                                            </IconButton>
+                                                        </Tooltip>
+
+                                                        {/* 🛑 Cancelar Cita */}
+                                                        <Tooltip title="Cancelar cita" arrow>
+                                                            <IconButton
+                                                                onClick={() => handleCancelAppointment(cita)}
+                                                                sx={{
+                                                                    backgroundColor: '#e53935', // Color rojo
                                                                     '&:hover': { backgroundColor: '#c62828' },
                                                                     padding: '8px',
                                                                     borderRadius: '50%',
@@ -309,6 +354,7 @@ const CitasForm = () => {
                                                         </Tooltip>
                                                     </Box>
                                                 </TableCell>
+
                                             </TableRow>
                                         ))
                                 ) : (
