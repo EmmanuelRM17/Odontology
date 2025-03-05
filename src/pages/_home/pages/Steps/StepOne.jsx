@@ -107,7 +107,7 @@ const StepOne = ({
     const checkPatientExists = async (email) => {
         try {
             setLoading(true);
-            const response = await axios.get(`https://back-end-4803.onrender.com/api/citas/pacientes/exists?email=${email}`);
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/pacientes/exists?email=${email}`);
 
             if (response.data.exists && response.data.data) {
                 const patientData = response.data.data;

@@ -1,21 +1,44 @@
-import React, { useState, useEffect, useCallback } from 'react';
 import {
-    TextField, Button, Grid, Card, CardContent, Typography, TableContainer, Table, TableBody, TableCell,
-    TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-    Box, IconButton, Tooltip, Chip, Fab, Alert, AlertTitle
+    Alert, AlertTitle,
+    Box,
+    Button,
+    Card, CardContent,
+    Chip,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    Fab,
+    Grid,
+    IconButton,
+    Paper,
+    Table, TableBody, TableCell,
+    TableContainer,
+    TableHead, TableRow,
+    TextField,
+    Tooltip,
+    Typography
 } from '@mui/material';
+import React, { useCallback, useEffect, useState } from 'react';
 
 import {
-    Event, Timer, AttachMoney, Edit, Delete, Description, CheckCircle,
-    Info, EventAvailable, HealthAndSafety, MenuBook, AccessTime, Add, Close, BorderColor,
-    Warning, Person, CalendarMonth
+    Add,
+    BorderColor,
+    CalendarMonth,
+    Close,
+    Description,
+    Event,
+    HealthAndSafety,
+    Info,
+    MenuBook,
+    Person
 } from '@mui/icons-material';
 
 import { alpha } from '@mui/material/styles';
-import EditCita from './citas/editarCita.jsx';
-import NewCita from './citas/nuevaCita.jsx';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import EditCita from './citas/editarCita.jsx';
+import NewCita from './citas/nuevaCita.jsx';
 
 const CitasForm = () => {
     const { isDarkTheme } = useThemeContext();
