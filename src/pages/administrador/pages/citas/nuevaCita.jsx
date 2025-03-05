@@ -5,17 +5,18 @@ import {
   Button, TextField, FormControl, InputLabel, Select, MenuItem,
   Grid, Typography, FormHelperText, Box, CircularProgress,
   Divider, Alert, Step, StepLabel, Stepper, Paper, Chip,
-  FormControlLabel, Switch, Autocomplete, Checkbox, IconButton, alpha, Radio,
+  IconButton, alpha, Radio,
 } from '@mui/material';
 import {
-  Add, CalendarMonth, Person, EventAvailable, Checklist, Search, ArrowBackIosNew, CheckCircle,
-  PersonAdd, Close, InfoOutlined, LocalHospital, Event, HealthAndSafety, AccessTime, ArrowForwardIos,
+  CalendarMonth, Person, EventAvailable, Checklist, Search, ArrowBackIosNew, CheckCircle,
+  PersonAdd, Close, Event, HealthAndSafety, AccessTime, ArrowForwardIos,
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider, DateCalendar, DatePicker, TimePicker } from '@mui/x-date-pickers';
+import { LocalizationProvider, DateCalendar, DatePicker } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
+import moment from 'moment-timezone';
 
 const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
   const { isDarkTheme } = useThemeContext();
@@ -608,16 +609,12 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     // Formatear fecha de nacimiento a YYYY-MM-DD
     let fechaNacimiento = null;
     if (formData.paciente_fecha_nacimiento) {
-      const date = new Date(formData.paciente_fecha_nacimiento);
-      fechaNacimiento = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      fechaNacimiento = moment.utc(formData.paciente_fecha_nacimiento).format("YYYY-MM-DD");
       console.log("Fecha de nacimiento formateada:", fechaNacimiento);
     } else {
       console.log("No se encontró fecha de nacimiento en formData");
-      // Si no hay fecha de nacimiento (lo cual no debería ocurrir), usar una fecha predeterminada
-      const currentYear = new Date().getFullYear() - 30; // Asumimos 30 años
-      fechaNacimiento = `${currentYear}-01-01`;
+      fechaNacimiento = moment().subtract(30, 'years').format("YYYY-MM-DD");
     }
-
     // Estructura de datos según lo que espera el backend
     const dataToSubmit = {
       // Datos del paciente
