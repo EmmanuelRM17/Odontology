@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "moment/locale/es";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { Container, Box, Card, Typography, CircularProgress } from "@mui/material";
+import { Container, Box, Card, Typography, CircularProgress, Dialog } from "@mui/material";
 import axios from "axios";
 import DetalleCitaPaciente from "./DetalleCitaPaciente";
 import Notificaciones from "../../../components/Layout/Notificaciones";  // Importamos el componente de notificaciones
@@ -34,10 +34,10 @@ const CalendarioAgenda = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCita, setSelectedCita] = useState(null);
-  const [openModal, setOpenModal] = useState(false);
   const [openNotification, setOpenNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
   const [notificationType, setNotificationType] = useState("error");
+  const [openDialog, setOpenDialog] = useState(false);
 
   const fetchEvents = () => {
     axios
@@ -83,7 +83,7 @@ const CalendarioAgenda = () => {
       .get(`https://back-end-4803.onrender.com/api/calendario/agenda/${event.id}`)
       .then((response) => {
         setSelectedCita(response.data);
-        setOpenModal(true);
+        setOpenDialog(true);
         setLoading(false);  // Detiene la animación de carga cuando se obtienen los datos
       })
       .catch((error) => {
@@ -225,14 +225,10 @@ const CalendarioAgenda = () => {
         handleClose={() => setOpenNotification(false)}
       />
 
-      {/* Modal con detalles de la cita */}
-      {openModal && (
-        <DetalleCitaPaciente
-          open={openModal}
-          onClose={() => setOpenModal(false)}
-          cita={selectedCita}
-        />
-      )}
+    
+      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
+        <DetalleCitaPaciente open={openDialog} onClose={() => setOpenDialog(false)} cita={selectedCita} />
+      </Dialog>
     </Container>
     </>
   );
