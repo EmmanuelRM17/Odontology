@@ -47,8 +47,8 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     paciente_nombre: '',
     paciente_apellido_paterno: '',
     paciente_apellido_materno: '',
-    paciente_genero: '',                // Nuevo campo
-    paciente_fecha_nacimiento: null,    // Nuevo campo
+    paciente_genero: '',
+    paciente_fecha_nacimiento: null,
     paciente_telefono: '',
     paciente_correo: '',
 
@@ -68,8 +68,8 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     paciente_nombre: false,
     paciente_apellido_paterno: false,
     paciente_apellido_materno: false,
-    paciente_genero: false,                // Nuevo campo
-    paciente_fecha_nacimiento: false,      // Nuevo campo
+    paciente_genero: false,
+    paciente_fecha_nacimiento: false,
     servicios_seleccionados: false,
     odontologo_id: false,
     fecha_consulta: false,
@@ -96,6 +96,11 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       fetchServicios();
       fetchOdontologos();
       fetchPacientes();
+      setNotification({
+        open: false,
+        message: '',
+        type: ''
+      });
     }
   }, [open]);
 
@@ -137,8 +142,14 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     setShowNewPatientForm(false);
     setSelectedDate(null);
     setHorariosDisponibles([]);
-  };
 
+    // Reiniciar también el estado de notificación
+    setNotification({
+      open: false,
+      message: '',
+      type: ''
+    });
+  };
   // Fetching de servicios
   const fetchServicios = async () => {
     setLoading(true);
@@ -320,6 +331,18 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
 
   // Seleccionar paciente existente
   const handleSelectPatient = (paciente) => {
+    console.log("Datos completos del paciente seleccionado:", paciente);
+
+    let fechaNacimiento = null;
+    if (paciente.fechaNacimiento) {
+      fechaNacimiento = new Date(paciente.fechaNacimiento);
+      console.log("Fecha de nacimiento recuperada:", fechaNacimiento);
+    } else {
+      console.log("No se encontró la fecha de nacimiento en el objeto paciente");
+      const currentYear = new Date().getFullYear();
+      fechaNacimiento = new Date(currentYear, 0, 1);
+    }
+
     setFormData(prev => ({
       ...prev,
       paciente_id: paciente.id,
@@ -327,7 +350,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       paciente_apellido_paterno: paciente.aPaterno,
       paciente_apellido_materno: paciente.aMaterno || '',
       paciente_genero: paciente.genero || 'No especificado',
-      paciente_fecha_nacimiento: paciente.fecha_nacimiento ? new Date(paciente.fecha_nacimiento) : null,
+      paciente_fecha_nacimiento: fechaNacimiento,
       paciente_telefono: paciente.telefono || '',
       paciente_correo: paciente.email || '',
     }));
@@ -587,16 +610,23 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     if (formData.paciente_fecha_nacimiento) {
       const date = new Date(formData.paciente_fecha_nacimiento);
       fechaNacimiento = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+      console.log("Fecha de nacimiento formateada:", fechaNacimiento);
+    } else {
+      console.log("No se encontró fecha de nacimiento en formData");
+      // Si no hay fecha de nacimiento (lo cual no debería ocurrir), usar una fecha predeterminada
+      const currentYear = new Date().getFullYear() - 30; // Asumimos 30 años
+      fechaNacimiento = `${currentYear}-01-01`;
     }
+
     // Estructura de datos según lo que espera el backend
-    return {
+    const dataToSubmit = {
       // Datos del paciente
       paciente_id: esNuevoPaciente ? null : formData.paciente_id,
       nombre: formData.paciente_nombre,
       apellido_paterno: formData.paciente_apellido_paterno,
       apellido_materno: formData.paciente_apellido_materno,
       genero: formData.paciente_genero || 'No especificado',
-      fecha_nacimiento: fechaNacimiento,
+      fecha_nacimiento: fechaNacimiento, // Asegurar que siempre tiene un valor
       correo: formData.paciente_correo || '',
       telefono: formData.paciente_telefono || '',
 
@@ -620,6 +650,9 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       // Variables de control
       es_nuevo_paciente: esNuevoPaciente
     };
+
+    console.log("Datos completos a enviar:", dataToSubmit);
+    return dataToSubmit;
   };
 
   // Enviar el formulario
@@ -627,16 +660,23 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     setLoading(true);
     setError('');
     setSuccess('');
-  
+
     try {
       const dataToSubmit = prepareDataForSubmission();
-      
+
+      // Verificación adicional para fecha de nacimiento
+      if (!dataToSubmit.fecha_nacimiento) {
+        console.error("Advertencia: Fecha de nacimiento no encontrada. Usando fecha predeterminada.");
+        const defaultYear = new Date().getFullYear() - 30; // 30 años por defecto
+        dataToSubmit.fecha_nacimiento = `${defaultYear}-01-01`;
+      }
+
       // Imprimir los datos que se enviarán al backend para debugging
       console.log("Datos a enviar al backend:", JSON.stringify(dataToSubmit, null, 2));
-  
+
       // Usar un único endpoint para crear citas
       const endpoint = 'https://back-end-4803.onrender.com/api/citas/nueva';
-  
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -644,36 +684,61 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         },
         body: JSON.stringify(dataToSubmit),
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Error al crear la cita');
+
+      // Obtener respuesta detallada para depuración
+      const responseText = await response.text();
+      console.log("Respuesta del servidor (texto):", responseText);
+
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Error al parsear respuesta como JSON:", e);
       }
-  
-      const responseData = await response.json();
-      console.log("Respuesta del servidor:", responseData);
-  
-      // Usar notificación en lugar de setSuccess
+
+      if (!response.ok) {
+        throw new Error(responseData?.message || `Error ${response.status}: ${response.statusText}`);
+      }
+
+      console.log("Respuesta exitosa del servidor:", responseData);
+
+      // Mostrar notificación de éxito
       setNotification({
         open: true,
         message: '¡Cita creada con éxito!',
         type: 'success',
       });
-  
-      // Esperar un momento y cerrar
+
+      // Esperar 3 segundos, cerrar notificación y luego cerrar el diálogo
       setTimeout(() => {
+        setNotification({
+          open: false,
+          message: '',
+          type: ''
+        });
+
         handleClose();
+
         if (onAppointmentCreated) onAppointmentCreated();
-      }, 1500);
-  
+      }, 3000);
+
     } catch (error) {
       console.error('Error al crear la cita:', error);
-      // Usar notificación en lugar de setError
+      // Mostrar notificación de error
       setNotification({
         open: true,
         message: `Error: ${error.message}`,
         type: 'error',
       });
+
+      // Cerrar la notificación de error después de 3 segundos
+      setTimeout(() => {
+        setNotification({
+          open: false,
+          message: '',
+          type: ''
+        });
+      }, 3000); // 3 segundos
     } finally {
       setLoading(false);
     }
@@ -917,10 +982,23 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                       label="Fecha de Nacimiento *"
                       value={formData.paciente_fecha_nacimiento}
                       onChange={(date) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          paciente_fecha_nacimiento: date
-                        }));
+                        // Si es un paciente nuevo, usamos el 1 de enero del año seleccionado
+                        if (showNewPatientForm && date) {
+                          const year = date.getFullYear();
+                          const simplifiedDate = new Date(year, 0, 1); // 1 de enero del año seleccionado
+
+                          setFormData(prev => ({
+                            ...prev,
+                            paciente_fecha_nacimiento: simplifiedDate
+                          }));
+                        } else {
+                          // Si es un paciente existente, usamos la fecha completa
+                          setFormData(prev => ({
+                            ...prev,
+                            paciente_fecha_nacimiento: date
+                          }));
+                        }
+
                         if (formErrors.paciente_fecha_nacimiento) {
                           setFormErrors(prev => ({
                             ...prev,
@@ -928,11 +1006,17 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                           }));
                         }
                       }}
+                      // Para pacientes nuevos, mostrar solo selección de año
+                      views={showNewPatientForm ? ['year'] : ['year', 'month', 'day']}
                       slotProps={{
                         textField: {
                           fullWidth: true,
                           error: formErrors.paciente_fecha_nacimiento,
-                          helperText: formErrors.paciente_fecha_nacimiento ? "La fecha de nacimiento es obligatoria" : ""
+                          helperText: formErrors.paciente_fecha_nacimiento
+                            ? "La fecha de nacimiento es obligatoria"
+                            : showNewPatientForm
+                              ? "Solo seleccione el año de nacimiento"
+                              : ""
                         }
                       }}
                       disableFuture
@@ -1381,7 +1465,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
 
               <Typography variant="body1" sx={{ mb: 1 }}>
                 <strong>Odontólogo:</strong> {selectedOdontologo ?
-                  `${selectedOdontologo.nombre} ${selectedOdontologo.apellido_paterno} ${selectedOdontologo.apellido_materno || ''}` :
+                  `${selectedOdontologo.nombre} ${selectedOdontologo.aPaterno} ${selectedOdontologo.aMaterno || ''}` :
                   'No seleccionado'}
               </Typography>
 

@@ -68,7 +68,6 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
         paciente_id: appointmentData.paciente_id || '',
         servicio_id: appointmentData.servicio_id ? appointmentData.servicio_id.toString() : '',
         servicio_nombre: appointmentData.servicio_nombre || '',
-        // Se usa la propiedad 'categoria_servicio' si existe, sino cadena vacía
         categoria_servicio: appointmentData.categoria_servicio || '',
         precio_servicio: appointmentData.precio_servicio ? parseFloat(appointmentData.precio_servicio).toFixed(2) : '',
         fecha: appointmentData.fecha_consulta
@@ -76,11 +75,11 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
           : '',
         hora: appointmentData.fecha_consulta
           ? new Date(appointmentData.fecha_consulta).toLocaleTimeString('es-ES', {
-              hour: '2-digit',
-              minute: '2-digit',
-              hour12: false,
-              timeZone: 'UTC'
-            })
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+            timeZone: 'UTC'
+          })
           : '',
         estado: appointmentData.estado || 'Pendiente',
         notas: appointmentData.notas || ''
@@ -102,22 +101,26 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
 
   // Manejo de cambios en el servicio para actualizar nombre, categoría y precio
   const handleServiceChange = (e) => {
-    const { value } = e.target;
+    const { value } = e.target; // value del select (string con el ID)
     const selectedService = servicios.find(servicio => servicio.id.toString() === value);
-    setFormData(prev => ({
-      ...prev,
-      servicio_id: value,
-      servicio_nombre: selectedService ? selectedService.title : prev.servicio_nombre,
-      categoria_servicio: selectedService ? selectedService.category : prev.categoria_servicio,
-      precio_servicio: selectedService
-        ? parseFloat(selectedService.price || 0).toFixed(2)
-        : prev.precio_servicio
-    }));
+
+    if (selectedService) {
+      console.log('Servicio seleccionado:', selectedService);
+      console.log('ID del servicio seleccionado:', selectedService.id);
+
+      setFormData(prev => ({
+        ...prev,
+        servicio_id: selectedService.id.toString(), // Usar el ID del servicio seleccionado
+        servicio_nombre: selectedService.title,
+        categoria_servicio: selectedService.category,
+        precio_servicio: parseFloat(selectedService.price || 0).toFixed(2)
+      }));
+    }
+
     if (formErrors.servicio_id) {
       setFormErrors(prev => ({ ...prev, servicio_id: false }));
     }
   };
-
   // Validación del formulario
   const validateForm = () => {
     const errors = {
@@ -166,6 +169,7 @@ const EditCita = ({ open, handleClose, appointmentData, onUpdate }) => {
         },
         body: JSON.stringify({
           servicio_id: formData.servicio_id,
+          servicio_nombre: formData.servicio_nombre,
           categoria_servicio: formData.categoria_servicio,
           precio_servicio: formData.precio_servicio,
           fecha_consulta: fecha_consulta.toISOString(),
