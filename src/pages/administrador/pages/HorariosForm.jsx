@@ -88,9 +88,6 @@ const HorariosForm = () => {
       }
     };
     fetchOdontologos();
-    
-    // Verificar si hay horarios existentes para este odontólogo
-    // Esta funcionalidad podría implementarse en el futuro
   }, []);
 
   // Cambiar estado activo/inactivo de un día
