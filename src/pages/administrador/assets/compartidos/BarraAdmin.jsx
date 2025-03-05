@@ -53,7 +53,7 @@ const BarraAdmin = () => {
         { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes', divider: false },
         { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios', divider: false },
         { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas', divider: false },
-        { icon: FaCalendarAlt, text: 'Agenda', path: '/Administrador/agenda', divider: false },
+        { icon: FaCalendarAlt, text: 'Gestion de Horarios', path: '/Administrador/horarios', divider: false },
         { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/estadisticas', divider: false },
         { icon: FaFileAlt, text: 'Reportes', path: '/Administrador/reportes', divider: false },
         { icon: FaMoneyBillWave, text: 'Finanzas', path: '/Administrador/finanzas', divider: false },

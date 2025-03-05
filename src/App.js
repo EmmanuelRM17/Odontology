@@ -38,9 +38,10 @@ import Reportes from "./pages/administrador/pages/reportes";
 import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
-import CitasForm from "./pages/administrador/pages/CitasForm.jsx";
+import CitasForm from "./pages/administrador/pages/CitasForm";
+import HorariosForm from "./pages/administrador/pages/HorariosForm.jsx";
 import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas.jsx";
-import Graficas from "./pages/administrador/pages/Graficas.jsx";
+import Graficas from "./pages/administrador/pages/Graficas";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
@@ -211,6 +212,7 @@ function App() {
           <Route path="/Administrador/pacientes" element={<LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin>} />
           <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/citas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de citas' }]} /><CitasForm /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/horarios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de Horarios' }]} /><HorariosForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas/></LayoutAdmin>} />
 
