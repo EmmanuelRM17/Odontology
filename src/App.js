@@ -39,7 +39,7 @@ import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm";
-import HorariosForm from "./pages/administrador/pages/HorariosForm.jsx";
+import HorariosForm from "./pages/administrador/pages/HorariosForm";
 import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas.jsx";
 import Graficas from "./pages/administrador/pages/Graficas";
 
