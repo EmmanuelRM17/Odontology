@@ -1,1129 +1,1042 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import {
-  Box,
-  Typography,
-  Button,
-  CircularProgress,
-  Grid,
-  Divider,
-  Card,
-  CardContent,
-  Chip,
-  Tooltip,
-  useMediaQuery,
-  useTheme,
-  IconButton
-} from '@mui/material';
-import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Box, Typography, IconButton, Button } from '@mui/material';
+import { useMediaQuery, Tooltip, Card, CardContent } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  OpenInNew,
-  LocationOn,
-  AccessTime,
-  Phone,
-  Info,
-  Navigation,
-  Share,
-  Map,
-  Satellite,
-  ZoomIn,
-  ZoomOut,
-  LocationCity,
-  Star
-} from '@mui/icons-material';
+import { ExpandLess, ExpandMore, ArrowBackIos, ArrowForwardIos, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { useRef } from 'react';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-// Información de la clínica - Mover fuera del componente
-const CLINIC_INFO = {
-  nombre: "Clínica Dental Carol",
-  direccion: "Ixcatlan, Huejutla de Reyes, Hidalgo, México",
-  telefono: "+52 789 123 4567",
-  horario: "Lunes a Viernes: 9:00 - 19:00, Sábados: 9:00 - 14:00",
-  indicaciones: "A una cuadra de la Plaza Principal, edificio con fachada azul",
-  reseñas: "4.8/5 basado en 45 reseñas"
-};
+import images from '../../../utils/imageLoader';
 
-// Centro del mapa - Mover fuera del componente
-const MAP_CENTER = {
-  lat: 21.081734,
-  lng: -98.536002
-};
-
-// Enlaces externos - Mover fuera del componente
-const STREET_VIEW_LINK = `https://www.google.com/maps/@21.0816681,-98.5359763,19.64z`;
-const DIRECTIONS_LINK = `https://www.google.com/maps/search/?api=1&query=${MAP_CENTER.lat},${MAP_CENTER.lng}`;
-
-// API Key de Google Maps
-const GOOGLE_MAPS_API_KEY = "AIzaSyCjYgHzkG53-aSTcHJkAPYu98TIkGZ2d-w";
-
-// Estilos para el mapa en modo oscuro - Mover fuera para evitar recálculos
-const DARK_MAP_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
-  { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
-  { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
-  { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
-  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
-  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
-  { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
-  { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
+const rotatingTexts = [
+  "Cuidamos tu sonrisa",
+  "Tu salud bucal, nuestra prioridad",
+  "Sonrisas saludables, vidas felices",
+  "Excelencia en odontología",
+  "Confía en los expertos en salud dental"
 ];
 
-// Estilos para el modo claro - Mover fuera para evitar recálculos
-const LIGHT_MAP_STYLE = [
-  { featureType: "poi.medical", elementType: "labels", stylers: [{ visibility: "on", color: "#e74c3c" }] },
-  { featureType: "poi.business", stylers: [{ visibility: "on" }] },
-  { featureType: "poi.attraction", stylers: [{ visibility: "simplified" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#a0d6f7" }] },
-  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#f2f2f2" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ lightness: 100 }] },
-  { featureType: "road", elementType: "labels", stylers: [{ visibility: "simplified" }] },
-  { featureType: "transit.line", stylers: [{ visibility: "on", lightness: 700 }] },
-];
-
-// Animaciones predefinidas como constantes
-const PAGE_ANIMATION_VARIANTS = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      duration: 0.8,
-      when: "beforeChildren",
-      staggerChildren: 0.2
-    }
-  },
-  exit: {
-    opacity: 0,
-    transition: { duration: 0.4 }
-  }
-};
-
-const TITLE_ANIMATION_VARIANTS = {
-  hidden: { opacity: 0, y: -30 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 12,
-      duration: 0.7
-    }
-  }
-};
-
-const MAP_CONTAINER_VARIANTS = {
-  hidden: { opacity: 0, y: 50, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 50,
-      damping: 12,
-      duration: 0.8
-    }
-  }
-};
-
-const CARD_VARIANTS = {
-  hidden: { opacity: 0, x: 30, scale: 0.95 },
-  visible: {
-    opacity: 1,
-    x: 0,
-    scale: 1,
-    transition: {
-      type: "spring",
-      stiffness: 50,
-      damping: 12,
-      duration: 0.8
-    }
-  },
-  hover: {
-    scale: 1.02,
-    boxShadow: "0px 12px 30px rgba(0,0,0,0.2)",
-    transition: { duration: 0.3 }
-  }
-};
-
-const BUTTON_VARIANTS = {
-  hover: {
-    scale: 1.05,
-    transition: { duration: 0.2 }
-  },
-  tap: { scale: 0.95 }
-};
-
-const STAGGER_ITEM_VARIANTS = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      type: "spring",
-      stiffness: 100,
-      damping: 12
-    }
-  }
-};
-
-const FLOATING_ICON_VARIANTS = {
-  initial: { y: 0 },
-  animate: {
-    y: [-5, 5, -5],
-    transition: {
-      duration: 3,
-      repeat: Infinity,
-      ease: "easeInOut"
-    }
-  }
-};
-
-// Componente principal con optimizaciones
-const Ubicacion = () => {
+const Home = () => {
   const { isDarkTheme } = useThemeContext();
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const [scrollOpacity, setScrollOpacity] = useState(1);
+  const [services, setServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const isMobile = useMediaQuery('(max-width:900px)');
+  const isSmallScreen = useMediaQuery('(max-width:600px)');
+  const [currentText, setCurrentText] = useState(rotatingTexts[0]);
+  const [index, setIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const navigate = useNavigate();
+  const [displayedText, setDisplayedText] = useState('');
+  const typingIntervalRef = useRef(null);
+  const autoRotateDelay = 7000;
+  const serviceIndexRef = useRef(0);
+  const textIndexRef = useRef(0);
+  const imageIndexRef = useRef(0);
 
-  const mapRef = useRef(null);
-  const [showInfoWindow, setShowInfoWindow] = useState(false);
-  const [mapView, setMapView] = useState('roadmap');
-  const [isHovering, setIsHovering] = useState(false);
-  const [mapZoom, setMapZoom] = useState(17);
-  const [showPage, setShowPage] = useState(false);
-
-  // Optimizar carga de página con requestAnimationFrame
   useEffect(() => {
-    const animationFrame = requestAnimationFrame(() => {
-      const timer = setTimeout(() => {
-        setShowPage(true);
-      }, 300);
-      return () => clearTimeout(timer);
-    });
-    
-    return () => cancelAnimationFrame(animationFrame);
-  }, []);
+    if (isPaused || services.length === 0) return;
 
-  // Cargar la API de Google Maps con manejo de errores mejorado
-  const { isLoaded, loadError } = useJsApiLoader({
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY,
-    timeout: 10000,
-  });
+    let frame;
+    let startTime = performance.now();
+    const duration = autoRotateDelay;
 
-  // Memoizar los colores dinámicos para evitar recálculos en cada renderizado
-  const colors = useMemo(() => ({
-    cardBackground: isDarkTheme ? '#0A1929' : '#ffffff',
-    primaryText: isDarkTheme ? '#ffffff' : '#0A1929',
-    secondaryText: isDarkTheme ? '#A0AEC0' : '#546E7A',
-    primaryColor: isDarkTheme ? '#4FC3F7' : '#0052CC',
-    secondaryColor: isDarkTheme ? '#FF4081' : '#FF5252',
-    accentColor: isDarkTheme ? '#FFC107' : '#FF9800',
-    gradientStart: isDarkTheme ? '#0A1929' : '#F8FDFF',
-    gradientEnd: isDarkTheme ? '#0F2942' : '#DDF4FF',
-    cardShadow: isDarkTheme ? '0 10px 30px rgba(0, 0, 0, 0.5)' : '0 10px 30px rgba(0, 82, 204, 0.15)',
-    buttonHover: isDarkTheme ? 'rgba(79, 195, 247, 0.15)' : 'rgba(0, 82, 204, 0.08)',
-    divider: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
-    chipBackground: isDarkTheme ? 'rgba(79, 195, 247, 0.15)' : 'rgba(0, 82, 204, 0.08)',
-    backgroundPattern: isDarkTheme
-      ? 'radial-gradient(circle at 30% 30%, rgba(25, 118, 210, 0.1) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(25, 118, 210, 0.08) 0%, transparent 10%)'
-      : 'radial-gradient(circle at 30% 30%, rgba(25, 118, 210, 0.05) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(25, 118, 210, 0.03) 0%, transparent 10%)'
-  }), [isDarkTheme]);
-
-  // Memoizar estilos del mapa
-  const mapStyles = useMemo(() => ({
-    height: "450px",
-    width: "100%",
-    borderRadius: "16px",
-    marginTop: "20px",
-    boxShadow: colors.cardShadow,
-    border: `2px solid ${colors.primaryColor}`,
-  }), [colors.cardShadow, colors.primaryColor]);
-
-  // Optimizar callback de carga del mapa
-  const onLoad = useCallback((map) => {
-    mapRef.current = map;
-    
-    // Usar RAF para animaciones más suaves
-    requestAnimationFrame(() => {
-      map.setZoom(15);
-      setTimeout(() => requestAnimationFrame(() => map.setZoom(17)), 700);
-    });
-  }, []);
-
-  // Callback para limpiar la referencia del mapa
-  const onUnmount = useCallback(() => {
-    mapRef.current = null;
-  }, []);
-
-  // Funciones de control del mapa optimizadas
-  const toggleMapView = useCallback(() => {
-    setMapView(prevView => prevView === 'roadmap' ? 'satellite' : 'roadmap');
-  }, []);
-
-  const zoomIn = useCallback(() => {
-    if (mapRef.current && mapZoom < 20) {
-      const newZoom = mapZoom + 1;
-      mapRef.current.setZoom(newZoom);
-      setMapZoom(newZoom);
-    }
-  }, [mapZoom]);
-
-  const zoomOut = useCallback(() => {
-    if (mapRef.current && mapZoom > 10) {
-      const newZoom = mapZoom - 1;
-      mapRef.current.setZoom(newZoom);
-      setMapZoom(newZoom);
-    }
-  }, [mapZoom]);
-
-  // Optimizar función para compartir ubicación
-  const handleShare = useCallback(async () => {
-    try {
-      if (navigator.share) {
-        await navigator.share({
-          title: CLINIC_INFO.nombre,
-          text: `Ubicación de ${CLINIC_INFO.nombre}: ${CLINIC_INFO.direccion}`,
-          url: DIRECTIONS_LINK,
-        });
-      } else {
-        await navigator.clipboard.writeText(DIRECTIONS_LINK);
-        alert('¡Enlace copiado al portapapeles!');
+    const animate = (currentTime) => {
+      if (currentTime - startTime >= duration) {
+        serviceIndexRef.current = (serviceIndexRef.current + 1) % services.length;
+        setCurrentServiceIndex(serviceIndexRef.current);
+        startTime = currentTime;
       }
-    } catch (error) {
-      console.error('Error al compartir:', error);
+      frame = requestAnimationFrame(animate);
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [isPaused, services]);
+
+  const nextService = () => {
+    setCurrentServiceIndex((prev) => (prev + 1) % services.length);
+  };
+
+  const prevService = () => {
+    setCurrentServiceIndex((prev) =>
+      prev === 0 ? services.length - 1 : prev - 1
+    );
+  };
+
+  const startTypingEffect = (text) => {
+    if (!text) return;
+    setDisplayedText('');
+    let index = 0;
+
+    const typeNextLetter = () => {
+      if (index <= text.length) {
+        setDisplayedText(text.slice(0, index));
+        index++;
+        setTimeout(typeNextLetter, 150);
+      }
+    };
+
+    typeNextLetter();
+  };
+
+  useEffect(() => {
+    let frame;
+    let startTime = performance.now();
+    const duration = 12000;
+
+    const animate = (currentTime) => {
+      if (currentTime - startTime >= duration) {
+        textIndexRef.current = (textIndexRef.current + 1) % rotatingTexts.length;
+        startTypingEffect(rotatingTexts[textIndexRef.current]);
+        startTime = currentTime;
+      }
+      frame = requestAnimationFrame(animate);
+    };
+
+    startTypingEffect(rotatingTexts[0]);
+    frame = requestAnimationFrame(animate);
+
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    setCurrentText(rotatingTexts[index]);
+  }, [index]);
+
+  useEffect(() => {
+    const fetchServices = async () => {
       try {
-        await navigator.clipboard.writeText(DIRECTIONS_LINK);
-        alert('¡Enlace copiado al portapapeles!');
-      } catch (clipboardError) {
-        console.error('Error al copiar:', clipboardError);
+        const response = await fetch('https://back-end-4803.onrender.com/api/servicios/all');
+        if (!response.ok) {
+          throw new Error('Error al obtener los servicios');
+        }
+        const data = await response.json();
+        setServices(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
-    }
+    };
+    fetchServices();
   }, []);
 
-  // Memoizar opciones del mapa para evitar recálculos
-  const mapOptions = useMemo(() => ({
-    zoomControl: false,
-    streetViewControl: true,
-    mapTypeControl: false,
-    fullscreenControl: true,
-    styles: isDarkTheme ? DARK_MAP_STYLE : LIGHT_MAP_STYLE,
-    backgroundColor: isDarkTheme ? '#242f3e' : '#ffffff',
-    mapTypeId: mapView,
-    gestureHandling: 'cooperative',
-  }), [isDarkTheme, mapView]);
+  useEffect(() => {
+    let frame;
+    let startTime = performance.now();
+    const duration = 12000;
 
-  // Memoizar el icono del marcador
-  const markerIcon = useMemo(() => ({
-    path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
-    fillColor: colors.secondaryColor,
-    fillOpacity: 1,
-    strokeWeight: 1,
-    strokeColor: '#ffffff',
-    scale: 2,
-    anchor: isLoaded ? new window.google.maps.Point(12, 22) : null,
-  }), [colors.secondaryColor, isLoaded]);
+    const animate = (currentTime) => {
+      const elapsedTime = currentTime - startTime;
 
-  // Renderizado de pantalla de carga optimizado
-  if (!isLoaded) {
+      if (elapsedTime >= duration) {
+        imageIndexRef.current = (imageIndexRef.current + 1) % images.length;
+        setCurrentImageIndex(imageIndexRef.current);
+        startTime = currentTime;
+      }
+
+      frame = requestAnimationFrame(animate);
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const fadeStart = windowHeight * 0.3;
+      const fadeEnd = windowHeight * 0.8;
+
+      if (scrollPosition <= fadeStart) {
+        setScrollOpacity(1);
+      } else if (scrollPosition >= fadeEnd) {
+        setScrollOpacity(0);
+      } else {
+        const opacity = 1 - ((scrollPosition - fadeStart) / (fadeEnd - fadeStart));
+        setScrollOpacity(opacity);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const MobileView = ({ isDarkTheme, currentImageIndex, displayedText, navigate }) => {
+    const handleExploreClick = useCallback(() => navigate('/servicios'), [navigate]);
+
     return (
       <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="600px"
         sx={{
-          background: isDarkTheme
-            ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
-            : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
-          backgroundSize: "cover",
-          borderRadius: '16px',
-          boxShadow: colors.cardShadow,
-          position: 'relative',
-          overflow: 'hidden'
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: '90vh',
+          width: '100%',
+          padding: '1rem',
+          gap: '1rem'
         }}
       >
+        {/* Contenedor de imagen con hardware acceleration */}
         <Box
           sx={{
-            position: 'absolute',
-            width: '100%',
-            height: '100%',
-            background: colors.backgroundPattern,
-            opacity: 0.6,
-            zIndex: 0
-          }}
-        />
-
-        <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          style={{ zIndex: 1, textAlign: 'center' }}
-        >
-          <motion.div
-            animate={{
-              scale: [1, 1.2, 1],
-              rotate: [0, 0, 0]
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          >
-            <CircularProgress
-              size={80}
-              thickness={4}
-              sx={{
-                color: colors.primaryColor,
-                mb: 4
-              }}
-            />
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
-          >
-            <Typography
-              variant="h4"
-              sx={{
-                color: colors.primaryText,
-                fontFamily: 'Montserrat, sans-serif',
-                fontWeight: 600,
-                textAlign: 'center',
-                mb: 2
-              }}
-            >
-              Cargando mapa
-            </Typography>
-
-            <Typography
-              variant="body1"
-              sx={{
-                color: colors.secondaryText,
-                fontFamily: 'Roboto, sans-serif',
-                mt: 1,
-                textAlign: 'center',
-                maxWidth: '80%',
-                mx: 'auto'
-              }}
-            >
-              Estamos preparando la ubicación de Clínica Dental Carol para que puedas encontrarnos fácilmente.
-            </Typography>
-
-            <motion.div
-              animate={{
-                opacity: [0.5, 1, 0.5],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              style={{ marginTop: '24px' }}
-            >
-              <Typography variant="body2" color={colors.primaryColor}>
-                Por favor, espera un momento...
-              </Typography>
-            </motion.div>
-          </motion.div>
-        </motion.div>
-      </Box>
-    );
-  }
-
-  // Renderizado de pantalla de error optimizado
-  if (loadError) {
-    return (
-      <Box
-        sx={{
-          p: 4,
-          textAlign: 'center',
-          background: isDarkTheme
-            ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
-            : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
-          borderRadius: '16px',
-          boxShadow: colors.cardShadow,
-        }}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Typography
-            color="error"
-            variant="h4"
-            gutterBottom
-            sx={{ fontWeight: 600, mb: 3 }}
-          >
-            Error al cargar el mapa
-          </Typography>
-
-          <Typography
-            color={colors.secondaryText}
-            variant="body1"
-            sx={{ mb: 3, maxWidth: '600px', mx: 'auto' }}
-          >
-            No se pudo cargar Google Maps. Por favor, verifica tu conexión a internet o intenta nuevamente más tarde.
-          </Typography>
-
-          <motion.div whileHover="hover" whileTap="tap" variants={BUTTON_VARIANTS}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => window.location.reload()}
-              sx={{
-                mt: 3,
-                bgcolor: colors.primaryColor,
-                boxShadow: '0 4px 15px rgba(79, 195, 247, 0.3)',
-                px: 4,
-                py: 1.5,
-                borderRadius: '8px',
-                '&:hover': {
-                  bgcolor: isDarkTheme ? '#29B6F6' : '#0039CB',
-                }
-              }}
-            >
-              Reintentar
-            </Button>
-          </motion.div>
-        </motion.div>
-      </Box>
-    );
-  }
-
-  // Componente principal optimizado
-  return (
-    <AnimatePresence>
-      {showPage && (
-        <motion.div
-          key="ubicacion-page"
-          variants={PAGE_ANIMATION_VARIANTS}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          style={{
-            background: isDarkTheme
-              ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
-              : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
-            backgroundSize: "cover",
-            backgroundAttachment: "fixed",
-            minHeight: '90vh',
-            width: '100%',
-            padding: '2rem 1rem',
             position: 'relative',
-            overflow: 'hidden'
+            width: '100%',
+            height: 0,
+            paddingBottom: '75%',
+            maxHeight: '500px',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            boxShadow: '0 15px 30px rgba(3, 66, 124, 0.5)',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            marginTop: '1rem',
+            background: isDarkTheme
+              ? 'linear-gradient(135deg, #1a2a3a 0%, #29629b 100%)'
+              : 'linear-gradient(135deg, #e0f0ff 0%, #03427c 100%)',
+            transition: 'all 0.4s ease',
+            willChange: 'transform',
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+            WebkitFontSmoothing: 'subpixel-antialiased'
           }}
         >
-          {/* Fondo con patrón decorativo */}
+          {/* Usamos una sola imagen en lugar de AnimatePresence para reducir complejidad */}
           <Box
             sx={{
               position: 'absolute',
-              width: '100%',
-              height: '100%',
-              background: colors.backgroundPattern,
-              opacity: 0.6,
               top: 0,
               left: 0,
-              zIndex: 0
+              width: '100%',
+              height: '100%',
+              backgroundImage: `url(${images[currentImageIndex]})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'brightness(0.85) contrast(1.1)',
+              transition: 'opacity 1s ease-out',
+              willChange: 'opacity, transform',
+              transform: 'translateZ(0)',
+              opacity: 1,
+              // Optimización para móviles
+              WebkitTapHighlightColor: 'transparent'
             }}
           />
 
+          {/* Overlay con gradiente para mejorar legibilidad */}
           <Box
-            component="section"
             sx={{
-              maxWidth: '1200px',
+              position: 'absolute',
+              top: 0,
+              left: 0,
               width: '100%',
-              margin: '0 auto',
-              py: 4,
-              px: { xs: 2, sm: 3, md: 4 },
-              position: 'relative',
-              zIndex: 1
+              height: '100%',
+              background: 'linear-gradient(to bottom, rgba(0,0,0,0.1), rgba(0,0,0,0.6))',
+              zIndex: 3,
+            }}
+          />
+
+          {/* Contenedor de texto simplificado */}
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: '20px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '90%',
+              textAlign: 'center',
+              zIndex: 5,
+              padding: '1rem',
+              borderRadius: '15px',
+              backdropFilter: 'blur(6px)',
+              backgroundColor: 'rgba(0, 0, 0, 0.4)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
             }}
           >
-            {/* Título principal animado */}
-            <motion.div variants={TITLE_ANIMATION_VARIANTS}>
-              <Typography
-                variant={isMobile ? "h4" : "h3"}
-                component="h1"
-                sx={{
-                  fontWeight: 700,
-                  color: colors.primaryText,
-                  fontFamily: '"Montserrat", sans-serif',
-                  letterSpacing: '0.5px',
-                  textAlign: 'center',
-                  mb: 4,
-                  position: 'relative',
-                  display: 'inline-block',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: '-10px',
-                    left: '0',
-                    width: '100%',
-                    height: '4px',
-                    background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.secondaryColor})`,
-                    borderRadius: '2px',
-                  }
-                }}
-              >
-                Encuéntranos
-                <motion.span
-                  variants={FLOATING_ICON_VARIANTS}
-                  initial="initial"
-                  animate="animate"
-                  style={{
-                    display: 'inline-flex',
-                    marginLeft: '8px',
-                    verticalAlign: 'middle'
+            <Typography
+              variant="h5"
+              sx={{
+                color: 'white',
+                fontWeight: 700,
+                fontFamily: 'Montserrat, sans-serif',
+                textTransform: 'capitalize',
+                letterSpacing: '1.5px',
+                position: 'relative',
+                display: 'inline-block',
+                paddingBottom: '0.5rem',
+                textShadow: '2px 2px 6px rgba(0,0,0,0.8)',
+                lineHeight: 1.4,
+                maxWidth: '100%',
+                overflowWrap: 'break-word',
+              }}
+            >
+              {displayedText}
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* Sección de características principales - simplificada */}
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.8rem',
+            marginTop: '-1rem',
+          }}
+        >
+          {/* Evitamos map para reducir el número de componentes */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: isDarkTheme ?
+                'rgba(41, 98, 155, 0.15)' :
+                'rgba(3, 66, 124, 0.08)',
+              borderRadius: '10px',
+            }}
+          >
+            <Box
+              sx={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isDarkTheme ?
+                  'rgba(41, 98, 155, 0.6)' :
+                  'rgba(3, 66, 124, 0.4)',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              ✓
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: isDarkTheme ?
+                  'rgba(255, 255, 255, 0.9)' :
+                  'rgba(3, 66, 124, 0.9)',
+              }}
+            >
+              Cuidado dental con calidez y confianza."
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: isDarkTheme ?
+                'rgba(41, 98, 155, 0.15)' :
+                'rgba(3, 66, 124, 0.08)',
+              borderRadius: '10px',
+            }}
+          >
+            <Box
+              sx={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isDarkTheme ?
+                  'rgba(41, 98, 155, 0.6)' :
+                  'rgba(3, 66, 124, 0.4)',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              ✓
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: isDarkTheme ?
+                  'rgba(255, 255, 255, 0.9)' :
+                  'rgba(3, 66, 124, 0.9)',
+              }}
+            >
+              Tu sonrisa en manos expertas.
+            </Typography>
+          </Box>
+
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.5rem',
+              backgroundColor: isDarkTheme ?
+                'rgba(41, 98, 155, 0.15)' :
+                'rgba(3, 66, 124, 0.08)',
+              borderRadius: '10px',
+            }}
+          >
+            <Box
+              sx={{
+                width: '24px',
+                height: '24px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: isDarkTheme ?
+                  'rgba(41, 98, 155, 0.6)' :
+                  'rgba(3, 66, 124, 0.4)',
+                color: 'white',
+                fontWeight: 'bold',
+              }}
+            >
+              ✓
+            </Box>
+            <Typography
+              sx={{
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                color: isDarkTheme ?
+                  'rgba(255, 255, 255, 0.9)' :
+                  'rgba(3, 66, 124, 0.9)',
+              }}
+            >
+              Atención cercana, resultados confiables.            </Typography>
+          </Box>
+        </Box>
+
+        {/* Botón de explorar servicios optimizado */}
+        <Box
+          sx={{
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '0.5rem',
+          }}
+        >
+          <Button
+            variant="contained"
+            onClick={handleExploreClick}
+            startIcon={<ChevronRight />}
+            sx={{
+              backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.9)' : 'rgba(3, 66, 124, 0.9)',
+              color: 'white',
+              fontWeight: 'bold',
+              padding: '16px 0',
+              width: '100%',
+              maxWidth: '300px',
+              borderRadius: '30px',
+              fontSize: '1.1rem',
+              textTransform: 'none',
+              boxShadow: '0 8px 15px rgba(0,0,0,0.2)',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden',
+              transform: 'translateZ(0)', // Fuerza aceleración por hardware
+              WebkitTapHighlightColor: 'transparent', // Elimina el flash al tocar en dispositivos móviles
+              '&:hover, &:active': {
+                backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 1)' : 'rgba(3, 66, 124, 1)',
+                boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
+              },
+              // Para evitar problemas de rendimiento, simplificamos la animación
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: '-100%',
+                width: '40%', // Reducido para mejor rendimiento
+                height: '100%',
+                background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)',
+                animation: 'shimmer 2s infinite linear', // Cambiado a linear para mejor rendimiento
+              }
+            }}
+          >
+            Explorar Nuestros Servicios
+          </Button>
+        </Box>
+
+        {/* Definimos la animación con keyframes más simples */}
+        <style jsx global>{`
+          @keyframes shimmer {
+            0% { left: -40%; }
+            100% { left: 100%; }
+          }
+        `}</style>
+      </Box>
+    );
+  };
+  return (
+    <Box
+      sx={{
+        background: isDarkTheme
+          ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+          : 'linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)',
+        transition: 'background 0.5s ease',
+        position: 'relative',
+        minHeight: '80vh',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Semi-circular background for the right side */}
+      <Box
+        sx={{
+          position: 'absolute',
+          right: -100,
+          top: 0,
+          height: '97%',
+          width: isMobile ? '55%' : '50%',
+          borderTopLeftRadius: isMobile ? '55%' : '45%',
+          borderBottomLeftRadius: isMobile ? '55%' : '45%',
+          bgcolor: 'rgba(3, 66, 124, 0.1)',
+          zIndex: 1
+        }}
+      />
+
+      <Box
+        sx={{
+          position: 'relative',
+          zIndex: 2,
+          height: isMobile ? '75vh': '90vh',
+          display: 'flex',
+          flexDirection: isMobile ? 'column-reverse' : 'row',
+          padding: { xs: '1rem', md: '2rem' },
+        }}
+      >
+
+        {isMobile ? (
+          // Renderiza la vista móvil con solo el círculo y el botón
+          <MobileView
+            isDarkTheme={isDarkTheme}
+            currentImageIndex={currentImageIndex}
+            scrollOpacity={scrollOpacity}
+            isSmallScreen={isSmallScreen}
+            displayedText={displayedText}
+            navigate={navigate}
+          />
+        ) : (
+          <>
+
+            {/* Left Side - Service Cards */}
+            <Box
+              sx={{
+                width: '50%',
+                height: '85%',
+                display: 'block',
+                position: 'relative',
+                pl: 4,
+              }}
+            >
+              {/* Título principal para servicios con diseño mejorado */}
+              <Box sx={{ textAlign: 'center', mb: 1 }}>
+                <Typography
+                  variant="h4"
+                  component="h1"
+                  sx={{
+                    color: isDarkTheme ? '#ffffff' : '#03427C',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    textTransform: 'uppercase',
+                    letterSpacing: 2,
+                    position: 'relative',
+                    display: 'inline-block',
+                    padding: '0 1rem 0.5rem',
+                    '&:after': {
+                      content: '""',
+                      position: 'absolute',
+                      bottom: 0,
+                      left: '50%',
+                      width: '60%',
+                      height: '3px',
+                      background: isDarkTheme ? 'linear-gradient(90deg, rgba(41,98,155,0), rgba(41,98,155,1), rgba(41,98,155,0))' : 'linear-gradient(90deg, rgba(3,66,124,0), rgba(3,66,124,1), rgba(3,66,124,0))',
+                      transform: 'translateX(-50%)'
+                    }
                   }}
                 >
-                  <LocationOn sx={{ color: colors.secondaryColor, fontSize: isMobile ? 32 : 36 }} />
-                </motion.span>
-              </Typography>
-            </motion.div>
+                  Nuestros Servicios
+                </Typography>
 
-            <Grid container spacing={4} sx={{ mt: 1 }}>
-              {/* Columna izquierda - Mapa */}
-              <Grid item xs={12} md={8}>
-                <motion.div variants={MAP_CONTAINER_VARIANTS}>
-                  {/* Panel de controles del mapa */}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      mb: 2
+                {/* Subtítulo descriptivo */}
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: isDarkTheme ? 'rgba(255,255,255,0.7)' : 'rgba(3,66,124,0.7)',
+                    fontSize: '0.9rem',
+                    mt: 1,
+                    fontStyle: 'italic',
+                    maxWidth: '80%',
+                    mx: 'auto'
+                  }}
+                >
+                  Conoce nuestra amplia gama de servicios - Haz clic para más detalles
+                </Typography>
+              </Box>
+              {/* Botones de navegación reposicionados */}
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 6,
+                width: '100%',
+                mb: 3,
+                mt: 2
+              }}>
+                <IconButton
+                  onClick={prevService}
+                  sx={{
+                    color: 'white',
+                    backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                    '&:hover': {
+                      backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 1)' : 'rgba(3, 66, 124, 1)',
+                      transform: 'scale(1.1)',
+                    },
+                    width: '45px',
+                    height: '45px',
+                    borderRadius: '50%',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <ChevronLeft />
+                </IconButton>
+                <IconButton
+                  onClick={nextService}
+                  sx={{
+                    color: 'white',
+                    backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                    '&:hover': {
+                      backgroundColor: isDarkTheme ? 'rgba(41, 98, 155, 1)' : 'rgba(3, 66, 124, 1)',
+                      transform: 'scale(1.1)',
+                    },
+                    width: '45px',
+                    height: '45px',
+                    borderRadius: '50%',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  <ChevronRight />
+                </IconButton>
+              </Box>
+
+
+              {/* Visualización de Servicios en Diagonal */}
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  height: '40vh',
+                  perspective: '1000px',
+                  overflow: 'visible',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  mt: 2
+                }}
+              >
+                {loading ? (
+                  <Typography sx={{ color: isDarkTheme ? 'white' : '#03427C', textAlign: 'center' }}>
+                    Cargando servicios...
+                  </Typography>
+                ) : error ? (
+                  <Typography sx={{ color: 'red', textAlign: 'center', fontWeight: 'bold' }}>
+                    {error}
+                  </Typography>
+                ) : services.length === 0 ? (
+                  <Typography sx={{ color: isDarkTheme ? 'white' : '#03427C', textAlign: 'center' }}>
+                    No hay servicios disponibles en este momento.
+                  </Typography>
+                ) : (
+                  services.map((service, i) => {
+                    const totalServices = services.length;
+                    let offset = i - currentServiceIndex;
+                    if (offset > totalServices / 2) offset -= totalServices;
+                    if (offset < -totalServices / 2) offset += totalServices;
+
+                    // Determinamos si es la tarjeta activa
+                    const isActive = offset === 0;
+
+                    // Calculamos posiciones para una trayectoria diagonal pero más alineadas
+                    const containerWidth = isMobile ? window.innerWidth * 0.8 : window.innerWidth * 0.4;
+                    const containerHeight = isMobile ? window.innerHeight * 0.5 : window.innerHeight * 0.7;
+
+                    // Cálculo para trayectoria diagonal pero con rotación mínima
+                    let x, y, rotate, scale, opacity, zIndex;
+
+                    if (offset < 0) {
+                      // Tarjetas a la izquierda del centro (arriba-izquierda)
+                      const factor = Math.abs(offset);
+                      x = -containerWidth * 0.3 * factor;
+                      y = -containerHeight * 0.2 * factor;
+                      rotate = -2 - (factor * 1);
+                      opacity = 1 - (factor * 0.3); // Más transparentes
+                      scale = 0.85 - (factor * 0.12); // Más pequeñas
+                      zIndex = 10 - factor;
+                    } else if (offset > 0) {
+                      // Tarjetas a la derecha del centro (abajo-izquierda)
+                      const factor = Math.abs(offset);
+                      x = -containerWidth * 0.3 * factor;
+                      y = containerHeight * 0.2 * factor;
+                      rotate = 2 + (factor * 1);
+                      opacity = 1 - (factor * 0.3); // Más transparentes
+                      scale = 0.85 - (factor * 0.12); // Más pequeñas
+                      zIndex = 10 - factor;
+                    } else {
+                      // Tarjeta central - destacamos más esta tarjeta
+                      x = 0;
+                      y = 0;
+                      rotate = 0;
+                      opacity = 1;
+                      // Aumentamos escala de la tarjeta central para destacarla aún más
+                      scale = 1.2; // Más grande que antes
+                      zIndex = 20;
+                    }
+
+                    // Limitamos la visibilidad a solo 3 tarjetas
+                    if (Math.abs(offset) > 2) {
+                      opacity = 0;
+                    }
+
+                    return (
+                      <motion.div
+                        key={service.id}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          width: '320px',
+                          maxWidth: isMobile ? '85%' : '320px',
+                          transformOrigin: 'center center',
+                        }}
+                        animate={{
+                          x: x,
+                          y: y,
+                          rotate: rotate,
+                          scale: scale,
+                          opacity: opacity,
+                          zIndex: zIndex,
+                        }}
+                        transition={{
+                          type: 'spring',
+                          stiffness: 300,
+                          damping: 30
+                        }}
+                      >
+                        <Box
+                          onClick={() => navigate(`/servicios/detalle/${service.id}`)}
+                          onMouseEnter={() => setIsPaused(true)}
+                          onMouseLeave={() => setIsPaused(false)}
+                          sx={{
+                            background: isDarkTheme
+                              ? isActive
+                                ? 'linear-gradient(145deg, #1E2B3A 0%, #2A3F55 100%)' // Gradiente más profundo para tema oscuro
+                                : 'linear-gradient(145deg, #1A2430 0%, #243545 100%)'
+                              : isActive
+                                ? 'linear-gradient(145deg, #FFFFFF 0%, #F7FBFF 100%)' // Blanco puro para tema claro
+                                : 'linear-gradient(145deg, #F8FCFF 0%, #F0F7FD 100%)',
+                            borderRadius: '18px', // Bordes más redondeados
+                            padding: '1.8rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1)', // Transición más suave
+                            border: isActive
+                              ? isDarkTheme
+                                ? '1px solid rgba(79, 142, 206, 0.5)' // Borde más sutil pero visible
+                                : '1px solid rgba(3, 66, 124, 0.15)'
+                              : isDarkTheme
+                                ? '1px solid rgba(255, 255, 255, 0.05)' // Borde apenas visible en inactivas
+                                : '1px solid rgba(235, 245, 255, 0.8)',
+                            boxShadow: isActive
+                              ? isDarkTheme
+                                ? '0 15px 30px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(41, 98, 155, 0.1)'
+                                : '0 15px 30px rgba(3, 66, 124, 0.08), 0 5px 15px rgba(3, 66, 124, 0.05)'
+                              : isDarkTheme
+                                ? '0 8px 20px rgba(0, 0, 0, 0.2)'
+                                : '0 8px 20px rgba(3, 66, 124, 0.03)',
+                            transform: isActive ? 'scale(1.03)' : 'scale(1)',
+                            '&:hover': {
+                              transform: 'translateY(-8px) scale(1.04)',
+                              boxShadow: isDarkTheme
+                                ? '0 20px 40px rgba(0, 0, 0, 0.35), 0 10px 20px rgba(41, 98, 155, 0.12)'
+                                : '0 20px 40px rgba(3, 66, 124, 0.12), 0 10px 20px rgba(3, 66, 124, 0.08)',
+                              border: isDarkTheme
+                                ? '1px solid rgba(79, 142, 206, 0.6)'
+                                : '1px solid rgba(3, 66, 124, 0.25)',
+                            },
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            height: '50%', // Altura fija para consistencia
+                          }}
+                        >
+                          {/* Elemento decorativo - efecto de brillo en esquina superior */}
+                          {isActive && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                top: '-30px',
+                                right: '-30px',
+                                width: '60px',
+                                height: '60px',
+                                borderRadius: '50%',
+                                background: isDarkTheme
+                                  ? 'radial-gradient(circle, rgba(79, 142, 206, 0.4) 0%, rgba(79, 142, 206, 0) 70%)'
+                                  : 'radial-gradient(circle, rgba(3, 66, 124, 0.15) 0%, rgba(3, 66, 124, 0) 70%)',
+                                opacity: 0.8,
+                                animation: 'pulse 3s infinite ease-in-out',
+                              }}
+                            />
+                          )}
+
+                          {/* Elemento decorativo - línea izquierda */}
+                          {isActive && (
+                            <Box
+                              sx={{
+                                position: 'absolute',
+                                left: 0,
+                                top: '15%',
+                                height: '70%',
+                                width: '3px',
+                                background: isDarkTheme
+                                  ? 'linear-gradient(to bottom, rgba(79, 142, 206, 0), rgba(79, 142, 206, 0.7), rgba(79, 142, 206, 0))'
+                                  : 'linear-gradient(to bottom, rgba(3, 66, 124, 0), rgba(3, 66, 124, 0.3), rgba(3, 66, 124, 0))',
+                                borderRadius: '3px',
+                              }}
+                            />
+                          )}
+
+                          {/* Contenido de la tarjeta */}
+                          <Box sx={{ zIndex: 1 }}>
+                            <Typography
+                              variant="h6"
+                              sx={{
+                                color: isDarkTheme ? '#FFFFFF' : '#03427C',
+                                fontWeight: '700',
+                                mb: 2,
+                                fontSize: { xs: '1.1rem', md: '1.25rem' },
+                                textAlign: 'left',
+                                position: 'relative',
+                                paddingBottom: '10px',
+                                transition: 'all 0.3s ease',
+                                '&:after': isActive && {
+                                  content: '""',
+                                  position: 'absolute',
+                                  bottom: 0,
+                                  left: 0,
+                                  width: '40px',
+                                  height: '2px',
+                                  background: isDarkTheme
+                                    ? 'linear-gradient(to right, rgba(79, 142, 206, 0.7), rgba(79, 142, 206, 0))'
+                                    : 'linear-gradient(to right, rgba(3, 66, 124, 0.5), rgba(3, 66, 124, 0))',
+                                }
+                              }}
+                            >
+                              {service.title}
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                color: isDarkTheme ? 'rgba(255, 255, 255, 0.85)' : 'rgba(3, 66, 124, 0.85)',
+                                fontSize: { xs: '0.875rem', md: '0.95rem' },
+                                textAlign: 'left',
+                                lineHeight: 1.6,
+                                overflow: 'hidden',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                              }}
+                            >
+                              {service.description.split('.')[0] + '.'}
+                            </Typography>
+                          </Box>
+
+                          {/* Indicador visual para la tarjeta activa - botón con animación */}
+                          <Box
+                            sx={{
+                              display: 'flex',
+                              justifyContent: 'flex-end',
+                              alignItems: 'center',
+                              mt: 2,
+                              borderTop: isDarkTheme
+                                ? '1px solid rgba(255, 255, 255, 0.08)'
+                                : '1px solid rgba(3, 66, 124, 0.08)',
+                              paddingTop: 1.5,
+                              opacity: isActive ? 1 : 0.5,
+                              transition: 'opacity 0.3s ease',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                color: isDarkTheme ? 'rgba(255, 255, 255, 0.8)' : 'rgba(3, 66, 124, 0.8)',
+                                mr: 1,
+                                fontSize: '0.8rem',
+                                fontWeight: isActive ? 'bold' : 'medium'
+                              }}
+                            >
+                              {isActive ? 'Ver detalles' : 'Seleccionar'}
+                            </Typography>
+                            <Box
+                              sx={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: isDarkTheme
+                                  ? isActive ? 'rgba(79, 142, 206, 0.4)' : 'rgba(79, 142, 206, 0.2)'
+                                  : isActive ? 'rgba(3, 66, 124, 0.2)' : 'rgba(3, 66, 124, 0.1)',
+                                transition: 'all 0.4s ease',
+                                transform: isActive ? 'scale(1.1)' : 'scale(1)',
+                                animation: isActive ? 'pulse 2s infinite' : 'none',
+                                '@keyframes pulse': {
+                                  '0%': { transform: 'scale(1)' },
+                                  '50%': {
+                                    transform: 'scale(1.15)', boxShadow: isDarkTheme
+                                      ? '0 0 10px rgba(79, 142, 206, 0.5)'
+                                      : '0 0 10px rgba(3, 66, 124, 0.3)'
+                                  },
+                                  '100%': { transform: 'scale(1)' },
+                                }
+                              }}
+                            >
+                              <ChevronRight
+                                sx={{
+                                  fontSize: '18px',
+                                  color: isDarkTheme
+                                    ? isActive ? 'rgba(255, 255, 255, 1)' : 'rgba(255, 255, 255, 0.8)'
+                                    : isActive ? 'rgba(3, 66, 124, 1)' : 'rgba(3, 66, 124, 0.8)',
+                                  transition: 'transform 0.3s ease',
+                                  transform: isActive ? 'translateX(2px)' : 'translateX(0)',
+                                }}
+                              />
+                            </Box>
+                          </Box>
+                        </Box>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </Box>
+
+              {/* Estilo para animación de resplandor del borde */}
+              <style jsx global>{`
+    @keyframes borderGlow {
+      0% { opacity: 0.6; }
+      100% { opacity: 1; }
+    }
+  `}</style>
+            </Box>
+
+            {/* Right Side - Circular Image with Text Overlay */}
+            <Box
+              sx={{
+                width: '50%',
+                height: '96%',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                position: 'relative',
+              }}
+            >
+
+              {/* Circular Image */}
+              <Box
+                sx={{
+                  position: 'relative',
+                  width: isMobile ? '90%' : '80%',
+                  height: 0,
+                  paddingBottom: isMobile ? '90%' : '80%',
+                  maxHeight: '500px',
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  boxShadow: '0 0 30px rgba(3, 66, 124, 0.6)',
+                  border: '4px solid rgba(255, 255, 255, 0.3)',
+                  mr: isMobile ? 0 : 5,
+                }}
+              >
+                {/* Imágenes dentro del círculo */}
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={currentImageIndex}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: scrollOpacity }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1 }}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundImage: `url(${images[currentImageIndex]})`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      filter: 'brightness(0.9)',
+                      willChange: 'opacity',
                     }}
+                  />
+                </AnimatePresence>
+
+                {/* Texto centrado dentro del círculo */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '80%',
+                    textAlign: 'center',
+                    zIndex: 5,
+                    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                    padding: '1rem',
+                    borderRadius: '10px',
+                  }}
+                >
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.8, ease: "easeOut" }}
                   >
                     <Typography
-                      variant="h6"
+                      variant={isSmallScreen ? 'h5' : 'h4'}
                       sx={{
-                        fontWeight: 600,
-                        color: colors.primaryText,
-                        fontFamily: '"Montserrat", sans-serif',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1
+                        color: 'white',
+                        fontWeight: 700,
+                        fontFamily: 'Montserrat, sans-serif',
+                        textTransform: 'capitalize',
+                        letterSpacing: '1.5px',
+                        position: 'relative',
+                        display: 'inline-block',
+                        paddingBottom: '0.3rem',
+                        borderBottom: '3px solid white',
+                        textShadow: '2px 2px 4px rgba(0,0,0,0.7)',
+                        minHeight: '80px',
                       }}
                     >
-                      <LocationCity sx={{ color: colors.primaryColor }} />
-                      Nuestra ubicación
+                      {displayedText}
                     </Typography>
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Tooltip title="Acercar">
-                        <IconButton
-                          size="small"
-                          onClick={zoomIn}
-                          sx={{
-                            color: colors.primaryColor,
-                            bgcolor: colors.chipBackground,
-                            '&:hover': {
-                              bgcolor: colors.buttonHover
-                            }
-                          }}
-                        >
-                          <ZoomIn />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Tooltip title="Alejar">
-                        <IconButton
-                          size="small"
-                          onClick={zoomOut}
-                          sx={{
-                            color: colors.primaryColor,
-                            bgcolor: colors.chipBackground,
-                            '&:hover': {
-                              bgcolor: colors.buttonHover
-                            }
-                          }}
-                        >
-                          <ZoomOut />
-                        </IconButton>
-                      </Tooltip>
-
-                      <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'}>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          onClick={toggleMapView}
-                          startIcon={mapView === 'roadmap' ? <Satellite /> : <Map />}
-                          sx={{
-                            borderColor: colors.primaryColor,
-                            color: colors.primaryColor,
-                            textTransform: 'none',
-                            fontWeight: 500,
-                            borderRadius: '8px',
-                            ml: 1,
-                            '&:hover': {
-                              backgroundColor: colors.buttonHover,
-                              borderColor: colors.primaryColor,
-                            }
-                          }}
-                        >
-                          {mapView === 'roadmap' ? 'Satélite' : 'Mapa'}
-                        </Button>
-                      </Tooltip>
-                    </Box>
-                  </Box>
-
-                  {/* Contenedor del mapa con animación al hacer hover */}
-                  <motion.div
-                    onHoverStart={() => setIsHovering(true)}
-                    onHoverEnd={() => setIsHovering(false)}
-                    animate={isHovering ? { scale: 1.01 } : { scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                    whileHover={{ boxShadow: "0 12px 40px rgba(0,0,0,0.15)" }}
-                  >
-                    {isLoaded && (
-                      <GoogleMap
-                        mapContainerStyle={{
-                          ...mapStyles,
-                          boxShadow: isHovering ?
-                            `0 15px 35px rgba(${isDarkTheme ? '0,0,0,0.6' : '0,82,204,0.3'})`
-                            : mapStyles.boxShadow
-                        }}
-                        zoom={mapZoom}
-                        center={MAP_CENTER}
-                        onLoad={onLoad}
-                        onUnmount={onUnmount}
-                        options={mapOptions}
-                      >
-                        <Marker
-                          position={MAP_CENTER}
-                          title={CLINIC_INFO.nombre}
-                          onClick={() => setShowInfoWindow(prev => !prev)}
-                          animation={window.google.maps.Animation.DROP}
-                          icon={markerIcon}
-                        />
-
-                        {/* Ventana de información - Renderizado condicional optimizado */}
-                        {showInfoWindow && (
-                          <InfoWindow
-                            position={MAP_CENTER}
-                            onCloseClick={() => setShowInfoWindow(false)}
-                            options={{
-                              pixelOffset: new window.google.maps.Size(0, -35),
-                              maxWidth: 300
-                            }}
-                          >
-                            <Box sx={{ p: 1, maxWidth: 280 }}>
-                              <Typography
-                                variant="subtitle1"
-                                fontWeight="bold"
-                                sx={{
-                                  mb: 1,
-                                  color: "#0A1929",
-                                  borderBottom: "2px solid #0052CC",
-                                  pb: 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1
-                                }}
-                              >
-                                <LocationCity fontSize="small" sx={{ color: "#0052CC" }} />
-                                {CLINIC_INFO.nombre}
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  mb: 1,
-                                  display: 'flex',
-                                  alignItems: 'flex-start',
-                                  gap: 1
-                                }}
-                              >
-                                <LocationOn sx={{ fontSize: 18, color: "#FF5252", mt: 0.3 }} />
-                                <span>{CLINIC_INFO.direccion}</span>
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  mb: 1,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1
-                                }}
-                              >
-                                <AccessTime sx={{ fontSize: 16, color: "#4CAF50" }} />
-                                <span style={{ color: "#4CAF50", fontWeight: 500 }}>Abierto ahora</span>
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  mb: 2,
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1
-                                }}
-                              >
-                                <Star sx={{ fontSize: 16, color: "#FFC107" }} />
-                                <span>{CLINIC_INFO.reseñas}</span>
-                              </Typography>
-                            </Box>
-                          </InfoWindow>
-                        )}
-                      </GoogleMap>
-                    )}
                   </motion.div>
-
-                  {/* Botones debajo del mapa */}
-                  <motion.div
-                    variants={STAGGER_ITEM_VARIANTS}
-                    style={{ marginTop: '24px' }}
-                  >
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 2,
-                        justifyContent: { xs: 'center', sm: 'flex-start' }
-                      }}
-                    >
-                      <motion.div whileHover="hover" whileTap="tap" variants={BUTTON_VARIANTS}>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          href={STREET_VIEW_LINK}
-                          target="_blank"
-                          startIcon={<OpenInNew />}
-                          sx={{
-                            textTransform: 'none',
-                            borderColor: colors.primaryColor,
-                            color: colors.primaryColor,
-                            borderRadius: '10px',
-                            px: 3,
-                            py: 1.2,
-                            '&:hover': {
-                              borderColor: colors.primaryColor,
-                              backgroundColor: colors.buttonHover,
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 6px 15px rgba(79, 195, 247, 0.15)',
-                            },
-                            fontFamily: 'Roboto, sans-serif',
-                            fontWeight: 500
-                          }}
-                        >
-                          Street View
-                        </Button>
-                      </motion.div>
-
-                      <motion.div whileHover="hover" whileTap="tap" variants={BUTTON_VARIANTS}>
-                        <Button
-                          variant="outlined"
-                          color="primary"
-                          onClick={handleShare}
-                          startIcon={<Share />}
-                          sx={{
-                            textTransform: 'none',
-                            borderColor: colors.primaryColor,
-                            color: colors.primaryColor,
-                            borderRadius: '10px',
-                            px: 3,
-                            py: 1.2,
-                            '&:hover': {
-                              borderColor: colors.primaryColor,
-                              backgroundColor: colors.buttonHover,
-                              transform: 'translateY(-2px)',
-                              boxShadow: '0 6px 15px rgba(79, 195, 247, 0.15)',
-                            },
-                            fontFamily: 'Roboto, sans-serif',
-                            fontWeight: 500
-                          }}
-                        >
-                          Compartir
-                        </Button>
-                      </motion.div>
-                    </Box>
-                  </motion.div>
-                </motion.div>
-              </Grid>
-
-              {/* Columna derecha - Información de contacto */}
-              <Grid item xs={12} md={4}>
-                <motion.div
-                  variants={CARD_VARIANTS}
-                  whileHover="hover"
-                >
-                  <Card
-                    elevation={0}
-                    sx={{
-                      backgroundColor: colors.cardBackground,
-                      borderRadius: '16px',
-                      overflow: 'hidden',
-                      height: '100%',
-                      boxShadow: colors.cardShadow,
-                      border: `1px solid ${colors.divider}`,
-                      position: 'relative',
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '6px',
-                        background: `linear-gradient(90deg, ${colors.primaryColor}, ${colors.secondaryColor})`,
-                      }
-                    }}
-                  >
-                    <CardContent sx={{ p: 3 }}>
-                      <motion.div variants={STAGGER_ITEM_VARIANTS}>
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            color: colors.primaryText,
-                            fontFamily: '"Montserrat", sans-serif',
-                            mb: 3,
-                            pt: 1,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                          }}
-                        >
-                          <Info sx={{ color: colors.primaryColor }} />
-                          Información de Contacto
-                        </Typography>
-                      </motion.div>
-
-                      <motion.div variants={STAGGER_ITEM_VARIANTS}>
-                        <Box sx={{ mb: 3 }}>
-                          <Chip
-                            label="Abierto ahora"
-                            size="small"
-                            color="success"
-                            sx={{
-                              fontWeight: 600,
-                              mb: 2,
-                              borderRadius: '6px'
-                            }}
-                          />
-
-                          <Box
-                            sx={{
-                              p: 2,
-                              borderRadius: '12px',
-                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
-                              mb: 3,
-                              transition: 'transform 0.2s ease',
-                              '&:hover': {
-                                transform: 'translateX(5px)',
-                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
-                              }
-                            }}
-                          >
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                color: colors.primaryText,
-                                fontFamily: '"Montserrat", sans-serif',
-                                mb: 0.5,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1
-                              }}
-                            >
-                              <LocationOn color="primary" fontSize="small" />
-                              Dirección
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                color: colors.secondaryText,
-                                fontFamily: 'Roboto, sans-serif',
-                                pl: 3.5
-                              }}
-                            >
-                              {CLINIC_INFO.direccion}
-                            </Typography>
-                          </Box>
-
-                          <Box
-                            sx={{
-                              p: 2,
-                              borderRadius: '12px',
-                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
-                              mb: 3,
-                              transition: 'transform 0.2s ease',
-                              '&:hover': {
-                                transform: 'translateX(5px)',
-                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
-                              }
-                            }}
-                          >
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                color: colors.primaryText,
-                                fontFamily: '"Montserrat", sans-serif',
-                                mb: 0.5,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1
-                              }}
-                            >
-                              <Phone color="primary" fontSize="small" />
-                              Teléfono
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              component="a"
-                              href={`tel:${CLINIC_INFO.telefono}`}
-                              sx={{
-                                color: colors.primaryColor,
-                                fontFamily: 'Roboto, sans-serif',
-                                pl: 3.5,
-                                textDecoration: 'none',
-                                display: 'block',
-                                fontWeight: 500,
-                                '&:hover': {
-                                  textDecoration: 'underline'
-                                }
-                              }}
-                            >
-                              {CLINIC_INFO.telefono}
-                            </Typography>
-                          </Box>
-
-                          <Box
-                            sx={{
-                              p: 2,
-                              borderRadius: '12px',
-                              bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,82,204,0.03)',
-                              mb: 3,
-                              transition: 'transform 0.2s ease',
-                              '&:hover': {
-                                transform: 'translateX(5px)',
-                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,204,0.05)',
-                              }
-                            }}
-                          >
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                color: colors.primaryText,
-                                fontFamily: '"Montserrat", sans-serif',
-                                mb: 0.5,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1
-                              }}
-                            >
-                              <AccessTime color="primary" fontSize="small" />
-                              Horario de Atención
-                            </Typography>
-                            <Typography
-                              variant="body1"
-                              sx={{
-                                color: colors.secondaryText,
-                                fontFamily: 'Roboto, sans-serif',
-                                pl: 3.5
-                              }}
-                            >
-                              {CLINIC_INFO.horario}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </motion.div>
-
-                      <Divider sx={{ my: 2, borderColor: colors.divider }} />
-
-                      <motion.div variants={STAGGER_ITEM_VARIANTS} style={{ marginTop: '24px' }}>
-                        <Box
-                          sx={{
-                            p: 2,
-                            borderRadius: '12px',
-                            background: `linear-gradient(135deg, ${isDarkTheme ? 'rgba(79, 195, 247, 0.1)' : 'rgba(0, 82, 204, 0.05)'} 0%, ${isDarkTheme ? 'rgba(79, 195, 247, 0.05)' : 'rgba(0, 82, 204, 0.02)'} 100%)`,
-                            border: `1px solid ${isDarkTheme ? 'rgba(79, 195, 247, 0.2)' : 'rgba(0, 82, 204, 0.1)'}`,
-                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
-                          }}
-                        >
-                          <Typography
-                            variant="subtitle1"
-                            sx={{
-                              fontWeight: 600,
-                              color: colors.primaryText,
-                              fontFamily: '"Montserrat", sans-serif',
-                              mb: 1.5,
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 1
-                            }}
-                          >
-                            <Info color="primary" fontSize="small" />
-                            Cómo encontrarnos
-                          </Typography>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              color: colors.secondaryText,
-                              fontFamily: 'Roboto, sans-serif',
-                              lineHeight: 1.6
-                            }}
-                          >
-                            {CLINIC_INFO.indicaciones}
-                          </Typography>
-
-                          <motion.div
-                            whileHover="hover"
-                            whileTap="tap"
-                            variants={BUTTON_VARIANTS}
-                            style={{ marginTop: '16px', textAlign: 'center' }}
-                          >
-                            <Button
-                              variant="contained"
-                              size="medium"
-                              startIcon={<Navigation />}
-                              href={DIRECTIONS_LINK}
-                              target="_blank"
-                              sx={{
-                                textTransform: 'none',
-                                bgcolor: isDarkTheme ? 'rgba(79, 195, 247, 0.9)' : colors.primaryColor,
-                                color: '#fff',
-                                fontWeight: 500,
-                                borderRadius: '8px',
-                                '&:hover': {
-                                  bgcolor: isDarkTheme ? 'rgba(79, 195, 247, 1)' : '#003D9C',
-                                }
-                              }}
-                            >
-                              Obtener indicaciones
-                            </Button>
-                          </motion.div>
-                        </Box>
-                      </motion.div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </Grid>
-            </Grid>
-          </Box>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                </Box>
+              </Box>
+            </Box>
+          </>
+        )}
+      </Box>
+    </Box>
   );
 };
 
-// Exportar el componente con memo para evitar renderizados innecesarios
-export default React.memo(Ubicacion);
+export default Home;

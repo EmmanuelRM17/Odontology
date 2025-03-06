@@ -43,17 +43,18 @@ const HorariosForm = () => {
   const [loading, setLoading] = useState(false);
   const [odontologo, setOdontologo] = useState(null);
   const odontologoId = "3";
+  // Estado para las duraciones manuales por día y por franja
   const [duracionesManuales, setDuracionesManuales] = useState({
-    Lunes: {},
-    Martes: {},
-    Miércoles: {},
-    Jueves: {},
-    Viernes: {},
-    Sábado: {},
-    Domingo: {},
+    Lunes: { 0: true }, // Inicializar como true para la primera franja
+    Martes: { 0: true },
+    Miércoles: { 0: true },
+    Jueves: { 0: true },
+    Viernes: { 0: true },
+    Sábado: { 0: true },
+    Domingo: { 0: true },
   });
 
-  // Estado para los horarios por día
+  // Estado para los horarios por día (conservar igual)
   const [horariosPorDia, setHorariosPorDia] = useState({
     Lunes: { activo: true, franjas: [{ hora_inicio: '09:00', hora_fin: '12:00', duracion: 50 }] },
     Martes: { activo: true, franjas: [{ hora_inicio: '09:00', hora_fin: '12:00', duracion: 50 }] },
@@ -63,7 +64,6 @@ const HorariosForm = () => {
     Sábado: { activo: false, franjas: [{ hora_inicio: '09:00', hora_fin: '12:00', duracion: 50 }] },
     Domingo: { activo: false, franjas: [{ hora_inicio: '09:00', hora_fin: '12:00', duracion: 50 }] },
   });
-
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -118,11 +118,13 @@ const HorariosForm = () => {
               nuevosDuracionesManuales[dia] = {};
             }
 
+            // Asegurarnos que todas las duraciones son números, no strings
             nuevosHorarios[dia].franjas.forEach((franja, index) => {
-              // Por defecto, marcamos todas las duraciones como NO manuales (false)
-              if (nuevosDuracionesManuales[dia][index] === undefined) {
-                nuevosDuracionesManuales[dia][index] = false;
-              }
+              franja.duracion = parseInt(franja.duracion);
+
+              // Por defecto, marcamos todas las duraciones cargadas como manuales
+              // Esto evitará que se recalculen automáticamente
+              nuevosDuracionesManuales[dia][index] = true;
             });
           });
 
@@ -159,49 +161,36 @@ const HorariosForm = () => {
   const handleHorarioChange = (dia, index, field, value) => {
     const newHorarios = { ...horariosPorDia };
 
-    // Si estamos cambiando la duración, marcarla como manual
+    // Si estamos cambiando la duración
     if (field === 'duracion') {
-      // Limitamos a 120 minutos como máximo
-      if (parseInt(value) > 120) {
-        value = 120;
+      // Convertir a número explícitamente
+      const duracionNum = parseInt(value);
+
+      // Validar que sea un número válido
+      if (isNaN(duracionNum)) {
+        setNotification({
+          open: true,
+          message: 'La duración debe ser un número válido',
+          type: 'error'
+        });
+        return; // No procesar cambios inválidos
+      }
+
+      const duracionFinal = duracionNum > 120 ? 120 : duracionNum;
+      if (duracionNum > 120) {
         setNotification({
           open: true,
           message: 'La duración máxima permitida es de 2 horas (120 minutos)',
           type: 'warning'
         });
       }
-      newHorarios[dia].franjas[index].duracion = value;
 
-      setDuracionesManuales(prev => ({
-        ...prev,
-        [dia]: {
-          ...prev[dia],
-          [index]: true // true indica que se estableció manualmente
-        }
-      }));
+      newHorarios[dia].franjas[index].duracion = duracionFinal;
     }
     else {
-      // Actualizar el campo correspondiente
+
       newHorarios[dia].franjas[index][field] = value;
 
-      // Solo recalcular duración si NO ha sido establecida manualmente
-      const esManual = duracionesManuales[dia][index];
-      if (!esManual && (field === 'hora_inicio' || field === 'hora_fin')) {
-        const franja = newHorarios[dia].franjas[index];
-        const inicio = new Date(`2023-01-01T${franja.hora_inicio}:00`);
-        const fin = new Date(`2023-01-01T${franja.hora_fin}:00`);
-
-        if (!isNaN(inicio.getTime()) && !isNaN(fin.getTime()) && fin > inicio) {
-          const diferencia = Math.abs(fin - inicio) / (1000 * 60);
-
-          // Limitar a 120 minutos
-          if (diferencia > 120) {
-            newHorarios[dia].franjas[index].duracion = 120;
-          } else {
-            newHorarios[dia].franjas[index].duracion = diferencia;
-          }
-        }
-      }
     }
 
     setHorariosPorDia(newHorarios);
@@ -224,28 +213,34 @@ const HorariosForm = () => {
     // Índice de la nueva franja
     const nuevoIndex = horariosPorDia[dia].franjas.length;
 
-    // Agregar la nueva franja
-    setHorariosPorDia(prev => ({
-      ...prev,
-      [dia]: {
-        ...prev[dia],
+    // Duración explícitamente como número, no como string
+    const duracionPredeterminada = 50;
+
+    // Actualizar ambos estados: horarios y duraciones manuales
+    setHorariosPorDia(prev => {
+      const newState = { ...prev };
+      newState[dia] = {
+        ...newState[dia],
         franjas: [
-          ...prev[dia].franjas,
-          { hora_inicio: nuevaHoraInicio, hora_fin: horaFinStr, duracion: 50 }
+          ...newState[dia].franjas,
+          {
+            hora_inicio: nuevaHoraInicio,
+            hora_fin: horaFinStr,
+            duracion: duracionPredeterminada // Número, no string
+          }
         ]
-      }
-    }));
+      };
+      return newState;
+    });
 
-    // Marcar la duración como manual
-    setDuracionesManuales(prev => ({
-      ...prev,
-      [dia]: {
-        ...prev[dia],
-        [nuevoIndex]: true // la marcamos como manual desde el inicio
-      }
-    }));
+    // Actualizar duracionesManuales inmediatamente
+    setDuracionesManuales(prev => {
+      const newState = { ...prev };
+      if (!newState[dia]) newState[dia] = {};
+      newState[dia][nuevoIndex] = true; // Marcar como manual
+      return newState;
+    });
   };
-
   // Eliminar franja horaria
   const eliminarFranjaHoraria = (dia, index) => {
     if (horariosPorDia[dia].franjas.length <= 1) {
@@ -280,13 +275,13 @@ const HorariosForm = () => {
 
     setDuracionesManuales(newDuracionesManuales);
   };
-  
+
   // Validación del formulario corregida
   const validateForm = () => {
-    // Crear una copia profunda para trabajar con ella y no modificar el estado original
+    // Crear una copia profunda para trabajar sin afectar el estado original
     const horariosCopia = JSON.parse(JSON.stringify(horariosPorDia));
 
-    // Verificar que haya al menos un día activo
+    // Verificar días activos
     const hayDiasActivos = Object.values(horariosCopia).some(dia => dia.activo);
     if (!hayDiasActivos) {
       setNotification({
@@ -297,54 +292,67 @@ const HorariosForm = () => {
       return false;
     }
 
-    // Verificar cada franja horaria de los días activos
     let isValid = true;
     let mensajeError = '';
 
-    // Importante: Trabajamos con horariosCopia, no con horariosPorDia
+    // Validar cada franja horaria
     Object.entries(horariosCopia).forEach(([dia, config]) => {
-      if (config.activo) {
-        config.franjas.forEach((franja, index) => {
-          const inicio = new Date(`2023-01-01T${franja.hora_inicio}:00`);
-          const fin = new Date(`2023-01-01T${franja.hora_fin}:00`);
+      if (!config.activo) return; // Saltar días inactivos
 
-          if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
-            isValid = false;
-            mensajeError = `Horario inválido en ${dia}`;
-          } else if (fin <= inicio) {
-            isValid = false;
-            mensajeError = `La hora de fin debe ser posterior a la hora de inicio en ${dia}`;
-          } else if (franja.duracion <= 0) {
-            isValid = false;
-            mensajeError = `La duración debe ser mayor a 0 en ${dia}`;
-          } else {
-            // Aquí solo validamos, no modificamos la duración
-            const duracionCalculada = Math.abs(fin - inicio) / (1000 * 60);
-            if (duracionCalculada > 120) {
+      config.franjas.forEach((franja, index) => {
+        // 1. Validar formato de horas
+        const inicio = new Date(`2023-01-01T${franja.hora_inicio}:00`);
+        const fin = new Date(`2023-01-01T${franja.hora_fin}:00`);
+
+        if (isNaN(inicio.getTime()) || isNaN(fin.getTime())) {
+          isValid = false;
+          mensajeError = `Formato de hora inválido en ${dia}`;
+          return;
+        }
+
+        // 2. Validar que fin sea posterior a inicio
+        if (fin <= inicio) {
+          isValid = false;
+          mensajeError = `La hora de fin debe ser posterior a la hora de inicio en ${dia}`;
+          return;
+        }
+
+        // 3. Validar que la duración sea mayor a 0
+        const duracionNum = parseInt(franja.duracion);
+        if (isNaN(duracionNum) || duracionNum <= 0) {
+          isValid = false;
+          mensajeError = `La duración debe ser mayor a 0 en ${dia}`;
+          return;
+        }
+
+        // IMPORTANTE: ELIMINAMOS LA COMPARACIÓN ENTRE DURACIÓN Y HORAS
+        // Ya que la duración representa el tiempo de cada cita, no el tiempo total del bloque
+
+        // Si la duración manual excede 120, es un error
+        if (duracionNum > 120) {
+          isValid = false;
+          mensajeError = `La duración no puede exceder las 2 horas (120 minutos) en ${dia}`;
+          return;
+        }
+
+        // 5. Validar solapamientos
+        if (config.franjas.length > 1) {
+          for (let i = 0; i < config.franjas.length; i++) {
+            if (i === index) continue;
+
+            const otraInicio = new Date(`2023-01-01T${config.franjas[i].hora_inicio}:00`);
+            const otraFin = new Date(`2023-01-01T${config.franjas[i].hora_fin}:00`);
+
+            if ((inicio >= otraInicio && inicio < otraFin) ||
+              (fin > otraInicio && fin <= otraFin) ||
+              (inicio <= otraInicio && fin >= otraFin)) {
               isValid = false;
-              mensajeError = `La duración no puede exceder las 2 horas (120 minutos) en ${dia}`;
+              mensajeError = `Hay franjas horarias que se solapan en ${dia}`;
+              return;
             }
           }
-
-          // Verificar solapamientos entre franjas del mismo día
-          if (isValid && config.franjas.length > 1) {
-            for (let i = 0; i < config.franjas.length; i++) {
-              if (i !== index) {
-                const otraInicio = new Date(`2023-01-01T${config.franjas[i].hora_inicio}:00`);
-                const otraFin = new Date(`2023-01-01T${config.franjas[i].hora_fin}:00`);
-
-                if ((inicio >= otraInicio && inicio < otraFin) ||
-                  (fin > otraInicio && fin <= otraFin) ||
-                  (inicio <= otraInicio && fin >= otraFin)) {
-                  isValid = false;
-                  mensajeError = `Hay franjas horarias que se solapan en ${dia}`;
-                  break;
-                }
-              }
-            }
-          }
-        });
-      }
+        }
+      });
     });
 
     if (!isValid) {
@@ -646,34 +654,128 @@ const HorariosForm = () => {
 
             {/* Resumen de horarios */}
             <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 1, mt: 2 }}>
-                Resumen de Horarios
+              <Typography variant="subtitle1" sx={{
+                mb: 2,
+                mt: 3,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1,
+                fontWeight: 'bold'
+              }}>
+                <AccessTime fontSize="small" />
+                Resumen de Horarios Configurados
               </Typography>
-              <Paper elevation={2} sx={{ p: 2, backgroundColor: isDarkTheme ? 'rgba(0, 188, 212, 0.1)' : 'rgba(3, 66, 124, 0.05)' }}>
-                <List dense>
-                  {diasSemana.filter(dia => horariosPorDia[dia].activo).map((dia) => (
-                    <ListItem key={dia}>
-                      <ListItemText
-                        primary={dia}
-                        secondary={
-                          <>
-                            {horariosPorDia[dia].franjas.map((franja, index) => (
-                              <Typography key={index} variant="body2" component="span" sx={{ display: 'block' }}>
-                                {franja.hora_inicio} - {franja.hora_fin} (Duración: {franja.duracion} min)
+
+              <Paper
+                elevation={3}
+                sx={{
+                  p: 3,
+                  backgroundColor: isDarkTheme ? 'rgba(0, 188, 212, 0.1)' : 'rgba(3, 66, 124, 0.05)',
+                  borderRadius: '8px',
+                  border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}`
+                }}
+              >
+                {/* Encabezados de tabla */}
+                <Box sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' },
+                  fontWeight: 'bold',
+                  borderBottom: `2px solid ${colors.primary}`,
+                  pb: 1,
+                  mb: 2
+                }}>
+                  <Typography variant="subtitle2">Día</Typography>
+                  <Typography variant="subtitle2">Horarios Programados</Typography>
+                </Box>
+
+                {/* Lista de días activos */}
+                {diasSemana.filter(dia => horariosPorDia[dia].activo).length > 0 ? (
+                  diasSemana.filter(dia => horariosPorDia[dia].activo).map((dia) => (
+                    <Box
+                      key={dia}
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr', sm: '1fr 2fr' },
+                        py: 1.5,
+                        borderBottom: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'}`,
+                        '&:last-child': { borderBottom: 'none' }
+                      }}
+                    >
+                      {/* Día de la semana */}
+                      <Box sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}>
+                        <Chip
+                          size="small"
+                          label={dia}
+                          color="primary"
+                          sx={{ fontWeight: 'bold' }}
+                        />
+                      </Box>
+
+                      {/* Franjas horarias */}
+                      <Box>
+                        {horariosPorDia[dia].franjas.map((franja, index) => (
+                          <Box
+                            key={index}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              mb: 0.5,
+                              p: 1,
+                              backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                              borderRadius: '4px',
+                              '&:last-child': { mb: 0 }
+                            }}
+                          >
+                            <Box sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                              flexGrow: 1
+                            }}>
+                              <AccessTime fontSize="small" color="action" />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  fontWeight: 'medium',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}
+                              >
+                                {franja.hora_inicio} - {franja.hora_fin}
                               </Typography>
-                            ))}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                  ))}
-                </List>
+                              <Chip
+                                size="small"
+                                label={`${franja.duracion} min`}
+                                color="secondary"
+                                variant="outlined"
+                                sx={{ ml: 1, minWidth: '70px' }}
+                              />
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                    No hay días activos configurados. Activa al menos un día para ver el resumen.
+                  </Typography>
+                )}
               </Paper>
             </Grid>
           </Grid>
         </CardContent>
 
-        <CardActions sx={{ p: 3, borderTop: `1px solid ${colors.divider}`, justifyContent: 'space-between' }}>
+        <CardActions sx={{
+          p: 3,
+          borderTop: `1px solid ${colors.divider}`,
+          display: 'flex',
+          justifyContent: 'flex-end' // Alinea a la derecha
+        }}>
           <Button
             onClick={handleSubmit}
             variant="contained"
@@ -681,9 +783,15 @@ const HorariosForm = () => {
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <Save />}
             sx={{
-              borderRadius: '4px',
+              borderRadius: '6px',
               boxShadow: 3,
-              '&:hover': { boxShadow: 5 }
+              px: 3,
+              py: 1,
+              '&:hover': {
+                boxShadow: 5,
+                transform: 'translateY(-2px)',
+                transition: 'all 0.2s'
+              }
             }}
           >
             {loading ? 'Guardando...' : 'Guardar Horarios'}
