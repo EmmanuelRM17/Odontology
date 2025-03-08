@@ -13,6 +13,7 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+
 const Profile = () => {
     const { isDarkTheme } = useThemeContext();
     const [validationErrors, setValidationErrors] = useState({});

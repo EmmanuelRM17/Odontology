@@ -33,6 +33,7 @@ import {
 } from 'react-icons/fa';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../components/Tools/AuthContext';
+
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const BarraPaciente = () => {
