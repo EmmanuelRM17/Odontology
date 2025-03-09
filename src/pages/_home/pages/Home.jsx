@@ -12,7 +12,8 @@ import {
   Chip,
   Badge,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Divider
 } from '@mui/material';
 import {
   ArrowForward,
@@ -20,7 +21,10 @@ import {
   ChevronRight,
   CheckCircleOutline,
   Phone,
-  WhatsApp
+  WhatsApp,
+  LocationOn,
+  AccessTime,
+  Star
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
@@ -29,28 +33,32 @@ import images from '../../../utils/imageLoader';
 // Datos de características principales actualizados
 const featuresData = [
   {
-    title: "Atención cercana",
-    description: "Tratamiento personalizado para cada paciente"
+    title: "Atención personalizada",
+    description: "Cada paciente recibe un tratamiento adaptado a sus necesidades específicas",
+    icon: <Star sx={{ fontSize: '28px' }} />
   },
   {
-    title: "Precio justo",
-    description: "Servicios odontológicos de calidad a precios accesibles"
+    title: "Precios accesibles",
+    description: "Servicios odontológicos de alta calidad a precios justos para nuestra comunidad",
+    icon: <CheckCircleOutline sx={{ fontSize: '28px' }} />
   },
   {
-    title: "Consultorio local",
-    description: "Ubicado en el corazón de nuestra comunidad"
+    title: "Consultas sin espera",
+    description: "Respetamos tu tiempo con citas puntuales y atención eficiente",
+    icon: <AccessTime sx={{ fontSize: '28px' }} />
   },
   {
-    title: "Confianza y experiencia",
-    description: "Más de 10 años cuidando sonrisas"
+    title: "Ubicación privilegiada",
+    description: "En el centro de nuestra comunidad, fácil acceso para todos los vecinos",
+    icon: <LocationOn sx={{ fontSize: '28px' }} />
   }
 ];
 
 // Lista básica de servicios principales (esto se combinará con los datos de la API)
 const mainServices = [
-  "Limpieza dental",
-  "Extracciones",
-  "Empastes",
+  "Limpieza dental profesional",
+  "Extracciones y cirugías menores",
+  "Empastes estéticos",
   "Tratamiento de caries",
   "Consultas generales",
   "Urgencias dentales"
@@ -65,10 +73,12 @@ const Home = () => {
 
   // Estados
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
+  const [isImageTransitioning, setIsImageTransitioning] = useState(false);
 
   // Colores según el tema - Paleta profesional y cálida
   const colors = {
@@ -89,7 +99,8 @@ const Home = () => {
       ? "linear-gradient(90deg, #3B82F6, #60A5FA)"
       : "linear-gradient(90deg, #2563EB, #3B82F6)",
     success: isDarkTheme ? "#10B981" : "#059669",
-    lightBg: isDarkTheme ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)"
+    lightBg: isDarkTheme ? "rgba(59, 130, 246, 0.1)" : "rgba(37, 99, 235, 0.05)",
+    sectionDivider: isDarkTheme ? "rgba(255,255,255,0.05)" : "rgba(0,0,0,0.04)"
   };
 
   // Efecto para cargar servicios de la API
@@ -123,6 +134,23 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [isPaused, services]);
 
+  // Auto rotación de imágenes del carrusel
+  useEffect(() => {
+    if (isPaused || images.length === 0) return;
+
+    const interval = setInterval(() => {
+      setIsImageTransitioning(true);
+      setTimeout(() => {
+        setCurrentImageIndex(prevIndex => (prevIndex + 1) % images.length);
+        setTimeout(() => {
+          setIsImageTransitioning(false);
+        }, 300);
+      }, 300);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [isPaused, images.length]);
+
   // Navegación manual entre servicios
   const nextService = useCallback(() => {
     setCurrentServiceIndex(prev => (prev + 1) % services.length);
@@ -131,6 +159,27 @@ const Home = () => {
   const prevService = useCallback(() => {
     setCurrentServiceIndex(prev => (prev === 0 ? services.length - 1 : prev - 1));
   }, [services.length]);
+
+  // Navegación manual entre imágenes
+  const nextImage = useCallback(() => {
+    setIsImageTransitioning(true);
+    setTimeout(() => {
+      setCurrentImageIndex(prev => (prev + 1) % images.length);
+      setTimeout(() => {
+        setIsImageTransitioning(false);
+      }, 300);
+    }, 300);
+  }, [images.length]);
+
+  const prevImage = useCallback(() => {
+    setIsImageTransitioning(true);
+    setTimeout(() => {
+      setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
+      setTimeout(() => {
+        setIsImageTransitioning(false);
+      }, 300);
+    }, 300);
+  }, [images.length]);
 
   // Navegar a la página de servicios
   const handleExploreServices = useCallback(() => {
@@ -156,28 +205,28 @@ const Home = () => {
       }}
     >
       <Container maxWidth="lg">
-        {/* Hero Section - Más simple y directo */}
+        {/* Hero Section - Más profesional y espaciado */}
         <Grid
           container
-          spacing={4}
+          spacing={{ xs: 4, md: 6 }}
           sx={{
             alignItems: "center",
-            mb: { xs: 4, md: 5 }
+            mb: { xs: 6, md: 8 }
           }}
         >
-          {/* Lado izquierdo - Texto principal */}
+          {/* Lado izquierdo - Texto principal con mejor espaciado */}
           <Grid item xs={12} md={6}>
             <Box sx={{ py: { xs: 2, md: 3 } }}>
               <Badge
-                badgeContent="Comunidad"
+                badgeContent="Odontologia"
                 color="primary"
                 sx={{
-                  mb: 2,
+                  mb: 3,
                   '& .MuiBadge-badge': {
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                     textTransform: 'uppercase',
-                    px: 1,
+                    px: 1.5,
                     py: 0.5,
                     borderRadius: '4px'
                   }
@@ -188,11 +237,12 @@ const Home = () => {
                 variant="h3"
                 component="h1"
                 sx={{
-                  fontSize: { xs: '1.8rem', sm: '2.2rem', md: '2.5rem' },
-                  fontWeight: 700,
-                  lineHeight: 1.3,
-                  mb: 2,
-                  color: colors.text
+                  fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  mb: 3,
+                  color: colors.text,
+                  letterSpacing: '-0.02em'
                 }}
               >
                 Consultorio Dental{' '}
@@ -205,8 +255,8 @@ const Home = () => {
                       content: '""',
                       position: 'absolute',
                       width: '100%',
-                      height: '3px',
-                      bottom: '-4px',
+                      height: '4px',
+                      bottom: '-6px',
                       left: 0,
                       background: colors.accentGradient,
                       borderRadius: '2px'
@@ -222,33 +272,34 @@ const Home = () => {
                 sx={{
                   color: colors.subtext,
                   fontWeight: 400,
-                  mb: 3,
-                  fontSize: { xs: '1rem', md: '1.1rem' },
-                  lineHeight: 1.6
+                  mb: 4,
+                  fontSize: { xs: '1.1rem', md: '1.2rem' },
+                  lineHeight: 1.7,
+                  maxWidth: '540px'
                 }}
               >
-                Tu dentista de confianza en la comunidad. Ofrecemos atención personalizada, cálida y a precios accesibles.
+                Tu dentista de confianza, con servicios accesibles y atención cálida para toda la familia. Comprometidos con la salud bucal de nuestros vecinos.
               </Typography>
 
-              {/* Botones de contacto */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
+              {/* Botones de contacto mejorados */}
+              <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap', mb: 4 }}>
                 <Button
                   variant="contained"
                   startIcon={<Phone />}
                   href={formatPhoneLink("555-123-4567")}
                   sx={{
                     background: colors.accentGradient,
-                    boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
-                    borderRadius: '6px',
-                    py: 1,
-                    px: 2.5,
-                    fontSize: '0.9rem',
+                    boxShadow: '0 2px 10px rgba(37, 99, 235, 0.3)',
+                    borderRadius: '8px',
+                    py: 1.2,
+                    px: 3,
+                    fontSize: '0.95rem',
                     fontWeight: 600,
                     textTransform: 'none',
                     transition: 'all 0.3s ease',
                     '&:hover': {
-                      boxShadow: '0 4px 12px rgba(37, 99, 235, 0.3)',
-                      transform: 'translateY(-2px)'
+                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
+                      transform: 'translateY(-3px)'
                     }
                   }}
                 >
@@ -263,16 +314,19 @@ const Home = () => {
                   rel="noopener"
                   sx={{
                     borderColor: colors.success,
+                    borderWidth: '2px',
                     color: colors.success,
-                    borderRadius: '6px',
-                    py: 1,
-                    px: 2.5,
-                    fontSize: '0.9rem',
+                    borderRadius: '8px',
+                    py: 1.1,
+                    px: 3,
+                    fontSize: '0.95rem',
                     fontWeight: 600,
                     textTransform: 'none',
+                    transition: 'all 0.3s ease',
                     '&:hover': {
                       borderColor: colors.success,
-                      backgroundColor: isDarkTheme ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.05)'
+                      backgroundColor: isDarkTheme ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.05)',
+                      transform: 'translateY(-3px)'
                     }
                   }}
                 >
@@ -280,28 +334,41 @@ const Home = () => {
                 </Button>
               </Box>
 
-              {/* Lista de puntos clave */}
-              <Box sx={{ mt: 3 }}>
-                {mainServices.slice(0, 3).map((service, index) => (
+              {/* Lista de servicios clave mejorada */}
+              <Box sx={{ mt: 4 }}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    color: colors.text,
+                    fontWeight: 600,
+                    mb: 2.5,
+                    fontSize: '1.1rem'
+                  }}
+                >
+                  Servicios principales:
+                </Typography>
+                
+                {mainServices.slice(0, 4).map((service, index) => (
                   <Box
                     key={index}
                     sx={{
                       display: 'flex',
                       alignItems: 'center',
-                      mb: 1.5
+                      mb: 2
                     }}
                   >
                     <CheckCircleOutline
                       sx={{
-                        fontSize: '1.1rem',
+                        fontSize: '1.2rem',
                         color: colors.primary,
-                        mr: 1.5
+                        mr: 2
                       }}
                     />
                     <Typography
-                      variant="body2"
+                      variant="body1"
                       sx={{
-                        color: colors.text
+                        color: colors.text,
+                        fontWeight: 500
                       }}
                     >
                       {service}
@@ -312,120 +379,216 @@ const Home = () => {
             </Box>
           </Grid>
 
-          {/* Lado derecho - Carrusel de imágenes (mantenido del diseño original) */}
+          {/* Lado derecho - Carrusel de imágenes mejorado con animaciones y difuminado */}
           <Grid item xs={12} md={6}>
             <Box
               sx={{
                 position: 'relative',
-                height: { xs: '250px', sm: '300px', md: '320px' },
-                borderRadius: '12px',
+                height: { xs: '280px', sm: '360px', md: '420px' },
+                borderRadius: '16px',
                 overflow: 'hidden',
                 boxShadow: colors.shadow
               }}
             >
-              {/* Carrusel de imágenes */}
+              {/* Carrusel de imágenes con animaciones y bordes difuminados */}
               <Box
                 sx={{
-                  display: 'flex',
+                  position: 'relative',
                   height: '100%',
                   width: '100%',
-                  position: 'relative',
                   backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.05)'
                 }}
               >
-                {Array.from({ length: Math.min(3, images.length) }).map((_, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      backgroundImage: `url(${images[(currentServiceIndex + index) % images.length]})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      transition: 'all 0.5s ease',
-                      opacity: index === 0 ? 1 : 0,
-                      transform: `scale(${index === 0 ? 1 : 0.9})`,
-                      zIndex: 3 - index
-                    }}
-                  />
-                ))}
-
-                {/* Controles de navegación */}
+                {/* Imagen actual con efecto de difuminado en los bordes */}
                 <Box
                   sx={{
                     position: 'absolute',
-                    bottom: 16,
+                    top: 0,
                     left: 0,
                     width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${images[currentImageIndex]})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    transition: 'opacity 0.6s ease, transform 0.6s ease',
+                    opacity: isImageTransitioning ? 0 : 1,
+                    transform: isImageTransitioning ? 'scale(1.08)' : 'scale(1)',
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      background: `
+                        radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 100%),
+                        linear-gradient(to top, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
+                        linear-gradient(to bottom, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
+                        linear-gradient(to left, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
+                        linear-gradient(to right, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%)
+                      `,
+                      zIndex: 1
+                    }
+                  }}
+                />
+
+                {/* Controles de navegación mejorados */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    top: 0,
                     display: 'flex',
-                    justifyContent: 'center',
-                    gap: 1,
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    px: 2,
                     zIndex: 10
                   }}
                 >
-                  {images.map((_, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        backgroundColor: index === currentServiceIndex % images.length
-                          ? colors.primary
-                          : 'rgba(255,255,255,0.5)',
-                        transition: 'all 0.3s ease'
-                      }}
-                    />
-                  ))}
+                  <IconButton
+                    onClick={prevImage}
+                    sx={{
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(5px)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.25)'
+                      },
+                      transition: 'all 0.3s ease',
+                      width: 40,
+                      height: 40
+                    }}
+                  >
+                    <ChevronLeft />
+                  </IconButton>
+                  
+                  <IconButton
+                    onClick={nextImage}
+                    sx={{
+                      backgroundColor: 'rgba(255,255,255,0.15)',
+                      backdropFilter: 'blur(5px)',
+                      color: 'white',
+                      '&:hover': {
+                        backgroundColor: 'rgba(255,255,255,0.25)'
+                      },
+                      transition: 'all 0.3s ease',
+                      width: 40,
+                      height: 40
+                    }}
+                  >
+                    <ChevronRight />
+                  </IconButton>
+                </Box>
+
+                {/* Overlay con información sobre la imagen */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%)',
+                    padding: 3,
+                    zIndex: 5,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    transition: 'opacity 0.3s ease',
+                    opacity: isImageTransitioning ? 0 : 1
+                  }}
+                >
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      color: 'white',
+                      fontWeight: 600,
+                      textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    Consultorio Dental Carol
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: 'rgba(255,255,255,0.9)',
+                      textShadow: '0 1px 3px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    Atención dental profesional para toda la comunidad
+                  </Typography>
                 </Box>
               </Box>
             </Box>
           </Grid>
         </Grid>
 
-        {/* Sección "Por qué elegirnos" */}
-        <Box sx={{ mb: 5 }}>
+        {/* Separador decorativo */}
+        <Box
+          sx={{
+            width: '100%',
+            height: '1px',
+            background: colors.sectionDivider,
+            my: { xs: 6, md: 8 },
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              width: '80px',
+              height: '3px',
+              background: colors.accentGradient,
+              top: '-1px',
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }
+          }}
+        />
+
+        {/* Sección "Por qué elegirnos" mejorada */}
+        <Box sx={{ mb: { xs: 6, md: 8 } }}>
           <Typography
-            variant="h5"
+            variant="h4"
+            align="center"
             sx={{
-              fontWeight: 600,
-              mb: 3,
-              color: colors.text,
-              position: 'relative',
-              paddingBottom: '10px',
-              '&::after': {
-                content: '""',
-                position: 'absolute',
-                left: 0,
-                bottom: 0,
-                width: '40px',
-                height: '3px',
-                background: colors.primary,
-                borderRadius: '2px'
-              }
+              fontWeight: 700,
+              mb: 2,
+              color: colors.text
             }}
           >
             ¿Por qué elegirnos?
           </Typography>
+          
+          <Typography
+            variant="subtitle1"
+            align="center"
+            sx={{
+              color: colors.subtext,
+              maxWidth: '800px',
+              mx: 'auto',
+              mb: 5,
+              fontSize: '1.1rem',
+              lineHeight: 1.7
+            }}
+          >
+            Nuestra prioridad es ofrecer servicios odontológicos con un enfoque genuino en el bienestar de nuestra comunidad
+          </Typography>
 
-          <Grid container spacing={3}>
+          <Grid container spacing={4}>
             {featuresData.map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
                 <Paper
                   elevation={0}
                   sx={{
-                    p: 2.5,
+                    p: 3.5,
                     height: '100%',
-                    borderRadius: '10px',
+                    borderRadius: '16px',
                     backgroundColor: colors.cardBg,
                     border: `1px solid ${colors.border}`,
-                    transition: 'all 0.3s ease',
+                    transition: 'all 0.4s ease',
                     '&:hover': {
                       backgroundColor: colors.cardHover,
-                      transform: 'translateY(-4px)',
+                      transform: 'translateY(-8px)',
                       boxShadow: colors.shadow
                     },
                     display: 'flex',
@@ -435,45 +598,47 @@ const Home = () => {
                   <Box
                     sx={{
                       display: 'flex',
-                      alignItems: 'center',
-                      mb: 1.5
+                      justifyContent: 'center',
+                      mb: 3
                     }}
                   >
                     <Box
                       sx={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: '8px',
-                        background: colors.accentGradient,
+                        width: 64,
+                        height: 64,
+                        borderRadius: '50%',
+                        background: colors.lightBg,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: 'white',
-                        mr: 1.5,
-                        fontWeight: 'bold',
-                        fontSize: '1rem'
+                        color: colors.primary,
+                        mb: 1
                       }}
                     >
-                      {index + 1}
+                      {feature.icon}
                     </Box>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{
-                        fontWeight: 600,
-                        color: colors.text,
-                        fontSize: '1rem'
-                      }}
-                    >
-                      {feature.title}
-                    </Typography>
                   </Box>
 
                   <Typography
+                    variant="h6"
+                    align="center"
+                    sx={{
+                      fontWeight: 600,
+                      color: colors.text,
+                      fontSize: '1.1rem',
+                      mb: 2
+                    }}
+                  >
+                    {feature.title}
+                  </Typography>
+
+                  <Typography
                     variant="body2"
+                    align="center"
                     sx={{
                       color: colors.subtext,
-                      lineHeight: 1.5,
-                      fontSize: '0.9rem'
+                      lineHeight: 1.6,
+                      fontSize: '0.95rem'
                     }}
                   >
                     {feature.description}
@@ -484,44 +649,83 @@ const Home = () => {
           </Grid>
         </Box>
 
+        {/* Separador decorativo */}
+        <Box
+          sx={{
+            width: '100%',
+            height: '1px',
+            background: colors.sectionDivider,
+            my: { xs: 6, md: 8 },
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              width: '80px',
+              height: '3px',
+              background: colors.accentGradient,
+              top: '-1px',
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }
+          }}
+        />
 
-        {/* Sección de Servicios Destacados (Carrusel) */}
+        {/* Sección de Servicios Destacados (Carrusel) mejorada */}
         {services.length > 0 && (
-          <Box>
+          <Box sx={{ mb: { xs: 6, md: 8 } }}>
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: { xs: 'flex-start', md: 'center' },
                 justifyContent: 'space-between',
-                mb: 3
+                mb: 4
               }}
             >
-              <Typography
-                variant="h5"
-                sx={{
-                  fontWeight: 600,
-                  color: colors.text,
-                  position: 'relative',
-                  paddingBottom: '10px',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    left: 0,
-                    bottom: 0,
-                    width: '40px',
-                    height: '3px',
-                    background: colors.primary,
-                    borderRadius: '2px'
-                  }
-                }}
-              >
-                Nuestros Servicios
-              </Typography>
+              <Box sx={{ mb: { xs: 3, md: 0 } }}>
+                <Typography
+                  variant="h4"
+                  sx={{
+                    fontWeight: 700,
+                    color: colors.text,
+                    mb: 1.5
+                  }}
+                >
+                  Nuestros Servicios
+                </Typography>
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    color: colors.subtext,
+                    maxWidth: '600px'
+                  }}
+                >
+                  Ofrecemos una amplia gama de tratamientos odontológicos para toda la familia
+                </Typography>
+              </Box>
 
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1.5 }}>
+                <Button
+                  onClick={handleExploreServices}
+                  variant="outlined"
+                  sx={{
+                    borderColor: colors.primary,
+                    color: colors.primary,
+                    fontWeight: 600,
+                    px: 3,
+                    py: 1,
+                    borderRadius: '8px',
+                    borderWidth: '2px',
+                    textTransform: 'none',
+                    mr: 2
+                  }}
+                >
+                  Ver todos
+                </Button>
+                
                 <IconButton
                   onClick={prevService}
-                  size="small"
+                  size="medium"
                   sx={{
                     backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)',
                     '&:hover': {
@@ -529,11 +733,11 @@ const Home = () => {
                     }
                   }}
                 >
-                  <ChevronLeft sx={{ color: colors.primary, fontSize: '1.2rem' }} />
+                  <ChevronLeft sx={{ color: colors.primary }} />
                 </IconButton>
                 <IconButton
                   onClick={nextService}
-                  size="small"
+                  size="medium"
                   sx={{
                     backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)',
                     '&:hover': {
@@ -541,12 +745,12 @@ const Home = () => {
                     }
                   }}
                 >
-                  <ChevronRight sx={{ color: colors.primary, fontSize: '1.2rem' }} />
+                  <ChevronRight sx={{ color: colors.primary }} />
                 </IconButton>
               </Box>
             </Box>
 
-            <Grid container spacing={3}>
+            <Grid container spacing={4}>
               {Array.from({ length: Math.min(isMobile ? 1 : isTablet ? 2 : 3, services.length) }).map((_, offset) => {
                 const index = (currentServiceIndex + offset) % services.length;
                 const service = services[index];
@@ -556,84 +760,123 @@ const Home = () => {
                     <Card
                       onClick={() => navigate(`/servicios/detalle/${service.id}`)}
                       sx={{
-                        borderRadius: '10px',
+                        borderRadius: '16px',
                         overflow: 'hidden',
                         backgroundColor: colors.cardBg,
-                        transition: 'all 0.3s ease',
-                        boxShadow: 'none',
+                        transition: 'all 0.4s ease',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
                         border: `1px solid ${colors.border}`,
                         cursor: 'pointer',
+                        height: '100%',
                         transform: offset === 0 ? 'scale(1.02)' : 'scale(1)',
-                        opacity: offset === 0 ? 1 : 0.9,
+                        opacity: offset === 0 ? 1 : 0.88,
                         '&:hover': {
-                          transform: 'translateY(-5px)',
-                          boxShadow: colors.shadow
+                          transform: 'translateY(-8px) scale(1.02)',
+                          boxShadow: colors.shadow,
+                          opacity: 1,
+                          borderColor: colors.primary
                         }
                       }}
                       onMouseEnter={() => setIsPaused(true)}
                       onMouseLeave={() => setIsPaused(false)}
                     >
-                      <CardContent sx={{ p: 3 }}>
-                        <Box sx={{ mb: 2 }}>
+                      {/* Barra superior decorativa */}
+                      <Box
+                        sx={{
+                          height: '5px',
+                          width: '100%',
+                          background: colors.accentGradient
+                        }}
+                      />
+                      
+                      <CardContent sx={{ p: 4 }}>
+                        <Box 
+                          sx={{ 
+                            mb: 3,
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center'
+                          }}
+                        >
                           <Chip
-                            label={`Servicio ${index + 1}/${services.length}`}
+                            label="Destacado"
                             size="small"
                             sx={{
                               backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
                               color: colors.primary,
-                              fontWeight: 500,
-                              fontSize: '0.7rem'
+                              fontWeight: 600,
+                              fontSize: '0.7rem',
+                              py: 0.5,
+                              borderRadius: '6px'
                             }}
                           />
+                          
+                          <Box
+                            sx={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
+                              color: colors.primary
+                            }}
+                          >
+                            {index + 1}
+                          </Box>
                         </Box>
 
                         <Typography
-                          variant="h6"
+                          variant="h5"
                           sx={{
-                            fontWeight: 600,
+                            fontWeight: 700,
                             color: colors.text,
-                            mb: 1.5,
-                            fontSize: '1.1rem'
+                            mb: 2.5,
+                            fontSize: '1.3rem',
+                            lineHeight: 1.3
                           }}
                         >
                           {service.title}
                         </Typography>
 
                         <Typography
-                          variant="body2"
+                          variant="body1"
                           sx={{
                             color: colors.subtext,
-                            mb: 2,
-                            lineHeight: 1.6,
-                            display: '-webkit-box',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            WebkitLineClamp: 3,
-                            WebkitBoxOrient: 'vertical'
+                            mb: 4,
+                            lineHeight: 1.7,
+                            fontSize: '0.95rem',
+                            height: '3.4em', // Altura fija para aproximadamente 2 líneas
+                            overflow: 'hidden'
                           }}
                         >
-                          {service.description}
+                          {service.description.split('.')[0] + '.'}
                         </Typography>
 
                         <Box
                           sx={{
                             display: 'flex',
                             justifyContent: 'flex-end',
-                            alignItems: 'center'
+                            mt: 'auto'
                           }}
                         >
                           <Button
                             endIcon={<ArrowForward />}
                             sx={{
-                              color: colors.primary,
+                              color: 'white',
                               textTransform: 'none',
                               fontWeight: 600,
+                              background: colors.accentGradient,
+                              px: 2.5,
+                              py: 1,
+                              borderRadius: '8px',
                               '&:hover': {
-                                backgroundColor: 'transparent',
-                                transform: 'translateX(4px)'
+                                background: colors.accentGradient,
+                                transform: 'translateX(4px)',
+                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
                               },
-                              transition: 'transform 0.3s ease',
-                              p: 0
+                              transition: 'all 0.3s ease'
                             }}
                           >
                             Ver detalles
@@ -648,22 +891,149 @@ const Home = () => {
           </Box>
         )}
 
-        {/* CTA Final */}
+        {/* Separador decorativo */}
         <Box
           sx={{
-            mt: 5,
-            p: 3,
-            borderRadius: '10px',
+            width: '100%',
+            height: '1px',
+            background: colors.sectionDivider,
+            my: { xs: 6, md: 8 },
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              width: '80px',
+              height: '3px',
+              background: colors.accentGradient,
+              top: '-1px',
+              left: '50%',
+              transform: 'translateX(-50%)'
+            }
+          }}
+        />
+
+        {/* Sección de Testimonios */}
+        <Box sx={{ mb: { xs: 6, md: 8 } }}>
+          <Typography
+            variant="h4"
+            align="center"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              color: colors.text
+            }}
+          >
+            Lo que dicen nuestros pacientes
+          </Typography>
+          
+          <Typography
+            variant="subtitle1"
+            align="center"
+            sx={{
+              color: colors.subtext,
+              maxWidth: '800px',
+              mx: 'auto',
+              mb: 5,
+              fontSize: '1.1rem',
+              lineHeight: 1.7
+            }}
+          >
+            La satisfacción de nuestros pacientes es nuestra mejor carta de presentación
+          </Typography>
+
+          <Grid container spacing={4}>
+            {[
+              {
+                name: "María Fernández",
+                testimonial: "La atención fue excelente. El doctor me explicó todo el procedimiento y no sentí ninguna molestia. Estoy muy satisfecha con el resultado.",
+                rating: 5
+              },
+              {
+                name: "Carlos Gutiérrez",
+                testimonial: "Mi hija tenía miedo de ir al dentista, pero el personal fue muy amable y paciente con ella. Ahora hasta quiere regresar para su próxima revisión.",
+                rating: 5
+              },
+              {
+                name: "Laura Mendoza",
+                testimonial: "Precios muy accesibles y un trabajo profesional. El ambiente del consultorio es muy acogedor y limpio. Definitivamente lo recomiendo.",
+                rating: 4
+              }
+            ].map((testimonial, index) => (
+              <Grid item xs={12} md={4} key={index}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    height: '100%',
+                    borderRadius: '16px',
+                    backgroundColor: colors.cardBg,
+                    border: `1px solid ${colors.border}`,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      backgroundColor: colors.cardHover,
+                      transform: 'translateY(-5px)',
+                      boxShadow: colors.shadow
+                    }
+                  }}
+                >
+                  <Box sx={{ mb: 3 }}>
+                    {[...Array(5)].map((_, i) => (
+                      <Star 
+                        key={i} 
+                        sx={{ 
+                          color: i < testimonial.rating ? '#FFD700' : colors.border,
+                          fontSize: '1.2rem',
+                          mr: 0.5
+                        }} 
+                      />
+                    ))}
+                  </Box>
+                  
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      color: colors.text,
+                      mb: 3,
+                      lineHeight: 1.7,
+                      fontStyle: 'italic',
+                      fontSize: '1rem'
+                    }}
+                  >
+                    "{testimonial.testimonial}"
+                  </Typography>
+                  
+                  <Typography
+                    variant="subtitle2"
+                    sx={{
+                      fontWeight: 600,
+                      color: colors.primary
+                    }}
+                  >
+                    {testimonial.name}
+                  </Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+
+        {/* CTA Final mejorado */}
+        <Box
+          sx={{
+            p: { xs: 4, md: 5 },
+            borderRadius: '20px',
             background: colors.accentGradient,
             color: 'white',
-            textAlign: 'center'
+            textAlign: 'center',
+            boxShadow: '0 8px 32px rgba(37, 99, 235, 0.2)'
           }}
         >
           <Typography
-            variant="h5"
+            variant="h4"
             sx={{
-              fontWeight: 700,
-              mb: 2
+              fontWeight: 800,
+              mb: 3,
+              fontSize: { xs: '1.8rem', md: '2.2rem' }
             }}
           >
             ¿Necesitas atención dental?
@@ -672,40 +1042,70 @@ const Home = () => {
           <Typography
             variant="body1"
             sx={{
-              mb: 3,
+              mb: 4,
               maxWidth: '800px',
               mx: 'auto',
-              opacity: 0.9
+              opacity: 0.9,
+              fontSize: '1.1rem',
+              lineHeight: 1.7
             }}
           >
-            Estamos aquí para cuidar de tu salud bucal con tratamientos de calidad y atención personalizada. ¡Agenda tu cita hoy mismo!
+            Estamos comprometidos con la salud bucal de nuestra comunidad. Ofrecemos tratamientos dentales de calidad con un trato cercano y precios accesibles. ¡Tu sonrisa es nuestra prioridad!
           </Typography>
 
           <Box
             sx={{
               display: 'flex',
-              gap: 2,
+              gap: 3,
               justifyContent: 'center',
               flexWrap: 'wrap'
             }}
           >
             <Button
               variant="contained"
+              startIcon={<Phone />}
               sx={{
                 backgroundColor: 'white',
                 color: colors.primary,
                 fontWeight: 600,
-                px: 3,
-                py: 1,
-                borderRadius: '6px',
+                px: 4,
+                py: 1.5,
+                borderRadius: '10px',
                 textTransform: 'none',
                 '&:hover': {
                   backgroundColor: 'rgba(255,255,255,0.9)'
-                }
+                },
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                fontSize: '1rem'
               }}
               href={formatPhoneLink("555-123-4567")}
             >
               Llámanos al 555-123-4567
+            </Button>
+            
+            <Button
+              variant="outlined"
+              startIcon={<WhatsApp />}
+              sx={{
+                borderColor: 'white',
+                color: 'white',
+                fontWeight: 600,
+                px: 4,
+                py: 1.5,
+                borderRadius: '10px',
+                textTransform: 'none',
+                borderWidth: '2px',
+                '&:hover': {
+                  borderColor: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)'
+                },
+                fontSize: '1rem'
+              }}
+              href={formatWhatsAppLink("555-123-4567")}
+              target="_blank"
+              rel="noopener"
+            >
+              Contáctanos por WhatsApp
             </Button>
           </Box>
         </Box>

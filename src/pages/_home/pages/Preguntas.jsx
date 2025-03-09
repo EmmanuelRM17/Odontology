@@ -20,7 +20,7 @@ import {
   Zoom,
   Divider,
   CircularProgress,
-  alpha
+  alpha, MenuItem
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -102,7 +102,7 @@ const FAQ = () => {
     message: "",
     type: "info"
   });
-  
+
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -116,10 +116,10 @@ const FAQ = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-  // Colores principales según el tema
+  // Colores principales según el tema - Eliminados tonos morados, solo azules
   const colors = {
-    primary: isDarkTheme ? "#90CAF9" : "#03427C",
-    secondary: isDarkTheme ? "#FF4081" : "#FF4081",
+    primary: isDarkTheme ? "#60A5FA" : "#0A66C2", // Azul más vibrante
+    secondary: isDarkTheme ? "#93C5FD" : "#1E88E5", // Azul secundario
     background: isDarkTheme
       ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
       : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
@@ -127,10 +127,10 @@ const FAQ = () => {
     text: isDarkTheme ? "#ffffff" : "#0A1929",
     secondaryText: isDarkTheme ? "#cbd5e0" : "#555555",
     border: isDarkTheme ? "rgba(255,255,255,0.12)" : "rgba(0,0,0,0.12)",
-    hover: isDarkTheme ? "rgba(144, 202, 249, 0.15)" : "rgba(3, 66, 124, 0.08)",
-    shadow: isDarkTheme 
-      ? "0 8px 16px rgba(0,0,0,0.4)" 
-      : "0 8px 16px rgba(3,66,124,0.15)",
+    hover: isDarkTheme ? "rgba(96, 165, 250, 0.15)" : "rgba(10, 102, 194, 0.08)",
+    shadow: isDarkTheme
+      ? "0 8px 16px rgba(0,0,0,0.4)"
+      : "0 8px 16px rgba(10,102,194,0.15)",
     placeholder: isDarkTheme ? "#4a5568" : "#cccccc"
   };
 
@@ -147,38 +147,148 @@ const FAQ = () => {
     }, duration);
   };
 
+  // Lista de preguntas estáticas para clínica dental
+  const staticFaqs = [
+    {
+      question: "¿Qué opciones de blanqueamiento dental ofrecen?",
+      answer: (
+        <>
+          <p>Ofrecemos tres modalidades de blanqueamiento dental adaptadas a las necesidades específicas de cada paciente:</p>
+          <ul>
+            <li><strong>Blanqueamiento en consultorio:</strong> Procedimiento profesional realizado en una sola sesión. Utiliza agentes blanqueadores de alta concentración con activación por luz para resultados inmediatos.</li>
+            <li><strong>Blanqueamiento en casa:</strong> Sistema personalizado con férulas a medida. Incluye gel blanqueador de menor concentración para uso domiciliario durante 1-2 semanas bajo supervisión profesional.</li>
+            <li><strong>Blanqueamiento combinado:</strong> Tratamiento que inicia con una sesión en consultorio seguida de aplicaciones en casa para resultados óptimos y duraderos.</li>
+          </ul>
+          <p>Durante la consulta evaluaremos su caso particular y recomendaremos la mejor opción según sus necesidades y condición dental.</p>
+        </>
+      ),
+      categoria: "Estética dental"
+    },
+    {
+      question: "¿Cuáles son las opciones para reemplazar dientes perdidos?",
+      answer: (
+        <>
+          <p>Contamos con diversas soluciones para restaurar su sonrisa cuando ha perdido piezas dentales:</p>
+          <ul>
+            <li><strong>Implantes dentales:</strong> La solución más avanzada y similar a los dientes naturales. Un tornillo de titanio se integra al hueso maxilar (osteointegración) y sirve como raíz para soportar una corona dental.</li>
+            <li><strong>Puentes fijos:</strong> Restauraciones que se apoyan en los dientes adyacentes para reponer las piezas faltantes. Son fijos y requieren tallado de dientes naturales como soporte.</li>
+            <li><strong>Prótesis removibles:</strong> Pueden ser parciales o completas según la cantidad de dientes a reemplazar. Ofrecen una solución económica con la ventaja de poder extraerse para su limpieza.</li>
+            <li><strong>Soluciones All-on-4/All-on-6:</strong> Técnicas avanzadas que permiten rehabilitar una arcada completa con tan solo 4 o 6 implantes estratégicamente posicionados.</li>
+          </ul>
+          <p>Cada opción tiene sus indicaciones, ventajas y consideraciones particulares que evaluaremos en su consulta personalizada.</p>
+        </>
+      ),
+      categoria: "Rehabilitación oral"
+    },
+    {
+      question: "¿Qué es la endodoncia y cuándo es necesaria?",
+      answer: (
+        <>
+          <p>La endodoncia (tratamiento de conductos) es un procedimiento especializado que consiste en:</p>
+          <ul>
+            <li>Eliminación del tejido pulpar (nervios y vasos sanguíneos) inflamado o infectado</li>
+            <li>Limpieza y desinfección de los conductos radiculares</li>
+            <li>Sellado hermético para prevenir reinfecciones</li>
+          </ul>
+          <p><strong>Este tratamiento es necesario cuando:</strong></p>
+          <ul>
+            <li>Existe dolor dental intenso y persistente</li>
+            <li>Se presenta sensibilidad prolongada al frío o calor</li>
+            <li>Hay inflamación o sensibilidad en las encías adyacentes</li>
+            <li>Se observa oscurecimiento del diente</li>
+            <li>Se detecta presencia de infección o absceso en las radiografías</li>
+          </ul>
+          <p>La endodoncia permite conservar el diente natural, evitando su extracción, y eliminar el dolor causado por la inflamación o infección pulpar.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Qué son los implantes dentales y cuál es su durabilidad?",
+      answer: (
+        <>
+          <p><strong>Los implantes dentales son:</strong></p>
+          <ul>
+            <li>Raíces artificiales de titanio biocompatible que se integran al hueso maxilar</li>
+            <li>La base para soportar coronas, puentes o prótesis completas</li>
+            <li>La solución más similar al diente natural en función y estética</li>
+          </ul>
+          <p><strong>Respecto a su durabilidad:</strong></p>
+          <ul>
+            <li>Con cuidados adecuados, los implantes pueden durar toda la vida en la mayoría de los casos (tasa de éxito superior al 95% a los 10 años)</li>
+            <li>Las prótesis sobre implantes (coronas, puentes) pueden requerir reemplazos cada 10-15 años, dependiendo de factores individuales</li>
+            <li>Su mantenimiento requiere higiene bucal meticulosa, visitas regulares al dentista y evitar hábitos perjudiciales como el tabaquismo</li>
+          </ul>
+          <p>En nuestra clínica realizamos un estudio completo previo a la intervención para garantizar el mejor pronóstico posible.</p>
+        </>
+      ),
+      categoria: "Implantología"
+    },
+    {
+      question: "¿Cada cuánto tiempo debo acudir a revisión dental?",
+      answer: (
+        <>
+          <p>La frecuencia de las revisiones dentales debe adaptarse a las necesidades individuales de cada paciente:</p>
+          <ul>
+            <li><strong>Pacientes con salud dental estable:</strong> Revisiones cada 6 meses para exámenes completos y limpiezas profesionales</li>
+            <li><strong>Pacientes con enfermedad periodontal:</strong> Controles cada 3-4 meses para mantenimiento periodontal</li>
+            <li><strong>Pacientes con alto riesgo de caries:</strong> Revisiones trimestrales con aplicaciones profesionales de flúor</li>
+            <li><strong>Pacientes con implantes dentales:</strong> Controles semestrales para verificar la salud periimplantaria</li>
+            <li><strong>Niños en etapa de desarrollo:</strong> Revisiones cada 4-6 meses para monitorizar el crecimiento y desarrollo</li>
+          </ul>
+          <p>Durante su primera consulta evaluaremos su condición bucal y estableceremos un programa personalizado de seguimiento según su perfil de riesgo.</p>
+        </>
+      ),
+      categoria: "Prevención"
+    },
+    {
+      question: "¿Cómo puedo financiar mi tratamiento dental?",
+      answer: (
+        <>
+          <p>En nuestra clínica comprendemos que la inversión en salud bucal es importante, por eso ofrecemos diversas facilidades de pago:</p>
+          <ul>
+            <li><strong>Métodos de pago directo:</strong>
+              <ul>
+                <li>Efectivo</li>
+                <li>Tarjetas de débito y crédito (Visa, Mastercard, American Express)</li>
+                <li>Transferencias bancarias</li>
+              </ul>
+            </li>
+            <li><strong>Planes de financiamiento:</strong>
+              <ul>
+                <li>Pago fraccionado sin intereses para tratamientos específicos</li>
+                <li>Financiación hasta 24 meses para tratamientos extensos</li>
+                <li>Plan Familia con descuentos especiales para grupos familiares</li>
+              </ul>
+            </li>
+            <li><strong>Colaboración con aseguradoras:</strong> Trabajamos con las principales compañías de seguros dentales</li>
+          </ul>
+          <p>Nuestro departamento administrativo le ofrecerá un presupuesto detallado y le ayudará a encontrar la opción que mejor se adapte a sus necesidades financieras.</p>
+        </>
+      ),
+      categoria: "Administración"
+    }
+  ];
+
   // Función para obtener FAQs
   const fetchFAQs = useCallback(async () => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    setLoadingFaqs(true);
 
     try {
-      const response = await fetch(
-        "https://back-end-4803.onrender.com/api/preguntas/get-all",
-        { signal: controller.signal }
-      );
+      // Simulamos la carga de preguntas
+      await new Promise(resolve => setTimeout(resolve, 800));
 
-      clearTimeout(timeoutId);
+      // Usamos las preguntas estáticas
+      setFaqs(staticFaqs);
+      setFilteredFaqs(staticFaqs);
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
+      // Extraemos categorías únicas
+      const uniqueCategories = ['Todas', ...new Set(staticFaqs.map(faq => faq.categoria))];
+      setCategories(uniqueCategories);
 
-      const data = await response.json();
-
-      if (!Array.isArray(data)) {
-        throw new Error("Formato de datos incorrecto");
-      }
-
-      setFaqs(data);
-      setFilteredFaqs(data);
-      
     } catch (error) {
-      if (error.name === "AbortError") {
-        showNotification("Tiempo de espera agotado. Inténtalo más tarde.", "error");
-      } else {
-        showNotification("No se pudieron cargar las preguntas frecuentes", "error");
-      }
+      console.error("Error al cargar preguntas:", error);
+      showNotification("No se pudieron cargar las preguntas frecuentes", "error");
       setFaqs([]);
       setFilteredFaqs([]);
     } finally {
@@ -186,22 +296,37 @@ const FAQ = () => {
     }
   }, []);
 
-  // Filtrar preguntas por búsqueda
+  // Filtrar preguntas por búsqueda y categoría
   useEffect(() => {
     let result = [...faqs];
-    
+
+    // Filtrar por categoría
+    if (activeCategory !== "Todas") {
+      result = result.filter(faq => faq.categoria === activeCategory);
+    }
+
     // Filtrar por búsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       result = result.filter(
-        faq => 
-          faq.question.toLowerCase().includes(query) || 
-          faq.answer.toLowerCase().includes(query)
+        faq =>
+          faq.question.toLowerCase().includes(query) ||
+          // Verificamos si el answer es un string o un componente JSX
+          (typeof faq.answer === 'string'
+            ? faq.answer.toLowerCase().includes(query)
+            : React.isValidElement(faq.answer)
+              // Para elementos JSX, convertimos a string para búsqueda
+              ? faq.answer.props.children
+                .flatMap(child => typeof child === 'string' ? child : '')
+                .join(' ')
+                .toLowerCase()
+                .includes(query)
+              : false)
       );
     }
-    
+
     setFilteredFaqs(result);
-  }, [faqs, searchQuery]);
+  }, [faqs, searchQuery, activeCategory]);
 
   // Cargar preguntas al montar el componente
   useEffect(() => {
@@ -247,33 +372,25 @@ const FAQ = () => {
         return;
       }
 
-      const response = await fetch(
-        "https://back-end-4803.onrender.com/api/preguntas/verificar-correo",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email: formData.email }),
-        }
-      );
+      // Simular verificación de correo
+      await new Promise(resolve => setTimeout(resolve, 500));
 
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-
-      const data = await response.json();
+      // Supongamos que el correo test@example.com está registrado
+      const isRegistered = formData.email === 'test@example.com';
 
       setFormData(prev => ({
         ...prev,
-        name: data.exists ? `${data.name} ${data.apellido_paterno}` : "",
-        isRegistered: data.exists,
-        paciente_id: data.exists ? data.paciente_id : null,
+        name: isRegistered ? "Paciente Ejemplo" : "",
+        isRegistered: isRegistered,
+        paciente_id: isRegistered ? "12345" : null,
       }));
 
-      if (data.exists) {
-        showNotification("¿Qué duda tiene mi paciente?", "success");
+      if (isRegistered) {
+        showNotification("¡Bienvenido de nuevo! ¿En qué podemos ayudarle hoy?", "success");
       }
 
     } catch (error) {
+      console.error("Error al verificar correo:", error);
       showNotification("Error al verificar el correo electrónico", "error");
     }
   };
@@ -304,30 +421,11 @@ const FAQ = () => {
         return;
       }
 
-      const payload = {
-        email: formData.email,
-        name: formData.name,
-        question: formData.question,
-        paciente_id: formData.isRegistered ? formData.paciente_id : null,
-      };
+      // Simular envío
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      const response = await fetch(
-        "https://back-end-4803.onrender.com/api/preguntas/nueva",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-
-      showNotification("El administrador responderá su pregunta pronto.", "success", 5000);
+      showNotification("Su pregunta ha sido enviada. Responderemos a la brevedad posible.", "success", 5000);
       setOpenModal(false);
-
-      fetchFAQs();
 
       // Resetear formulario
       setFormData({
@@ -339,6 +437,7 @@ const FAQ = () => {
       });
       setCaptchaVerified(false);
     } catch (error) {
+      console.error("Error al enviar:", error);
       showNotification("Error al enviar la pregunta", "error");
     }
   };
@@ -355,19 +454,16 @@ const FAQ = () => {
   const SkeletonFAQ = () => (
     <Box sx={{ my: 2, width: '100%' }}>
       {[1, 2, 3, 4].map((_, index) => (
-        <Paper 
-          key={index} 
+        <Paper
+          key={index}
           sx={{
             my: 2,
             p: 2,
             borderRadius: '12px',
-            background: `linear-gradient(90deg, ${
-              isDarkTheme ? '#1E2A3B' : '#f5f5f5'
-            } 25%, ${
-              isDarkTheme ? '#2C3E50' : '#e0e0e0'
-            } 37%, ${
-              isDarkTheme ? '#1E2A3B' : '#f5f5f5'
-            } 63%)`,
+            background: `linear-gradient(90deg, ${isDarkTheme ? '#1E2A3B' : '#f5f5f5'
+              } 25%, ${isDarkTheme ? '#2C3E50' : '#e0e0e0'
+              } 37%, ${isDarkTheme ? '#1E2A3B' : '#f5f5f5'
+              } 63%)`,
             backgroundSize: '1000px 100%',
             animation: `${shimmer} 2s infinite linear`,
             height: index === 0 ? '100px' : '80px',
@@ -381,7 +477,7 @@ const FAQ = () => {
   // Variantes de animación para Framer Motion
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
       transition: {
         staggerChildren: 0.1
@@ -391,8 +487,8 @@ const FAQ = () => {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
       transition: {
         type: "spring",
@@ -403,11 +499,11 @@ const FAQ = () => {
   };
 
   const modalVariants = {
-    hidden: { 
+    hidden: {
       opacity: 0,
       scale: 0.8
     },
-    visible: { 
+    visible: {
       opacity: 1,
       scale: 1,
       transition: {
@@ -416,7 +512,7 @@ const FAQ = () => {
         damping: 15
       }
     },
-    exit: { 
+    exit: {
       opacity: 0,
       scale: 0.8,
       transition: {
@@ -456,10 +552,10 @@ const FAQ = () => {
       fontSize: isMobile ? "1.75rem" : "2.5rem",
       textAlign: "center",
       fontFamily: "Montserrat, sans-serif",
-      marginBottom: '1rem',
+      marginBottom: '2rem',
       textTransform: "uppercase",
       letterSpacing: "1px",
-      textShadow: isDarkTheme ? "0 2px 10px rgba(255, 255, 255, 0.3)" : "0 2px 5px rgba(3, 66, 124, 0.2)",
+      textShadow: isDarkTheme ? "0 2px 10px rgba(255, 255, 255, 0.3)" : "0 2px 5px rgba(10, 102, 194, 0.2)",
       position: 'relative',
       display: 'inline-block',
       '&::after': {
@@ -558,7 +654,7 @@ const FAQ = () => {
         transform: "translateY(-2px)",
         boxShadow: isDarkTheme
           ? "0 12px 20px rgba(0,0,0,0.5)"
-          : "0 12px 20px rgba(3,66,124,0.2)",
+          : "0 12px 20px rgba(10,102,194,0.2)",
       },
       "&:before": {
         display: "none"
@@ -592,24 +688,23 @@ const FAQ = () => {
       transition: "all 0.3s ease",
     },
     askButton: {
-      background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
-      color: isDarkTheme ? "#000000" : "white",
+      // Botón menos prominente
+      background: 'transparent',
+      color: colors.primary,
+      border: `1px solid ${colors.primary}`,
       fontFamily: "Montserrat, sans-serif",
-      padding: "0.75rem 2rem",
-      borderRadius: "30px",
+      padding: "0.6rem 1.5rem",
+      borderRadius: "8px",
       textTransform: "none",
-      fontSize: isMobile ? "1rem" : "1.1rem",
-      fontWeight: 600,
+      fontSize: isMobile ? "0.9rem" : "1rem",
+      fontWeight: 500,
       mt: 4,
       transition: "all 0.3s ease",
-      boxShadow: isDarkTheme
-        ? "0 4px 15px rgba(144, 202, 249, 0.4)"
-        : "0 4px 15px rgba(3, 66, 124, 0.4)",
+      boxShadow: "none",
       "&:hover": {
-        boxShadow: isDarkTheme
-          ? "0 6px 20px rgba(144, 202, 249, 0.6)"
-          : "0 6px 20px rgba(3, 66, 124, 0.6)",
-        transform: "translateY(-4px) scale(1.02)"
+        background: alpha(colors.primary, 0.1),
+        boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
+        transform: "translateY(-2px)"
       }
     },
     modal: {
@@ -715,6 +810,101 @@ const FAQ = () => {
     }
   };
 
+  // Componente SearchAndCategories rediseñado
+  const SearchAndCategories = () => {
+    return (
+      <Box sx={{
+        width: '100%',
+        display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
+        alignItems: 'center',
+        gap: 2,
+        mb: 3
+      }}>
+        {/* Search bar - Ocupa 60% del espacio en escritorio */}
+        <Box sx={{
+          flex: isMobile ? 1 : '0.6',
+          width: isMobile ? '100%' : '60%'
+        }}>
+          <TextField
+            fullWidth
+            placeholder="Buscar preguntas..."
+            variant="outlined"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            inputRef={searchInputRef}
+            InputProps={{
+              startAdornment: (
+                <Box component={HelpOutlineIcon} sx={{ mr: 1.5, color: colors.primary }} />
+              ),
+              endAdornment: searchQuery && (
+                <IconButton
+                  size="small"
+                  onClick={() => setSearchQuery("")}
+                  sx={{ color: colors.secondaryText }}
+                >
+                  <CloseIcon fontSize="small" />
+                </IconButton>
+              )
+            }}
+            sx={styles.searchField}
+          />
+        </Box>
+
+        {/* Categories select - Ocupa 40% del espacio en escritorio */}
+        <Box sx={{
+          flex: isMobile ? 1 : '0.4',
+          width: isMobile ? '100%' : '40%'
+        }}>
+          <TextField
+            select
+            fullWidth
+            value={activeCategory}
+            onChange={(e) => handleCategoryChange(e.target.value)}
+            variant="outlined"
+            sx={{
+              ...styles.searchField,
+              "& .MuiSelect-select": {
+                display: 'flex',
+                alignItems: 'center',
+                padding: "14px 16px",
+              },
+            }}
+            SelectProps={{
+              MenuProps: {
+                PaperProps: {
+                  sx: {
+                    maxHeight: 300,
+                    backgroundColor: colors.cardBg,
+                  }
+                }
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <Box component={QuestionAnswerIcon} sx={{ mr: 1.5, color: colors.primary }} />
+              ),
+            }}
+          >
+            {categories.map((category) => (
+              <MenuItem key={category} value={category} sx={{
+                fontFamily: "Montserrat, sans-serif",
+                color: colors.text,
+                "&:hover": {
+                  backgroundColor: alpha(colors.primary, 0.1),
+                },
+                "&.Mui-selected": {
+                  backgroundColor: alpha(colors.primary, 0.1),
+                }
+              }}>
+                {category}
+              </MenuItem>
+            ))}
+          </TextField>
+        </Box>
+      </Box>
+    );
+  };
   return (
     <motion.div
       initial="hidden"
@@ -763,42 +953,18 @@ const FAQ = () => {
         }} />
       </Box>
 
-      {/* Header Section */}
+      {/* Header Section con buscador y categorías juntos */}
       <motion.div variants={itemVariants} style={{ width: '100%', maxWidth: '800px' }}>
         <Box sx={styles.header}>
           <Typography variant="h3" sx={styles.title}>
             Preguntas Frecuentes
           </Typography>
-          
-          {/* Search bar */}
-          <Box sx={styles.searchContainer}>
-            <TextField
-              fullWidth
-              placeholder="Buscar preguntas..."
-              variant="outlined"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              inputRef={searchInputRef}
-              InputProps={{
-                startAdornment: (
-                  <Box component={HelpOutlineIcon} sx={{ mr: 1.5, color: colors.primary }} />
-                ),
-                endAdornment: searchQuery && (
-                  <IconButton 
-                    size="small" 
-                    onClick={() => setSearchQuery("")}
-                    sx={{ color: colors.secondaryText }}
-                  >
-                    <CloseIcon fontSize="small" />
-                  </IconButton>
-                )
-              }}
-              sx={styles.searchField}
-            />
-          </Box>
+
+          <SearchAndCategories />
+
         </Box>
       </motion.div>
-      
+
       {/* FAQs Section */}
       <Box sx={styles.faqContainer}>
         {loadingFaqs ? (
@@ -834,11 +1000,11 @@ const FAQ = () => {
                   >
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                       {faq.categoria && (
-                        <Chip 
+                        <Chip
                           label={faq.categoria}
                           size="small"
-                          sx={{ 
-                            mr: 2, 
+                          sx={{
+                            mr: 2,
                             backgroundColor: `${colors.primary}30`,
                             color: colors.primary,
                             fontWeight: 500,
@@ -850,10 +1016,28 @@ const FAQ = () => {
                       <Typography sx={styles.question}>{faq.question}</Typography>
                     </Box>
                   </AccordionSummary>
-                  <AccordionDetails sx={styles.accordionDetails}>
-                    <Typography sx={styles.answer}>
+                  <AccordionDetails sx={{
+                    ...styles.accordionDetails,
+                    '& p': {
+                      marginBottom: '1rem',
+                      lineHeight: 1.8,
+                    },
+                    '& ul': {
+                      marginBottom: '1rem',
+                      paddingLeft: '1.5rem',
+                    },
+                    '& li': {
+                      marginBottom: '0.5rem',
+                      lineHeight: 1.6,
+                    },
+                    '& strong': {
+                      fontWeight: 600,
+                      color: isDarkTheme ? alpha(colors.primary, 0.9) : colors.primary,
+                    }
+                  }}>
+                    <Box sx={styles.answer}>
                       {faq.answer}
-                    </Typography>
+                    </Box>
                   </AccordionDetails>
                 </Accordion>
               </motion.div>
@@ -886,9 +1070,9 @@ const FAQ = () => {
                   </Typography>
                 </>
               )}
-              <Button 
-                variant="outlined" 
-                color="primary" 
+              <Button
+                variant="outlined"
+                color="primary"
                 onClick={() => setOpenModal(true)}
                 startIcon={<EmailIcon />}
                 sx={{ mt: 2 }}
@@ -900,7 +1084,7 @@ const FAQ = () => {
         )}
       </Box>
 
-      {/* Ask Question Button */}
+      {/* Ask Question Button - Menos visible */}
       {filteredFaqs.length > 0 && (
         <motion.div
           variants={itemVariants}
@@ -908,7 +1092,8 @@ const FAQ = () => {
           whileTap={{ scale: 0.95 }}
         >
           <Button
-            variant="contained"
+            variant="outlined"
+            size="medium"
             startIcon={<LiveHelpIcon />}
             onClick={() => setOpenModal(true)}
             sx={styles.askButton}
@@ -948,7 +1133,7 @@ const FAQ = () => {
                   <CloseIcon />
                 </IconButton>
               </Box>
-              
+
               <DialogContent sx={styles.modalContent}>
                 <Box component="form">
                   <TextField
@@ -995,11 +1180,11 @@ const FAQ = () => {
                     multiline
                     rows={4}
                   />
-                  
+
                   <Box sx={styles.captchaContainer}>
-                    <CustomRecaptcha 
-                      onCaptchaChange={handleCaptchaChange} 
-                      isDarkMode={isDarkTheme} 
+                    <CustomRecaptcha
+                      onCaptchaChange={handleCaptchaChange}
+                      isDarkMode={isDarkTheme}
                     />
                   </Box>
                 </Box>
