@@ -88,7 +88,7 @@ const ImagenesForm = () => {
    */
   const fetchResumen = async () => {
     try {
-      const response = await axios.get(`https://back-end-4803.onrender.com/imagenes/resumen`);
+      const response = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/resumen`);
       setResumen({
         total: response.data.total || 0,
         con_imagen: response.data.con_imagen || 0,
@@ -113,10 +113,10 @@ const ImagenesForm = () => {
     setLoadingServices(true);
     try {
       // Obtener servicios con imágenes
-      const servicesWithImagesResponse = await axios.get(`https://back-end-4803.onrender.com/imagenes/all`);
+      const servicesWithImagesResponse = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/all`);
       
       // Obtener servicios sin imágenes
-      const servicesWithoutImagesResponse = await axios.get(`https://back-end-4803.onrender.com/imagenes/pendientes`);
+      const servicesWithoutImagesResponse = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/pendientes`);
       
       // Combinar resultados
       const allServices = [
@@ -148,7 +148,7 @@ const ImagenesForm = () => {
   const fetchImages = async () => {
     setLoadingImages(true);
     try {
-      const response = await axios.get(`https://back-end-4803.onrender.com/imagenes/cloudinary`);
+      const response = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/cloudinary`);
       
       const cloudinaryImages = response.data.map(image => ({
         id: image.public_id.split('/')[1] || image.public_id,
@@ -254,7 +254,7 @@ const ImagenesForm = () => {
         const formData = new FormData();
         formData.append('image', file);
 
-        const response = await axios.post(`https://back-end-4803.onrender.com/imagenes/upload`, formData, {
+        const response = await axios.post(`https://back-end-4803.onrender.com/api/imagenes/upload`, formData, {
           headers: {
             'Content-Type': 'multipart/form-data'
           }
@@ -337,7 +337,7 @@ const ImagenesForm = () => {
     if (!selectedService || !image) return;
     
     try {
-      const response = await axios.post(`https://back-end-4803.onrender.com/imagenes/asignar/${selectedService.id}`, {
+      const response = await axios.post(`https://back-end-4803.onrender.com/api/imagenes/asignar/${selectedService.id}`, {
         imageUrl: image.url
       });
       
@@ -380,7 +380,7 @@ const ImagenesForm = () => {
     if (!selectedImage) return;
 
     try {
-      const response = await axios.delete(`https://back-end-4803.onrender.com/imagenes/eliminar`, {
+      const response = await axios.delete(`https://back-end-4803.onrender.com/api/imagenes/eliminar`, {
         data: { public_id: selectedImage.public_id }
       });
       
@@ -419,7 +419,7 @@ const ImagenesForm = () => {
    */
   const removeImageFromService = async (service) => {
     try {
-      const response = await axios.delete(`https://back-end-4803.onrender.com/imagenes/remover/${service.id}`);
+      const response = await axios.delete(`https://back-end-4803.onrender.com/api/imagenes/remover/${service.id}`);
       
       if (response.data) {
         // Actualizar el estado local
