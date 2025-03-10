@@ -22,7 +22,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     FaHome, FaUsers, FaCalendarAlt, FaChartLine, FaMoneyBillWave, FaCalendarCheck,
     FaClock, FaBell, FaCog, FaSignOutAlt, FaFileAlt, FaTooth, FaUserCircle,
-    FaAngleDown, FaAngleRight, FaBars, FaQuestionCircle
+    FaAngleDown, FaAngleRight, FaBars, FaQuestionCircle, FaCloudUploadAlt
 } from 'react-icons/fa';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
@@ -39,13 +39,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const { setUser } = useAuth();
+    const { setUser, user } = useAuth();
 
-    // Estado para manejar los grupos expandidos/colapsados
+    // Estado para manejar los grupos expandidos/colapsados - inicialmente todos cerrados
     const [expandedGroups, setExpandedGroups] = useState({
-        gestion: true,
-        reportes: true,
-        configuracion: true
+        gestion: false,
+        reportes: false,
+        configuracion: false
     });
 
     const colors = {
@@ -73,7 +73,9 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
                 { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
                 { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas' },
-                { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' }
+                { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
+                { icon: FaCloudUploadAlt, text: 'Subida de Imágenes', path: '/Administrador/imagenes' } 
+
             ]
         },
         {
@@ -105,12 +107,21 @@ const BarraAdmin = ({ onDrawerChange }) => {
         }
     }, [drawerOpen, onDrawerChange]);
 
-    // Manejar expansión/colapso de grupos
+    // Manejar expansión/colapso de grupos con comportamiento de acordeón
     const toggleGroup = (groupId) => {
-        setExpandedGroups(prev => ({
-            ...prev,
-            [groupId]: !prev[groupId]
-        }));
+        setExpandedGroups(prev => {
+            // Crear un nuevo objeto con todos los grupos colapsados
+            const newState = Object.keys(prev).reduce((acc, key) => {
+                acc[key] = false;
+                return acc;
+            }, {});
+            
+            // Si el grupo clickeado ya estaba expandido, dejarlo cerrado (toggle)
+            // Si estaba cerrado, expandirlo
+            newState[groupId] = !prev[groupId];
+            
+            return newState;
+        });
     };
 
     useEffect(() => {
@@ -294,11 +305,50 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 )}
             </Box>
 
+            {/* Área de usuario - Perfil de Administrador */}
+            {drawerOpen && (
+                <Box sx={{
+                    py: 2,
+                    px: 2,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    borderBottom: `1px solid ${colors.divider}`
+                }}>
+                    <Avatar
+                        sx={{
+                            bgcolor: colors.primary,
+                            width: 64,
+                            height: 64,
+                            mb: 1.5
+                        }}
+                    >
+                        <FaUserCircle size={32} />
+                    </Avatar>
+                    <Typography variant="subtitle1" fontWeight="bold">
+                        {user?.nombre || 'Admin'}
+                    </Typography>
+                    <Typography 
+                        variant="caption" 
+                        sx={{ 
+                            color: colors.secondaryText,
+                            fontWeight: 'medium', 
+                            mb: 0.5 
+                        }}
+                    >
+                        Administrador
+                    </Typography>
+                    <Typography variant="body2" color={colors.secondaryText}>
+                        {user?.email || 'admin@odontologiacarol.com'}
+                    </Typography>
+                </Box>
+            )}
+
             {/* Contenido del Drawer */}
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                height: 'calc(100% - 64px)',
+                height: drawerOpen ? 'calc(100% - 200px)' : 'calc(100% - 64px)',
             }}>
                 {/* Menú de navegación */}
                 <List sx={{

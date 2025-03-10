@@ -40,7 +40,9 @@ import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm";
 import HorariosForm from "./pages/administrador/pages/HorariosForm";
-import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas.jsx";
+import ImagenesForm from "./pages/administrador/pages/ImagenesForm.jsx";
+
+import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas";
 import Graficas from "./pages/administrador/pages/Graficas";
 import ModeracionServicios from "./pages/administrador/pages/resenyasModerar.jsx";
 
@@ -215,15 +217,17 @@ function App() {
           <Route path="/Administrador/citas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de citas' }]} /><CitasForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/horarios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de Horarios' }]} /><HorariosForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
+
           <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas/></LayoutAdmin>} />
           <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios/></LayoutAdmin>} />
+          <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />
 
 
           {/* Rutas protegidas del empleado */}
           <Route path="/Empleado/principal" element={<LayoutEmpleado><PrincipalEmpleado /></LayoutEmpleado>} />
           <Route path="/Empleado/gestionPacient" element={<LayoutEmpleado><GestionPacient /></LayoutEmpleado>} />
           <Route path="/Empleado/ExpedienteClinico" element={<LayoutEmpleado><ExpedienteClinico /></LayoutEmpleado>} />
-          <Route path="/Empleado/CalendarioCita" element={<LayoutEmpleado><CalendarioCitas /></LayoutEmpleado>} />
 
           {/* Ruta para manejo de errores */}
           <Route path="/error" element={<ErrorPage />} />
