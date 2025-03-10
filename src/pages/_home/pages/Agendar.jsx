@@ -104,7 +104,7 @@ const ReservaCitas = () => {
     const isMediumScreen = useMediaQuery(theme.breakpoints.down('md'));
 
     const location = useLocation();
-const servicioSeleccionado = location.state?.servicioSeleccionado || '';
+    const servicioSeleccionado = location.state?.servicioSeleccionado || null;
 
     const colors = {
         background: isDarkTheme ? '#0A1929' : '#F5F7FA',
@@ -117,6 +117,10 @@ const servicioSeleccionado = location.state?.servicioSeleccionado || '';
         success: '#4caf50',
         warning: '#ff9800'
     };
+    
+    useEffect(() => {
+        window.scrollTo(0, 0);
+    }, []);
 
     const handleStepCompletion = (step, isCompleted, stepData = {}) => {
         setStepsCompleted((prev) => ({
@@ -179,8 +183,13 @@ const servicioSeleccionado = location.state?.servicioSeleccionado || '';
         if (servicioSeleccionado) {
             setFormData((prev) => ({
                 ...prev,
-                servicio: servicioSeleccionado.title // Asegúrate de que sea el campo correcto
+                servicio: servicioSeleccionado.title,
+                servicio_id: servicioSeleccionado.id,
+                categoria_servi: servicioSeleccionado.category,
+                precio_servicio: servicioSeleccionado.price
             }));
+            
+            // Also show a notification
             setNotification({
                 open: true,
                 message: `Servicio "${servicioSeleccionado.title}" seleccionado. Complete los campos restantes.`,

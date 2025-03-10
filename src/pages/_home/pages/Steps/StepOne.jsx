@@ -104,6 +104,18 @@ const StepOne = ({
         }
     };
 
+    useEffect(() => {
+        // If a service is already selected when component mounts
+        if (formData.servicio) {
+            const selectedService = availableServices.find(service => service.title === formData.servicio);
+            if (selectedService) {
+                const fullDescription = selectedService.description || '';
+                const shortDescription = fullDescription.split('.')[0] + '.';
+                setSelectedServiceDescription(shortDescription);
+            }
+        }
+    }, [formData.servicio, availableServices]);
+
     const checkPatientExists = async (email) => {
         try {
             setLoading(true);

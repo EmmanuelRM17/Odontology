@@ -18,79 +18,27 @@ import {
     CssBaseline,
     alpha,
     Fade,
-    Tabs,
-    Tab,
-    Avatar,
-    Chip,
-    Badge,
     Divider,
     Zoom,
-    useMediaQuery
+    Chip,
+    Skeleton, // Añadido para el esqueleto de carga
 } from '@mui/material';
-import { 
+import { useTheme } from '@mui/material/styles';
+
+import {
     Search as SearchIcon,
-    LocalHospital as LocalHospitalIcon,
     FilterList as FilterListIcon,
     CalendarMonth as CalendarMonthIcon,
     KeyboardArrowDown as KeyboardArrowDownIcon,
-    Star as StarIcon,
     Info as InfoIcon,
     CheckCircle as CheckCircleIcon,
-    WhatsApp as WhatsAppIcon,
     ArrowForward as ArrowForwardIcon,
-    Phone as PhoneIcon,
-    ImportContacts as ImportContactsIcon
+    ChevronRight as ChevronRightIcon,
+    ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
-import ServiceImage from './Image';
-
-// Datos para las categorías destacadas
-const FEATURED_CATEGORIES = [
-    { 
-        name: 'Preventivos', 
-        icon: CheckCircleIcon, 
-        description: 'Cuidados para prevenir problemas dentales',
-        color: '#4CAF50'
-    },
-    { 
-        name: 'Estéticos', 
-        icon: StarIcon, 
-        description: 'Mejora la apariencia de tu sonrisa',
-        color: '#2196F3' 
-    },
-    { 
-        name: 'Restaurativos', 
-        icon: LocalHospitalIcon, 
-        description: 'Recupera la función y salud dental',
-        color: '#FF9800' 
-    },
-    { 
-        name: 'Especialidades', 
-        icon: ImportContactsIcon, 
-        description: 'Tratamientos específicos y avanzados',
-        color: '#9C27B0' 
-    }
-];
-
-// Testimonios de clientes
-const TESTIMONIALS = [
-    {
-        name: "Carolina Gómez",
-        testimonial: "Excelente atención y profesionalismo. Mi sonrisa luce increíble después del tratamiento.",
-        service: "Blanqueamiento dental"
-    },
-    {
-        name: "Juan Pérez",
-        testimonial: "Un servicio de primera, muy contentos con los resultados. Totalmente recomendable.",
-        service: "Ortodoncia"
-    },
-    {
-        name: "María López",
-        testimonial: "Muy satisfecha con el trato y la calidad del servicio. Agendé otra cita de inmediato.",
-        service: "Limpieza dental"
-    }
-];
+import ServicioDetalleDialog from './ServiciosDetalle';
 
 const Servicios = () => {
     const [services, setServices] = useState([]);
@@ -99,13 +47,10 @@ const Servicios = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [anchorEl, setAnchorEl] = useState(null);
-    const [tabValue, setTabValue] = useState(0);
-    const [featuredServices, setFeaturedServices] = useState([]);
     const [highlightedService, setHighlightedService] = useState(null);
     const { isDarkTheme } = useThemeContext();
     const navigate = useNavigate();
-    const isMobile = useMediaQuery('(max-width:600px)');
-    const isTablet = useMediaQuery('(max-width:960px)');
+    const [highlightedServiceDialogOpen, setHighlightedServiceDialogOpen] = useState(false);
     const servicosRef = useRef(null);
 
     // Efecto para cargar servicios
@@ -116,18 +61,16 @@ const Servicios = () => {
                 if (!response.ok) throw new Error('Error al obtener los servicios');
                 const data = await response.json();
                 setServices(data);
-                
-                // Seleccionar servicios destacados y un servicio destacado
+
+                // Seleccionar un servicio destacado
                 if (data.length > 0) {
-                    const featured = data.filter(service => 
-                        service.category === 'Preventivos' || 
-                        service.category === 'Estéticos' ||
-                        service.title.includes('limpieza') ||
-                        service.title.includes('blanqueamiento')
-                    ).slice(0, 6);
-                    
-                    setFeaturedServices(featured.length > 0 ? featured : data.slice(0, 6));
-                    setHighlightedService(data[Math.floor(Math.random() * data.length)]);
+                    // Elegir un servicio destacado que tenga buena imagen
+                    const servicesWithImages = data.filter(service => service.image_url);
+                    if (servicesWithImages.length > 0) {
+                        setHighlightedService(servicesWithImages[Math.floor(Math.random() * servicesWithImages.length)]);
+                    } else {
+                        setHighlightedService(data[Math.floor(Math.random() * data.length)]);
+                    }
                 }
             } catch (error) {
                 setError(error.message);
@@ -136,6 +79,10 @@ const Servicios = () => {
             }
         };
         fetchServices();
+    }, []);
+
+    useEffect(() => {
+        window.scrollTo(0, 0);
     }, []);
 
     // Tema personalizado
@@ -200,7 +147,6 @@ const Servicios = () => {
     const handleCategoryClose = (category) => {
         if (category) {
             setSelectedCategory(category);
-            // Desplazarse a la sección de servicios
             if (servicosRef.current) {
                 servicosRef.current.scrollIntoView({ behavior: 'smooth' });
             }
@@ -208,14 +154,19 @@ const Servicios = () => {
         setAnchorEl(null);
     };
 
-    // Obtener imagen de placeholder
+    // Obtener imagen de placeholder mejorada con colores de odontología
     const getPlaceholderImage = (title) => {
-        return `https://source.unsplash.com/400x300/?dental,${title.replace(' ', ',')}`;
+        const keywords = ['dental', 'dentist', 'tooth', 'smile'];
+        return `https://source.unsplash.com/400x300/?${keywords[Math.floor(Math.random() * keywords.length)]},${title.replace(' ', ',')}`;
     };
 
     // Manejar agenda de cita
     const handleAgendarCita = (service) => {
-        navigate('/agendar-cita', { state: { selectedService: service } });
+        navigate('/agendar-cita', {
+            state: {
+                servicioSeleccionado: service  // Use consistent property name
+            }
+        });
     };
 
     // Desplazarse a la sección de servicios
@@ -225,15 +176,532 @@ const Servicios = () => {
         }
     };
 
-    // Cambiar tab
-    const handleTabChange = (event, newValue) => {
-        setTabValue(newValue);
+    const ServicesGrid = ({ filteredServices }) => {
+        const [currentIndex, setCurrentIndex] = useState(0);
+        const [isAnimating, setIsAnimating] = useState(false);
+        const { isDarkTheme } = useThemeContext();
+        const navigate = useNavigate();
+        const theme = useTheme();
+
+        // Determinar el número de tarjetas por página (ahora usamos un grid de 6 tarjetas)
+        const cardsPerPage = 6;
+
+        // Calcular el número de páginas
+        const totalPages = Math.ceil(filteredServices.length / cardsPerPage);
+
+        // Obtener los servicios actuales a mostrar
+        const getCurrentServices = () => {
+            const startIndex = currentIndex * cardsPerPage;
+            return filteredServices.slice(startIndex, startIndex + cardsPerPage);
+        };
+
+        // Navegar a la página anterior
+        const goToPrevious = () => {
+            if (currentIndex > 0 && !isAnimating) {
+                setIsAnimating(true);
+                setCurrentIndex(currentIndex - 1);
+
+                setTimeout(() => {
+                    setIsAnimating(false);
+                }, 400);
+            }
+        };
+
+        // Navegar a la página siguiente
+        const goToNext = () => {
+            if (currentIndex < totalPages - 1 && !isAnimating) {
+                setIsAnimating(true);
+                setCurrentIndex(currentIndex + 1);
+
+                setTimeout(() => {
+                    setIsAnimating(false);
+                }, 400);
+            }
+        };
+
+        // Manejar agenda de cita
+        const handleAgendarCita = (service) => {
+            navigate('/agendar-cita', { state: { servicioSeleccionado: service } });
+        };
+
+        return (
+            <Box
+                sx={{
+                    position: 'relative',
+                    mt: 4,
+                    mb: 2,
+                    px: { xs: 1, md: 6 } // Dar espacio en los lados para los botones
+                }}
+            >
+                {/* Botón Anterior - Ahora en el lado izquierdo */}
+                {totalPages > 1 && (
+                    <IconButton
+                        onClick={goToPrevious}
+                        disabled={isAnimating || currentIndex === 0}
+                        aria-label="anterior página"
+                        sx={{
+                            position: 'absolute',
+                            left: { xs: -5, sm: -15, md: -25 },
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 10,
+                            bgcolor: theme.palette.background.paper,
+                            boxShadow: 3,
+                            '&:hover': {
+                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(3,66,124,0.08)'
+                            },
+                            width: { xs: 40, md: 48 },
+                            height: { xs: 40, md: 48 },
+                            color: theme.palette.primary.main,
+                            opacity: currentIndex === 0 ? 0.5 : 1,
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <ChevronLeftIcon fontSize="medium" />
+                    </IconButton>
+                )}
+
+                {/* Contenedor principal del grid */}
+                <Box
+                    sx={{
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}
+                >
+                    <Fade in={!isAnimating} timeout={300}>
+                        <Grid
+                            container
+                            spacing={3}
+                        >
+                            {getCurrentServices().map((service, index) => (
+                                <Grid item xs={12} sm={6} md={4} key={service.id}>
+                                    <ServiceCard
+                                        service={service}
+                                        index={index}
+                                        handleAgendarCita={handleAgendarCita}
+                                        isDarkTheme={isDarkTheme}
+                                    />
+                                </Grid>
+                            ))}
+                        </Grid>
+                    </Fade>
+                </Box>
+
+                {/* Botón Siguiente - Ahora en el lado derecho */}
+                {totalPages > 1 && (
+                    <IconButton
+                        onClick={goToNext}
+                        disabled={isAnimating || currentIndex === totalPages - 1}
+                        aria-label="siguiente página"
+                        sx={{
+                            position: 'absolute',
+                            right: { xs: -5, sm: -15, md: -25 },
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            zIndex: 10,
+                            bgcolor: theme.palette.background.paper,
+                            boxShadow: 3,
+                            '&:hover': {
+                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(3,66,124,0.08)'
+                            },
+                            width: { xs: 40, md: 48 },
+                            height: { xs: 40, md: 48 },
+                            color: theme.palette.primary.main,
+                            opacity: currentIndex === totalPages - 1 ? 0.5 : 1,
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <ChevronRightIcon fontSize="medium" />
+                    </IconButton>
+                )}
+
+                {/* Indicadores de página en la parte inferior */}
+                {totalPages > 1 && (
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            mt: 3,
+                            gap: 1
+                        }}
+                    >
+                        {[...Array(totalPages)].map((_, index) => (
+                            <Box
+                                key={index}
+                                onClick={() => {
+                                    if (!isAnimating && index !== currentIndex) {
+                                        setIsAnimating(true);
+                                        setCurrentIndex(index);
+                                        setTimeout(() => setIsAnimating(false), 400);
+                                    }
+                                }}
+                                sx={{
+                                    width: 10,
+                                    height: 10,
+                                    borderRadius: '50%',
+                                    bgcolor: currentIndex === index
+                                        ? 'primary.main'
+                                        : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        transform: currentIndex !== index ? 'scale(1.2)' : 'none',
+                                        bgcolor: currentIndex !== index
+                                            ? (isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(3,66,124,0.4)')
+                                            : 'primary.main'
+                                    }
+                                }}
+                            />
+                        ))}
+                    </Box>
+                )}
+            </Box>
+        );
     };
 
-    // Seleccionar categoría destacada
-    const handleFeaturedCategoryClick = (categoryName) => {
-        setSelectedCategory(categoryName);
-        scrollToServices();
+    const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
+        const theme = useTheme();
+        const [dialogOpen, setDialogOpen] = useState(false);
+
+        const handleOpenDialog = () => {
+            setDialogOpen(true);
+        };
+
+        const handleCloseDialog = () => {
+            setDialogOpen(false);
+        };
+
+        return (
+            <Fade in timeout={500 + index * 100}>
+                <Card
+                    sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                        '&:hover': {
+                            transform: 'translateY(-8px)',
+                            boxShadow: theme.shadows[8],
+                        },
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        bgcolor: theme.palette.background.paper,
+                        position: 'relative',
+                        boxShadow: theme.shadows[2]
+                    }}
+                >
+                    <Box sx={{
+                        position: 'relative',
+                        overflow: 'hidden',
+                        height: 200,  // Altura fija para uniformidad
+                        borderBottom: `3px solid ${service.category === 'Preventivos' ? '#4CAF50' :
+                            service.category === 'Estéticos' ? '#2196F3' :
+                                service.category === 'Restaurativos' ? '#FF9800' :
+                                    '#03427C'
+                            }`
+                    }}>
+                        <img
+                            src={service.image_url
+                                ? service.image_url.includes('cloudinary')
+                                    ? service.image_url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/')
+                                    : service.image_url
+                                : getPlaceholderImage(service.title)
+                            }
+                            alt={service.title}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = getPlaceholderImage(service.title);
+                            }}
+                            style={{
+                                height: '100%',
+                                width: '100%',
+                                objectFit: 'cover',
+                                display: 'block',
+                                transition: 'transform 0.5s ease'
+                            }}
+                        />
+
+                        {/* Overlay con categoría */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: 10,
+                                left: 10,
+                                bgcolor: 'rgba(255,255,255,0.9)',
+                                color: theme.palette.text.primary,
+                                py: 0.5,
+                                px: 1.5,
+                                borderRadius: '30px',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                            }}
+                        >
+                            {service.category || 'General'}
+                        </Box>
+
+                        {/* Gradiente para mejor legibilidad */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                height: '30%',
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0))',
+                            }}
+                        />
+                    </Box>
+
+                    <CardContent sx={{
+                        flexGrow: 1,
+                        p: 3,
+                        height: { xs: 'auto', sm: 150 },  // Altura similar para contenido
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between'
+                    }}>
+                        <Box>
+                            <Typography
+                                variant="h6"
+                                component="h2"
+                                sx={{
+                                    fontWeight: 600,
+                                    mb: 1,
+                                    color: theme.palette.text.primary,
+                                    fontSize: '1.1rem',
+                                    lineHeight: 1.3,
+                                    height: '2.8rem',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical'
+                                }}
+                            >
+                                {service.title}
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                    mb: 2,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 3,
+                                    WebkitBoxOrient: 'vertical',
+                                    lineHeight: 1.5,
+                                    minHeight: '4.5rem'  // Espacio fijo para 3 líneas
+                                }}
+                            >
+                                {service.description && service.description.includes('.')
+                                    ? service.description.split('.')[0] + '.'
+                                    : service.description}
+                            </Typography>
+                        </Box>
+                    </CardContent>
+
+                    <Box sx={{ p: 2, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
+                        {/* Botón para ver detalles - NUEVO */}
+                        <Button
+                            variant="outlined"
+                            startIcon={<InfoIcon />}
+                            onClick={handleOpenDialog}
+                            sx={{
+                                flex: 1,
+                                borderRadius: '50px',
+                                py: 1.2,
+                                borderColor: theme.palette.primary.main,
+                                color: theme.palette.primary.main,
+                                '&:hover': {
+                                    borderColor: theme.palette.primary.dark,
+                                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
+                                }
+                            }}
+                        >
+                            Detalles
+                        </Button>
+
+                        {/* Botón de agendar cita */}
+                        <Button
+                            variant="contained"
+                            startIcon={<CalendarMonthIcon />}
+                            onClick={() => handleAgendarCita(service)}
+                            sx={{
+                                flex: 1,
+                                borderRadius: '50px',
+                                py: 1.2,
+                                background: service.category === 'Preventivos' ? '#4CAF50' :
+                                    service.category === 'Estéticos' ? '#2196F3' :
+                                        service.category === 'Restaurativos' ? '#FF9800' :
+                                            theme.palette.primary.main,
+                                '&:hover': {
+                                    background: service.category === 'Preventivos' ? '#3d8b40' :
+                                        service.category === 'Estéticos' ? '#1976d2' :
+                                            service.category === 'Restaurativos' ? '#e68900' :
+                                                theme.palette.primary.dark,
+                                }
+                            }}
+                        >
+                            Agendar
+                        </Button>
+                    </Box>
+
+                    <ServicioDetalleDialog
+                        open={dialogOpen}
+                        onClose={handleCloseDialog}
+                        servicioId={service.id}
+                        onAgendarCita={(service) => handleAgendarCita(service)}
+                    />
+                </Card>
+            </Fade>
+        );
+    };
+
+    // Componente de esqueleto de carga para mostrar mientras los servicios se están cargando
+    const ServicesLoadingSkeleton = () => {
+        const { isDarkTheme } = useThemeContext();
+        const theme = useTheme();
+
+        // Array para crear múltiples tarjetas de esqueleto
+        const skeletonCards = Array(6).fill(0);
+
+        return (
+            <Box sx={{ py: 2 }}>
+                <Grid container spacing={3}>
+                    {skeletonCards.map((_, index) => (
+                        <Grid item xs={12} sm={6} md={4} key={index}>
+                            <Card
+                                sx={{
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    borderRadius: '16px',
+                                    overflow: 'hidden',
+                                    bgcolor: theme.palette.background.paper,
+                                    boxShadow: theme.shadows[1],
+                                    position: 'relative',
+                                    transition: 'transform 0.3s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-4px)',
+                                        boxShadow: theme.shadows[3],
+                                    }
+                                }}
+                            >
+                                {/* Imagen de esqueleto */}
+                                <Box sx={{
+                                    height: 200,
+                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}>
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 0,
+                                            left: 0,
+                                            right: 0,
+                                            bottom: 0,
+                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
+                                            animation: 'shimmer 1.5s infinite',
+                                            '@keyframes shimmer': {
+                                                '0%': { transform: 'translateX(-100%)' },
+                                                '100%': { transform: 'translateX(100%)' }
+                                            }
+                                        }}
+                                    />
+
+                                    {/* Simulador de categoría */}
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            top: 10,
+                                            left: 10,
+                                            width: 80,
+                                            height: 24,
+                                            borderRadius: 30,
+                                            bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)',
+                                        }}
+                                    />
+                                </Box>
+
+                                {/* Contenido de esqueleto */}
+                                <CardContent sx={{
+                                    flexGrow: 1,
+                                    p: 3,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    justifyContent: 'space-between',
+                                    height: { xs: 'auto', sm: 220 }
+                                }}>
+                                    {/* Título de esqueleto */}
+                                    <Box>
+                                        <Box
+                                            sx={{
+                                                height: 24,
+                                                width: '80%',
+                                                mb: 1,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+                                                borderRadius: 1
+                                            }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                height: 16,
+                                                width: '100%',
+                                                mb: 0.5,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                                                borderRadius: 0.5
+                                            }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                height: 16,
+                                                width: '90%',
+                                                mb: 0.5,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                                                borderRadius: 0.5
+                                            }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                height: 16,
+                                                width: '70%',
+                                                mb: 2,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+                                                borderRadius: 0.5
+                                            }}
+                                        />
+                                    </Box>
+
+                                    {/* Botones de esqueleto */}
+                                    <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                        <Box
+                                            sx={{
+                                                height: 40,
+                                                flex: 1,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
+                                                borderRadius: 25
+                                            }}
+                                        />
+                                        <Box
+                                            sx={{
+                                                height: 40,
+                                                flex: 1,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(3,66,124,0.1)',
+                                                borderRadius: 25
+                                            }}
+                                        />
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    ))}
+                </Grid>
+            </Box>
+        );
     };
 
     return (
@@ -246,7 +714,7 @@ const Servicios = () => {
                     : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
                 transition: 'background 0.5s ease'
             }}>
-                {/* Hero Section */}
+                {/* Hero Section Mejorado */}
                 <Box
                     sx={{
                         pt: { xs: 6, md: 10 },
@@ -258,7 +726,7 @@ const Servicios = () => {
                         overflow: 'hidden'
                     }}
                 >
-                    {/* Elemento decorativo */}
+                    {/* Elementos decorativos */}
                     <Box
                         sx={{
                             position: 'absolute',
@@ -271,7 +739,7 @@ const Servicios = () => {
                             zIndex: 0
                         }}
                     />
-                    
+
                     <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
                         <Grid container spacing={4} alignItems="center">
                             <Grid item xs={12} md={6}>
@@ -288,11 +756,11 @@ const Servicios = () => {
                                 >
                                     Nuestros Servicios Dentales
                                 </Typography>
-                                
+
                                 <Typography
                                     variant="h6"
                                     color="textSecondary"
-                                    sx={{ 
+                                    sx={{
                                         mb: 4,
                                         fontWeight: 400,
                                         lineHeight: 1.5
@@ -300,7 +768,7 @@ const Servicios = () => {
                                 >
                                     Cuidamos de tu sonrisa con servicios de calidad, atención personalizada y tecnología apropiada para cada tratamiento.
                                 </Typography>
-                                
+
                                 {/* Botones de acción principales */}
                                 <Box sx={{ display: 'flex', gap: 2, mb: 4, flexWrap: 'wrap' }}>
                                     <Button
@@ -321,27 +789,30 @@ const Servicios = () => {
                                             transition: 'all 0.3s ease'
                                         }}
                                     >
-                                        Ver todos los servicios
+                                        Ver los Servicios
                                     </Button>
-                                    
+
                                     <Button
                                         variant="outlined"
                                         size="large"
-                                        startIcon={<WhatsAppIcon />}
+                                        onClick={() => navigate('/Contact')}
                                         sx={{
                                             py: 1.5,
                                             px: 3,
-                                            borderWidth: 2,
+                                            borderColor: isDarkTheme ? '#4A9FDC' : '#4984B8',
+                                            color: isDarkTheme ? '#4A9FDC' : '#4984B8',
                                             '&:hover': {
-                                                borderWidth: 2,
+                                                borderColor: isDarkTheme ? '#78C1F5' : '#6FA9DB',
+                                                background: 'transparent',
                                                 transform: 'translateY(-2px)'
-                                            }
+                                            },
+                                            transition: 'all 0.3s ease'
                                         }}
                                     >
-                                        Consulta por WhatsApp
+                                        Contáctanos
                                     </Button>
                                 </Box>
-                                
+
                                 {/* Highlights del servicio */}
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                                     {['Atención de calidad', 'Experiencia profesional', 'Precios accesibles'].map((highlight, index) => (
@@ -362,8 +833,7 @@ const Servicios = () => {
                                     ))}
                                 </Box>
                             </Grid>
-                            
-                            {/* Servicio destacado */}
+                            {/* Servicio destacado mejorado */}
                             <Grid item xs={12} md={6}>
                                 {highlightedService && (
                                     <Zoom in timeout={1000}>
@@ -375,6 +845,8 @@ const Servicios = () => {
                                                 flexDirection: 'column',
                                                 position: 'relative',
                                                 boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                                                borderRadius: '16px',
+                                                overflow: 'hidden',
                                                 transform: {
                                                     xs: 'none',
                                                     md: 'perspective(1000px) rotateY(-5deg) rotateX(5deg)'
@@ -388,29 +860,9 @@ const Servicios = () => {
                                                 transition: 'transform 0.5s ease'
                                             }}
                                         >
-                                            <Badge
-                                                badgeContent="Destacado"
-                                                color="primary"
-                                                sx={{
-                                                    '& .MuiBadge-badge': {
-                                                        py: 1,
-                                                        px: 2,
-                                                        borderRadius: '20px 0 20px 0',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 600,
-                                                        textTransform: 'uppercase',
-                                                        right: 0,
-                                                        top: 0
-                                                    }
-                                                }}
-                                            >
-                                                <ServiceImage
-                                                    imageUrl={highlightedService.image_url || getPlaceholderImage(highlightedService.title)}
-                                                    title={highlightedService.title}
-                                                    sx={{ height: { xs: 200, md: 250 } }}
-                                                />
-                                            </Badge>
-                                            
+                                            {/* El resto del código del Card se mantiene igual */}
+
+                                            {/* Modificar sólo esta parte de los botones */}
                                             <CardContent sx={{ p: 3, flexGrow: 1 }}>
                                                 <Typography
                                                     variant="overline"
@@ -419,7 +871,7 @@ const Servicios = () => {
                                                 >
                                                     {highlightedService.category}
                                                 </Typography>
-                                                
+
                                                 <Typography
                                                     variant="h5"
                                                     component="h2"
@@ -431,25 +883,31 @@ const Servicios = () => {
                                                 >
                                                     {highlightedService.title}
                                                 </Typography>
-                                                
+
                                                 <Typography
                                                     variant="body1"
                                                     color="text.secondary"
                                                     sx={{ mb: 3 }}
                                                 >
-                                                    {highlightedService.description.slice(0, 120)}...
+                                                    {highlightedService.description && highlightedService.description.length > 120
+                                                        ? `${highlightedService.description.slice(0, 120)}...`
+                                                        : highlightedService.description}
                                                 </Typography>
-                                                
+
+                                                {/* Aquí está el cambio: ahora podemos usar ServicioDetalleDialog */}
                                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                                     <Button
                                                         variant="contained"
                                                         fullWidth
-                                                        onClick={() => navigate(`/servicios/detalle/${highlightedService.id}`)}
+                                                        onClick={() => {
+                                                            // En lugar de navegar, ahora abrimos el diálogo
+                                                            setHighlightedServiceDialogOpen(true);
+                                                        }}
                                                         startIcon={<InfoIcon />}
                                                     >
-                                                        Más información
+                                                        Ver detalles
                                                     </Button>
-                                                    
+
                                                     <Button
                                                         variant="outlined"
                                                         fullWidth
@@ -463,211 +921,42 @@ const Servicios = () => {
                                         </Card>
                                     </Zoom>
                                 )}
+
+                                {/* Añadir el diálogo para el servicio destacado */}
+                                {highlightedService && (
+                                    <ServicioDetalleDialog
+                                        open={highlightedServiceDialogOpen}
+                                        onClose={() => setHighlightedServiceDialogOpen(false)}
+                                        servicioId={highlightedService.id}
+                                        onAgendarCita={handleAgendarCita}
+                                    />
+                                )}
                             </Grid>
                         </Grid>
                     </Container>
                 </Box>
-                
-                {/* Categorías destacadas */}
-                <Container maxWidth="lg" sx={{ py: 6, position: 'relative', zIndex: 2, mt: { xs: -4, md: -6 } }}>
-                    <Grid container spacing={3}>
-                        {FEATURED_CATEGORIES.map((category, index) => (
-                            <Grid item xs={12} sm={6} md={3} key={index}>
-                                <Paper
-                                    elevation={2}
-                                    onClick={() => handleFeaturedCategoryClick(category.name)}
-                                    sx={{
-                                        p: 3,
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        textAlign: 'center',
-                                        cursor: 'pointer',
-                                        transition: 'all 0.3s ease',
-                                        '&:hover': {
-                                            transform: 'translateY(-10px)',
-                                            boxShadow: theme.shadows[8]
-                                        },
-                                        borderTop: `3px solid ${category.color}`,
-                                        bgcolor: theme.palette.background.paper
-                                    }}
-                                >
-                                    <Avatar
-                                        sx={{
-                                            bgcolor: alpha(category.color, 0.1),
-                                            color: category.color,
-                                            width: 64,
-                                            height: 64,
-                                            mb: 2
-                                        }}
-                                    >
-                                        <category.icon fontSize="large" />
-                                    </Avatar>
-                                    
-                                    <Typography
-                                        variant="h6"
-                                        sx={{
-                                            fontWeight: 600,
-                                            mb: 1,
-                                            color: theme.palette.text.primary
-                                        }}
-                                    >
-                                        {category.name}
-                                    </Typography>
-                                    
-                                    <Typography
-                                        variant="body2"
-                                        color="text.secondary"
-                                        sx={{ mb: 2 }}
-                                    >
-                                        {category.description}
-                                    </Typography>
-                                    
-                                    <Box
-                                        sx={{
-                                            mt: 'auto',
-                                            color: category.color,
-                                            fontWeight: 600,
-                                            fontSize: '0.875rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5
-                                        }}
-                                    >
-                                        <span>Ver servicios</span>
-                                        <ArrowForwardIcon fontSize="small" />
-                                    </Box>
-                                </Paper>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </Container>
-                
-                {/* Testimonios */}
-                <Box
-                    sx={{
-                        py: 6,
-                        background: isDarkTheme
-                            ? 'linear-gradient(90deg, #1C2A38 0%, #243446 100%)'
-                            : 'linear-gradient(90deg, #EFF6FF 0%, #F8FAFC 100%)'
-                    }}
-                >
-                    <Container maxWidth="lg">
-                        <Typography
-                            variant="h4"
-                            sx={{
-                                fontWeight: 700,
-                                mb: 4,
-                                textAlign: 'center',
-                                color: theme.palette.text.primary
-                            }}
-                        >
-                            Lo que dicen nuestros pacientes
-                        </Typography>
-                        
-                        <Grid container spacing={3}>
-                            {TESTIMONIALS.map((testimonial, index) => (
-                                <Grid item xs={12} md={4} key={index}>
-                                    <Paper
-                                        elevation={2}
-                                        sx={{
-                                            p: 3,
-                                            height: '100%',
-                                            borderRadius: 4,
-                                            position: 'relative',
-                                            '&::before': {
-                                                content: '"""',
-                                                position: 'absolute',
-                                                top: 16,
-                                                left: 16,
-                                                fontSize: '4rem',
-                                                lineHeight: 1,
-                                                color: alpha(theme.palette.primary.main, 0.1),
-                                                fontFamily: 'serif',
-                                                fontWeight: 'bold',
-                                                zIndex: 0
-                                            }
-                                        }}
-                                    >
-                                        <Box sx={{ position: 'relative', zIndex: 1 }}>
-                                            <Typography
-                                                variant="body1"
-                                                sx={{
-                                                    mb: 2,
-                                                    fontStyle: 'italic',
-                                                    fontSize: '1rem',
-                                                    color: theme.palette.text.secondary
-                                                }}
-                                            >
-                                                "{testimonial.testimonial}"
-                                            </Typography>
-                                            
-                                            <Divider sx={{ my: 2 }} />
-                                            
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                <Box>
-                                                    <Typography
-                                                        variant="subtitle1"
-                                                        sx={{
-                                                            fontWeight: 600,
-                                                            color: theme.palette.text.primary
-                                                        }}
-                                                    >
-                                                        {testimonial.name}
-                                                    </Typography>
-                                                    
-                                                    <Typography
-                                                        variant="caption"
-                                                        color="primary"
-                                                    >
-                                                        {testimonial.service}
-                                                    </Typography>
-                                                </Box>
-                                                
-                                                <Box>
-                                                    {[1, 2, 3, 4, 5].map(star => (
-                                                        <StarIcon 
-                                                            key={star} 
-                                                            fontSize="small" 
-                                                            sx={{ color: '#FFD700' }} 
-                                                        />
-                                                    ))}
-                                                </Box>
-                                            </Box>
-                                        </Box>
-                                    </Paper>
-                                </Grid>
-                            ))}
-                        </Grid>
-                    </Container>
-                </Box>
-                
+
                 {/* Sección principal de servicios */}
-                <Container ref={servicosRef} maxWidth="lg" sx={{ py: 6 }}>
+                <Container ref={servicosRef} maxWidth="lg" sx={{ py: 6, mt: { xs: 0, md: 0 } }}>
                     {/* Encabezado de la sección */}
                     <Box sx={{
                         textAlign: 'center',
                         mb: 5
                     }}>
-                        <LocalHospitalIcon sx={{
-                            fontSize: 40,
-                            color: theme.palette.primary.main,
-                            mb: 2
-                        }} />
-                        
-                        <Typography
-                            variant="h4"
-                            component="h2"
-                            sx={{
-                                fontWeight: 700,
-                                color: theme.palette.text.primary,
-                                mb: 2
-                            }}
-                        >
-                            Todos nuestros servicios
-                        </Typography>
-                        
+                        <Divider sx={{ mb: 6 }}>
+                            <Typography
+                                variant="h4"
+                                component="h2"
+                                sx={{
+                                    fontWeight: 700,
+                                    color: theme.palette.text.primary,
+                                    px: 2
+                                }}
+                            >
+                                Todos nuestros servicios
+                            </Typography>
+                        </Divider>
+
                         <Typography
                             variant="subtitle1"
                             color="textSecondary"
@@ -750,444 +1039,59 @@ const Servicios = () => {
                                 ))}
                             </Menu>
                         </Box>
-                        
-                        {/* Pestañas para ver diferentes vistas */}
-                        <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-                            <Tabs 
-                                value={tabValue} 
-                                onChange={handleTabChange}
-                                centered
-                                sx={{
-                                    '& .MuiTab-root': {
-                                        textTransform: 'none',
-                                        fontWeight: 600,
-                                        fontSize: '1rem',
-                                        px: 3
-                                    }
-                                }}
-                            >
-                                <Tab label="Todos los servicios" />
-                                <Tab label="Más solicitados" />
-                                <Tab label="Recomendados" />
-                            </Tabs>
-                        </Box>
                     </Box>
 
-                    {/* Grid de servicios */}
+                    {/* Renderizado condicional */}
                     {loading ? (
-                        <Typography align="center">Cargando servicios...</Typography>
+                        <ServicesLoadingSkeleton />
                     ) : error ? (
-                        <Typography color="error" align="center">{error}</Typography>
-                    ) : filteredServices.length === 0 ? (
-                        <Typography align="center" sx={{ my: 4 }}>
-                            No se encontraron servicios que coincidan con tu búsqueda.
-                        </Typography>
-                    ) : (
-                        <Grid container spacing={4}>
-                            {filteredServices.map((service) => (
-                                <Grid item xs={12} sm={6} md={4} key={service.id}>
-                                    <Fade in timeout={500}>
-                                        <Card
-                                            sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                transition: 'transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out',
-                                                '&:hover': {
-                                                    transform: 'translateY(-8px)',
-                                                    boxShadow: theme.shadows[10],
-                                                },
-                                                borderRadius: '16px',
-                                                overflow: 'hidden',
-                                                bgcolor: theme.palette.background.paper
-                                            }}
-                                        >
-                                            <Tooltip title="Click para más información" placement="top">
-                                                <Box
-                                                    onClick={() => navigate(`/servicios/detalle/${service.id}`)}
-                                                    sx={{ cursor: 'pointer' }}
-                                                >
-                                                    <ServiceImage
-                                                        imageUrl={service.image_url
-                                                            ? service.image_url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/')
-                                                            : getPlaceholderImage(service.title)
-                                                        }
-                                                        title={service.title}
-                                                    />
-
-                                                    <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                                                        <Typography
-                                                            variant="overline"
-                                                            color="primary"
-                                                            sx={{ fontWeight: 600 }}
-                                                        >
-                                                            {service.category || 'General'}
-                                                        </Typography>
-                                                        <Typography
-                                                            variant="h6"
-                                                            component="h2"
-                                                            sx={{
-                                                                fontWeight: 600,
-                                                                mb: 1,
-                                                                color: theme.palette.text.primary
-                                                            }}
-                                                        >
-                                                            {service.title}
-                                                        </Typography>
-                                                        <Typography
-                                                            variant="body2"
-                                                            color="text.secondary"
-                                                            sx={{ 
-                                                                mb: 2,
-                                                                display: '-webkit-box',
-                                                                overflow: 'hidden',
-                                                                WebkitBoxOrient: 'vertical',
-                                                                WebkitLineClamp: 3,
-                                                                lineHeight: 1.5
-                                                            }}
-                                                        >
-                                                            {service.description.split('.')[0] + '.'}
-                                                        </Typography>
-                                                    </CardContent>
-                                                </Box>
-                                            </Tooltip>
-                                            <Box sx={{ p: 2, pt: 0, mt: 'auto' }}>
-                                                <Button
-                                                    variant="contained"
-                                                    fullWidth
-                                                    startIcon={<CalendarMonthIcon />}
-                                                    onClick={() => handleAgendarCita(service)}
-                                                    sx={{
-                                                        borderRadius: '50px',
-                                                        py: 1.2
-                                                    }}
-                                                >
-                                                    Agendar Cita
-                                                </Button>
-                                            </Box>
-                                        </Card>
-                                    </Fade>
-                                </Grid>
-                            ))}
-                        </Grid>
-                    )}
-                </Container>
-                
-                {/* Sección de llamada a la acción */}
-                <Box
-                    sx={{
-                        py: 6,
-                        background: isDarkTheme
-                            ? 'linear-gradient(135deg, #03427C 0%, #075bb3 100%)'
-                            : 'linear-gradient(135deg, #03427C 0%, #075bb3 100%)',
-                        color: 'white',
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}
-                >
-                    {/* Elementos decorativos */}
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: '-50%',
-                            left: '-10%',
-                            width: '300px',
-                            height: '300px',
-                            borderRadius: '50%',
-                            background: 'rgba(255,255,255,0.05)',
-                        }}
-                    />
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            bottom: '-30%',
-                            right: '-5%',
-                            width: '250px',
-                            height: '250px',
-                            borderRadius: '50%',
-                            background: 'rgba(255,255,255,0.05)',
-                        }}
-                    />
-                    
-                    <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-                        <Grid container spacing={4} alignItems="center">
-                            <Grid item xs={12} md={7}>
-                                <Typography
-                                    variant="h3"
-                                    sx={{
-                                        fontWeight: 700,
-                                        mb: 2,
-                                        fontSize: { xs: '2rem', md: '2.5rem' }
-                                    }}
-                                >
-                                    ¿Necesitas más información?
-                                </Typography>
-                                
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 400,
-                                        mb: 4,
-                                        opacity: 0.9
-                                    }}
-                                >
-                                    Nuestro equipo está listo para resolver todas tus dudas y ayudarte a elegir el tratamiento ideal para ti.
-                                </Typography>
-                                
-                                <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
-                                    <Button
-                                        variant="contained"
-                                        size="large"
-                                        startIcon={<PhoneIcon />}
-                                        sx={{
-                                            bgcolor: 'white',
-                                            color: theme.palette.primary.main,
-                                            px: 3,
-                                            py: 1.5,
-                                            '&:hover': {
-                                                bgcolor: 'rgba(255,255,255,0.9)',
-                                                transform: 'translateY(-3px)'
-                                            },
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                    >
-                                        Llámanos ahora
-                                    </Button>
-                                    
-                                    <Button
-                                        variant="outlined"
-                                        size="large"
-                                        startIcon={<WhatsAppIcon />}
-                                        sx={{
-                                            color: 'white',
-                                            borderColor: 'white',
-                                            px: 3,
-                                            py: 1.5,
-                                            '&:hover': {
-                                                borderColor: 'white',
-                                                bgcolor: 'rgba(255,255,255,0.1)',
-                                                transform: 'translateY(-3px)'
-                                            },
-                                            transition: 'all 0.3s ease'
-                                        }}
-                                    >
-                                        Escríbenos por WhatsApp
-                                    </Button>
-                                </Box>
-                            </Grid>
-                            
-                            <Grid item xs={12} md={5} sx={{ display: { xs: 'none', md: 'block' } }}>
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        height: '100%'
-                                    }}
-                                >
-                                    <LocalHospitalIcon
-                                        sx={{
-                                            fontSize: '200px',
-                                            color: 'rgba(255,255,255,0.2)'
-                                        }}
-                                    />
-                                </Box>
-                            </Grid>
-                        </Grid>
-                    </Container>
-                </Box>
-                
-                {/* FAQ o información adicional */}
-                <Container maxWidth="lg" sx={{ py: 6 }}>
-                    <Grid container spacing={4}>
-                        <Grid item xs={12} md={6}>
-                            <Typography
-                                variant="h4"
-                                sx={{
-                                    fontWeight: 700,
-                                    mb: 3,
-                                    color: theme.palette.text.primary
-                                }}
-                            >
-                                Preguntas frecuentes
+                        <Paper
+                            elevation={2}
+                            sx={{
+                                p: 3,
+                                textAlign: 'center',
+                                borderLeft: '4px solid #f44336',
+                                my: 4,
+                                maxWidth: '600px',
+                                mx: 'auto'
+                            }}
+                        >
+                            <Typography color="error" variant="h6" sx={{ mb: 1 }}>
+                                Error al cargar los servicios
                             </Typography>
-                            
-                            <Box sx={{ mb: 4 }}>
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 600,
-                                        mb: 1,
-                                        color: theme.palette.text.primary
-                                    }}
-                                >
-                                    ¿Cómo puedo agendar una cita?
-                                </Typography>
-                                
-                                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                    Puedes agendar tu cita a través de nuestra plataforma online, llamando a nuestro número de contacto o enviándonos un mensaje por WhatsApp.
-                                </Typography>
-                                
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 600,
-                                        mb: 1,
-                                        color: theme.palette.text.primary
-                                    }}
-                                >
-                                    ¿Qué métodos de pago aceptan?
-                                </Typography>
-                                
-                                <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                    Aceptamos efectivo, tarjetas de crédito/débito y también ofrecemos opciones de financiamiento para tratamientos extensos.
-                                </Typography>
-                                
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontWeight: 600,
-                                        mb: 1,
-                                        color: theme.palette.text.primary
-                                    }}
-                                >
-                                    ¿Atienden urgencias dentales?
-                                </Typography>
-                                
-                                <Typography variant="body1" color="text.secondary">
-                                    Sí, contamos con servicio de urgencias dentales. Contáctanos de inmediato y te daremos prioridad en nuestra agenda.
-                                </Typography>
-                            </Box>
-                            
+                            <Typography color="textSecondary">
+                                {error}
+                            </Typography>
                             <Button
                                 variant="outlined"
+                                color="primary"
                                 sx={{ mt: 2 }}
+                                onClick={() => window.location.reload()}
                             >
-                                Ver más preguntas frecuentes
+                                Intentar de nuevo
                             </Button>
-                        </Grid>
-                        
-                        <Grid item xs={12} md={6}>
-                            <Typography
-                                variant="h4"
-                                sx={{
-                                    fontWeight: 700,
-                                    mb: 3,
-                                    color: theme.palette.text.primary
-                                }}
-                            >
-                                Horario de atención
+                        </Paper>
+                    ) : filteredServices.length === 0 ? (
+                        <Box sx={{ textAlign: 'center', my: 4 }}>
+                            <Typography align="center" sx={{ mb: 2 }}>
+                                No se encontraron servicios que coincidan con tu búsqueda.
                             </Typography>
-                            
-                            <Paper
-                                elevation={2}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 4,
-                                    bgcolor: theme.palette.background.paper
+                            <Button
+                                variant="outlined"
+                                onClick={() => {
+                                    setSearchTerm('');
+                                    setSelectedCategory('Todos');
                                 }}
                             >
-                                {[
-                                    { day: 'Lunes a Viernes', hours: '9:00 AM - 6:00 PM' },
-                                    { day: 'Sábado', hours: '9:00 AM - 2:00 PM' },
-                                    { day: 'Domingo', hours: 'Cerrado' }
-                                ].map((schedule, index) => (
-                                    <Box key={index} sx={{ 
-                                        display: 'flex', 
-                                        justifyContent: 'space-between',
-                                        py: 1.5,
-                                        borderBottom: index !== 2 ? `1px solid ${alpha(theme.palette.text.primary, 0.1)}` : 'none'
-                                    }}>
-                                        <Typography 
-                                            variant="body1" 
-                                            sx={{ 
-                                                fontWeight: 600, 
-                                                color: theme.palette.text.primary 
-                                            }}
-                                        >
-                                            {schedule.day}
-                                        </Typography>
-                                        
-                                        <Typography 
-                                            variant="body1" 
-                                            sx={{ 
-                                                color: schedule.day === 'Domingo' 
-                                                    ? '#f44336' 
-                                                    : theme.palette.text.secondary
-                                            }}
-                                        >
-                                            {schedule.hours}
-                                        </Typography>
-                                    </Box>
-                                ))}
-                            </Paper>
-                            
-                            <Typography
-                                variant="h6"
-                                sx={{
-                                    fontWeight: 600,
-                                    mt: 4,
-                                    mb: 2,
-                                    color: theme.palette.text.primary
-                                }}
-                            >
-                                Contacto
-                            </Typography>
-                            
-                            <Paper
-                                elevation={2}
-                                sx={{
-                                    p: 3,
-                                    borderRadius: 4,
-                                    bgcolor: theme.palette.background.paper
-                                }}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                    <Avatar
-                                        sx={{
-                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                            color: theme.palette.primary.main,
-                                            mr: 2
-                                        }}
-                                    >
-                                        <PhoneIcon />
-                                    </Avatar>
-                                    
-                                    <Box>
-                                        <Typography variant="body2" color="text.secondary">
-                                            Teléfono
-                                        </Typography>
-                                        
-                                        <Typography variant="body1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                                            +123 456 7890
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                                
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Avatar
-                                        sx={{
-                                            bgcolor: alpha(theme.palette.primary.main, 0.1),
-                                            color: theme.palette.primary.main,
-                                            mr: 2
-                                        }}
-                                    >
-                                        <WhatsAppIcon />
-                                    </Avatar>
-                                    
-                                    <Box>
-                                        <Typography variant="body2" color="text.secondary">
-                                            WhatsApp
-                                        </Typography>
-                                        
-                                        <Typography variant="body1" sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
-                                            +123 456 7890
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    </Grid>
+                                Ver todos los servicios
+                            </Button>
+                        </Box>
+                    ) : (
+                        <Box sx={{ position: 'relative', mb: 6 }}>
+                            {/* Reemplazo del carrusel por el grid con navegación lateral */}
+                            <ServicesGrid filteredServices={filteredServices} />
+                        </Box>
+                    )}
                 </Container>
             </Box>
         </ThemeProvider>
