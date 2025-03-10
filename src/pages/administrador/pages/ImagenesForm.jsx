@@ -149,28 +149,51 @@ const ImagenesForm = () => {
     };
 
     // Modifica la función fetchImages para manejar la estructura de datos correctamente
+
     const fetchImages = async () => {
         setLoadingImages(true);
         try {
-            const response = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/cloudinary`);
+            // Enviar un timeout más largo para Cloudinary
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/imagenes/cloudinary`, {
+                timeout: 15000 // 15 segundos
+            });
+
+            // Manejar el caso en que la respuesta sea exitosa pero no tenga el formato esperado
+            if (!response.data) {
+                console.warn('Respuesta sin datos de la API');
+                setImages([]);
+                return;
+            }
 
             // Extraer los datos de manera segura
-            const cloudinaryImages = response.data && response.data.data ?
+            const cloudinaryImages = response.data.data && Array.isArray(response.data.data) ?
                 response.data.data.map(image => ({
                     id: image.public_id.split('/')[1] || image.public_id,
                     public_id: image.public_id,
                     url: image.url,
-                    created_at: image.created_at,
-                    format: image.format,
-                    bytes: image.bytes
+                    created_at: image.created_at || 'Desconocida',
+                    format: image.format || 'jpg'
                 })) : [];
 
             setImages(cloudinaryImages);
+
+            // Si hay un mensaje en la respuesta, mostrarlo como notificación
+            if (response.data.message) {
+                setNotification({
+                    open: true,
+                    message: response.data.message,
+                    type: 'warning'
+                });
+            }
         } catch (error) {
             console.error('Error al cargar imágenes:', error);
+
+            // No importa el error, no debería romper la interfaz
+            setImages([]);
+
             setNotification({
                 open: true,
-                message: 'Error al cargar las imágenes: ' + (error.response?.data?.message || error.message),
+                message: 'Error al cargar las imágenes. Puedes continuar utilizando el resto de funciones.',
                 type: 'error'
             });
         } finally {
