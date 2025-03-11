@@ -11,7 +11,6 @@ import FullPageLoader from "./components/Tools/FullPageLoader";
 // Componentes Importados
 import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
 import Home from "./pages/_home/pages/Home";
-import Noticias from "./pages/_home/pages/Noticias"
 import Register from "./pages/_home/pages/Register";
 import Login from "./pages/_home/pages/Login";
 import Servicios from "./pages/_home/pages/Servicios"
@@ -80,7 +79,6 @@ function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
   const fetchTitleAndLogo = async (retries = 3) => {
     if (!isOnline) {
       console.warn("Sin conexión a Internet. No se realizará la solicitud.");
@@ -102,11 +100,12 @@ function App() {
       );
       clearTimeout(timeoutId);
 
-      const { nombre_empresa, logo } = response.data;
+      // Cambiado de nombre_empresa a nombre_pagina
+      const { nombre_pagina, logo } = response.data;
 
-      if (nombre_empresa) {
-        document.title = nombre_empresa;
-        setTituloPagina(nombre_empresa);
+      if (nombre_pagina) {
+        document.title = nombre_pagina;
+        setTituloPagina(nombre_pagina);
       }
       if (logo) {
         const link = document.querySelector("link[rel*='icon']") || document.createElement("link");
@@ -142,12 +141,11 @@ function App() {
     }
   };
 
-
+  // El useEffect permanece igual
   useEffect(() => {
     fetchTitleAndLogo();
     return () => clearInterval(intervalRef.current);
   }, []);
-
   useEffect(() => {
     if (fetchErrors >= 5) {
       console.error("Deteniendo reintentos después de múltiples fallos.");
@@ -219,8 +217,8 @@ function App() {
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
 
-          <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas/></LayoutAdmin>} />
-          <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios/></LayoutAdmin>} />
+          <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas /></LayoutAdmin>} />
+          <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
           <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />
 
 
@@ -237,6 +235,5 @@ function App() {
     </ThemeProviderComponent>
   );
 }
-//trozon contesta bro
 
 export default App;

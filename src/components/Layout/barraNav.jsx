@@ -30,7 +30,7 @@ import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
 import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material'; // ✅ Agregado correctamente
 import { useThemeContext } from '../Tools/ThemeContext';
-
+import InfoBar from './infoBar';
 
 const BarraNav = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -296,113 +296,7 @@ const BarraNav = () => {
 
   return (
     <>
-      <Box
-        sx={{
-          backgroundColor: isDarkTheme ? "#1E293B" : "#03427C", // Azul más oscuro para tema negro
-          color: "#FFFFFF",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          padding: "12px 16px",
-          fontSize: "0.875rem",
-          flexWrap: "wrap",
-          gap: { xs: 2, sm: 3 },
-          boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
-        }}
-      >
-        {/* 📍 Dirección */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FaMapMarkerAlt
-            style={{
-              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"  // Azul más brillante para tema oscuro
-            }}
-            size={16}
-          />
-          <Typography
-            sx={{
-              fontFamily: '"Montserrat", sans-serif',
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              letterSpacing: "0.3px",
-              fontWeight: 500,
-              '&:hover': {
-                color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
-                transition: "color 0.2s ease"
-              }
-            }}
-          >
-            Pino Suárez 390, Ixcatlán, Hgo.
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: { xs: "none", sm: "block" },
-            mx: 2,
-            opacity: 0.4,
-            color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
-          }}
-        >
-          |
-        </Box>
-
-        {/* ⏰ Horario */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FaClock
-            style={{
-              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
-            }}
-            size={14}
-          />
-          <Typography
-            sx={{
-              fontFamily: '"Montserrat", sans-serif',
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              letterSpacing: "0.2px",
-              fontWeight: 500
-            }}
-          >
-            Lun - Vie: 9:00 - 19:00
-          </Typography>
-        </Box>
-
-        <Box
-          sx={{
-            display: { xs: "none", sm: "block" },
-            mx: 2,
-            opacity: 0.4,
-            color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
-          }}
-        >
-          |
-        </Box>
-
-        {/* 📞 Teléfono */}
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <FaPhoneAlt
-            style={{
-              color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
-            }}
-            size={14}
-          />
-          <Typography
-            component="a"
-            href="tel:7713339456"
-            sx={{
-              textDecoration: "none",
-              color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
-              fontWeight: "600",
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              transition: "all 0.3s ease",
-              "&:hover": {
-                color: isDarkTheme ? "#7DD3FC" : "#B2F5EA",
-                transform: "scale(1.03)"
-              }
-            }}
-          >
-            7713339456
-          </Typography>
-        </Box>
-      </Box>
+     <InfoBar />
       <AppBar
         position="static"
         elevation={0}

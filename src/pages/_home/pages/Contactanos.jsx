@@ -8,51 +8,85 @@ import {
   Grid,
   CircularProgress,
   useTheme,
-  Paper
+  Paper,
+  Card,
+  CardContent,
+  Avatar,
+  useMediaQuery
 } from '@mui/material';
-import { Phone, Email, LocationOn, WhatsApp, OpenInNew } from '@mui/icons-material';
-import { GoogleMap, Marker, useJsApiLoader } from '@react-google-maps/api';
+import { 
+  Phone, 
+  Email, 
+  LocationOn, 
+  WhatsApp, 
+  Send
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from '../../../components/Tools/Captcha';
-import { useThemeContext } from '../../../components/Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
+
 const ContactoIlustracion = '/assets/svg/contact.svg';
 
+/**
+ * Componente de página de contacto con diseño profesional y limpio
+ * Enfocado en facilitar la comunicación con los pacientes
+ */
 const Contacto = () => {
   const [captchaVerified, setCaptchaVerified] = useState(false);
-  const { isDarkTheme } = useThemeContext(); // ✅ Correcto
+  const { isDarkTheme } = useThemeContext();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  
   const [empresa, setEmpresa] = useState({
-    nombre_empresa: 'Nombre de la Empresa',
-    slogan: 'Slogan de la empresa',
-    telefono: 'Teléfono',
-    correo_electronico: 'correo@ejemplo.com',
-    direccion: 'Dirección'
+    nombre_pagina: 'Consultorio Dental',
+    slogan: 'Tu sonrisa es nuestra prioridad',
+    telefono_principal: '',
+    correo_electronico: '',
+    direccion: ''
   });
-  const [isLoading, setIsLoading] = useState(true);
+  
+  const [loadingEmpresa, setLoadingEmpresa] = useState(true);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [error, setError] = useState(null);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     type: 'info',
   });
+  
   const [formData, setFormData] = useState({
     nombre: '',
     email: '',
     telefono: '',
     mensaje: ''
   });
+  
   const [errors, setErrors] = useState({});
+  const [touched, setTouched] = useState({});
+  const [submitAttempt, setSubmitAttempt] = useState(false);
 
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
+  // Expresiones regulares para validación
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   const phoneRegex = /^\d{10,15}$/;
 
-  const { isLoaded } = useJsApiLoader({
-    googleMapsApiKey: "AIzaSyCjYgHzkG53-aSTcHJkAPYu98TIkGZ2d-w"
-  });
-
-  const center = {
-    lat: 21.081734,
-    lng: -98.536002
+  // Colores según el tema - manteniendo paleta azul consistente
+  const colors = {
+    primary: isDarkTheme ? '#3B82F6' : '#2563EB',
+    primaryLight: isDarkTheme ? 'rgba(59, 130, 246, 0.08)' : 'rgba(37, 99, 235, 0.05)',
+    primaryDark: isDarkTheme ? '#2563EB' : '#1D4ED8',
+    background: isDarkTheme ? '#0F172A' : '#F8FAFC',
+    cardBg: isDarkTheme ? '#1E293B' : '#FFFFFF',
+    text: isDarkTheme ? '#F1F5F9' : '#334155',
+    textSecondary: isDarkTheme ? '#94A3B8' : '#64748B',
+    divider: isDarkTheme ? 'rgba(148,163,184,0.1)' : 'rgba(226,232,240,0.8)',
+    success: isDarkTheme ? '#10B981' : '#059669',
+    error: isDarkTheme ? '#EF4444' : '#DC2626',
+    whatsapp: '#25D366',
+    whatsappHover: '#128C7E',
+    shadow: isDarkTheme 
+      ? '0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.2)'
+      : '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.04)'
   };
 
   // Obtener datos de la empresa
@@ -64,46 +98,164 @@ const Contacto = () => {
           throw new Error('Error al obtener los datos de la empresa');
         }
         const data = await response.json();
-        setEmpresa(data);
+        setEmpresa({
+          nombre_pagina: data.nombre_pagina || 'Consultorio Dental',
+          slogan: data.slogan || 'Tu sonrisa es nuestra prioridad',
+          telefono_principal: data.telefono_principal || '',
+          correo_electronico: data.correo_electronico || '',
+          calle_numero: data.calle_numero || '',
+          localidad: data.localidad || '',
+          municipio: data.municipio || '',
+          estado: data.estado || '',
+          direccion: `${data.calle_numero || ''}, ${data.localidad || ''}, ${data.municipio || ''}, ${data.estado || ''}`
+        });
       } catch (error) {
+        console.error('Error al cargar datos de empresa:', error);
         setError(error.message);
       } finally {
-        setIsLoading(false);
+        setLoadingEmpresa(false);
       }
     };
+    
     fetchEmpresaData();
   }, []);
 
+  // Manejar cambios en los campos del formulario
   const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-    // Limpiar el error del campo que se edita
-    setErrors({ ...errors, [e.target.name]: '' });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Marcar campo como tocado
+    if (!touched[name]) {
+      setTouched(prev => ({
+        ...prev,
+        [name]: true
+      }));
+    }
+    
+    // Validar en tiempo real si ya se ha intentado enviar
+    if (submitAttempt) {
+      validateField(name, value);
+    }
   };
 
+  // Marcar campo como tocado cuando pierde el foco
+  const handleBlur = (e) => {
+    const { name, value } = e.target;
+    
+    setTouched(prev => ({
+      ...prev,
+      [name]: true
+    }));
+    
+    validateField(name, value);
+  };
+
+  // Validar un campo específico
+  const validateField = (name, value) => {
+    let errorMessage = '';
+    
+    switch (name) {
+      case 'nombre':
+        if (!value.trim()) {
+          errorMessage = 'Por favor, ingresa tu nombre';
+        } else if (value.trim().length < 3) {
+          errorMessage = 'El nombre debe tener al menos 3 caracteres';
+        }
+        break;
+        
+      case 'email':
+        if (!value.trim()) {
+          errorMessage = 'Por favor, ingresa tu correo electrónico';
+        } else if (!emailRegex.test(value)) {
+          errorMessage = 'Introduce un correo electrónico válido';
+        }
+        break;
+        
+      case 'telefono':
+        if (!value.trim()) {
+          errorMessage = 'Por favor, ingresa tu número de teléfono';
+        } else if (!phoneRegex.test(value)) {
+          errorMessage = 'El teléfono debe tener entre 10 y 15 dígitos';
+        }
+        break;
+        
+      case 'mensaje':
+        if (!value.trim()) {
+          errorMessage = 'Por favor, escribe tu mensaje';
+        } else if (value.trim().length < 10) {
+          errorMessage = 'Tu mensaje debe tener al menos 10 caracteres';
+        }
+        break;
+        
+      default:
+        break;
+    }
+    
+    setErrors(prev => ({
+      ...prev,
+      [name]: errorMessage
+    }));
+    
+    return !errorMessage;
+  };
+
+  // Validar todo el formulario
+  const validateForm = () => {
+    const fieldNames = ['nombre', 'email', 'telefono', 'mensaje'];
+    let isValid = true;
+    
+    // Marcar todos los campos como tocados
+    const newTouched = {};
+    fieldNames.forEach(field => {
+      newTouched[field] = true;
+    });
+    setTouched(newTouched);
+    
+    // Validar cada campo
+    fieldNames.forEach(field => {
+      const fieldIsValid = validateField(field, formData[field]);
+      if (!fieldIsValid) isValid = false;
+    });
+    
+    // Validar captcha
+    if (!captchaVerified) {
+      setErrors(prev => ({
+        ...prev,
+        captcha: 'Por favor, completa la verificación de seguridad'
+      }));
+      isValid = false;
+    } else {
+      setErrors(prev => ({
+        ...prev,
+        captcha: ''
+      }));
+    }
+    
+    return isValid;
+  };
+
+  // Manejar envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let newErrors = {};
-
-    if (!formData.nombre.trim()) newErrors.nombre = 'Por favor, ingresa tu nombre.';
-    if (!emailRegex.test(formData.email)) newErrors.email = 'Introduce un correo válido.';
-    if (!phoneRegex.test(formData.telefono)) newErrors.telefono = 'El teléfono debe tener entre 10 y 15 dígitos.';
-    if (formData.mensaje.trim().length < 10) newErrors.mensaje = 'Tu mensaje debe tener al menos 10 caracteres.';
-    if (!captchaVerified) newErrors.captcha = '⚠️ Por favor, completa la verificación de seguridad.';
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
+    setSubmitAttempt(true);
+    
+    // Validar formulario completo
+    const isValid = validateForm();
+    if (!isValid) {
       setNotification({
         open: true,
-        message: '❌ Revisa los campos en rojo antes de enviar.',
+        message: 'Por favor, corrige los errores en el formulario',
         type: 'error'
       });
       return;
     }
-
-    setIsLoading(true);
+    
+    setLoadingSubmit(true);
+    
     try {
       const response = await fetch('https://back-end-4803.onrender.com/api/contacto/msj', {
         method: 'POST',
@@ -114,68 +266,148 @@ const Contacto = () => {
       if (response.ok) {
         setNotification({
           open: true,
-          message: '📨 Hemos recibido su mensaje. Esté pendiente, le responderemos lo antes posible.',
+          message: 'Mensaje enviado con éxito. Pronto nos pondremos en contacto contigo.',
           type: 'success'
         });
+        
+        // Resetear formulario
         setFormData({
           nombre: '',
           email: '',
           telefono: '',
           mensaje: ''
         });
-        setCaptchaVerified(false); // Reiniciar captcha
+        setTouched({});
+        setSubmitAttempt(false);
+        setCaptchaVerified(false);
       } else {
         setNotification({
           open: true,
-          message: '⚠️ Hubo un problema al enviar tu mensaje. Intenta de nuevo.',
+          message: 'Hubo un problema al enviar tu mensaje. Por favor, intenta de nuevo.',
           type: 'warning'
         });
       }
     } catch (error) {
       setNotification({
         open: true,
-        message: '❌ Error al enviar el mensaje, intenta más tarde.',
+        message: 'Error de conexión. Comprueba tu conexión a internet e intenta de nuevo.',
         type: 'error'
       });
     } finally {
-      setIsLoading(false);
+      setLoadingSubmit(false);
     }
   };
 
-  const commonStyles = {
+  // Definir estilos para campos de texto
+  const textFieldStyles = {
     '& .MuiOutlinedInput-root': {
-      backgroundColor: isDarkTheme ? '#1B2A3A' : '#ffffff',
-      borderRadius: '12px',
+      backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.5)' : '#FFFFFF',
+      borderRadius: '10px',
       transition: 'all 0.3s ease',
       '& fieldset': {
-        borderColor: isDarkTheme ? '#475569' : '#e0e0e0',
-        borderWidth: '2px',
+        borderColor: isDarkTheme ? 'rgba(148, 163, 184, 0.2)' : 'rgba(203, 213, 225, 0.8)',
+        borderWidth: '1px',
       },
       '&:hover fieldset': {
-        borderColor: '#0052A3',
+        borderColor: colors.primary,
       },
       '&.Mui-focused fieldset': {
-        borderColor: '#0052A3',
+        borderColor: colors.primary,
         borderWidth: '2px',
       },
       '& input, & textarea': {
-        color: isDarkTheme ? '#ffffff' : '#000000',
+        color: colors.text,
       },
     },
     '& .MuiInputLabel-root': {
-      color: isDarkTheme ? '#94A3B8' : '#666666',
+      color: colors.textSecondary,
       '&.Mui-focused': {
-        color: '#0052A3',
+        color: colors.primary,
       },
     },
-    mb: 3,
+    '& .MuiFormHelperText-root': {
+      margin: '4px 0 0 0',
+      fontWeight: 500,
+    },
+    mb: 2.5,
   };
 
-  const fields = [
-    { name: 'nombre', label: 'Nombre', icon: '👤' },
-    { name: 'email', label: 'Email', type: 'email', icon: '📧' },
-    { name: 'telefono', label: 'Teléfono', icon: '📱' }
+  // Definir campos del formulario
+  const formFields = [
+    { 
+      name: 'nombre', 
+      label: 'Nombre completo', 
+      icon: <Phone sx={{ color: 'transparent' }} />,
+      autoComplete: 'name'
+    },
+    { 
+      name: 'email', 
+      label: 'Correo electrónico', 
+      type: 'email', 
+      icon: <Phone sx={{ color: 'transparent' }} />,
+      autoComplete: 'email'
+    },
+    { 
+      name: 'telefono', 
+      label: 'Número de teléfono', 
+      icon: <Phone sx={{ color: 'transparent' }} />,
+      autoComplete: 'tel'
+    }
   ];
+
+  // Definir información de contacto
+  const contactInfo = [
+    {
+      icon: <Phone />,
+      title: 'Teléfono',
+      value: empresa.telefono_principal || 'Cargando...',
+      loading: loadingEmpresa,
+      action: empresa.telefono_principal ? {
+        label: 'Llamar ahora',
+        href: `tel:${empresa.telefono_principal}`,
+        color: colors.primary
+      } : null
+    },
+    {
+      icon: <Email />,
+      title: 'Correo',
+      value: empresa.correo_electronico || 'Cargando...',
+      loading: loadingEmpresa,
+      action: empresa.correo_electronico ? {
+        label: 'Enviar email',
+        href: `mailto:${empresa.correo_electronico}`,
+        color: colors.primary
+      } : null
+    },
+    {
+      icon: <WhatsApp />,
+      title: 'WhatsApp',
+      value: empresa.telefono_principal || 'Cargando...',
+      loading: loadingEmpresa,
+      action: empresa.telefono_principal ? {
+        label: 'Contactar por WhatsApp',
+        href: `https://wa.me/${empresa.telefono_principal ? empresa.telefono_principal.replace(/\D/g, '') : ''}`,
+        color: colors.whatsapp
+      } : null
+    },
+    {
+      icon: <LocationOn />,
+      title: 'Dirección',
+      value: empresa.direccion || 'Cargando...',
+      loading: loadingEmpresa,
+      action: null
+    }
+  ];
+
+  // Animaciones para elementos
+  const fadeIn = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.6 }
+    }
+  };
 
   return (
     <Box
@@ -184,367 +416,289 @@ const Contacto = () => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
       sx={{
-        minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        bgcolor: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
+        bgcolor: colors.background,
         py: 4
       }}
     >
       <Container maxWidth="lg">
-        <Paper
-          elevation={3}
-          sx={{
-            p: { xs: 2, sm: 4 },
-            bgcolor: isDarkTheme ? '#2A3648' : '#ffffff',
-            borderRadius: 2
-          }}
-        >
-          <Typography
-            variant="h4"
-            component="h1"
-            align="center"
-            sx={{
-              color: isDarkTheme ? '#ffffff' : '#0052A3',
-              fontWeight: 'bold',
-              mb: 4,
-              fontFamily: 'Montserrat, sans-serif'
-            }}
-          >
-            Contáctanos
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              mb: 3,
-              color: isDarkTheme ? '#94A3B8' : '#666',
-              textAlign: 'center'
-            }}
-          >
-            Nos encantará atenderte y resolver cualquier duda que puedas tener.
-          </Typography>
-
-          <Grid container spacing={4}>
-            {/* Lado Izquierdo */}
-            <Grid item xs={12} md={6}>
-              <Box>
-                {[
-                  { icon: <Phone />, text: empresa.telefono },
-                  { icon: <Email />, text: empresa.correo_electronico },
-                  { icon: <LocationOn />, text: empresa.direccion }
-                ].map((item, index) => (
-                  <Box
-                    key={index}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      mb: 2,
-                      p: 2,
-                      bgcolor: isDarkTheme ? '#1B2A3A' : '#f5f5f5',
-                      borderRadius: 1,
-                      color: isDarkTheme ? '#94A3B8' : 'inherit'
-                    }}
-                  >
-                    <Box sx={{ color: '#0052A3' }}>{item.icon}</Box>
-                    <Typography sx={{ ml: 2 }}>{item.text}</Typography>
-                  </Box>
-                ))}
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 3,
-                    color: isDarkTheme ? '#94A3B8' : '#666',
-                    textAlign: 'center'
-                  }}
-                >
-                  Si deseas contactarnos mándanos un WhatsApp y te mandaremos la información que necesites.
-                </Typography>
-
-                <Button
-                  variant="contained"
-                  startIcon={<WhatsApp />}
-                  fullWidth
-                  sx={{
-                    bgcolor: '#25D366',
-                    '&:hover': { bgcolor: '#128C7E' },
-                    mb: 4,
-                    py: 1.5
-                  }}
-                  href={`https://wa.me/${empresa.telefono.replace(/\D/g, '')}`}
-                  target="_blank"
-                >
-                  Contactar por WhatsApp
-                </Button>
-
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 3,
-                    color: isDarkTheme ? '#94A3B8' : '#666',
-                    textAlign: 'center'
-                  }}
-                >
-                  O si lo prefieres, puedes escribirnos a través del siguiente formulario de contacto:
-                </Typography>
-
-                <Box
-                  component="form"
-                  onSubmit={handleSubmit}
-                  sx={{
-                    p: 4,
-                    bgcolor: isDarkTheme ? '#1B2A3A' : '#ffffff',
-                    borderRadius: '16px',
-                    boxShadow: isDarkTheme
-                      ? '0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.24)'
-                      : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-                    '& > *:not(:last-child)': {
-                      mb: 2.5,
-                    },
-                  }}
-                >
-                  {fields.map((field) => (
-                    <TextField
-                      key={field.name}
-                      fullWidth
-                      required
-                      margin="normal"
-                      name={field.name}
-                      label={`${field.icon} ${field.label}`}
-                      type={field.type || 'text'}
-                      value={formData[field.name]}
-                      onChange={handleInputChange}
-                      error={!!errors[field.name]}
-                      helperText={errors[field.name]}
-                      variant="outlined"
-                      sx={commonStyles}
-                    />
-                  ))}
-
-                  <TextField
-                    fullWidth
-                    required
-                    margin="normal"
-                    name="mensaje"
-                    label="✍️ Mensaje"
-                    multiline
-                    rows={4}
-                    value={formData.mensaje}
-                    onChange={handleInputChange}
-                    error={!!errors.mensaje}
-                    helperText={errors.mensaje}
-                    variant="outlined"
-                    sx={{
-                      ...commonStyles,
-                      '& .MuiOutlinedInput-root': {
-                        ...commonStyles['& .MuiOutlinedInput-root'],
-                        borderRadius: '16px',
-                      },
-                    }}
-                  />
-
-                  {errors.captcha && (
-                    <Typography variant="body2" color="error" sx={{ mb: 1 }}>
-                      {errors.captcha}
-                    </Typography>
-                  )}
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      my: 3,
-                    }}
-                  >
-                    <CustomRecaptcha onCaptchaChange={setCaptchaVerified} isDarkTheme={isDarkTheme} />
-                  </Box>
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    fullWidth
-                    disabled={isLoading}
-                    sx={{
-                      bgcolor: isLoading ? '#B0BEC5' : '#0052A3',
-                      '&:hover': {
-                        bgcolor: isLoading ? '#B0BEC5' : '#003d7a',
-                        transform: isLoading ? 'none' : 'translateY(-2px)',
-                      },
-                      py: 2,
-                      borderRadius: '12px',
-                      cursor: isLoading ? 'not-allowed' : 'pointer',
-                      textTransform: 'none',
-                      fontSize: '1.1rem',
-                      fontWeight: 500,
-                      transition: 'background-color 0.3s ease, transform 0.3s ease',
-                      '&:hover': {
-                        bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,82,163,0.1)',
-                        transform: 'scale(1.05)'
-                      },
-                      boxShadow: '0 4px 6px -1px rgba(0, 82, 163, 0.2)',
-                    }}
-                  >
-                    {isLoading ? '📨 Enviando...' : '✉️ Enviar Mensaje'}
-                  </Button>
-                </Box>
-              </Box>
-            </Grid>
-
-            {/* Lado Derecho: Mapa */}
-            <Grid
-              item
-              xs={12}
-              md={6}
-              sx={{
-                display: { xs: 'none', md: 'block' }
-              }}
+        <Grid container spacing={4}>
+          {/* Columna izquierda - Información y SVG */}
+          <Grid item xs={12} md={5} lg={6}>
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeIn}
             >
-              <Box
+              <Typography
+                variant="h4"
+                component="h1"
                 sx={{
-                  height: { xs: '400px' },
-                  minHeight: { md: '600px' },
-                  width: '100%',
-                  borderRadius: 2,
-                  overflow: 'hidden',
-                  boxShadow: 3
+                  color: colors.text,
+                  fontWeight: 700,
+                  mb: 2,
+                  fontSize: { xs: '1.8rem', md: '2.25rem' }
                 }}
               >
-                {!isLoaded ? (
-                  <Box
-                    sx={{
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: isDarkTheme ? '#2A3648' : '#f5f5f5'
-                    }}
-                  >
-                    <CircularProgress />
-                  </Box>
-                ) : (
-                  <GoogleMap
-                    mapContainerStyle={{ height: '100%', width: '100%' }}
-                    center={center}
-                    zoom={15}
-                    options={{
-                      zoomControl: true,
-                      streetViewControl: true,
-                      mapTypeControl: true,
-                      fullscreenControl: true,
-                      styles: isDarkTheme
-                        ? [
-                          {
-                            elementType: 'geometry',
-                            stylers: [{ color: '#242f3e' }]
-                          },
-                          {
-                            elementType: 'labels.text.stroke',
-                            stylers: [{ color: '#242f3e' }]
-                          },
-                          {
-                            elementType: 'labels.text.fill',
-                            stylers: [{ color: '#746855' }]
-                          }
-                        ]
-                        : []
-                    }}
-                  >
-                    <Marker
-                      position={center}
-                      title="Clínica Dental Carol"
-                      animation={window.google.maps.Animation.DROP}
-                    />
-                  </GoogleMap>
-                )}
-              </Box>
+                Contacta con nosotros
+              </Typography>
+              
+              <Typography
+                variant="body1"
+                sx={{
+                  color: colors.textSecondary,
+                  mb: 4,
+                  lineHeight: 1.7,
+                  maxWidth: '95%'
+                }}
+              >
+                Estamos aquí para atender tus dudas y ayudarte a programar una cita. 
+                Puedes contactarnos mediante cualquiera de los siguientes medios.
+              </Typography>
 
-              {/* Botones de acción */}
-              <Box
-                sx={{
-                  mt: 2,
-                  display: 'flex',
-                  gap: 2,
-                  flexDirection: { xs: 'column', sm: 'row' }
-                }}
-              >
-                <Button
-                  variant="outlined"
-                  startIcon={<OpenInNew />}
+              {/* Tarjetas de información de contacto */}
+              {contactInfo.map((item, index) => (
+                <Card
+                  key={index}
+                  elevation={0}
                   sx={{
-                    flex: 1,
-                    color: isDarkTheme ? '#ffffff' : '#0052A3',
-                    borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
+                    mb: 2,
+                    backgroundColor: colors.cardBg,
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.divider}`,
+                    transition: 'all 0.3s ease',
                     '&:hover': {
-                      borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkTheme
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'rgba(0,82,163,0.1)'
+                      boxShadow: colors.shadow,
+                      transform: 'translateY(-3px)'
                     }
                   }}
-                  href="https://www.google.com/maps/@21.0816681,-98.5359763,19.64z"
-                  target="_blank"
                 >
-                  Ver en Google Maps
-                </Button>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <Avatar
+                        sx={{
+                          bgcolor: colors.primaryLight,
+                          color: colors.primary,
+                          mr: 2
+                        }}
+                      >
+                        {item.icon}
+                      </Avatar>
+                      
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            fontWeight: 600,
+                            color: colors.text
+                          }}
+                        >
+                          {item.title}
+                        </Typography>
+                        
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary
+                          }}
+                        >
+                          {item.value}
+                        </Typography>
+                      </Box>
+                      
+                      {item.action && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          href={item.action.href}
+                          target={item.action.href?.startsWith('http') ? '_blank' : undefined}
+                          sx={{
+                            borderColor: item.action.color,
+                            color: item.action.color,
+                            '&:hover': {
+                              borderColor: item.action.color,
+                              backgroundColor: `${item.action.color}10`
+                            }
+                          }}
+                        >
+                          {item.action.label}
+                        </Button>
+                      )}
+                    </Box>
+                  </CardContent>
+                </Card>
+              ))}
 
-                <Button
-                  variant="outlined"
-                  startIcon={<LocationOn />}
-                  sx={{
-                    flex: 1,
-                    color: isDarkTheme ? '#ffffff' : '#0052A3',
-                    borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
-                    '&:hover': {
-                      borderColor: isDarkTheme ? '#ffffff' : '#0052A3',
-                      bgcolor: isDarkTheme
-                        ? 'rgba(255,255,255,0.1)'
-                        : 'rgba(0,82,163,0.1)'
-                    }
-                  }}
-                  onClick={() => {
-                    const url = `https://www.google.com/maps/dir/?api=1&destination=${center.lat},${center.lng}`;
-                    window.open(url, '_blank');
-                  }}
-                >
-                  Cómo Llegar
-                </Button>
-              </Box>
-              {/* SVG Debajo del Mapa */}
-              <Grid
-                item
-                xs={12}
-                sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-end',
-                  minHeight: '54vh' // Asegura que ocupe toda la altura de la pantalla
-                }}
-              >
+              {/* Ilustración */}
+              {!isMobile && (
                 <motion.div
-                  initial={{ opacity: 0, x: 50 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.5 }}
-                  transition={{ duration: 1, ease: "easeOut" }}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.8, delay: 0.3 }}
+                  style={{ marginTop: '40px' }}
                 >
                   <Box
                     component="img"
                     src={ContactoIlustracion}
-                    alt="Ilustración de contacto"
+                    alt="Contacto"
                     sx={{
                       width: '100%',
-                      maxHeight: '180px',
-                      objectFit: 'contain',
-                      mt: 'auto', // Empuja el SVG hacia el fondo
-                      transform: 'scaleX(-1)', // Voltear la imagen horizontalmente
+                      maxWidth: '400px',
+                      maxHeight: '350px',
                       display: 'block',
-                      marginLeft: 'auto',
-                      marginRight: 'auto'
+                      objectFit: 'contain'
                     }}
                   />
                 </motion.div>
-              </Grid>
-            </Grid>
+              )}
+            </motion.div>
           </Grid>
-        </Paper>
+
+          {/* Columna derecha - Formulario */}
+          <Grid item xs={12} md={7} lg={6}>
+            <motion.div
+              initial="hidden"
+              animate="visible"
+              variants={fadeIn}
+            >
+              <Paper
+                elevation={0}
+                sx={{
+                  backgroundColor: colors.cardBg,
+                  borderRadius: '16px',
+                  overflow: 'hidden',
+                  border: `1px solid ${colors.divider}`,
+                  height: '100%'
+                }}
+              >
+                {/* Barra superior decorativa */}
+                <Box
+                  sx={{
+                    height: '5px',
+                    background: `linear-gradient(90deg, ${colors.primary}, ${colors.primaryDark})`
+                  }}
+                />
+
+                <Box sx={{ p: { xs: 3, md: 4 } }}>
+                  <Typography
+                    variant="h5"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 1.5,
+                      color: colors.text
+                    }}
+                  >
+                    Envíanos un mensaje
+                  </Typography>
+                  
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: colors.textSecondary,
+                      mb: 4
+                    }}
+                  >
+                    Complete el formulario a continuación y nos pondremos en contacto con usted lo antes posible.
+                  </Typography>
+                  
+                  {/* Formulario de contacto */}
+                  <Box component="form" onSubmit={handleSubmit} noValidate>
+                    {formFields.map((field) => (
+                      <TextField
+                        key={field.name}
+                        fullWidth
+                        required
+                        name={field.name}
+                        label={field.label}
+                        type={field.type || 'text'}
+                        value={formData[field.name]}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                        error={touched[field.name] && !!errors[field.name]}
+                        helperText={touched[field.name] && errors[field.name]}
+                        variant="outlined"
+                        autoComplete={field.autoComplete}
+                        sx={textFieldStyles}
+                      />
+                    ))}
+                    
+                    <TextField
+                      fullWidth
+                      required
+                      name="mensaje"
+                      label="Mensaje"
+                      multiline
+                      rows={4}
+                      value={formData.mensaje}
+                      onChange={handleInputChange}
+                      onBlur={handleBlur}
+                      error={touched.mensaje && !!errors.mensaje}
+                      helperText={touched.mensaje && errors.mensaje}
+                      variant="outlined"
+                      sx={textFieldStyles}
+                    />
+                    
+                    {/* ReCAPTCHA */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        my: 3
+                      }}
+                    >
+                      <CustomRecaptcha 
+                        onCaptchaChange={setCaptchaVerified} 
+                        isDarkTheme={isDarkTheme} 
+                      />
+                    </Box>
+                    
+                    {errors.captcha && (
+                      <Typography 
+                        variant="body2" 
+                        color="error" 
+                        sx={{ 
+                          textAlign: 'center',
+                          mb: 2,
+                          fontWeight: 500
+                        }}
+                      >
+                        {errors.captcha}
+                      </Typography>
+                    )}
+                    
+                    {/* Botón de envío */}
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      fullWidth
+                      disabled={loadingSubmit}
+                      startIcon={loadingSubmit ? <CircularProgress size={20} color="inherit" /> : <Send />}
+                      sx={{
+                        backgroundColor: colors.primary,
+                        color: 'white',
+                        py: 1.5,
+                        fontWeight: 600,
+                        borderRadius: '10px',
+                        textTransform: 'none',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                          backgroundColor: colors.primaryDark,
+                          boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                          transform: 'translateY(-2px)'
+                        }
+                      }}
+                    >
+                      {loadingSubmit ? 'Enviando mensaje...' : 'Enviar mensaje'}
+                    </Button>
+                  </Box>
+                </Box>
+              </Paper>
+            </motion.div>
+          </Grid>
+        </Grid>
       </Container>
 
       <Notificaciones
@@ -552,7 +706,6 @@ const Contacto = () => {
         message={notification.message}
         type={notification.type}
         handleClose={() => setNotification({ ...notification, open: false })}
-        autoHideDuration={5000}
       />
     </Box>
   );

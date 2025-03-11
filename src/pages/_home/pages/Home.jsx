@@ -29,6 +29,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import images from '../../../utils/imageLoader';
+import ContactButtons from './Steps/ContactButtons';
 
 // Datos de características principales actualizados
 const featuresData = [
@@ -83,8 +84,8 @@ const Home = () => {
   // Colores según el tema - Paleta profesional y cálida
   const colors = {
     background: isDarkTheme
-    ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
-    : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
+      ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
+      : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
     primary: isDarkTheme ? "#3B82F6" : "#2563EB", // Azul más cálido
     secondary: isDarkTheme ? "#10B981" : "#059669",
     text: isDarkTheme ? "#F1F5F9" : "#334155",
@@ -281,58 +282,8 @@ const Home = () => {
                 Tu dentista de confianza, con servicios accesibles y atención cálida para toda la familia. Comprometidos con la salud bucal de nuestros vecinos.
               </Typography>
 
-              {/* Botones de contacto mejorados */}
-              <Box sx={{ display: 'flex', gap: 2.5, flexWrap: 'wrap', mb: 4 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Phone />}
-                  href={formatPhoneLink("555-123-4567")}
-                  sx={{
-                    background: colors.accentGradient,
-                    boxShadow: '0 2px 10px rgba(37, 99, 235, 0.3)',
-                    borderRadius: '8px',
-                    py: 1.2,
-                    px: 3,
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      boxShadow: '0 4px 14px rgba(37, 99, 235, 0.4)',
-                      transform: 'translateY(-3px)'
-                    }
-                  }}
-                >
-                  Llamar ahora
-                </Button>
+              <ContactButtons colors={colors} isDarkTheme={isDarkTheme} />
 
-                <Button
-                  variant="outlined"
-                  startIcon={<WhatsApp sx={{ color: colors.success }} />}
-                  href={formatWhatsAppLink("555-123-4567")}
-                  target="_blank"
-                  rel="noopener"
-                  sx={{
-                    borderColor: colors.success,
-                    borderWidth: '2px',
-                    color: colors.success,
-                    borderRadius: '8px',
-                    py: 1.1,
-                    px: 3,
-                    fontSize: '0.95rem',
-                    fontWeight: 600,
-                    textTransform: 'none',
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      borderColor: colors.success,
-                      backgroundColor: isDarkTheme ? 'rgba(16, 185, 129, 0.1)' : 'rgba(5, 150, 105, 0.05)',
-                      transform: 'translateY(-3px)'
-                    }
-                  }}
-                >
-                  WhatsApp
-                </Button>
-              </Box>
 
               {/* Lista de servicios clave mejorada */}
               <Box sx={{ mt: 4 }}>
@@ -347,7 +298,7 @@ const Home = () => {
                 >
                   Servicios principales:
                 </Typography>
-                
+
                 {mainServices.slice(0, 4).map((service, index) => (
                   <Box
                     key={index}
@@ -463,7 +414,7 @@ const Home = () => {
                   >
                     <ChevronLeft />
                   </IconButton>
-                  
+
                   <IconButton
                     onClick={nextImage}
                     sx={{
@@ -558,7 +509,7 @@ const Home = () => {
           >
             ¿Por qué elegirnos?
           </Typography>
-          
+
           <Typography
             variant="subtitle1"
             align="center"
@@ -722,7 +673,7 @@ const Home = () => {
                 >
                   Ver todos
                 </Button>
-                
+
                 <IconButton
                   onClick={prevService}
                   size="medium"
@@ -788,10 +739,10 @@ const Home = () => {
                           background: colors.accentGradient
                         }}
                       />
-                      
+
                       <CardContent sx={{ p: 4 }}>
-                        <Box 
-                          sx={{ 
+                        <Box
+                          sx={{
                             mb: 3,
                             display: 'flex',
                             justifyContent: 'space-between',
@@ -810,7 +761,7 @@ const Home = () => {
                               borderRadius: '6px'
                             }}
                           />
-                          
+
                           <Box
                             sx={{
                               width: '36px',
@@ -925,7 +876,7 @@ const Home = () => {
           >
             Lo que dicen nuestros pacientes
           </Typography>
-          
+
           <Typography
             variant="subtitle1"
             align="center"
@@ -978,17 +929,17 @@ const Home = () => {
                 >
                   <Box sx={{ mb: 3 }}>
                     {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        sx={{ 
+                      <Star
+                        key={i}
+                        sx={{
                           color: i < testimonial.rating ? '#FFD700' : colors.border,
                           fontSize: '1.2rem',
                           mr: 0.5
-                        }} 
+                        }}
                       />
                     ))}
                   </Box>
-                  
+
                   <Typography
                     variant="body1"
                     sx={{
@@ -1001,7 +952,7 @@ const Home = () => {
                   >
                     "{testimonial.testimonial}"
                   </Typography>
-                  
+
                   <Typography
                     variant="subtitle2"
                     sx={{
@@ -1053,61 +1004,13 @@ const Home = () => {
             Estamos comprometidos con la salud bucal de nuestra comunidad. Ofrecemos tratamientos dentales de calidad con un trato cercano y precios accesibles. ¡Tu sonrisa es nuestra prioridad!
           </Typography>
 
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 3,
-              justifyContent: 'center',
-              flexWrap: 'wrap'
-            }}
-          >
-            <Button
-              variant="contained"
-              startIcon={<Phone />}
-              sx={{
-                backgroundColor: 'white',
-                color: colors.primary,
-                fontWeight: 600,
-                px: 4,
-                py: 1.5,
-                borderRadius: '10px',
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.9)'
-                },
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                fontSize: '1rem'
-              }}
-              href={formatPhoneLink("555-123-4567")}
-            >
-              Llámanos al 555-123-4567
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<WhatsApp />}
-              sx={{
-                borderColor: 'white',
-                color: 'white',
-                fontWeight: 600,
-                px: 4,
-                py: 1.5,
-                borderRadius: '10px',
-                textTransform: 'none',
-                borderWidth: '2px',
-                '&:hover': {
-                  borderColor: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)'
-                },
-                fontSize: '1rem'
-              }}
-              href={formatWhatsAppLink("555-123-4567")}
-              target="_blank"
-              rel="noopener"
-            >
-              Contáctanos por WhatsApp
-            </Button>
-          </Box>
+          {/* Reemplazar los botones estáticos con el componente ContactButtons */}
+          <ContactButtons
+            colors={colors}
+            isDarkTheme={isDarkTheme}
+            isCTA={true}
+            showLabels={true}
+          />
         </Box>
       </Container>
     </Box>

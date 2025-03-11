@@ -37,7 +37,7 @@ import {
   CalendarMonth
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
-
+import HorariosAtencion from './Steps/HorariosAtencion';
 const UbicacionHorarios = () => {
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
@@ -65,10 +65,10 @@ const UbicacionHorarios = () => {
   // Información de la clínica
   const clinicInfo = {
     nombre: "Clínica Dental Carol",
-    direccion: "Ixcatlan, Huejutla de Reyes, Hidalgo, México",
+    direccion: "Calle José Maria Pino Suárez N.390, Ixcatlán, Huejutla, Hidalgo.",
     telefono: "+52 789 123 4567",
     whatsapp: "+52 789 123 4567",
-    indicaciones: "A una cuadra de la Plaza Principal, edificio con fachada azul",
+    indicaciones: "Un camino de concreto en Ixcatlán, Hidalgo, rodeado de vegetación y montañas. A la derecha, una casa verde con globos en el porche; a la izquierda, un arroyo junto a árboles. Zona tranquila con construcciones sencillas y poco tráfico.",
     reseñas: "4.8/5 basado en 45 reseñas"
   };
 
@@ -1102,7 +1102,7 @@ const UbicacionHorarios = () => {
                                     lineHeight: 1.6
                                   }}
                                 >
-                                  Ubicados frente a la tienda de abarrotes "La Esperanza", a una cuadra de la Plaza Principal. Edificio con fachada azul y puerta blanca.
+                                  Camino de concreto, casa verde con porche a la derecha. Frente a un arroyo, rodeada de vegetación. Zona rural de fácil acceso.
                                 </Typography>
                               </Box>
                             </Box>
@@ -1141,216 +1141,12 @@ const UbicacionHorarios = () => {
                       }}
                     >
                       <CardContent sx={{ p: 4 }}>
-                        <motion.div variants={titleAnimationVariants}>
-                          <Typography
-                            variant="h5"
-                            sx={{
-                              fontWeight: 700,
-                              color: colors.primaryText,
-                              mb: 4,
-                              pt: 1,
-                              textAlign: 'center',
-                              position: 'relative',
-                              '&::after': {
-                                content: '""',
-                                position: 'absolute',
-                                bottom: '-12px',
-                                left: '50%',
-                                transform: 'translateX(-50%)',
-                                width: '80px',
-                                height: '3px',
-                                background: colors.accentGradient,
-                                borderRadius: '2px',
-                              }
-                            }}
-                          >
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 0.5 }}>
-                              <AccessTime sx={{ color: colors.primaryColor }} />
-                              Calendario de Atención
-                            </Box>
-                          </Typography>
-                        </motion.div>
-
-                        {/* Diseño mejorado para horarios horizontales */}
-                        <motion.div variants={staggerItemVariants}>
-                          <Box
-                            sx={{
-                              maxWidth: '900px',
-                              mx: 'auto',
-                              mb: 3,
-                              px: 2
-                            }}
-                          >
-                            <Grid container spacing={3} justifyContent="center">
-                              {horarios.map((item, index) => (
-                                <Grid item xs={12} sm={4} key={index}>
-                                  <motion.div
-                                    whileHover={{ y: -8, boxShadow: "0 12px 25px rgba(0,0,0,0.1)" }}
-                                    transition={{ duration: 0.3 }}
-                                  >
-                                    <Paper
-                                      elevation={0}
-                                      sx={{
-                                        height: '100%',
-                                        p: 3,
-                                        borderRadius: '14px',
-                                        border: `1px solid ${colors.divider}`,
-                                        transition: 'all 0.2s ease',
-                                        position: 'relative',
-                                        overflow: 'hidden',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        boxShadow: isDarkTheme ? '0 6px 15px rgba(0,0,0,0.2)' : '0 6px 15px rgba(37,99,235,0.08)',
-                                        background: item.estado === 'abierto'
-                                          ? (isDarkTheme ? 'linear-gradient(145deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.02) 100%)' : 'linear-gradient(145deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 150, 105, 0.01) 100%)')
-                                          : (isDarkTheme ? 'linear-gradient(145deg, rgba(244, 63, 94, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%)' : 'linear-gradient(145deg, rgba(244, 63, 94, 0.03) 0%, rgba(239, 68, 68, 0.01) 100%)'),
-                                        '&::before': {
-                                          content: '""',
-                                          position: 'absolute',
-                                          top: 0,
-                                          left: 0,
-                                          width: '100%',
-                                          height: '5px',
-                                          background: item.estado === 'abierto'
-                                            ? (isDarkTheme ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #059669, #10B981)')
-                                            : (isDarkTheme ? 'linear-gradient(90deg, #F43F5E, #EF4444)' : 'linear-gradient(90deg, #EF4444, #F43F5E)')
-                                        }
-                                      }}
-                                    >
-                                      {/* Día de la semana con ícono */}
-                                      <Box sx={{ mb: 3, textAlign: 'center' }}>
-                                        <Typography
-                                          variant="h5"
-                                          sx={{
-                                            fontWeight: 700,
-                                            color: colors.primaryText,
-                                            mb: 1
-                                          }}
-                                        >
-                                          {item.dia}
-                                        </Typography>
-
-                                        <Chip
-                                          label={item.estado === 'abierto' ? 'Abierto' : 'Cerrado'}
-                                          size="small"
-                                          sx={{
-                                            fontWeight: 600,
-                                            backgroundColor: item.estado === 'abierto'
-                                              ? 'rgba(5, 150, 105, 0.15)'
-                                              : 'rgba(239, 68, 68, 0.15)',
-                                            color: item.estado === 'abierto' ? colors.success : colors.error,
-                                            fontSize: '0.75rem',
-                                            height: 24,
-                                            px: 1
-                                          }}
-                                        />
-                                      </Box>
-
-                                      {/* Horario con animación */}
-                                      <Box
-                                        sx={{
-                                          width: '100%',
-                                          py: 2,
-                                          px: 3,
-                                          borderRadius: '10px',
-                                          background: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.05)',
-                                          textAlign: 'center',
-                                          position: 'relative',
-                                          overflow: 'hidden'
-                                        }}
-                                      >
-                                        {/* Indicador pulsante para horario abierto */}
-                                        {item.estado === 'abierto' && (
-                                          <motion.div
-                                            style={{
-                                              position: 'absolute',
-                                              top: 10,
-                                              right: 10,
-                                              width: 8,
-                                              height: 8,
-                                              borderRadius: '50%',
-                                              background: colors.success
-                                            }}
-                                            animate={{
-                                              scale: [1, 1.5, 1],
-                                              opacity: [0.7, 1, 0.7]
-                                            }}
-                                            transition={{
-                                              duration: 2,
-                                              repeat: Infinity,
-                                              ease: "easeInOut"
-                                            }}
-                                          />
-                                        )}
-
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5 }}>
-                                          <AccessTime
-                                            sx={{
-                                              color: item.estado === 'abierto' ? colors.success : colors.error,
-                                              fontSize: '1.5rem'
-                                            }}
-                                          />
-                                          <Typography
-                                            variant="h6"
-                                            sx={{
-                                              fontWeight: 600,
-                                              color: colors.primaryText,
-                                              fontSize: '1.1rem'
-                                            }}
-                                          >
-                                            {item.horas}
-                                          </Typography>
-                                        </Box>
-                                      </Box>
-                                    </Paper>
-                                  </motion.div>
-                                </Grid>
-                              ))}
-                            </Grid>
-                          </Box>
-                        </motion.div>
-
-                        {/* Información para pacientes */}
-                        <motion.div variants={staggerItemVariants}>
-                          <Box
-                            sx={{
-                              p: 3,
-                              borderRadius: '12px',
-                              background: `linear-gradient(to right, ${isDarkTheme ? 'rgba(59, 130, 246, 0.08)' : 'rgba(37, 99, 235, 0.03)'} 0%, ${isDarkTheme ? 'rgba(59, 130, 246, 0.03)' : 'rgba(37, 99, 235, 0.01)'} 100%)`,
-                              border: `1px solid ${isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)'}`,
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: 2,
-                              maxWidth: '900px',
-                              mx: 'auto'
-                            }}
-                          >
-                            <Info color="primary" sx={{ fontSize: 22, mt: 0.3 }} />
-                            <Box>
-                              <Typography
-                                variant="subtitle1"
-                                sx={{
-                                  fontWeight: 600,
-                                  color: colors.primaryText,
-                                  mb: 0.5
-                                }}
-                              >
-                                Información para pacientes
-                              </Typography>
-                              <Typography
-                                variant="body2"
-                                sx={{
-                                  color: colors.secondaryText,
-                                  lineHeight: 1.6
-                                }}
-                              >
-                                Para una mejor atención, recomendamos agendar cita con anticipación. En caso de urgencias, por favor llame directamente al consultorio.
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </motion.div>
+                        {/* Importamos y usamos nuestro componente dinámico */}
+                        <HorariosAtencion
+                          colors={colors}
+                          titleAnimationVariants={titleAnimationVariants}
+                          staggerItemVariants={staggerItemVariants}
+                        />
                       </CardContent>
                     </Card>
                   </motion.div>
