@@ -43,7 +43,7 @@ const LayoutPaciente = ({ children }) => {
         component="main"
         sx={{
           flexGrow: 1,
-          mt: '64px', // Altura del AppBar
+          mt: '64px',
           '@media (max-width: 600px)': {
             mt: '56px', // Altura más pequeña en móviles
           },
