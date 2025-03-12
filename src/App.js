@@ -192,7 +192,7 @@ function App() {
           />
           <Route path="/FAQ" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'FAQ' }]} /><Preguntas /></LayoutConEncabezado>} />
           <Route path="/Contact" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Contacto', path: '/Contact' }]} /><Contactanos /></LayoutConEncabezado>} />
-          <Route path="/register" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Registro' }]} /><Register /></LayoutConEncabezado>} />
+          <Route path="/register" element={<><Chatbot /><Register /></>} />
           <Route path="/login" element={<Login />} />
           <Route path="/agendar-cita" element={<><Chatbot /><Agendar /></>} />
           <Route path="/confirmacion" element={<Confirmacion />} />

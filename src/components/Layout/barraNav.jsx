@@ -14,7 +14,12 @@ import {
   IconButton,
   Skeleton,
   ListItemIcon,
-  Divider
+  Divider,
+  Menu,
+  MenuItem,
+  Tooltip,
+  Fade,
+  Collapse
 } from '@mui/material';
 import {
   FaSignInAlt,
@@ -23,15 +28,25 @@ import {
   FaInfoCircle,
   FaMapMarkerAlt,
   FaPhoneAlt,
-  FaClock
+  FaClock,
+  FaQuestionCircle,
+  FaClipboardList
 } from 'react-icons/fa';
 import MenuIcon from '@mui/icons-material/Menu';
+import HomeIcon from '@mui/icons-material/Home';
 import { motion } from 'framer-motion';
 import CloseIcon from '@mui/icons-material/Close';
-import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material'; // ✅ Agregado correctamente
+import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useThemeContext } from '../Tools/ThemeContext';
 import InfoBar from './infoBar';
 
+/**
+ * Componente de barra de navegación responsiva con tema claro/oscuro
+ * Incluye menú desplegable para secciones adicionales y diseño moderno
+ * Optimizado con memo para prevenir renderizados innecesarios
+ */
 const BarraNav = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [logo, setLogo] = useState(null);
@@ -40,6 +55,23 @@ const BarraNav = () => {
   const [error, setError] = useState(null);
   const { isDarkTheme, toggleTheme } = useThemeContext();
   const navigate = useNavigate();
+  
+  // Estados para menús desplegables
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState(false);
+  
+  // Manejadores para el menú desplegable
+  const handleMenuOpen = (event) => {
+    setMenuAnchorEl(event.currentTarget);
+  };
+  
+  const handleMenuClose = () => {
+    setMenuAnchorEl(null);
+  };
+  
+  const toggleMobileSubmenu = () => {
+    setMobileSubmenuOpen(!mobileSubmenuOpen);
+  };
 
   const fetchTitleAndLogo = async (retries = 3) => {
     try {
@@ -47,11 +79,11 @@ const BarraNav = () => {
         'https://back-end-4803.onrender.com/api/perfilEmpresa/getTitleAndLogo',
         { timeout: 10000 }
       );
-      const { nombre_empresa, logo } = response.data;
+      const { nombre_pagina, logo } = response.data;
 
-      if (nombre_empresa) {
-        document.title = nombre_empresa;
-        setCompanyName(nombre_empresa);
+      if (nombre_pagina) {
+        document.title = nombre_pagina;
+        setCompanyName(nombre_pagina);
       }
 
       if (logo) {
@@ -84,7 +116,7 @@ const BarraNav = () => {
     setDrawerOpen(open);
   };
 
-  //  Drawer
+  //  Drawer con el nuevo submenu móvil
   const drawerList = (
     <Box
       sx={{
@@ -96,8 +128,10 @@ const BarraNav = () => {
         flexDirection: 'column',
       }}
       role="presentation"
-      onClick={toggleDrawer(false)}
-      onKeyDown={toggleDrawer(false)}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') toggleDrawer(false)(e);
+      }}
     >
       <Box sx={{
         display: 'flex',
@@ -133,9 +167,27 @@ const BarraNav = () => {
             {companyName || 'Odontología Carol'}
           </Typography>
         </Box>
-        {/* Contenedor para el cambio de tema y el botón de cerrar */}
+        
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Botón de Cambio de Tema */}
+          <IconButton
+            component={Link}
+            to="/"
+            onClick={toggleDrawer(false)}
+            sx={{
+              color: isDarkTheme ? '#82B1FF' : '#1976d2',
+              backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(25, 118, 210, 0.05)',
+              borderRadius: '50%',
+              padding: '8px',
+              width: '36px',
+              height: '36px',
+              '&:hover': {
+                backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.2)' : 'rgba(25, 118, 210, 0.1)',
+              }
+            }}
+          >
+            <HomeIcon sx={{ fontSize: '20px' }} />
+          </IconButton>
+          
           <IconButton
             onClick={(e) => {
               e.stopPropagation();
@@ -186,6 +238,7 @@ const BarraNav = () => {
           button
           component={Link}
           to="/"
+          onClick={toggleDrawer(false)}
           sx={{
             py: 1.5,
             '&:hover': {
@@ -208,10 +261,13 @@ const BarraNav = () => {
           />
         </ListItem>
 
+        {/* Menú desplegable en móvil */}
         <ListItem
           button
-          component={Link}
-          to="/about"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleMobileSubmenu();
+          }}
           sx={{
             py: 1.5,
             '&:hover': {
@@ -220,10 +276,129 @@ const BarraNav = () => {
           }}
         >
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
-            <FaInfoCircle size={20} />
+            <FaClipboardList size={20} />
           </ListItemIcon>
           <ListItemText
-            primary="Acerca de"
+            primary="Explorar"
+            primaryTypographyProps={{
+              sx: {
+                color: isDarkTheme ? '#fff' : '#1a2027',
+                fontFamily: '"Montserrat", sans-serif',
+                fontWeight: 500
+              }
+            }}
+          />
+          {mobileSubmenuOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+        </ListItem>
+
+        <Collapse in={mobileSubmenuOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <ListItem
+              button
+              component={Link}
+              to="/servicios"
+              onClick={toggleDrawer(false)}
+              sx={{
+                py: 1.25,
+                pl: 5,
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 36 }}>
+                <FaClipboardList size={18} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Servicios"
+                primaryTypographyProps={{
+                  sx: {
+                    color: isDarkTheme ? '#fff' : '#1a2027',
+                    fontFamily: '"Montserrat", sans-serif',
+                    fontWeight: 400,
+                    fontSize: '0.95rem'
+                  }
+                }}
+              />
+            </ListItem>
+            
+            <ListItem
+              button
+              component={Link}
+              to="/FAQ"
+              onClick={toggleDrawer(false)}
+              sx={{
+                py: 1.25,
+                pl: 5,
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 36 }}>
+                <FaQuestionCircle size={18} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Preguntas Frecuentes"
+                primaryTypographyProps={{
+                  sx: {
+                    color: isDarkTheme ? '#fff' : '#1a2027',
+                    fontFamily: '"Montserrat", sans-serif',
+                    fontWeight: 400,
+                    fontSize: '0.95rem'
+                  }
+                }}
+              />
+            </ListItem>
+            
+            <ListItem
+              button
+              component={Link}
+              to="/about"
+              onClick={toggleDrawer(false)}
+              sx={{
+                py: 1.25,
+                pl: 5,
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+                }
+              }}
+            >
+              <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 36 }}>
+                <FaInfoCircle size={18} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Acerca de"
+                primaryTypographyProps={{
+                  sx: {
+                    color: isDarkTheme ? '#fff' : '#1a2027',
+                    fontFamily: '"Montserrat", sans-serif',
+                    fontWeight: 400,
+                    fontSize: '0.95rem'
+                  }
+                }}
+              />
+            </ListItem>
+          </List>
+        </Collapse>
+
+        <ListItem
+          button
+          component={Link}
+          to="/Contact"
+          onClick={toggleDrawer(false)}
+          sx={{
+            py: 1.5,
+            '&:hover': {
+              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)'
+            }
+          }}
+        >
+          <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
+            <FaPhoneAlt size={20} />
+          </ListItemIcon>
+          <ListItemText
+            primary="Contáctanos"
             primaryTypographyProps={{
               sx: {
                 color: isDarkTheme ? '#fff' : '#1a2027',
@@ -240,6 +415,7 @@ const BarraNav = () => {
           button
           component={Link}
           to="/agendar-cita"
+          onClick={toggleDrawer(false)}
           sx={{
             py: 1.5,
             backgroundColor: isDarkTheme ? 'rgba(61, 90, 254, 0.1)' : 'rgba(25, 118, 210, 0.08)',
@@ -267,6 +443,7 @@ const BarraNav = () => {
           button
           component={Link}
           to="/login"
+          onClick={toggleDrawer(false)}
           sx={{
             py: 1.5,
             mt: 1,
@@ -292,11 +469,11 @@ const BarraNav = () => {
         </ListItem>
       </List>
     </Box>
-  )
+  );
 
   return (
     <>
-     <InfoBar />
+      <InfoBar />
       <AppBar
         position="static"
         elevation={0}
@@ -449,79 +626,173 @@ const BarraNav = () => {
               </Typography>
             </Box>
           </Box>
+          
           {/* Enlaces de navegación para pantallas grandes */}
           <Box
             sx={{
               display: { xs: 'none', md: 'flex' },
               alignItems: 'center',
-              gap: 2.5 // Reducido el espaciado entre elementos
+              gap: 3 // Espaciado entre elementos
             }}
           >
-            <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Typography
-                sx={{
-                  color: isDarkTheme ? 'white' : '#333',
-                  fontFamily: '"Montserrat", sans-serif',
-                  fontWeight: 500,
-                  fontSize: '0.95rem',
-                  position: 'relative',
-                  padding: '4px 0',
-                  '&:hover': {
-                    color: '#0066cc',
-                  },
-                  '&:hover:after': {
-                    width: '100%',
-                    opacity: 1,
-                  },
-                  '&:after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '0%',
-                    height: '2px',
-                    backgroundColor: '#0066cc',
-                    transition: 'width 0.3s ease, opacity 0.3s ease',
-                    opacity: 0,
-                  }
-                }}
-              >
-                Inicio
-              </Typography>
-            </Link>
 
-            <Link to="/about" style={{ textDecoration: 'none', color: 'inherit' }}>
-              <Typography
+            {/* Menú desplegable para Explorar */}
+            <Box>
+              <Button
+                aria-controls="explorar-menu"
+                aria-haspopup="true"
+                onClick={handleMenuOpen}
+                endIcon={menuAnchorEl ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
                   fontWeight: 500,
                   fontSize: '0.95rem',
-                  position: 'relative',
-                  padding: '4px 0',
+                  textTransform: 'none',
                   '&:hover': {
+                    backgroundColor: 'transparent',
                     color: '#0066cc',
-                  },
-                  '&:hover:after': {
-                    width: '100%',
-                    opacity: 1,
-                  },
-                  '&:after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    width: '0%',
-                    height: '2px',
-                    backgroundColor: '#0066cc',
-                    transition: 'width 0.3s ease, opacity 0.3s ease',
-                    opacity: 0,
                   }
                 }}
               >
-                Acerca de
-              </Typography>
-            </Link>
+                Explorar
+              </Button>
+              <Menu
+                id="explorar-menu"
+                anchorEl={menuAnchorEl}
+                open={Boolean(menuAnchorEl)}
+                onClose={handleMenuClose}
+                TransitionComponent={Fade}
+                transitionDuration={250}
+                anchorOrigin={{
+                  vertical: 'bottom',
+                  horizontal: 'center',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'center',
+                }}
+                PaperProps={{
+                  elevation: 3,
+                  sx: {
+                    mt: 1,
+                    borderRadius: '12px',
+                    minWidth: '220px',
+                    backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+                    border: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+                    paddingY: 1,
+                    overflow: 'visible',
+                    '&:before': {
+                      content: '""',
+                      display: 'block',
+                      position: 'absolute',
+                      top: -5,
+                      left: '50%',
+                      transform: 'translateX(-50%) rotate(45deg)',
+                      width: 10,
+                      height: 10,
+                      backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+                      borderLeft: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+                      borderTop: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+                      zIndex: 0,
+                    }
+                  }
+                }}
+              >
+                <MenuItem 
+                  component={Link} 
+                  to="/servicios" 
+                  onClick={handleMenuClose}
+                  sx={{
+                    py: 1.5,
+                    px: 2.5,
+                    borderRadius: '8px',
+                    mx: 1,
+                    my: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    '&:hover': {
+                      backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)',
+                    }
+                  }}
+                >
+                  <FaClipboardList size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+                  <Typography
+                    sx={{
+                      color: isDarkTheme ? 'white' : '#333',
+                      fontFamily: '"Montserrat", sans-serif',
+                      fontWeight: 500,
+                      fontSize: '0.95rem',
+                    }}
+                  >
+                    Servicios
+                  </Typography>
+                </MenuItem>
+                
+                <MenuItem 
+                  component={Link} 
+                  to="/FAQ" 
+                  onClick={handleMenuClose}
+                  sx={{
+                    py: 1.5,
+                    px: 2.5,
+                    borderRadius: '8px',
+                    mx: 1,
+                    my: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    '&:hover': {
+                      backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)',
+                    }
+                  }}
+                >
+                  <FaQuestionCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+                  <Typography
+                    sx={{
+                      color: isDarkTheme ? 'white' : '#333',
+                      fontFamily: '"Montserrat", sans-serif',
+                      fontWeight: 500,
+                      fontSize: '0.95rem',
+                    }}
+                  >
+                    Preguntas Frecuentes
+                  </Typography>
+                </MenuItem>
+                
+                <MenuItem 
+                  component={Link} 
+                  to="/about" 
+                  onClick={handleMenuClose}
+                  sx={{
+                    py: 1.5,
+                    px: 2.5,
+                    borderRadius: '8px',
+                    mx: 1,
+                    my: 0.5,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    '&:hover': {
+                      backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)',
+                    }
+                  }}
+                >
+                  <FaInfoCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+                  <Typography
+                    sx={{
+                      color: isDarkTheme ? 'white' : '#333',
+                      fontFamily: '"Montserrat", sans-serif',
+                      fontWeight: 500,
+                      fontSize: '0.95rem',
+                    }}
+                  >
+                    Acerca de
+                  </Typography>
+                </MenuItem>
+              </Menu>
+            </Box>
 
             <Link to="/Contact" style={{ textDecoration: 'none', color: 'inherit' }}>
               <Typography
@@ -571,8 +842,8 @@ const BarraNav = () => {
                 borderRadius: '24px',
                 padding: '6px 16px',
                 boxShadow: '0 4px 8px rgba(3, 66, 124, 0.25)',
-                height: '36px',
-                ml: 1, // Margen izquierdo para separar de los enlaces
+                height: '38px',
+                ml: 1,
                 '&:hover': {
                   backgroundImage: 'linear-gradient(135deg, #0052a3 0%, #0074e8 100%)',
                   boxShadow: '0 6px 12px rgba(3, 66, 124, 0.35)',
@@ -599,7 +870,7 @@ const BarraNav = () => {
                 borderWidth: '1px',
                 borderRadius: '24px',
                 padding: '6px 16px',
-                height: '36px',
+                height: '38px',
                 ml: 1,
                 '&:hover': {
                   backgroundColor: isDarkTheme
@@ -615,35 +886,60 @@ const BarraNav = () => {
               Iniciar sesión
             </Button>
 
-            {/* Botón de Cambio de Tema Mejorado */}
-            <IconButton
-              onClick={toggleTheme}
-              color="inherit"
-              sx={{
-                color: isDarkTheme ? '#FFC107' : '#5E35B1',
-                backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
-                borderRadius: '50%',
-                padding: '8px',
-                ml: 1,
-                width: '36px',
-                height: '36px',
-                transition: 'background-color 0.3s ease',
-                '&:hover': {
-                  backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
-                }
-              }}
-            >
-              <motion.div
-                animate={{ rotate: isDarkTheme ? 180 : 0 }}
-                transition={{ duration: 0.5, ease: 'easeInOut' }}
+            {/* Botón de inicio */}
+            <Tooltip title="Inicio" arrow placement="bottom">
+              <IconButton
+                component={Link}
+                to="/"
+                sx={{
+                  color: isDarkTheme ? '#82B1FF' : '#0066cc',
+                  backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)',
+                  borderRadius: '50%',
+                  padding: '8px',
+                  width: '38px',
+                  height: '38px',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.2)' : 'rgba(0, 102, 204, 0.1)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}
               >
-                {isDarkTheme ? (
-                  <WbSunnyRounded sx={{ fontSize: '20px' }} />
-                ) : (
-                  <NightsStayRounded sx={{ fontSize: '20px' }} />
-                )}
-              </motion.div>
-            </IconButton>
+                <HomeIcon />
+              </IconButton>
+            </Tooltip>
+
+            {/* Botón de Cambio de Tema Mejorado */}
+            <Tooltip title={isDarkTheme ? "Modo claro" : "Modo oscuro"} arrow placement="bottom">
+              <IconButton
+                onClick={toggleTheme}
+                color="inherit"
+                sx={{
+                  color: isDarkTheme ? '#FFC107' : '#5E35B1',
+                  backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
+                  borderRadius: '50%',
+                  padding: '8px',
+                  width: '38px',
+                  height: '38px',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}
+              >
+                <motion.div
+                  animate={{ rotate: isDarkTheme ? 180 : 0 }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
+                >
+                  {isDarkTheme ? (
+                    <WbSunnyRounded sx={{ fontSize: '20px' }} />
+                  ) : (
+                    <NightsStayRounded sx={{ fontSize: '20px' }} />
+                  )}
+                </motion.div>
+              </IconButton>
+            </Tooltip>
           </Box>
 
           {/* Menú en pantallas pequeñas */}
@@ -665,6 +961,7 @@ const BarraNav = () => {
           </IconButton>
         </Toolbar>
       </AppBar>
+      
       {/* Drawer para el menú en pantallas pequeñas */}
       <Drawer
         anchor="right"

@@ -1,24 +1,91 @@
 import InfoIcon from '@mui/icons-material/Info';
-import { Alert, Box, Button, Card, CardContent, Checkbox, CircularProgress, Container, FormControl, FormControlLabel, FormHelperText, Grid, IconButton, InputAdornment, InputLabel, Link, MenuItem, Modal, Select, Step, StepLabel, Stepper, TextField, Typography } from '@mui/material';
+import ArrowBack from '@mui/icons-material/ArrowBack';
+import VerifiedUser from '@mui/icons-material/VerifiedUser';
+import ContactSupport from '@mui/icons-material/ContactSupport';
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Checkbox,
+  CircularProgress,
+  Container,
+  FormControl,
+  FormControlLabel,
+  FormHelperText,
+  Grid,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  Link,
+  MenuItem,
+  Modal,
+  Paper,
+  Select,
+  Step,
+  StepConnector,
+  StepLabel,
+  Stepper,
+  TextField,
+  Typography,
+  useMediaQuery,
+  alpha,
+  Tooltip,
+  Divider,
+  Stack,
+  Fade,
+  Backdrop, AlertTitle, Chip, ListSubheader
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
-import { motion } from 'framer-motion';
-import React, { useState } from 'react';
-import { FaCheckCircle, FaEnvelope, FaEye, FaEyeSlash, FaInfoCircle, FaLock, FaPhone, FaPlusCircle, FaUser } from 'react-icons/fa'; // Importamos 
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, forwardRef } from 'react';
+import {
+  FaCheckCircle,
+  FaEnvelope,
+  FaEye,
+  FaEyeSlash,
+  FaInfoCircle,
+  FaLock,
+  FaPhone,
+  FaPlusCircle,
+  FaUser,
+  FaCalendarAlt,
+  FaBirthdayCake,
+  FaMapMarkerAlt,
+  FaShieldAlt,
+  FaUniversity,
+  FaIdCard,
+  FaWhatsapp,
+  FaClipboardCheck,
+  FaExclamationTriangle
+} from 'react-icons/fa';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import zxcvbn from 'zxcvbn';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
+/**
+ * Componente de registro rediseñado con mejor UX/UI para profesionales
+ * - Interfaz mejorada con estilos consistentes
+ * - Diseño totalmente responsivo
+ * - Experiencia de usuario optimizada por pasos
+ * - Validación en tiempo real y retroalimentación visual
+ */
 const Register = () => {
+  // Estado para gestionar el paso activo en el formulario
   const [activeStep, setActiveStep] = useState(0);
+
+  // Datos del formulario con valores iniciales
   const [formData, setFormData] = useState({
     nombre: '',
     aPaterno: '',
     aMaterno: '',
     fechaNacimiento: '',
-    esMayorDeEdad: true, // Campo para reflejar si es mayor de edad
+    esMayorDeEdad: true,
     genero: '',
     lugar: '',
     otroLugar: '',
@@ -30,8 +97,15 @@ const Register = () => {
     nombreTutor: '',
     password: '',
     confirmPassword: '',
+    telefono1: '',
+    telefono2: '',
+    telefono3: '',
+    telefono4: '',
+    noTieneEmail: false,
+    noTieneTelefono: false,
   });
 
+  // Estados para errores y validaciones
   const [errors, setErrors] = useState({});
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [isEmailVerified, setIsEmailVerified] = useState(false);
@@ -40,7 +114,8 @@ const Register = () => {
   const [emailVerificationError, setEmailVerificationError] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('success');
-  const [openNotification, setOpenNotification] = useState(false); const [passwordStrength, setPasswordStrength] = useState(0);
+  const [openNotification, setOpenNotification] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const [passwordError, setPasswordError] = useState('');
   const [isPasswordSafe, setIsPasswordSafe] = useState(false);
   const [isPasswordFiltered, setIsPasswordFiltered] = useState(false);
@@ -48,43 +123,478 @@ const Register = () => {
   const [verificationToken, setVerificationToken] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const navigate = useNavigate();
-  const steps = ['Datos personales', 'Información de contacto', 'Datos de acceso'];
-  const nameRegex = /^[A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]+$/;
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
-  const phoneRegex = /^\d{10}$/;
-  const today = new Date().toISOString().split('T')[0];
   const [showChangeEmailConfirmation, setShowChangeEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isEmailEditable, setIsEmailEditable] = useState(true); // Controlar si el correo es editable
+  const [isEmailEditable, setIsEmailEditable] = useState(true);
   const [privacyPolicy, setPrivacyPolicy] = useState('');
   const [termsConditions, setTermsConditions] = useState('');
   const [openPrivacyModal, setOpenPrivacyModal] = useState(false);
   const [openTermsModal, setOpenTermsModal] = useState(false);
   const [allAccepted, setAllAccepted] = useState(false);
-  const { isDarkTheme } = useThemeContext();
+  const [showContactDialog, setShowContactDialog] = useState(false);
 
+  const navigate = useNavigate();
+  const { isDarkTheme } = useThemeContext();
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const isTablet = useMediaQuery('(max-width:900px)');
+
+  // Array con todos los pasos del formulario
+  const steps = ['Datos personales', 'Información de contacto', 'Revisar datos', 'Crear contraseña'];
+  const nameRegex = /^[A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]+$/;
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@(gmail|hotmail|outlook|yahoo|live|uthh\.edu)\.(com|mx)$/;
+  const phoneRegex = /^\d{10}$/;
+  const today = new Date().toISOString().split('T')[0];
+
+  // Definición de colores más profesionales
+  const colors = {
+    primary: isDarkTheme ? '#1E88E5' : '#0052A3',
+    primaryDark: isDarkTheme ? '#1565C0' : '#003B7A',
+    primaryLight: isDarkTheme ? '#42A5F5' : '#2979FF',
+    secondary: isDarkTheme ? '#E3F2FD' : '#F5F9FF',
+    text: isDarkTheme ? '#E1F5FE' : '#1A2027',
+    textSecondary: isDarkTheme ? '#B0BEC5' : '#607D8B',
+    background: isDarkTheme ? '#1C2A38' : '#F5F9FF',
+    paper: isDarkTheme ? '#2a3649' : '#ffffff',
+    border: isDarkTheme ? 'rgba(176, 190, 197, 0.3)' : 'rgba(27, 42, 58, 0.2)',
+    success: '#2E7D32',
+    warning: '#F57C00',
+    error: '#D32F2F',
+    info: '#0277BD',
+    whatsapp: '#25D366',
+    whatsappHover: '#128C7E',
+  };
+
+  // Estilos comunes para los componentes del formulario
+  const formStyles = {
+    textField: {
+      '& .MuiOutlinedInput-root': {
+        borderRadius: '8px',
+        transition: 'all 0.2s ease-in-out',
+        backgroundColor: isDarkTheme ? alpha(colors.paper, 0.4) : colors.paper,
+        '&:hover': {
+          backgroundColor: isDarkTheme ? alpha(colors.paper, 0.6) : '#FFFFFF',
+        },
+        '&:hover fieldset': {
+          borderColor: colors.primary,
+          borderWidth: '1px',
+        },
+        '&.Mui-focused fieldset': {
+          borderColor: colors.primary,
+          borderWidth: '2px',
+        },
+        '& .MuiInputBase-input': {
+          padding: '14px 14px',
+        }
+      },
+      '& .MuiInputLabel-root': {
+        color: colors.textSecondary,
+        '&.Mui-focused': {
+          color: colors.primary,
+        }
+      },
+      '& .MuiInputBase-input': {
+        color: colors.text
+      },
+      '& .MuiInputAdornment-root .MuiSvgIcon-root, & .MuiInputAdornment-root svg': {
+        color: colors.primary
+      }
+    },
+    select: {
+      '& .MuiOutlinedInput-root': {
+        borderRadius: '8px',
+        backgroundColor: isDarkTheme ? alpha(colors.paper, 0.4) : colors.paper,
+        '&:hover': {
+          backgroundColor: isDarkTheme ? alpha(colors.paper, 0.6) : '#FFFFFF',
+        },
+        '&:hover fieldset': {
+          borderColor: colors.primary,
+        },
+        '&.Mui-focused fieldset': {
+          borderColor: colors.primary,
+        }
+      },
+      '& .MuiInputLabel-root': {
+        color: colors.textSecondary,
+        '&.Mui-focused': {
+          color: colors.primary,
+        }
+      },
+      '& .MuiSelect-select': {
+        padding: '14px 14px',
+      }
+    },
+    button: {
+      primary: {
+        backgroundColor: colors.primary,
+        color: '#FFFFFF',
+        fontWeight: 500,
+        borderRadius: '8px',
+        padding: '10px 24px',
+        boxShadow: `0 4px 6px -1px ${alpha(colors.primary, 0.2)}, 0 2px 4px -1px ${alpha(colors.primary, 0.1)}`,
+        textTransform: 'none',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          backgroundColor: colors.primaryDark,
+          boxShadow: `0 10px 15px -3px ${alpha(colors.primary, 0.3)}, 0 4px 6px -2px ${alpha(colors.primary, 0.1)}`,
+          transform: 'translateY(-2px)'
+        },
+        '&:active': {
+          transform: 'translateY(0px)'
+        },
+        '&.Mui-disabled': {
+          backgroundColor: alpha(colors.primary, 0.4),
+          color: '#FFFFFF'
+        }
+      },
+      secondary: {
+        color: colors.primary,
+        backgroundColor: alpha(colors.primary, 0.08),
+        fontWeight: 500,
+        borderRadius: '8px',
+        padding: '10px 24px',
+        border: `1px solid ${alpha(colors.primary, 0.2)}`,
+        textTransform: 'none',
+        transition: 'all 0.3s ease',
+        '&:hover': {
+          backgroundColor: alpha(colors.primary, 0.15),
+          borderColor: alpha(colors.primary, 0.3),
+        }
+      },
+      whatsapp: {
+        backgroundColor: colors.whatsapp,
+        color: '#FFFFFF',
+        fontWeight: 500,
+        borderRadius: '8px',
+        padding: '10px 16px',
+        textTransform: 'none',
+        boxShadow: '0 4px 6px -1px rgba(37, 211, 102, 0.2), 0 2px 4px -1px rgba(37, 211, 102, 0.1)',
+        '&:hover': {
+          backgroundColor: colors.whatsappHover,
+          boxShadow: '0 6px 10px -2px rgba(37, 211, 102, 0.25), 0 4px 6px -2px rgba(37, 211, 102, 0.15)',
+        }
+      }
+    },
+    heading: {
+      color: colors.primary,
+      fontWeight: 600,
+      position: 'relative',
+      paddingBottom: '16px',
+      marginBottom: '20px',
+      '&:after': {
+        content: '""',
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        width: '40px',
+        height: '3px',
+        backgroundColor: colors.primary,
+        borderRadius: '8px'
+      }
+    },
+    card: {
+      backgroundColor: colors.paper,
+      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
+      borderRadius: '16px',
+      overflow: 'hidden',
+      border: `1px solid ${colors.border}`
+    }
+  };
+
+  // Stepper personalizado con estilos mejorados
+  const CustomStepConnector = styled(StepConnector)({
+    '& .MuiStepConnector-line': {
+      borderColor: isDarkTheme ? alpha(colors.border, 0.5) : colors.border,
+      borderTopWidth: 3,
+    },
+  });
+
+  const CustomStepIcon = ({ active, completed, icon }) => {
+    return (
+      <Box
+        sx={{
+          height: 40,
+          width: 40,
+          borderRadius: '50%',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          background: completed
+            ? colors.success
+            : active
+              ? colors.primary
+              : isDarkTheme
+                ? alpha(colors.textSecondary, 0.2)
+                : alpha(colors.textSecondary, 0.1),
+          border: completed || active
+            ? 'none'
+            : `2px solid ${isDarkTheme ? alpha(colors.textSecondary, 0.3) : alpha(colors.textSecondary, 0.2)}`,
+          transition: 'all 0.3s ease',
+          color: completed || active
+            ? '#FFFFFF'
+            : colors.textSecondary,
+          boxShadow: (completed || active)
+            ? `0 0 0 5px ${alpha(completed ? colors.success : colors.primary, 0.15)}`
+            : 'none',
+          zIndex: 1
+        }}
+      >
+        {completed ? (
+          <FaCheckCircle size={20} />
+        ) : (
+          <Typography
+            variant="body1"
+            sx={{
+              fontWeight: active ? 700 : 500,
+              fontSize: '16px'
+            }}
+          >
+            {icon}
+          </Typography>
+        )}
+      </Box>
+    );
+  };
+
+  // Input personalizado para el teléfono con formato de grupos
+  const PhoneDigitInput = forwardRef(({ value, onChange, error, helperText, ...props }, ref) => {
+    // Crear un arreglo con los valores actuales de los dígitos del teléfono
+    const [digits, setDigits] = useState(['', '', '', '']);
+
+    useEffect(() => {
+      // Si ya existe un teléfono en formData, inicializar los dígitos
+      if (formData.telefono && formData.telefono.length === 10) {
+        const phone = formData.telefono;
+        setDigits([
+          phone.substring(0, 3),
+          phone.substring(3, 6),
+          phone.substring(6, 8),
+          phone.substring(8, 10)
+        ]);
+      }
+    }, []);
+
+    // Función para manejar cambios en los inputs
+    const handleDigitChange = (index, e) => {
+      const value = e.target.value.replace(/\D/g, ''); // Solo permitir dígitos
+
+      // Si se pega un número largo, distribúyelo en los campos
+      if (value.length > 3 && index === 0) {
+        const allDigits = value.substring(0, 10); // Limitar a 10 dígitos
+
+        const newDigits = [
+          allDigits.substring(0, 3),
+          allDigits.substring(3, 6),
+          allDigits.substring(6, 8),
+          allDigits.substring(8, 10)
+        ];
+
+        setDigits(newDigits);
+
+        // Combinar todos los dígitos para actualizar el formData
+        const fullPhone = newDigits.join('');
+
+        // Actualizar el telefono en formData
+        setFormData(prev => ({
+          ...prev,
+          telefono: fullPhone,
+          telefono1: newDigits[0],
+          telefono2: newDigits[1],
+          telefono3: newDigits[2],
+          telefono4: newDigits[3]
+        }));
+
+        return;
+      }
+
+      // Para entradas normales de un solo campo
+      const maxLength = index === 0 || index === 1 ? 3 : 2;
+
+      if (value.length <= maxLength) {
+        const newDigits = [...digits];
+        newDigits[index] = value;
+        setDigits(newDigits);
+
+        // Actualizar el estado del grupo correspondiente
+        setFormData(prev => ({
+          ...prev,
+          [`telefono${index + 1}`]: value,
+          telefono: newDigits.join('')
+        }));
+
+        // Auto-avanzar al siguiente campo si este está lleno
+        if (value.length === maxLength && index < 3) {
+          const nextInput = document.getElementById(`phone-digit-${index + 1}`);
+          if (nextInput) nextInput.focus();
+        }
+      }
+    };
+
+    // Función para manejar el retroceso entre campos
+    const handleKeyDown = (index, e) => {
+      if (e.key === 'Backspace' && !digits[index] && index > 0) {
+        const prevInput = document.getElementById(`phone-digit-${index - 1}`);
+        if (prevInput) prevInput.focus();
+      }
+    };
+ //numerp de telefono
+    return (
+      <Box>
+        <Typography
+          variant="body2"
+          sx={{
+            mb: 1,
+            color: error ? colors.error : colors.textSecondary,
+            fontWeight: 500
+          }}
+        >
+          Número de teléfono *
+        </Typography>
+
+        <Box
+          sx={{
+            position: 'relative',
+            display: 'flex',
+            alignItems: 'center'
+          }}
+        >
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            color: colors.primary,
+            mr: 1
+          }}>
+            <FaPhone size={18} />
+          </Box>
+
+          {/* Campo invisible para capturar entrada continua */}
+          <TextField
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              opacity: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+              pointerEvents: formData.noTieneTelefono ? 'none' : 'auto'
+            }}
+            value={formData.telefono}
+            onChange={(e) => {
+              // Permitir solo números y limitar a 10 dígitos
+              const numericValue = e.target.value.replace(/\D/g, '').slice(0, 10);
+              setFormData({
+                ...formData,
+                telefono: numericValue
+              });
+            }}
+            inputProps={{
+              maxLength: 10,
+              inputMode: "numeric"
+            }}
+            disabled={formData.noTieneTelefono}
+          />
+
+          {/* 10 casillas visibles */}
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: { xs: 0.5, sm: 0.75 },
+            ml: 1
+          }}>
+            {Array(10).fill(0).map((_, index) => (
+              <Box
+                key={index}
+                sx={{
+                  width: '32px',
+                  height: '38px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkTheme ? alpha(colors.paper, 0.5) : '#fff',
+                  border: `1px solid ${(error ? colors.error : alpha(colors.primary, 0.3))}`,
+                  borderRadius: '6px',
+                  cursor: 'text',
+                  fontSize: '16px',
+                  fontWeight: '500',
+                  color: colors.text,
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    borderColor: colors.primary
+                  }
+                }}
+                onClick={() => {
+                  const inputEl = document.querySelector('input[type="text"]');
+                  if (inputEl && !formData.noTieneTelefono) inputEl.focus();
+                }}
+              >
+                {formData.telefono[index] || ''}
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        {error && (
+          <FormHelperText error sx={{ ml: 0, mt: 1 }}>
+            {helperText || 'Formato: 10 dígitos numéricos'}
+          </FormHelperText>
+        )}
+
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={formData.noTieneTelefono}
+              onChange={(e) => {
+                setFormData({
+                  ...formData,
+                  noTieneTelefono: e.target.checked,
+                  telefono: e.target.checked ? '' : formData.telefono
+                });
+
+                // Si marca que no tiene teléfono, limpiar el error
+                if (e.target.checked) {
+                  setErrors(prev => ({ ...prev, telefono: '' }));
+                }
+              }}
+              sx={{
+                color: colors.primary,
+                '&.Mui-checked': {
+                  color: colors.primary,
+                }
+              }}
+            />
+          }
+          label={
+            <Typography variant="body2" sx={{ color: colors.text }}>
+              No tengo número de teléfono
+            </Typography>
+          }
+          sx={{ mt: 1 }}
+        />
+      </Box>
+    );
+
+
+  });
+
+  // Handlers y funciones
   const handleAcceptChange = (event) => {
     setAllAccepted(event.target.checked);
   };
 
-  // Función para abrir el modal de políticas de privacidad y obtener su contenido si aún no está cargado
   const handleOpenPrivacyModal = async (event) => {
     event.stopPropagation();
-    if (!privacyPolicy) await fetchPrivacyPolicy(); // Solo llamar si no está cargado
+    if (!privacyPolicy) await fetchPrivacyPolicy();
     setOpenPrivacyModal(true);
   };
 
-  // Función para abrir el modal de términos y condiciones y obtener su contenido si aún no está cargado
   const handleOpenTermsModal = async (event) => {
     event.stopPropagation();
-    if (!termsConditions) await fetchTermsConditions(); // Solo llamar si no está cargado
+    if (!termsConditions) await fetchTermsConditions();
     setOpenTermsModal(true);
   };
 
   const handleClosePrivacyModal = () => setOpenPrivacyModal(false);
   const handleCloseTermsModal = () => setOpenTermsModal(false);
-
 
   const fetchPrivacyPolicy = async () => {
     try {
@@ -108,29 +618,26 @@ const Register = () => {
     }
   };
 
-
   const handleCloseNotification = () => {
-    setOpenNotification(false); // Función para cerrar la notificacióooon
+    setOpenNotification(false);
   };
 
-  // Función para alternar la visibilidad de la contraseña
   const togglePasswordVisibility = () => {
     setShowPassword(!showPassword);
   };
 
-  // Función para alternar la visibilidad de la confirmación de contraseña
   const toggleConfirmPasswordVisibility = () => {
     setShowConfirmPassword(!showConfirmPassword);
   };
 
-  // Función para verificar las reglas personalizadas
+  // Función para verificar reglas personalizadas de contraseña
   const checkPasswordRules = (password) => {
     const errors = [];
     const hasUpperCase = /[A-Z]/.test(password);
     const hasNumber = /\d/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const hasMinLength = password.length >= 8;
-    const noRepeatingChars = !/(.)\1{2}/.test(password);  // No repetir más de 3 letras seguidas
+    const noRepeatingChars = !/(.)\1{2}/.test(password);
 
     if (!hasUpperCase) errors.push('Debe tener al menos una letra mayúscula.');
     if (!hasNumber) errors.push('Debe tener al menos un número.');
@@ -146,13 +653,11 @@ const Register = () => {
     const customErrors = checkPasswordRules(password);
 
     if (customErrors.length > 0) {
-      // Si no cumple con las reglas personalizadas, mostramos los errores
       setPasswordError(customErrors.join(' '));
-      setIsPasswordSafe(false);  // Marcar como insegura
+      setIsPasswordSafe(false);
       return false;
     }
 
-    // Si cumple con las reglas personalizadas, verificamos si la contraseña ha sido filtrada
     setIsLoading(true);
     try {
       const hashedPassword = CryptoJS.SHA1(password).toString(CryptoJS.enc.Hex);
@@ -166,13 +671,12 @@ const Register = () => {
         setPasswordError('Contraseña insegura: ha sido filtrada en brechas de datos.');
         setIsPasswordSafe(false);
         setIsPasswordFiltered(true);
-        return false;  // No permitir el registro
+        return false;
       } else {
-        // Si la contraseña no ha sido filtrada
         setPasswordError('');
         setIsPasswordSafe(true);
         setIsPasswordFiltered(false);
-        return true;  // Permitir el registro
+        return true;
       }
     } catch (error) {
       console.error('Error al verificar la contraseña:', error);
@@ -185,14 +689,35 @@ const Register = () => {
 
   // Función para manejar el cambio en los campos
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, checked, type } = e.target;
 
-    // Remover espacios en blanco al principio y al final del valor
+    // Para checkboxes, usar el valor de checked
+    const fieldValue = type === 'checkbox' ? checked : value;
 
     setFormData((prevData) => ({
       ...prevData,
-      [name]: value,
+      [name]: fieldValue,
     }));
+
+    // Validaciones específicas por campo
+    if (name === 'noTieneEmail' && checked) {
+      // Si marca que no tiene email, establecer un valor por defecto para el email y limpiar errores
+      setFormData(prev => ({
+        ...prev,
+        email: `paciente_${Date.now()}@noemail.com`,
+        [name]: checked
+      }));
+      setIsEmailVerified(true); // Considerar como verificado automáticamente
+      setErrors(prev => ({ ...prev, email: '' }));
+    } else if (name === 'noTieneEmail' && !checked) {
+      // Si desmarca que no tiene email, limpiar el email generado
+      setFormData(prev => ({
+        ...prev,
+        email: '',
+        [name]: checked
+      }));
+      setIsEmailVerified(false);
+    }
 
     // Validación de la contraseña
     if (name === 'password') {
@@ -214,7 +739,7 @@ const Register = () => {
     }
 
     if (name === 'nombre') {
-      const trimmedValue = value.trim(); // Elimina espacios al inicio y final
+      const trimmedValue = value.trim();
       if (!nameRegex.test(trimmedValue)) {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -226,10 +751,6 @@ const Register = () => {
           nombre: '',
         }));
       }
-      setFormData((prevData) => ({
-        ...prevData,
-        [name]: value, // Guarda el valor ingresado (sin modificar espacios internos)
-      }));
     }
 
     if (name === 'aPaterno') {
@@ -259,6 +780,7 @@ const Register = () => {
         }));
       }
     }
+
     // Manejar fecha de nacimiento
     if (name === 'fechaNacimiento') {
       const hoy = new Date();
@@ -272,10 +794,9 @@ const Register = () => {
 
       setFormData((prevData) => ({
         ...prevData,
-        esMayorDeEdad: !esMenorDeEdad, // Actualizar si es mayor de edad
+        esMayorDeEdad: !esMenorDeEdad,
       }));
 
-      // Limpiar los datos del tutor si es mayor de edad
       if (!esMenorDeEdad) {
         setFormData((prevData) => ({
           ...prevData,
@@ -289,7 +810,7 @@ const Register = () => {
         }));
       }
     }
-    // Validar otros campos como tipoTutor y nombreTutor solo si es menor de edad
+
     if (name === 'tipoTutor' && !formData.esMayorDeEdad) {
       setErrors((prevErrors) => ({
         ...prevErrors,
@@ -298,7 +819,7 @@ const Register = () => {
     }
 
     if (name === 'relacionTutor') {
-      const trimmedValue = value.trim(); // Elimina espacios en blanco
+      const trimmedValue = value.trim();
       if (!nameRegex.test(trimmedValue) || trimmedValue === '') {
         setErrors((prevErrors) => ({
           ...prevErrors,
@@ -331,9 +852,9 @@ const Register = () => {
     }
 
     if (name === 'email') {
-      const trimmedValue = value.trim(); 
-    
-      if (!emailRegex.test(trimmedValue)) {
+      const trimmedValue = value.trim();
+
+      if (!emailRegex.test(trimmedValue) && !formData.noTieneEmail) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           email: 'Verifique que su correo sea válido',
@@ -345,10 +866,9 @@ const Register = () => {
         }));
       }
     }
-    
 
     if (name === 'telefono') {
-      if (!phoneRegex.test(value)) {
+      if (!phoneRegex.test(value) && !formData.noTieneTelefono) {
         setErrors((prevErrors) => ({
           ...prevErrors,
           telefono: 'Verifique que su numero de telefono sea valido',
@@ -374,9 +894,7 @@ const Register = () => {
         otraAlergia: value.trim() ? '' : 'Especifica la alergia',
       }));
     }
-
   };
-
 
   const handleNext = () => {
     if (validateStep()) {
@@ -388,7 +906,7 @@ const Register = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
   };
 
-
+  // Manejo del submit del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -413,7 +931,6 @@ const Register = () => {
       }
 
       // Validación de tutor si es menor de edad
-      // En tu handleSubmit o donde manejes las validaciones
       if (!formData.esMayorDeEdad) {
         if (!formData.tipoTutor) {
           newErrors.tipoTutor = 'Selecciona el tipo de tutor';
@@ -469,7 +986,7 @@ const Register = () => {
         }
       );
 
-      // Agregar aquí la verificación del error 500
+      // Verificación del error 500
       if (response.status === 500) {
         navigate('/error', {
           state: {
@@ -479,6 +996,7 @@ const Register = () => {
         });
         return;
       }
+
       // Manejar respuesta exitosa
       if (response.status === 200 || response.status === 201) {
         setNotificationMessage('¡Registro exitoso! Redirigiendo...');
@@ -513,6 +1031,7 @@ const Register = () => {
         });
         return;
       }
+
       let errorMessage = 'Error en el registro. Intenta nuevamente.';
 
       if (error.response?.data?.message) {
@@ -543,17 +1062,17 @@ const Register = () => {
     setEmailVerificationError('');
     setFormData((prevFormData) => ({
       ...prevFormData,
-      verificationToken: '', // Limpia el token
+      verificationToken: '',
     }));
 
-    // Notificación opcional
+    // Notificación
     setNotificationMessage('Por favor, ingresa el nuevo correo y verifica nuevamente.');
     setNotificationType('info');
     setOpenNotification(true);
   };
 
   const handleVerifyEmail = async () => {
-    const trimmedEmail = formData.email.trim(); // Eliminar espacios en blanco
+    const trimmedEmail = formData.email.trim();
 
     if (!formData.email) {
       setEmailVerificationError('Por favor, ingresa un correo electrónico.');
@@ -566,13 +1085,13 @@ const Register = () => {
     }
 
     // Verificar si el correo tiene el formato y dominio correcto
-    if (!emailRegex.test(formData.email)) {
+    if (!emailRegex.test(formData.email) && !formData.noTieneEmail) {
       setEmailVerificationError('Verifique que su correo sea ingresado correctamente');
       return;
     }
 
-    setIsVerifyingEmail(true); // Cambia el botón a "Verificando..."
-    setEmailVerificationError(''); // Limpia cualquier error previo
+    setIsVerifyingEmail(true);
+    setEmailVerificationError('');
 
     try {
       const response = await axios.post('https://back-end-4803.onrender.com/api/send-verification-email', {
@@ -580,8 +1099,8 @@ const Register = () => {
       });
 
       if (response.status === 200) {
-        setIsEmailSent(true); // Indica que el correo fue enviado
-        setIsEmailEditable(false); // Bloquea el campo de correo
+        setIsEmailSent(true);
+        setIsEmailEditable(false);
         setNotificationMessage('Correo de verificación enviado.');
         setNotificationType('success');
         setOpenNotification(true);
@@ -591,17 +1110,17 @@ const Register = () => {
       if (error.response && error.response.status === 400 && error.response.data.message) {
         if (error.response.data.message === 'El correo electrónico ya está registrado.') {
           setEmailVerificationError('El correo electrónico ya está registrado. Por favor, intenta con otro correo.');
-          setNotificationMessage('El correo electrónico ya está registrado.'); // Agregamos el mensaje a la notificación
-          setNotificationType('error'); // Establece el tipo de notificación
-          setOpenNotification(true); // Abre la notificación
+          setNotificationMessage('El correo electrónico ya está registrado.');
+          setNotificationType('error');
+          setOpenNotification(true);
         } else {
-          setEmailVerificationError(error.response.data.message); // Captura otros mensajes de error del servidor
+          setEmailVerificationError(error.response.data.message);
         }
       } else {
         setEmailVerificationError('Error al enviar el correo de verificación.');
       }
     } finally {
-      setIsVerifyingEmail(false); // Finaliza la verificación
+      setIsVerifyingEmail(false);
     }
   };
 
@@ -619,8 +1138,8 @@ const Register = () => {
       });
 
       if (response.status === 200) {
-        setIsEmailVerified(true); // Verificación completada
-        setIsVerifiedComplete(true); // Marca como verificado
+        setIsEmailVerified(true);
+        setIsVerifiedComplete(true);
         setEmailVerificationError('');
         setNotificationMessage('Correo verificado correctamente.');
         setNotificationType('success');
@@ -629,7 +1148,7 @@ const Register = () => {
     } catch (error) {
       // Mostrar el mensaje específico que el servidor envía
       if (error.response && error.response.status === 400) {
-        setEmailVerificationError(error.response.data.message); // Mostrar mensaje específico de token inválido o expirado
+        setEmailVerificationError(error.response.data.message);
       } else {
         setEmailVerificationError('Error en el servidor al verificar el token.');
       }
@@ -638,10 +1157,10 @@ const Register = () => {
 
   const validateStep = () => {
     const stepErrors = {};
-    const nameRegex = /^[A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]+$/; // Acepta acentos, ñ y espacios.
+    const nameRegex = /^[A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]+$/;
 
     if (activeStep === 0) {
-      // Validación de nombre y apellidos (solo letras, espacios y acentos)
+      // Validación de nombre y apellidos
       if (!formData.nombre || !nameRegex.test(formData.nombre)) {
         stepErrors.nombre = 'El nombre solo debe contener letras, espacios y acentos.';
       }
@@ -655,6 +1174,9 @@ const Register = () => {
       // Validación de género y lugar de procedencia
       if (!formData.genero) {
         stepErrors.genero = 'Selecciona un género';
+      }
+      if (!formData.lugar) {
+        stepErrors.lugar = 'Selecciona un lugar de proveniencia';
       }
       if (formData.lugar === 'Otro' && !formData.otroLugar) {
         stepErrors.otroLugar = 'Especifica el lugar';
@@ -686,14 +1208,36 @@ const Register = () => {
     }
 
     if (activeStep === 1) {
-      if (!formData.telefono) stepErrors.telefono = 'El teléfono es requerido';
-      if (!formData.email) stepErrors.email = 'El correo electrónico es requerido';
+      // Para teléfono, solo validar si no ha marcado que no tiene teléfono
+      if (!formData.telefono && !formData.noTieneTelefono) {
+        stepErrors.telefono = 'El teléfono es requerido';
+      } else if (formData.telefono && !phoneRegex.test(formData.telefono) && !formData.noTieneTelefono) {
+        stepErrors.telefono = 'El teléfono debe contener 10 dígitos numéricos';
+      }
+
+      // Para email, solo validar si no ha marcado que no tiene email
+      if (!formData.email && !formData.noTieneEmail) {
+        stepErrors.email = 'El correo electrónico es requerido';
+      } else if (formData.email && !emailRegex.test(formData.email) && !formData.noTieneEmail) {
+        stepErrors.email = 'El formato del correo electrónico no es válido';
+      }
+
       if (formData.alergias.includes('Otro') && !formData.otraAlergia.trim()) {
         stepErrors.otraAlergia = 'Especifica la alergia';
       }
+
+      // Si no tiene ni email ni teléfono, mostrar un error
+      if (formData.noTieneEmail && formData.noTieneTelefono) {
+        stepErrors.contactError = 'Debe proporcionar al menos un método de contacto (email o teléfono)';
+      }
+
+      // Verificar si el email ha sido verificado (solo si no marcó que no tiene email)
+      if (!isEmailVerified && !formData.noTieneEmail) {
+        stepErrors.email = 'Debes verificar tu correo electrónico';
+      }
     }
 
-    if (activeStep === 2) {
+    if (activeStep === 3) {
       if (!formData.password) stepErrors.password = 'La contraseña es requerida';
       if (formData.password !== formData.confirmPassword) stepErrors.confirmPassword = 'Las contraseñas no coinciden';
     }
@@ -703,845 +1247,799 @@ const Register = () => {
   };
 
   const alergiasInfo = {
-    Penicilina: 'Antibiótico común.',
-    Látex: 'Material en guantes y equipo dental.',
-    'Anestésicos Locales': 'Utilizado en procedimientos odontológicos.',
-    Metales: 'Usado en coronas y aparatos.',
-    Acrílico: 'Presente en prótesis dentales.',
+    'Ninguna': 'No tengo alergias conocidas',
+    'Penicilina': 'Antibiótico común usado en odontología',
+    'Látex': 'Presente en guantes y algunos materiales dentales',
+    'Anestesia Local': 'Utilizada en procedimientos dentales',
+    'Metales': 'Como níquel o mercurio en amalgamas dentales',
+    'Ibuprofeno/AINES': 'Medicamentos para dolor e inflamación',
+    'Aspirina': 'Medicamento común para el dolor',
+    'Clorhexidina': 'Antiséptico usado en enjuagues bucales'
   };
 
+  // Lista simplificada de condiciones médicas relevantes para odontología
+  const condicionesMedicas = [
+    {
+      value: 'Ninguna',
+      label: 'Ninguna condición médica relevante'
+    },
+    {
+      value: 'Hipertension',
+      label: 'Hipertensión',
+      info: 'Presión arterial alta'
+    },
+    {
+      value: 'Diabetes',
+      label: 'Diabetes',
+      info: 'Afecta la cicatrización y puede requerir precauciones'
+    },
+    {
+      value: 'ProblemasCardiacos',
+      label: 'Problemas cardíacos',
+      info: 'Como válvulas cardíacas artificiales o historial de endocarditis'
+    },
+    {
+      value: 'Embarazo',
+      label: 'Embarazo',
+      info: 'Relevante para ciertos procedimientos y medicamentos'
+    },
+    {
+      value: 'Anticoagulantes',
+      label: 'Toma anticoagulantes',
+      info: 'Medicamentos que afectan la coagulación de la sangre'
+    },
+    {
+      value: 'Epilepsia',
+      label: 'Epilepsia',
+      info: 'Puede ser relevante para ciertos tratamientos'
+    },
+    {
+      value: 'Sinusitis',
+      label: 'Sinusitis crónica',
+      info: 'Puede estar relacionada con problemas dentales'
+    }
+  ];
 
+  // Función para determinar el color de fortaleza de la contraseña
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 2) return colors.error;
+    if (passwordStrength === 2) return colors.warning;
+    return colors.success;
+  };
 
+  // Función para determinar el texto de fortaleza de la contraseña
+  const getPasswordStrengthText = () => {
+    switch (passwordStrength) {
+      case 0: return 'Muy débil';
+      case 1: return 'Débil';
+      case 2: return 'Regular';
+      case 3: return 'Fuerte';
+      case 4: return 'Muy fuerte';
+      default: return '';
+    }
+  };
+
+  // Obtener la edad a partir de la fecha de nacimiento
+  const getEdad = (fechaNacimiento) => {
+    if (!fechaNacimiento) return '';
+
+    const hoy = new Date();
+    const nacimiento = new Date(fechaNacimiento);
+    let edad = hoy.getFullYear() - nacimiento.getFullYear();
+    const m = hoy.getMonth() - nacimiento.getMonth();
+
+    if (m < 0 || (m === 0 && hoy.getDate() < nacimiento.getDate())) {
+      edad--;
+    }
+
+    return `${edad} años`;
+  };
+
+  // Contenido por pasos
   const getStepContent = (step) => {
     switch (step) {
       case 0:
         return (
-          <Box sx={{ p: 2 }}>
-            <Grid container spacing={2}>
-              {/* Datos Personales Título */}
-              <Grid item xs={12}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: '#03427c',
-                    mb: 2,
-                    fontWeight: 600,
-                    position: 'relative',
-                    '&:after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -8,
-                      left: 0,
-                      width: '40px',
-                      height: '3px',
-                      backgroundColor: '#03427c',
-                      borderRadius: '2px'
-                    }
-                  }}
-                >
-                  Datos Personales
-                </Typography>
-              </Grid>
-
-              {/* Campos de nombre y apellidos en una fila */}
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Nombre"
-                  name="nombre"
-                  value={formData.nombre}
-                  onChange={handleChange}
-                  onInput={(e) => {
-                    e.target.value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
-                  }}
-                  required
-                  error={!!errors.nombre}
-                  helperText={errors.nombre || 'Solo letras, espacios y acentos.'}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FaUser style={{ color: errors.nombre ? '#d32f2f' : '#03427c' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Apellido Paterno"
-                  name="aPaterno"
-                  value={formData.aPaterno}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.aPaterno}
-                  helperText={errors.aPaterno || 'Solo letras, espacios y acentos.'}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FaUser style={{ color: errors.aPaterno ? '#d32f2f' : '#03427c' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                />
-              </Grid>
-
-              <Grid item xs={12} md={4}>
-                <TextField
-                  fullWidth
-                  label="Apellido Materno"
-                  name="aMaterno"
-                  value={formData.aMaterno}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.aMaterno}
-                  helperText={errors.aMaterno || 'Solo letras, espacios y acentos.'}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FaUser style={{ color: errors.aMaterno ? '#d32f2f' : '#03427c' }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Género y Fecha de Nacimiento */}
-              <Grid item xs={12} md={6}>
-                <FormControl
-                  fullWidth
-                  required
-                  error={!!errors.genero}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                >
-                  <InputLabel>Género</InputLabel>
-                  <Select
-                    value={formData.genero}
-                    onChange={handleChange}
-                    label="Género"
-                    name="genero"
-                  >
-                    <MenuItem value="Masculino">Masculino</MenuItem>
-                    <MenuItem value="Femenino">Femenino</MenuItem>
-                    <MenuItem value="Otro">Prefiero no decirlo</MenuItem>
-                  </Select>
-                  {errors.genero && (
-                    <FormHelperText error>{errors.genero}</FormHelperText>
-                  )}
-                </FormControl>
-              </Grid>
-
-              {/* CAMPO DE EDAD */}
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Fecha de Nacimiento"
-                  name="fechaNacimiento"
-                  type="date"
-                  inputProps={{
-                    max: today,
-                    style: {
-                      fontSize: '1rem',
-                      padding: '12px',
-                      cursor: 'pointer'
-                    }
-                  }}
-                  value={formData.fechaNacimiento}
-                  onChange={handleChange}
-                  required
-                  error={!!errors.fechaNacimiento}
-                  helperText={errors.fechaNacimiento || 'Selecciona tu fecha de nacimiento'}
-                  InputLabelProps={{
-                    shrink: true,
-                    sx: {
-                      fontSize: '1rem',
-                      transform: 'translate(14px, -9px) scale(0.75)'
-                    }
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '8px',
-                      backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,1)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                        borderWidth: '2px',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                        borderWidth: '2px'
-                      },
-                      '& input::-webkit-calendar-picker-indicator': {
-                        cursor: 'pointer',
-                        padding: '8px',
-                        position: 'absolute',
-                        right: '8px',
-                        filter: isDarkTheme ? 'invert(1)' : 'none',
-                        opacity: 0.7,
-                        '&:hover': {
-                          opacity: 1
-                        }
-                      }
-                    },
-                    '& .MuiInputLabel-root': {
-                      color: 'rgba(3, 66, 124, 0.7)',
-                      '&.Mui-focused': {
-                        color: '#03427c',
-                      }
-                    },
-                    '& .MuiInputBase-input': {
-                      color: isDarkTheme ? '#ffffff' : '#000000',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Mensaje de menor de edad */}
-              {formData.fechaNacimiento && !formData.esMayorDeEdad && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                {/* Datos Personales Título */}
                 <Grid item xs={12}>
-                  <Alert
-                    severity="info"
-                    variant="filled"
-                    icon={<InfoIcon sx={{ fontSize: '1.5rem' }} />}
-                    sx={{
-                      mt: 1,
-                      borderRadius: '8px',
-                      '& .MuiAlert-icon': {
-                        opacity: 1,
-                        alignItems: 'center'
-                      },
-                      '& .MuiAlert-message': {
-                        padding: '8px 0'
-                      },
-                      animation: 'fadeIn 0.5s ease-in-out',
-                      '@keyframes fadeIn': {
-                        '0%': {
-                          opacity: 0,
-                          transform: 'translateY(-10px)'
-                        },
-                        '100%': {
-                          opacity: 1,
-                          transform: 'translateY(0)'
-                        }
-                      }
-                    }}
+                  <Typography
+                    variant="h6"
+                    sx={formStyles.heading}
                   >
-                    Al ser menor de edad, necesitaremos los datos del tutor.
-                  </Alert>
+                    Datos Personales
+                  </Typography>
                 </Grid>
-              )}
 
-              {/* Campos del tutor */}
-              {formData.fechaNacimiento && !formData.esMayorDeEdad && (
-                <>
-                  <Grid item xs={12}>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        color: '#03427c',
-                        mt: 2,
-                        mb: 2,
-                        fontWeight: 600
-                      }}
-                    >
-                      Datos del Tutor
-                    </Typography>
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <FormControl
-                      fullWidth
-                      required
-                      error={!!errors.tipoTutor}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '8px',
-                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                            borderWidth: '2px'
-                          }
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: 'rgba(3, 66, 124, 0.7)',
-                          '&.Mui-focused': {
-                            color: '#03427c',
-                          }
-                        }
-                      }}
-                    >
-                      <InputLabel>Tipo de Tutor</InputLabel>
-                      <Select
-                        value={formData.tipoTutor || ''}
-                        onChange={handleChange}
-                        label="Tipo de Tutor"
-                        name="tipoTutor"
-                      >
-                        <MenuItem value="Madre">Madre</MenuItem>
-                        <MenuItem value="Padre">Padre</MenuItem>
-                        <MenuItem value="Abuelo/a">Abuelo/a</MenuItem>
-                        <MenuItem value="Tío/a">Tío/a</MenuItem>
-                        <MenuItem value="Hermano/a">Hermano/a</MenuItem>
-                        <MenuItem value="Otro">Otro</MenuItem>
-                      </Select>
-                      {errors.tipoTutor && (
-                        <FormHelperText error>{errors.tipoTutor}</FormHelperText>
-                      )}
-                    </FormControl>
-                  </Grid>
-
-                  {formData.tipoTutor === 'Otro' && (
-                    <Grid item xs={12} md={6}>
-                      <TextField
-                        fullWidth
-                        label="Especificar tipo de tutor"
-                        name="relacionTutor"
-                        value={formData.relacionTutor || ''}
-                        onChange={handleChange}
-                        onInput={(e) => {
-                          e.target.value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
-                        }}
-                        required
-                        error={!!errors.relacionTutor}
-                        helperText={errors.relacionTutor || 'Ejemplo: Tío, Abuelo, etc.'}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            borderRadius: '8px',
-                            backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-                            '&:hover fieldset': {
-                              borderColor: '#03427c',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#03427c',
-                              borderWidth: '2px'
-                            }
-                          },
-                          '& .MuiInputLabel-root': {
-                            color: 'rgba(3, 66, 124, 0.7)',
-                            '&.Mui-focused': {
-                              color: '#03427c',
-                            }
-                          }
-                        }}
-                      />
-                    </Grid>
-                  )}
-
-                  {/* Nombre del Tutor separado en campos */}
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Nombre del Tutor"
-                      name="nombreTutorNombre"
-                      value={formData.nombreTutorNombre || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
-                        handleChange({ ...e, target: { ...e.target, value } });
-                        const nombreCompleto = `${value} ${formData.nombreTutorApellidos || ''}`.trim();
-                        setFormData(prev => ({
-                          ...prev,
-                          nombreTutorNombre: value,
-                          nombreTutor: nombreCompleto
-                        }));
-                      }}
-                      required
-                      error={!!errors.nombreTutorNombre}
-                      helperText={errors.nombreTutorNombre || 'Ingresa el nombre'}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '8px',
-                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                            borderWidth: '2px'
-                          }
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: 'rgba(3, 66, 124, 0.7)',
-                          '&.Mui-focused': {
-                            color: '#03427c',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-
-                  <Grid item xs={12} md={6}>
-                    <TextField
-                      fullWidth
-                      label="Apellidos del Tutor"
-                      name="nombreTutorApellidos"
-                      value={formData.nombreTutorApellidos || ''}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
-                        handleChange({ ...e, target: { ...e.target, value } });
-                        const nombreCompleto = `${formData.nombreTutorNombre || ''} ${value}`.trim();
-                        setFormData(prev => ({
-                          ...prev,
-                          nombreTutorApellidos: value,
-                          nombreTutor: nombreCompleto
-                        }));
-                      }}
-                      required
-                      error={!!errors.nombreTutorApellidos}
-                      helperText={errors.nombreTutorApellidos || 'Ingresa los apellidos'}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '8px',
-                          backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.9)',
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                            borderWidth: '2px'
-                          }
-                        },
-                        '& .MuiInputLabel-root': {
-                          color: 'rgba(3, 66, 124, 0.7)',
-                          '&.Mui-focused': {
-                            color: '#03427c',
-                          }
-                        }
-                      }}
-                    />
-                  </Grid>
-                </>
-              )}
-
-              {/* Lugar de Procedencia */}
-              <Grid item xs={12}>
-                <FormControl
-                  fullWidth
-                  required
-                  error={!!errors.lugar}
-                  sx={{
-                    mt: 2,
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      },
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                >
-                  <InputLabel>Lugar de Proveniencia</InputLabel>
-                  <Select
-                    value={formData.lugar}
-                    onChange={handleChange}
-                    label="Lugar de Proveniencia"
-                    name="lugar"
-                  >
-                    <MenuItem value="Ixcatlan">Ixcatlan</MenuItem>
-                    <MenuItem value="Tepemaxac">Tepemaxac</MenuItem>
-                    <MenuItem value="Pastora">Pastora</MenuItem>
-                    <MenuItem value="Ahuacatitla">Ahuacatitla</MenuItem>
-                    <MenuItem value="Tepeica">Tepeica</MenuItem>
-                    <MenuItem value="Axcaco">Axcaco</MenuItem>
-                    <MenuItem value="Otro">Otro</MenuItem>
-                  </Select>
-                  {errors.lugar && <FormHelperText error>{errors.lugar}</FormHelperText>}
-                </FormControl>
-              </Grid>
-
-              {formData.lugar === 'Otro' && (
-                <Grid item xs={12}>
+                {/* Campos de nombre y apellidos */}
+                <Grid item xs={12} md={4}>
                   <TextField
                     fullWidth
-                    label="Especificar Lugar"
-                    name="otroLugar"
-                    value={formData.otroLugar}
+                    label="Nombre"
+                    name="nombre"
+                    value={formData.nombre}
                     onChange={handleChange}
-                    required
-                    error={!!errors.otroLugar}
-                    helperText={errors.otroLugar || 'Escribe el lugar específico'}
-                    sx={{
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: '#03427c',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#03427c',
-                        },
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': {
-                        color: '#03427c',
-                      }
-                    }}
-                  />
-                </Grid>
-              )}
-            </Grid>
-          </Box>
-        );
-      case 1:
-        return (
-          <Box sx={{ p: 2 }}>
-            <Grid container spacing={3}>
-              {/* Sección de Verificación de Email */}
-              <Grid item xs={12}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: '#03427c',
-                    mb: 3,
-                    fontWeight: 600,
-                    position: 'relative',
-                    '&:after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -8,
-                      left: 0,
-                      width: '40px',
-                      height: '3px',
-                      backgroundColor: '#03427c',
-                      borderRadius: '2px'
-                    }
-                  }}
-                >
-                  Verificación de Correo
-                </Typography>
-              </Grid>
-
-              {/* Campo de Email y Botones */}
-              <Grid item xs={12}>
-                <Box sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  alignItems: { xs: 'stretch', sm: 'flex-start' },
-                  gap: 2
-                }}>
-                  <TextField
-                    fullWidth
-                    label="Correo electrónico"
-                    name="email"
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData({ ...formData, email: e.target.value });
-                      setIsEmailSent(false);
-                      setIsEmailVerified(false);
-                      setIsVerifiedComplete(false);
+                    onInput={(e) => {
+                      e.target.value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
                     }}
                     required
-                    error={!!errors.email}
-                    helperText={errors.email}
-                    disabled={!isEmailEditable}
+                    error={!!errors.nombre}
+                    helperText={errors.nombre || 'Solo letras, espacios y acentos.'}
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <FaEnvelope style={{ color: errors.email ? '#d32f2f' : '#03427c' }} />
+                          <FaUser style={{ color: errors.nombre ? colors.error : colors.primary }} />
                         </InputAdornment>
                       ),
                     }}
-                    sx={{
-                      flex: 1,
-                      '& .MuiOutlinedInput-root': {
-                        '&:hover fieldset': {
-                          borderColor: '#03427c',
-                        },
-                        '&.Mui-focused fieldset': {
-                          borderColor: '#03427c',
-                        }
-                      },
-                      '& .MuiInputLabel-root.Mui-focused': {
-                        color: '#03427c',
+                    sx={formStyles.textField}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Apellido Paterno"
+                    name="aPaterno"
+                    value={formData.aPaterno}
+                    onChange={handleChange}
+                    required
+                    error={!!errors.aPaterno}
+                    helperText={errors.aPaterno || 'Solo letras, espacios y acentos.'}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaUser style={{ color: errors.aPaterno ? colors.error : colors.primary }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={formStyles.textField}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Apellido Materno"
+                    name="aMaterno"
+                    value={formData.aMaterno}
+                    onChange={handleChange}
+                    required
+                    error={!!errors.aMaterno}
+                    helperText={errors.aMaterno || 'Solo letras, espacios y acentos.'}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaUser style={{ color: errors.aMaterno ? colors.error : colors.primary }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={formStyles.textField}
+                  />
+                </Grid>
+
+                {/* Género y Fecha de Nacimiento */}
+                <Grid item xs={12} md={6}>
+                  <FormControl
+                    fullWidth
+                    required
+                    error={!!errors.genero}
+                    sx={formStyles.select}
+                  >
+                    <InputLabel>Género</InputLabel>
+                    <Select
+                      value={formData.genero}
+                      onChange={handleChange}
+                      label="Género"
+                      name="genero"
+                      startAdornment={
+                        <InputAdornment position="start" sx={{ mr: 1 }}>
+                          <FaIdCard style={{ color: colors.primary }} />
+                        </InputAdornment>
+                      }
+                    >
+                      <MenuItem value="Masculino">Masculino</MenuItem>
+                      <MenuItem value="Femenino">Femenino</MenuItem>
+                      <MenuItem value="Otro">Prefiero no decirlo</MenuItem>
+                    </Select>
+                    {errors.genero && (
+                      <FormHelperText error>{errors.genero}</FormHelperText>
+                    )}
+                  </FormControl>
+                </Grid>
+
+                {/* Campo de Fecha de Nacimiento */}
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Fecha de Nacimiento"
+                    name="fechaNacimiento"
+                    type="date"
+                    inputProps={{
+                      max: today,
+                      style: {
+                        fontSize: '1rem',
+                        padding: '12px',
+                        cursor: 'pointer'
                       }
                     }}
+                    value={formData.fechaNacimiento}
+                    onChange={handleChange}
+                    required
+                    error={!!errors.fechaNacimiento}
+                    helperText={errors.fechaNacimiento || 'Selecciona tu fecha de nacimiento'}
+                    InputLabelProps={{
+                      shrink: true,
+                      sx: {
+                        fontSize: '1rem',
+                        transform: 'translate(14px, -9px) scale(0.75)'
+                      }
+                    }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaBirthdayCake style={{ color: errors.fechaNacimiento ? colors.error : colors.primary }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={formStyles.textField}
                   />
-
-                  {!isEmailVerified && (
-                    <Button
-                      variant="contained"
-                      onClick={handleVerifyEmail}
-                      disabled={isVerifyingEmail || isVerifiedComplete || isEmailSent}
-                      sx={{
-                        bgcolor: '#03427c',
-                        minWidth: '150px',
-                        height: '56px',
-                        '&:hover': {
-                          bgcolor: '#02305c'
-                        },
-                        '&.Mui-disabled': {
-                          bgcolor: 'rgba(3, 66, 124, 0.4)'
-                        }
-                      }}
-                    >
-                      {isVerifiedComplete ? (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <FaCheckCircle /> Verificado
-                        </Box>
-                      ) : isVerifyingEmail ? (
-                        <CircularProgress size={24} sx={{ color: 'white' }} />
-                      ) : isEmailSent ? (
-                        'Correo Enviado'
-                      ) : (
-                        'Verificar Correo'
-                      )}
-                    </Button>
-                  )}
-                </Box>
-              </Grid>
-
-              {/* Código de Verificación */}
-              {isEmailSent && !isEmailVerified && (
-                <Grid item xs={12}>
-                  <Box sx={{
-                    bgcolor: 'rgba(3, 66, 124, 0.03)',
-                    p: 3,
-                    borderRadius: 2,
-                    border: '1px solid rgba(3, 66, 124, 0.1)'
-                  }}>
-                    <Typography variant="subtitle1" sx={{ mb: 2, color: '#03427c', fontWeight: 500 }}>
-                      Ingresa el código de verificación enviado a tu correo
-                    </Typography>
-
-                    <TextField
-                      fullWidth
-                      label="Código de verificación"
-                      name="verificationToken"
-                      value={formData.verificationToken}
-                      onChange={(e) => setFormData({ ...formData, verificationToken: e.target.value })}
-                      required
-                      error={!!errors.verificationToken}
-                      helperText={errors.verificationToken}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <FaLock style={{ color: errors.verificationToken ? '#d32f2f' : '#03427c' }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                          }
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#03427c',
-                        }
-                      }}
-                    />
-
-                    <Box sx={{
-                      display: 'flex',
-                      gap: 2,
-                      mt: 2,
-                      flexDirection: { xs: 'column', sm: 'row' }
-                    }}>
-                      <Button
-                        variant="contained"
-                        onClick={handleVerifyToken}
-                        sx={{
-                          bgcolor: '#03427c',
-                          '&:hover': {
-                            bgcolor: '#02305c'
-                          }
-                        }}
-                      >
-                        Validar Código
-                      </Button>
-
-                      <Button
-                        variant="outlined"
-                        onClick={() => setShowChangeEmailConfirmation(true)}
-                        sx={{
-                          color: '#03427c',
-                          borderColor: '#03427c',
-                          '&:hover': {
-                            borderColor: '#02305c',
-                            bgcolor: 'rgba(3, 66, 124, 0.05)'
-                          }
-                        }}
-                      >
-                        Cambiar correo
-                      </Button>
-                    </Box>
-                  </Box>
                 </Grid>
-              )}
 
-              {/* Información Adicional (visible después de verificar) */}
-              {isEmailVerified && (
-                <>
+                {/* Mensaje de menor de edad */}
+                {formData.fechaNacimiento && !formData.esMayorDeEdad && (
                   <Grid item xs={12}>
-                    <Typography
-                      variant="h6"
+                    <Alert
+                      severity="info"
+                      icon={<InfoIcon sx={{ fontSize: '1.5rem' }} />}
                       sx={{
-                        color: '#03427c',
-                        mt: 4,
-                        mb: 3,
-                        fontWeight: 600
+                        mt: 1,
+                        borderRadius: '10px',
+                        backgroundColor: alpha(colors.info, 0.1),
+                        color: colors.text,
+                        border: `1px solid ${alpha(colors.info, 0.2)}`,
+                        '& .MuiAlert-icon': {
+                          color: colors.info
+                        },
+                        '& .MuiAlert-message': {
+                          padding: '8px 0'
+                        },
+                        animation: 'fadeIn 0.5s ease-in-out',
+                        '@keyframes fadeIn': {
+                          '0%': {
+                            opacity: 0,
+                            transform: 'translateY(-10px)'
+                          },
+                          '100%': {
+                            opacity: 1,
+                            transform: 'translateY(0)'
+                          }
+                        }
                       }}
                     >
-                      Información de Contacto y Salud
-                    </Typography>
+                      Al ser menor de edad, necesitaremos los datos del tutor.
+                    </Alert>
                   </Grid>
+                )}
 
-                  <Grid item xs={12} md={6}>
+                {/* Campos del tutor */}
+                {formData.fechaNacimiento && !formData.esMayorDeEdad && (
+                  <>
+                    <Grid item xs={12}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          ...formStyles.heading,
+                          mt: 2,
+                          fontSize: '1.1rem',
+                          '&:after': {
+                            width: '30px',
+                            height: '2px',
+                          }
+                        }}
+                      >
+                        Datos del Tutor
+                      </Typography>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <FormControl
+                        fullWidth
+                        required
+                        error={!!errors.tipoTutor}
+                        sx={formStyles.select}
+                      >
+                        <InputLabel>Tipo de Tutor</InputLabel>
+                        <Select
+                          value={formData.tipoTutor || ''}
+                          onChange={handleChange}
+                          label="Tipo de Tutor"
+                          name="tipoTutor"
+                          startAdornment={
+                            <InputAdornment position="start" sx={{ mr: 1 }}>
+                              <FaShieldAlt style={{ color: colors.primary }} />
+                            </InputAdornment>
+                          }
+                        >
+                          <MenuItem value="Madre">Madre</MenuItem>
+                          <MenuItem value="Padre">Padre</MenuItem>
+                          <MenuItem value="Abuelo/a">Abuelo/a</MenuItem>
+                          <MenuItem value="Tío/a">Tío/a</MenuItem>
+                          <MenuItem value="Hermano/a">Hermano/a</MenuItem>
+                          <MenuItem value="Otro">Otro</MenuItem>
+                        </Select>
+                        {errors.tipoTutor && (
+                          <FormHelperText error>{errors.tipoTutor}</FormHelperText>
+                        )}
+                      </FormControl>
+                    </Grid>
+
+                    {formData.tipoTutor === 'Otro' && (
+                      <Grid item xs={12} md={6}>
+                        <TextField
+                          fullWidth
+                          label="Especificar tipo de tutor"
+                          name="relacionTutor"
+                          value={formData.relacionTutor || ''}
+                          onChange={handleChange}
+                          onInput={(e) => {
+                            e.target.value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
+                          }}
+                          required
+                          error={!!errors.relacionTutor}
+                          helperText={errors.relacionTutor || 'Ejemplo: Tío, Abuelo, etc.'}
+                          sx={formStyles.textField}
+                        />
+                      </Grid>
+                    )}
+
+                    {/* Nombre del Tutor separado en campos */}
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Nombre del Tutor"
+                        name="nombreTutorNombre"
+                        value={formData.nombreTutorNombre || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
+                          handleChange({ ...e, target: { ...e.target, value } });
+                          const nombreCompleto = `${value} ${formData.nombreTutorApellidos || ''}`.trim();
+                          setFormData(prev => ({
+                            ...prev,
+                            nombreTutorNombre: value,
+                            nombreTutor: nombreCompleto
+                          }));
+                        }}
+                        required
+                        error={!!errors.nombreTutorNombre}
+                        helperText={errors.nombreTutorNombre || 'Ingresa el nombre'}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <FaUser style={{ color: errors.nombreTutorNombre ? colors.error : colors.primary }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={formStyles.textField}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        fullWidth
+                        label="Apellidos del Tutor"
+                        name="nombreTutorApellidos"
+                        value={formData.nombreTutorApellidos || ''}
+                        onChange={(e) => {
+                          const value = e.target.value.replace(/[^A-Za-zÀ-ÿ\u00f1\u00d1\u00e0-\u00fc\s]/g, '');
+                          handleChange({ ...e, target: { ...e.target, value } });
+                          const nombreCompleto = `${formData.nombreTutorNombre || ''} ${value}`.trim();
+                          setFormData(prev => ({
+                            ...prev,
+                            nombreTutorApellidos: value,
+                            nombreTutor: nombreCompleto
+                          }));
+                        }}
+                        required
+                        error={!!errors.nombreTutorApellidos}
+                        helperText={errors.nombreTutorApellidos || 'Ingresa los apellidos'}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <FaUser style={{ color: errors.nombreTutorApellidos ? colors.error : colors.primary }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={formStyles.textField}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {/* Lugar de Procedencia */}
+                <Grid item xs={12}>
+                  <FormControl
+                    fullWidth
+                    required
+                    error={!!errors.lugar}
+                    sx={{
+                      ...formStyles.select,
+                      mt: 2
+                    }}
+                  >
+                    <InputLabel>Lugar de Proveniencia</InputLabel>
+                    <Select
+                      value={formData.lugar || ''}
+                      onChange={handleChange}
+                      label="Lugar de Proveniencia"
+                      name="lugar"
+                      startAdornment={
+                        <InputAdornment position="start" sx={{ mr: 1 }}>
+                          <FaMapMarkerAlt style={{ color: colors.primary }} />
+                        </InputAdornment>
+                      }
+                    >
+                      <MenuItem value="Ixcatlan">Ixcatlan</MenuItem>
+                      <MenuItem value="Tepemaxac">Tepemaxac</MenuItem>
+                      <MenuItem value="Pastora">Pastora</MenuItem>
+                      <MenuItem value="Ahuacatitla">Ahuacatitla</MenuItem>
+                      <MenuItem value="Tepeica">Tepeica</MenuItem>
+                      <MenuItem value="Axcaco">Axcaco</MenuItem>
+                      <MenuItem value="Otro">Otro</MenuItem>
+                    </Select>
+                    {errors.lugar && <FormHelperText error>{errors.lugar}</FormHelperText>}
+                  </FormControl>
+                </Grid>
+
+                {formData.lugar === 'Otro' && (
+                  <Grid item xs={12}>
                     <TextField
                       fullWidth
-                      label="Teléfono"
-                      name="telefono"
-                      value={formData.telefono}
+                      label="Especificar Lugar"
+                      name="otroLugar"
+                      value={formData.otroLugar}
                       onChange={handleChange}
                       required
-                      error={!!errors.telefono}
-                      helperText={errors.telefono}
+                      error={!!errors.otroLugar}
+                      helperText={errors.otroLugar || 'Escribe el lugar específico'}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
-                            <FaPhone style={{ color: errors.telefono ? '#d32f2f' : '#03427c' }} />
+                            <FaMapMarkerAlt style={{ color: errors.otroLugar ? colors.error : colors.primary }} />
                           </InputAdornment>
                         ),
                       }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                          }
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#03427c',
-                        }
-                      }}
+                      sx={formStyles.textField}
                     />
                   </Grid>
+                )}
+              </Grid>
+            </Box>
+          </motion.div>
+        );
+      case 1:
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                {/* Información importante sobre métodos de contacto */}
+                <Grid item xs={12}>
+                  <Alert
+                    severity="info"
+                    icon={<InfoIcon />}
+                    sx={{
+                      borderRadius: '8px',
+                      mb: 3,
+                      backgroundColor: alpha(colors.info, 0.08),
+                      color: colors.text,
+                      border: `1px solid ${alpha(colors.info, 0.2)}`,
+                      '& .MuiAlert-icon': {
+                        color: colors.info
+                      }
+                    }}
+                  >
+                    <AlertTitle sx={{ fontWeight: 600 }}>Información importante</AlertTitle>
+                    Es recomendable proporcionar al menos un método de contacto (correo electrónico o teléfono) para poder
+                    recibir notificaciones y comunicaciones importantes sobre su atención médica.
+                  </Alert>
+                </Grid>
 
+                {/* Error si no tiene ni email ni teléfono */}
+                {errors.contactError && (
                   <Grid item xs={12}>
-                    <FormControl
-                      fullWidth
-                      error={!!errors.alergias}
+                    <Alert
+                      severity="error"
                       sx={{
-                        '& .MuiOutlinedInput-root': {
-                          '&:hover fieldset': {
-                            borderColor: '#03427c',
-                          },
-                          '&.Mui-focused fieldset': {
-                            borderColor: '#03427c',
-                          }
-                        },
-                        '& .MuiInputLabel-root.Mui-focused': {
-                          color: '#03427c',
+                        borderRadius: '8px',
+                        mb: 2,
+                        backgroundColor: alpha(colors.error, 0.08),
+                        color: colors.text,
+                        border: `1px solid ${alpha(colors.error, 0.2)}`,
+                        '& .MuiAlert-icon': {
+                          color: colors.error
                         }
                       }}
                     >
-                      <InputLabel>Alergias</InputLabel>
-                      <Select
-                        multiple
-                        value={formData.alergias}
-                        onChange={(e) => {
-                          const { value } = e.target;
-                          // Si seleccionas "Ninguna", deselecciona todas las demás
-                          if (value.includes('Ninguna')) {
-                            setFormData({
-                              ...formData,
-                              alergias: ['Ninguna'],
-                            });
-                          } else {
-                            // Remover "Ninguna" si se seleccionan otras alergias
-                            setFormData({
-                              ...formData,
-                              alergias: typeof value === 'string' ? value.split(',') : value.filter((alergia) => alergia !== 'Ninguna'),
-                            });
+                      {errors.contactError}
+                    </Alert>
+                  </Grid>
+                )}
+
+                {/* Sección de Verificación de Email */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="h6"
+                    sx={formStyles.heading}
+                  >
+                    Información de Contacto
+                  </Typography>
+                </Grid>
+
+                {/* Campo de Email y Botones */}
+                <Grid item xs={12}>
+                  <Box sx={{
+                    display: 'flex',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'flex-start' },
+                    gap: 2
+                  }}>
+                    <TextField
+                      fullWidth
+                      label="Correo electrónico"
+                      name="email"
+                      value={formData.email}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        setIsEmailSent(false);
+                        setIsEmailVerified(false);
+                        setIsVerifiedComplete(false);
+                      }}
+                      required={!formData.noTieneEmail}
+                      error={!!errors.email || !!emailVerificationError}
+                      helperText={errors.email || emailVerificationError}
+                      disabled={!isEmailEditable || formData.noTieneEmail}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <FaEnvelope style={{ color: (errors.email || emailVerificationError) ? colors.error : colors.primary }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={formStyles.textField}
+                    />
+
+                    {!isEmailVerified && !formData.noTieneEmail && (
+                      <Button
+                        variant="contained"
+                        onClick={handleVerifyEmail}
+                        disabled={isVerifyingEmail || isVerifiedComplete || isEmailSent || formData.noTieneEmail}
+                        sx={{
+                          ...formStyles.button.primary,
+                          minWidth: '150px',
+                          height: '56px'
+                        }}
+                      >
+                        {isVerifiedComplete ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <FaCheckCircle /> Verificado
+                          </Box>
+                        ) : isVerifyingEmail ? (
+                          <CircularProgress size={24} sx={{ color: '#FFFFFF' }} />
+                        ) : isEmailSent ? (
+                          'Correo Enviado'
+                        ) : (
+                          'Verificar Correo'
+                        )}
+                      </Button>
+                    )}
+                  </Box>
+
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={formData.noTieneEmail}
+                        onChange={handleChange}
+                        name="noTieneEmail"
+                        sx={{
+                          color: colors.primary,
+                          '&.Mui-checked': {
+                            color: colors.primary,
                           }
                         }}
-                        label="Alergias"
-                        name="alergias"
-                        renderValue={(selected) => selected.join(', ')}
-                      >
-                        <MenuItem value="Ninguna">
-                          <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: '100%'
-                          }}>
-                            <Typography>Ninguna</Typography>
-                            {formData.alergias.includes('Ninguna') ? (
-                              <FaCheckCircle style={{ color: '#03427c' }} />
-                            ) : (
-                              <FaPlusCircle />
-                            )}
-                          </Box>
-                        </MenuItem>
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" sx={{ color: colors.text }}>
+                        No tengo correo electrónico
+                      </Typography>
+                    }
+                    sx={{ mt: 1 }}
+                  />
+                </Grid>
 
-                        {Object.keys(alergiasInfo).map((alergia) => (
+                {/* Código de Verificación */}
+                {isEmailSent && !isEmailVerified && !formData.noTieneEmail && (
+                  <Grid item xs={12}>
+                    <Box sx={{
+                      bgcolor: alpha(colors.primary, 0.05),
+                      p: 3,
+                      borderRadius: '12px',
+                      border: `1px solid ${alpha(colors.primary, 0.1)}`
+                    }}>
+                      <Typography variant="subtitle1" sx={{ mb: 2, color: colors.primary, fontWeight: 500 }}>
+                        Ingresa el código de verificación enviado a tu correo
+                      </Typography>
+
+                      <TextField
+                        fullWidth
+                        label="Código de verificación"
+                        name="verificationToken"
+                        value={formData.verificationToken}
+                        onChange={(e) => setFormData({ ...formData, verificationToken: e.target.value })}
+                        required
+                        error={!!errors.verificationToken}
+                        helperText={errors.verificationToken}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <FaLock style={{ color: errors.verificationToken ? colors.error : colors.primary }} />
+                            </InputAdornment>
+                          ),
+                        }}
+                        sx={formStyles.textField}
+                      />
+
+                      <Box sx={{
+                        display: 'flex',
+                        gap: 2,
+                        mt: 3,
+                        flexDirection: { xs: 'column', sm: 'row' }
+                      }}>
+                        <Button
+                          variant="contained"
+                          onClick={handleVerifyToken}
+                          sx={formStyles.button.primary}
+                        >
+                          Validar Código
+                        </Button>
+
+                        <Button
+                          variant="outlined"
+                          onClick={() => setShowChangeEmailConfirmation(true)}
+                          sx={formStyles.button.secondary}
+                        >
+                          Cambiar correo
+                        </Button>
+                      </Box>
+                    </Box>
+                  </Grid>
+                )}
+
+                {/* Campo de teléfono con formato personalizado */}
+                <Grid item xs={12}>
+                  <PhoneDigitInput
+                    error={!!errors.telefono}
+                    helperText={errors.telefono}
+                  />
+                </Grid>
+
+
+
+                {/* Sección de Alergias */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      ...formStyles.heading,
+                      mt: 4
+                    }}
+                  >
+                    Información de Salud
+                  </Typography>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1, color: colors.primary }}>
+                    Información Médica
+                  </Typography>
+
+                  <Grid container spacing={2}>
+                    {/* Alergias */}
+                    <Grid item xs={12} md={6}>
+                      <FormControl
+                        fullWidth
+                        error={!!errors.alergias}
+                        sx={{
+                          ...formStyles.select,
+                          mb: 1
+                        }}
+                      >
+                        <InputLabel>Alergias</InputLabel>
+                        <Select
+                          multiple
+                          value={formData.alergias.filter(item =>
+                            Object.keys(alergiasInfo).includes(item) ||
+                            item === 'Otro'
+                          )}
+                          onChange={(e) => {
+                            const { value } = e.target;
+                            // Si seleccionas "Ninguna", deselecciona todas las demás
+                            if (value.includes('Ninguna')) {
+                              setFormData({
+                                ...formData,
+                                alergias: ['Ninguna'],
+                              });
+                            } else {
+                              // Filtrar solo las alergias y mantener las condiciones médicas
+                              const currentCondiciones = formData.alergias.filter(item =>
+                                !Object.keys(alergiasInfo).includes(item) &&
+                                item !== 'Ninguna' &&
+                                item !== 'Otro'
+                              );
+
+                              // Remover "Ninguna" si se seleccionan otras alergias
+                              setFormData({
+                                ...formData,
+                                alergias: [
+                                  ...((typeof value === 'string') ? value.split(',') : value.filter(alergia => alergia !== 'Ninguna')),
+                                  ...currentCondiciones
+                                ],
+                              });
+                            }
+                          }}
+                          label="Alergias"
+                          name="alergias"
+                          renderValue={(selected) =>
+                            selected.length > 0
+                              ? selected.join(', ')
+                              : 'Seleccione alergias'
+                          }
+                        >
+                          {Object.entries(alergiasInfo).map(([alergia, info]) => (
+                            <MenuItem
+                              key={alergia}
+                              value={alergia}
+                              disabled={formData.alergias.includes('Ninguna') && alergia !== 'Ninguna'}
+                            >
+                              <Box sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                width: '100%'
+                              }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography>{alergia}</Typography>
+                                  {info && (
+                                    <Tooltip title={info} arrow placement="right">
+                                      <IconButton size="small" sx={{ ml: 1, color: colors.textSecondary, p: 0.2 }}>
+                                        <FaInfoCircle size={12} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                                {formData.alergias.includes(alergia) ? (
+                                  <FaCheckCircle style={{ color: colors.primary }} />
+                                ) : (
+                                  <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
+                                )}
+                              </Box>
+                            </MenuItem>
+                          ))}
+
                           <MenuItem
-                            key={alergia}
-                            value={alergia}
+                            value="Otro"
                             disabled={formData.alergias.includes('Ninguna')}
                           >
                             <Box sx={{
@@ -1550,371 +2048,1149 @@ const Register = () => {
                               alignItems: 'center',
                               width: '100%'
                             }}>
-                              <Typography>{alergia}</Typography>
-                              {formData.alergias.includes(alergia) ? (
-                                <FaCheckCircle style={{ color: '#03427c' }} />
+                              <Typography>Otra alergia</Typography>
+                              {formData.alergias.includes('Otro') ? (
+                                <FaCheckCircle style={{ color: colors.primary }} />
                               ) : (
-                                <FaPlusCircle />
+                                <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
                               )}
                             </Box>
                           </MenuItem>
-                        ))}
+                        </Select>
+                      </FormControl>
 
-                        <MenuItem
-                          value="Otro"
-                          disabled={formData.alergias.includes('Ninguna')}
-                        >
-                          <Box sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            width: '100%'
-                          }}>
-                            <Typography>Otro</Typography>
-                            {formData.alergias.includes('Otro') ? (
-                              <FaCheckCircle style={{ color: '#03427c' }} />
-                            ) : (
-                              <FaPlusCircle />
-                            )}
-                          </Box>
-                        </MenuItem>
-                      </Select>
-
-                      {/* Información de alergias seleccionadas */}
-                      {formData.alergias.some((alergia) => alergiasInfo[alergia]) && (
-                        <Alert
-                          severity="info"
-                          sx={{ mt: 1 }}
-                          icon={<FaInfoCircle />}
-                        >
-                          {alergiasInfo[formData.alergias.find((alergia) => alergiasInfo[alergia])]}
-                        </Alert>
+                      {/* Campo para especificar otra alergia */}
+                      {formData.alergias.includes('Otro') && (
+                        <TextField
+                          fullWidth
+                          label="Especificar Alergia"
+                          name="otraAlergia"
+                          value={formData.otraAlergia}
+                          onChange={handleChange}
+                          required
+                          error={!!errors.otraAlergia}
+                          helperText={errors.otraAlergia}
+                          size="small"
+                          sx={{
+                            ...formStyles.textField,
+                            mb: 2
+                          }}
+                        />
                       )}
+                    </Grid>
 
-                      <FormHelperText>
-                        {errors.alergias || 'Puedes seleccionar más de una alergia'}
-                      </FormHelperText>
-                    </FormControl>
+                    {/* Condiciones médicas */}
+                    <Grid item xs={12} md={6}>
+                      <FormControl
+                        fullWidth
+                        sx={formStyles.select}
+                      >
+                        <InputLabel>Condiciones médicas</InputLabel>
+                        <Select
+                          multiple
+                          value={formData.alergias.filter(item =>
+                            condicionesMedicas.some(c => c.value === item)
+                          )}
+                          onChange={(e) => {
+                            const { value } = e.target;
 
-                    {/* Campo para especificar otra alergia */}
-                    {formData.alergias.includes('Otro') && (
+                            // Si seleccionas "Ninguna", limpiar otras condiciones
+                            if (value.includes('Ninguna')) {
+                              // Mantener solo alergias, eliminar todas las condiciones
+                              const onlyAlergias = formData.alergias.filter(item =>
+                                Object.keys(alergiasInfo).includes(item) ||
+                                item === 'Otro' ||
+                                item === 'OtraCondicion'
+                              );
+
+                              setFormData({
+                                ...formData,
+                                alergias: [...onlyAlergias, 'Ninguna']
+                              });
+                            } else {
+                              // Filtrar condiciones seleccionadas
+                              const condicionesSeleccionadas = typeof value === 'string'
+                                ? value.split(',')
+                                : value;
+
+                              // Obtener alergias actuales (sin las condiciones)
+                              const alergias = formData.alergias.filter(item =>
+                                Object.keys(alergiasInfo).includes(item) ||
+                                item === 'Otro' ||
+                                item === 'OtraCondicion'
+                              );
+
+                              // Combinar alergias con nuevas condiciones
+                              setFormData({
+                                ...formData,
+                                alergias: [
+                                  ...alergias.filter(a => a !== 'Ninguna'), // Remover "Ninguna"
+                                  ...condicionesSeleccionadas
+                                ]
+                              });
+                            }
+                          }}
+                          label="Condiciones médicas"
+                          renderValue={(selected) =>
+                            selected.length > 0
+                              ? selected.map(val => {
+                                const condition = condicionesMedicas.find(c => c.value === val);
+                                return condition ? condition.label : val;
+                              }).join(', ')
+                              : 'Seleccione condiciones'
+                          }
+                        >
+                          {condicionesMedicas.map((condicion) => (
+                            <MenuItem
+                              key={condicion.value}
+                              value={condicion.value}
+                              disabled={
+                                (condicion.value !== 'Ninguna' && formData.alergias.includes('Ninguna')) ||
+                                (condicion.value === 'Ninguna' && formData.alergias.some(item =>
+                                  condicionesMedicas.some(c => c.value === item && c.value !== 'Ninguna')
+                                ))
+                              }
+                            >
+                              <Box sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                width: '100%'
+                              }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Typography>{condicion.label}</Typography>
+                                  {condicion.info && (
+                                    <Tooltip title={condicion.info} arrow>
+                                      <IconButton size="small" sx={{ ml: 1, color: colors.textSecondary, p: 0.2 }}>
+                                        <FaInfoCircle size={12} />
+                                      </IconButton>
+                                    </Tooltip>
+                                  )}
+                                </Box>
+                                {formData.alergias.includes(condicion.value) ? (
+                                  <FaCheckCircle style={{ color: colors.primary }} />
+                                ) : (
+                                  <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
+                                )}
+                              </Box>
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </Grid>
+
+                    <Grid item xs={12}>
                       <TextField
                         fullWidth
-                        label="Especificar Alergia"
-                        name="otraAlergia"
-                        value={formData.otraAlergia}
-                        onChange={handleChange}
-                        required
-                        error={!!errors.otraAlergia}
-                        helperText={errors.otraAlergia}
-                        sx={{
-                          mt: 2,
-                          '& .MuiOutlinedInput-root': {
-                            '&:hover fieldset': {
-                              borderColor: '#03427c',
-                            },
-                            '&.Mui-focused fieldset': {
-                              borderColor: '#03427c',
-                            }
-                          },
-                          '& .MuiInputLabel-root.Mui-focused': {
-                            color: '#03427c',
+                        label="¿Otra condición médica relevante? Especifique"
+                        name="otraCondicion"
+                        value={formData.otraCondicion || ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setFormData({
+                            ...formData,
+                            otraCondicion: value
+                          });
+
+                          // Si hay valor, agregar a alergias (que es en realidad el campo para todas las condiciones médicas)
+                          if (value && value.trim() !== '') {
+                            // Primero eliminar cualquier "otra condición" anterior
+                            const newAlergias = formData.alergias.filter(item =>
+                              item !== 'OtraCondicion'
+                            );
+
+                            setFormData(prev => ({
+                              ...prev,
+                              alergias: [...newAlergias, 'OtraCondicion']
+                            }));
+                          } else {
+                            // Si se vacía el campo, eliminar OtraCondicion de alergias
+                            setFormData(prev => ({
+                              ...prev,
+                              alergias: prev.alergias.filter(item => item !== 'OtraCondicion')
+                            }));
                           }
                         }}
+                        disabled={formData.alergias.includes('Ninguna')}
+                        size="small"
+                        sx={formStyles.textField}
                       />
-                    )}
+                    </Grid>
                   </Grid>
-                </>
-              )}
-            </Grid>
+                </Grid>
+              </Grid>
 
-            {/* Modal de Confirmación */}
-            <Modal
-              open={showChangeEmailConfirmation}
-              onClose={() => setShowChangeEmailConfirmation(false)}
-            >
-              <Box sx={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '90%',
-                maxWidth: 400,
-                bgcolor: 'background.paper',
-                boxShadow: 24,
-                p: 4,
-                borderRadius: 2,
-              }}>
-                <Typography variant="h6" sx={{ mb: 2, color: '#03427c' }}>
-                  Cambiar correo electrónico
-                </Typography>
+              {/* Modal de Confirmación */}
+              <Modal
+                open={showChangeEmailConfirmation}
+                onClose={() => setShowChangeEmailConfirmation(false)}
+              >
+                <Box sx={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  width: '90%',
+                  maxWidth: 400,
+                  bgcolor: colors.paper,
+                  boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
+                  p: 4,
+                  borderRadius: '12px',
+                  border: `1px solid ${colors.border}`
+                }}>
+                  <Typography variant="h6" sx={{ mb: 2, color: colors.primary, fontWeight: 600 }}>
+                    Cambiar correo electrónico
+                  </Typography>
 
-                <Typography variant="body1" sx={{ mb: 3 }}>
-                  ¿Estás seguro de que deseas cambiar el correo? Esto invalidará el código enviado anteriormente.
-                </Typography>
+                  <Typography variant="body1" sx={{ mb: 3, color: colors.text }}>
+                    ¿Estás seguro de que deseas cambiar el correo? Esto invalidará el código enviado anteriormente.
+                  </Typography>
 
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setShowChangeEmailConfirmation(false)}
-                    sx={{
-                      color: '#03427c',
-                      borderColor: '#03427c',
-                      '&:hover': {
-                        borderColor: '#02305c',
-                        bgcolor: 'rgba(3, 66, 124, 0.05)'
-                      }
-                    }}
-                  >
-                    Cancelar
-                  </Button>
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setShowChangeEmailConfirmation(false)}
+                      sx={formStyles.button.secondary}
+                    >
+                      Cancelar
+                    </Button>
 
-                  <Button
-                    variant="contained"
-                    onClick={handleEmailChange}
-                    sx={{
-                      bgcolor: '#03427c',
-                      '&:hover': {
-                        bgcolor: '#02305c'
-                      }
-                    }}
-                  >
-                    Sí, cambiar correo
-                  </Button>
+                    <Button
+                      variant="contained"
+                      onClick={handleEmailChange}
+                      sx={formStyles.button.primary}
+                    >
+                      Sí, cambiar correo
+                    </Button>
+                  </Box>
                 </Box>
-              </Box>
-            </Modal>
-          </Box>
+              </Modal>
+            </Box>
+          </motion.div>
         );
-      case 2:
+      case 2: // Revisar datos
         return (
-          <Box sx={{ p: 2 }}>
-            <Grid container spacing={3}>
-              {/* Título */}
-              <Grid item xs={12}>
-                <Typography
-                  variant="h6"
-                  sx={{
-                    color: '#03427c',
-                    mb: 3,
-                    fontWeight: 600,
-                    position: 'relative',
-                    '&:after': {
-                      content: '""',
-                      position: 'absolute',
-                      bottom: -8,
-                      left: 0,
-                      width: '40px',
-                      height: '3px',
-                      backgroundColor: '#03427c',
-                      borderRadius: '2px'
-                    }
-                  }}
-                >
-                  Configura tu Contraseña
-                </Typography>
-              </Grid>
-
-              {/* Campo Contraseña */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Contraseña"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={(e) => {
-                    handleChange(e);
-                    if (e.target.value !== formData.confirmPassword) {
-                      setErrors(prev => ({
-                        ...prev,
-                        confirmPassword: 'Las contraseñas no coinciden',
-                      }));
-                    } else {
-                      setErrors(prev => ({
-                        ...prev,
-                        confirmPassword: '',
-                      }));
-                    }
-                  }}
-                  required
-                  error={!!errors.password}
-                  helperText={errors.password}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FaLock style={{ color: errors.password ? '#d32f2f' : '#03427c' }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={togglePasswordVisibility}
-                          edge="end"
-                          sx={{ color: '#03427c' }}
-                        >
-                          {showPassword ? <FaEyeSlash /> : <FaEye />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      }
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Campo Confirmar Contraseña */}
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Confirmar Contraseña"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={(e) => {
-                    handleChange(e);
-                    if (e.target.value !== formData.password) {
-                      setErrors(prev => ({
-                        ...prev,
-                        confirmPassword: 'Las contraseñas no coinciden',
-                      }));
-                    } else {
-                      setErrors(prev => ({
-                        ...prev,
-                        confirmPassword: '',
-                      }));
-                    }
-                  }}
-                  required
-                  error={!!errors.confirmPassword}
-                  helperText={errors.confirmPassword}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <FaLock style={{ color: errors.confirmPassword ? '#d32f2f' : '#03427c' }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton
-                          onClick={toggleConfirmPasswordVisibility}
-                          edge="end"
-                          sx={{ color: '#03427c' }}
-                        >
-                          {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#03427c',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#03427c',
-                      }
-                    },
-                    '& .MuiInputLabel-root.Mui-focused': {
-                      color: '#03427c',
-                    }
-                  }}
-                />
-              </Grid>
-
-              {/* Mensajes de Estado y Seguridad */}
-              <Grid item xs={12}>
-                {passwordError && (
-                  <Alert severity="error" sx={{ mb: 2 }}>
-                    {passwordError}
-                  </Alert>
-                )}
-
-                {isPasswordFiltered && (
-                  <Alert severity="warning" sx={{ mb: 2 }}>
-                    Contraseña filtrada. Por favor, elige otra.
-                  </Alert>
-                )}
-
-                {isPasswordSafe && !isPasswordFiltered && (
-                  <Alert
-                    icon={<FaCheckCircle />}
-                    severity="success"
-                    sx={{ mb: 2 }}
-                  >
-                    Contraseña segura
-                  </Alert>
-                )}
-              </Grid>
-
-              {/* Indicador de Fortaleza */}
-              <Grid item xs={12}>
-                <Box sx={{ mt: 1 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
                   <Box sx={{
                     display: 'flex',
-                    justifyContent: 'space-between',
-                    mb: 1
+                    alignItems: 'center',
+                    gap: 1.5,
+                    mb: 3,
+                    color: colors.primary
                   }}>
+                    <FaClipboardCheck size={24} />
                     <Typography
-                      variant="body2"
-                      color="textSecondary"
-                    >
-                      Fortaleza de la contraseña
-                    </Typography>
-                    <Typography
-                      variant="body2"
+                      variant="h6"
                       sx={{
-                        color: passwordStrength < 2
-                          ? '#d32f2f'
-                          : passwordStrength === 2
-                            ? '#ed6c02'
-                            : '#2e7d32'
+                        fontWeight: 600,
+                        m: 0
                       }}
                     >
-                      {passwordStrength === 0 && 'Muy débil'}
-                      {passwordStrength === 1 && 'Débil'}
-                      {passwordStrength === 2 && 'Regular'}
-                      {passwordStrength === 3 && 'Fuerte'}
-                      {passwordStrength === 4 && 'Muy fuerte'}
+                      Revisa tu información
                     </Typography>
                   </Box>
 
-                  <Box
+                  <Alert
+                    severity="info"
                     sx={{
-                      height: '6px',
-                      bgcolor: 'rgba(0, 0, 0, 0.1)',
-                      borderRadius: '3px',
-                      overflow: 'hidden'
+                      mb: 4,
+                      borderRadius: '8px',
+                      backgroundColor: alpha(colors.info, 0.08),
+                      color: colors.text,
+                      border: `1px solid ${alpha(colors.info, 0.2)}`,
+                      '& .MuiAlert-icon': {
+                        color: colors.info
+                      }
                     }}
                   >
+                    Por favor, verifica que toda la información sea correcta antes de continuar.
+                  </Alert>
+                </Grid>
+
+                {/* Sección Datos Personales */}
+                <Grid item xs={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      borderRadius: '12px',
+                      backgroundColor: alpha(colors.paper, 0.6),
+                      border: `1px solid ${colors.border}`
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.primary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
+                        pb: 1,
+                        borderBottom: `1px solid ${colors.border}`
+                      }}
+                    >
+                      <FaUser /> Datos Personales
+                    </Typography>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Nombre completo
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: colors.text
+                          }}
+                        >
+                          {`${formData.nombre} ${formData.aPaterno} ${formData.aMaterno}`}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Género
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: colors.text
+                          }}
+                        >
+                          {formData.genero || 'No especificado'}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Fecha de Nacimiento
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: colors.text
+                          }}
+                        >
+                          {formData.fechaNacimiento
+                            ? (new Date(formData.fechaNacimiento)).toLocaleDateString('es-MX', {
+                              day: 'numeric',
+                              month: 'long',
+                              year: 'numeric'
+                            })
+                            : 'No especificada'
+                          }
+                          {formData.fechaNacimiento && ` (${getEdad(formData.fechaNacimiento)})`}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Lugar de Proveniencia
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: colors.text
+                          }}
+                        >
+                          {formData.lugar === 'Otro'
+                            ? formData.otroLugar
+                            : formData.lugar || 'No especificado'}
+                        </Typography>
+                      </Grid>
+
+                      {!formData.esMayorDeEdad && (
+                        <Grid item xs={12}>
+                          <Divider sx={{ my: 1 }} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              color: colors.textSecondary,
+                              mb: 0.5,
+                              fontWeight: 500
+                            }}
+                          >
+                            Información del Tutor
+                          </Typography>
+
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mt: 1 }}>
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: colors.textSecondary,
+                                  mb: 0.5
+                                }}
+                              >
+                                Tipo de Tutor
+                              </Typography>
+                              <Typography
+                                variant="body1"
+                                sx={{
+                                  fontWeight: 500,
+                                  color: colors.text
+                                }}
+                              >
+                                {formData.tipoTutor === 'Otro'
+                                  ? formData.relacionTutor
+                                  : formData.tipoTutor || 'No especificado'}
+                              </Typography>
+                            </Box>
+
+                            <Box>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: colors.textSecondary,
+                                  mb: 0.5
+                                }}
+                              >
+                                Nombre del Tutor
+                              </Typography>
+                              <Typography
+                                variant="body1"
+                                sx={{
+                                  fontWeight: 500,
+                                  color: colors.text
+                                }}
+                              >
+                                {formData.nombreTutor || 'No especificado'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
+                </Grid>
+
+                {/* Sección Información de Contacto */}
+                <Grid item xs={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      borderRadius: '12px',
+                      backgroundColor: alpha(colors.paper, 0.6),
+                      border: `1px solid ${colors.border}`
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.primary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
+                        pb: 1,
+                        borderBottom: `1px solid ${colors.border}`
+                      }}
+                    >
+                      <FaEnvelope /> Información de Contacto
+                    </Typography>
+
+                    <Grid container spacing={2}>
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Correo Electrónico
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: formData.noTieneEmail ? colors.warning : colors.text,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          {formData.noTieneEmail
+                            ? (
+                              <>
+                                <FaExclamationTriangle size={16} />
+                                No proporcionado
+                              </>
+                            )
+                            : (
+                              <>
+                                {formData.email || 'No especificado'}
+                                {isEmailVerified && (
+                                  <Tooltip title="Correo verificado">
+                                    <VerifiedUser sx={{ fontSize: 18, color: colors.success }} />
+                                  </Tooltip>
+                                )}
+                              </>
+                            )
+                          }
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={12} sm={6}>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: colors.textSecondary,
+                            mb: 0.5
+                          }}
+                        >
+                          Teléfono
+                        </Typography>
+                        <Typography
+                          variant="body1"
+                          sx={{
+                            fontWeight: 500,
+                            color: formData.noTieneTelefono ? colors.warning : colors.text,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1
+                          }}
+                        >
+                          {formData.noTieneTelefono
+                            ? (
+                              <>
+                                <FaExclamationTriangle size={16} />
+                                No proporcionado
+                              </>
+                            )
+                            : (
+                              formData.telefono
+                                ? `${formData.telefono.substring(0, 3)}-${formData.telefono.substring(3, 6)}-${formData.telefono.substring(6, 8)}-${formData.telefono.substring(8, 10)}`
+                                : 'No especificado'
+                            )
+                          }
+                        </Typography>
+                      </Grid>
+                    </Grid>
+
+                    {(formData.noTieneEmail || formData.noTieneTelefono) && (
+                      <Alert
+                        severity="warning"
+                        sx={{
+                          mt: 2,
+                          borderRadius: '8px',
+                          backgroundColor: alpha(colors.warning, 0.08),
+                          color: colors.text,
+                          border: `1px solid ${alpha(colors.warning, 0.2)}`,
+                          '& .MuiAlert-icon': {
+                            color: colors.warning
+                          }
+                        }}
+                      >
+                        <AlertTitle sx={{ fontWeight: 600 }}>Información de contacto limitada</AlertTitle>
+                        <Typography variant="body2">
+                          Tener información de contacto completa es importante para notificaciones sobre citas y tratamientos.
+                          Si es posible, considere proporcionar ambos métodos de contacto en el futuro.
+                        </Typography>
+                        <Button
+                          size="small"
+                          onClick={() => setShowContactDialog(true)}
+                          startIcon={<ContactSupport />}
+                          sx={{
+                            ...formStyles.button.secondary,
+                            mt: 1,
+                            backgroundColor: alpha(colors.warning, 0.1),
+                            '&:hover': {
+                              backgroundColor: alpha(colors.warning, 0.2)
+                            }
+                          }}
+                        >
+                          Más información
+                        </Button>
+                      </Alert>
+                    )}
+                  </Paper>
+                </Grid>
+
+                {/* Sección Información de Salud */}
+                <Grid item xs={12}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      mb: 3,
+                      borderRadius: '12px',
+                      backgroundColor: alpha(colors.paper, 0.6),
+                      border: `1px solid ${colors.border}`
+                    }}
+                  >
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.primary,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1,
+                        mb: 2,
+                        pb: 1,
+                        borderBottom: `1px solid ${colors.border}`
+                      }}
+                    >
+                      <FaShieldAlt /> Información de Salud
+                    </Typography>
+
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: colors.textSecondary,
+                        mb: 0.5
+                      }}
+                    >
+                      Alergias
+                    </Typography>
+
+                    {formData.alergias && formData.alergias.length > 0 ? (
+                      <Box sx={{ mt: 1 }}>
+                        {formData.alergias.map((alergia, index) => (
+                          <Chip
+                            key={index}
+                            label={alergia === 'Otro' ? formData.otraAlergia : alergia}
+                            sx={{
+                              m: 0.5,
+                              backgroundColor: alergia === 'Ninguna'
+                                ? alpha(colors.success, 0.1)
+                                : alpha(colors.primary, 0.1),
+                              color: alergia === 'Ninguna'
+                                ? colors.success
+                                : colors.primary,
+                              fontWeight: 500
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 500,
+                          color: colors.text
+                        }}
+                      >
+                        No especificadas
+                      </Typography>
+                    )}
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              {/* Modal de información de contacto */}
+              <Modal
+                open={showContactDialog}
+                onClose={() => setShowContactDialog(false)}
+                closeAfterTransition
+                BackdropComponent={Backdrop}
+                BackdropProps={{
+                  timeout: 500,
+                }}
+              >
+                <Fade in={showContactDialog}>
+                  <Box sx={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '90%',
+                    maxWidth: 500,
+                    bgcolor: colors.paper,
+                    borderRadius: '12px',
+                    boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15)',
+                    p: 4,
+                    outline: 'none',
+                    border: `1px solid ${colors.border}`
+                  }}>
+                    <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 600, mb: 2 }}>
+                      Importancia de la información de contacto
+                    </Typography>
+
+                    <Typography variant="body1" sx={{ mb: 2, color: colors.text }}>
+                      Para ofrecerle la mejor atención posible, es importante que podamos comunicarnos con usted para:
+                    </Typography>
+
+                    <Box sx={{ mb: 3 }}>
+                      <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'flex-start' }}>
+                        <Box
+                          sx={{
+                            minWidth: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            backgroundColor: alpha(colors.primary, 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: colors.primary,
+                            mt: 0.3
+                          }}
+                        >
+                          1
+                        </Box>
+                        <Typography variant="body1" sx={{ color: colors.text }}>
+                          Recordarle sus citas programadas y posibles cambios
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'flex-start' }}>
+                        <Box
+                          sx={{
+                            minWidth: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            backgroundColor: alpha(colors.primary, 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: colors.primary,
+                            mt: 0.3
+                          }}
+                        >
+                          2
+                        </Box>
+                        <Typography variant="body1" sx={{ color: colors.text }}>
+                          Enviarle información importante sobre su tratamiento
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: 'flex', gap: 2, mb: 1, alignItems: 'flex-start' }}>
+                        <Box
+                          sx={{
+                            minWidth: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            backgroundColor: alpha(colors.primary, 0.1),
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: colors.primary,
+                            mt: 0.3
+                          }}
+                        >
+                          3
+                        </Box>
+                        <Typography variant="body1" sx={{ color: colors.text }}>
+                          Contactarlo en caso de emergencias o situaciones imprevistas
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Typography variant="body1" sx={{ mb: 3, color: colors.text }}>
+                      Sin un método de contacto, podría perderse información importante relacionada con su atención médica.
+                    </Typography>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Button
+                        variant="outlined"
+                        onClick={() => setShowContactDialog(false)}
+                        sx={formStyles.button.secondary}
+                      >
+                        Entendido
+                      </Button>
+
+                      <Button
+                        variant="contained"
+                        component={RouterLink}
+                        to="/Contact"
+                        sx={formStyles.button.primary}
+                      >
+                        Contactar soporte
+                      </Button>
+                    </Box>
+                  </Box>
+                </Fade>
+              </Modal>
+            </Box>
+          </motion.div>
+        );
+      case 3: // Crear contraseña
+        return (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <Box sx={{ p: { xs: 1, sm: 2, md: 3 } }}>
+              <Grid container spacing={3}>
+                {/* Título */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="h6"
+                    sx={formStyles.heading}
+                  >
+                    Configura tu Contraseña
+                  </Typography>
+                </Grid>
+
+                {/* Campo Contraseña */}
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Contraseña"
+                    name="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (e.target.value !== formData.confirmPassword) {
+                        setErrors(prev => ({
+                          ...prev,
+                          confirmPassword: 'Las contraseñas no coinciden',
+                        }));
+                      } else {
+                        setErrors(prev => ({
+                          ...prev,
+                          confirmPassword: '',
+                        }));
+                      }
+                    }}
+                    required
+                    error={!!errors.password}
+                    helperText={errors.password}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaLock style={{ color: errors.password ? colors.error : colors.primary }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={togglePasswordVisibility}
+                            edge="end"
+                            sx={{ color: colors.primary }}
+                          >
+                            {showPassword ? <FaEyeSlash /> : <FaEye />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={formStyles.textField}
+                  />
+                </Grid>
+
+                {/* Campo Confirmar Contraseña */}
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Confirmar Contraseña"
+                    name="confirmPassword"
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={formData.confirmPassword}
+                    onChange={(e) => {
+                      handleChange(e);
+                      if (e.target.value !== formData.password) {
+                        setErrors(prev => ({
+                          ...prev,
+                          confirmPassword: 'Las contraseñas no coinciden',
+                        }));
+                      } else {
+                        setErrors(prev => ({
+                          ...prev,
+                          confirmPassword: '',
+                        }));
+                      }
+                    }}
+                    required
+                    error={!!errors.confirmPassword}
+                    helperText={errors.confirmPassword}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FaLock style={{ color: errors.confirmPassword ? colors.error : colors.primary }} />
+                        </InputAdornment>
+                      ),
+                      endAdornment: (
+                        <InputAdornment position="end">
+                          <IconButton
+                            onClick={toggleConfirmPasswordVisibility}
+                            edge="end"
+                            sx={{ color: colors.primary }}
+                          >
+                            {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={formStyles.textField}
+                  />
+                </Grid>
+
+                {/* Mensajes de Estado y Seguridad */}
+                <Grid item xs={12}>
+                  {passwordError && (
+                    <Alert
+                      severity="error"
+                      sx={{
+                        mb: 2,
+                        borderRadius: '10px',
+                        backgroundColor: alpha(colors.error, isDarkTheme ? 0.2 : 0.1),
+                        color: colors.text,
+                        border: `1px solid ${alpha(colors.error, 0.3)}`,
+                        '& .MuiAlert-icon': {
+                          color: colors.error
+                        }
+                      }}
+                    >
+                      {passwordError}
+                    </Alert>
+                  )}
+
+                  {isPasswordFiltered && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        mb: 2,
+                        borderRadius: '10px',
+                        backgroundColor: alpha(colors.warning, isDarkTheme ? 0.2 : 0.1),
+                        color: colors.text,
+                        border: `1px solid ${alpha(colors.warning, 0.3)}`,
+                        '& .MuiAlert-icon': {
+                          color: colors.warning
+                        }
+                      }}
+                    >
+                      Contraseña filtrada. Por favor, elige otra.
+                    </Alert>
+                  )}
+
+                  {isPasswordSafe && !isPasswordFiltered && (
+                    <Alert
+                      icon={<FaCheckCircle />}
+                      severity="success"
+                      sx={{
+                        mb: 2,
+                        borderRadius: '10px',
+                        backgroundColor: alpha(colors.success, isDarkTheme ? 0.2 : 0.1),
+                        color: colors.text,
+                        border: `1px solid ${alpha(colors.success, 0.3)}`,
+                        '& .MuiAlert-icon': {
+                          color: colors.success
+                        }
+                      }}
+                    >
+                      Contraseña segura
+                    </Alert>
+                  )}
+                </Grid>
+
+                {/* Indicador de Fortaleza */}
+                <Grid item xs={12}>
+                  <Box sx={{ mt: 1 }}>
+                    <Box sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      mb: 1
+                    }}>
+                      <Typography
+                        variant="body2"
+                        color={colors.textSecondary}
+                      >
+                        Fortaleza de la contraseña
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          color: getPasswordStrengthColor(),
+                          fontWeight: 600
+                        }}
+                      >
+                        {getPasswordStrengthText()}
+                      </Typography>
+                    </Box>
+
                     <Box
                       sx={{
-                        height: '100%',
-                        width: `${(passwordStrength / 4) * 100}%`,
-                        bgcolor: passwordStrength < 2
-                          ? '#d32f2f'
-                          : passwordStrength === 2
-                            ? '#ed6c02'
-                            : '#2e7d32',
-                        transition: 'all 0.3s ease'
+                        height: '8px',
+                        bgcolor: alpha(colors.textSecondary, 0.1),
+                        borderRadius: '4px',
+                        overflow: 'hidden'
                       }}
+                    >
+                      <Box
+                        sx={{
+                          height: '100%',
+                          width: `${(passwordStrength / 4) * 100}%`,
+                          bgcolor: getPasswordStrengthColor(),
+                          transition: 'all 0.3s ease',
+                          borderRadius: '4px'
+                        }}
+                      />
+                    </Box>
+                  </Box>
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="body2" color={colors.textSecondary}>
+                      Tu contraseña debe tener:
+                    </Typography>
+                    <Grid container spacing={1} sx={{ mt: 0.5 }}>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: colors.textSecondary
+                          }} />
+                          <Typography variant="body2" color={colors.textSecondary}>
+                            Al menos 8 caracteres
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: colors.textSecondary
+                          }} />
+                          <Typography variant="body2" color={colors.textSecondary}>
+                            Al menos una letra mayúscula
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: colors.textSecondary
+                          }} />
+                          <Typography variant="body2" color={colors.textSecondary}>
+                            Al menos un número
+                          </Typography>
+                        </Box>
+                      </Grid>
+                      <Grid item xs={12} sm={6}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Box sx={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            bgcolor: colors.textSecondary
+                          }} />
+                          <Typography variant="body2" color={colors.textSecondary}>
+                            Al menos un símbolo especial
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                </Grid>
+
+                {/* Términos y condiciones */}
+                <Grid item xs={12}>
+                  <Box
+                    sx={{
+                      p: 3,
+                      bgcolor: alpha(colors.primary, 0.05),
+                      borderRadius: '12px',
+                      mt: 2,
+                      border: `1px solid ${alpha(colors.primary, 0.1)}`
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={allAccepted}
+                          onChange={handleAcceptChange}
+                          name="acceptAll"
+                          sx={{
+                            color: colors.primary,
+                            '&.Mui-checked': {
+                              color: colors.primary,
+                            },
+                          }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" sx={{ color: colors.text }}>
+                          Al registrarte, confirmas que estás de acuerdo con nuestros{' '}
+                          <Link
+                            component="span"
+                            onClick={handleOpenTermsModal}
+                            sx={{
+                              cursor: 'pointer',
+                              color: colors.primary,
+                              textDecoration: 'none',
+                              borderBottom: `1px dashed ${colors.primary}`,
+                              '&:hover': {
+                                borderBottom: `1px solid ${colors.primary}`,
+                              }
+                            }}
+                          >
+                            términos y condiciones
+                          </Link>
+                          {' '}y que entiendes nuestra{' '}
+                          <Link
+                            component="span"
+                            onClick={handleOpenPrivacyModal}
+                            sx={{
+                              cursor: 'pointer',
+                              color: colors.primary,
+                              textDecoration: 'none',
+                              borderBottom: `1px dashed ${colors.primary}`,
+                              '&:hover': {
+                                borderBottom: `1px solid ${colors.primary}`,
+                              }
+                            }}
+                          >
+                            política de privacidad
+                          </Link>.
+                        </Typography>
+                      }
                     />
                   </Box>
-                </Box>
+                </Grid>
               </Grid>
-            </Grid>
-          </Box>
+            </Box>
+          </motion.div>
         );
       default:
         return (
@@ -1942,13 +3218,7 @@ const Register = () => {
             <Button
               variant="contained"
               onClick={() => window.location.reload()}
-              sx={{
-                mt: 2,
-                bgcolor: '#03427c',
-                '&:hover': {
-                  bgcolor: '#02305c'
-                }
-              }}
+              sx={formStyles.button.primary}
             >
               Reiniciar Formulario
             </Button>
@@ -1963,11 +3233,48 @@ const Register = () => {
         sx={{
           minHeight: '100vh',
           background: isDarkTheme
-            ? '#1D2A38'
-            : 'linear-gradient(135deg, #f5f7fa 0%, #e4e9f2 100%)',
-          py: { xs: 4, md: 8 }
+            ? `linear-gradient(135deg, ${colors.background} 0%, ${alpha(colors.paper, 0.7)} 100%)`
+            : `linear-gradient(135deg, ${colors.background} 0%, ${colors.secondary} 100%)`,
+          py: { xs: 4, md: 6 },
+          display: 'flex',
+          alignItems: 'center'
         }}
       >
+        {/* Botón Regresar con animación */}
+        <motion.div
+          initial={{ x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <IconButton
+            component={RouterLink}
+            to="/"
+            sx={{
+              position: 'absolute',
+              top: { xs: 10, md: 20 },
+              left: { xs: 10, md: 20 },
+              color: colors.primary,
+              bgcolor: `${alpha(colors.primary, 0.1)}`,
+              zIndex: 10,
+              padding: { xs: '8px', sm: '12px' },
+              '&:hover': {
+                bgcolor: `${alpha(colors.primary, 0.2)}`
+              }
+            }}
+          >
+            <ArrowBack />
+            <Typography
+              sx={{
+                ml: 1,
+                color: colors.primary,
+                display: { xs: 'none', sm: 'block' }
+              }}
+            >
+              Regresar
+            </Typography>
+          </IconButton>
+        </motion.div>
+
         <Container maxWidth="md">
           <Notificaciones
             open={openNotification}
@@ -1975,166 +3282,110 @@ const Register = () => {
             type={notificationType}
             handleClose={handleCloseNotification}
           />
+
           <Card
             elevation={0}
             sx={{
-              p: { xs: 2, sm: 4 },
-              boxShadow: '0 8px 32px rgba(3, 66, 124, 0.08)',
-              borderRadius: '20px',
-              background: isDarkTheme
-                ? 'rgba(51, 59, 95, 0.41)'  // Fondo gris claro en tema oscuro
-                : 'rgba(255, 255, 255, 0.95)', // Fondo blanco en tema claro
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(3, 66, 124, 0.1)',
+              ...formStyles.card,
+              overflow: 'visible',
+              position: 'relative'
             }}
           >
+            <CardContent sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
+              {/* Logo y título */}
+              <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <motion.div
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <Typography
+                    variant="h4"
+                    sx={{
+                      color: colors.primary,
+                      fontFamily: '"Poppins", sans-serif',
+                      fontWeight: 700,
+                      fontSize: { xs: '1.75rem', sm: '2.25rem' },
+                      position: 'relative',
+                      display: 'inline-block',
+                      '&::after': {
+                        content: '""',
+                        position: 'absolute',
+                        bottom: -10,
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        width: '60px',
+                        height: '4px',
+                        backgroundColor: colors.primary,
+                        borderRadius: '4px'
+                      }
+                    }}
+                  >
+                    Registro
+                  </Typography>
+                </motion.div>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    mt: 3,
+                    color: colors.textSecondary,
+                    maxWidth: '500px',
+                    mx: 'auto'
+                  }}
+                >
+                  Completa el formulario para crear tu cuenta. El proceso es simple y seguro.
+                </Typography>
+              </Box>
 
-            <CardContent>
-              <Typography
-                variant="h4"
-                sx={{
-                  textAlign: 'center',
-                  mb: 4,
-                  color: '#03427c',
-                  fontFamily: '"Poppins", sans-serif',
-                  fontWeight: 600,
-                  fontSize: { xs: '1.75rem', sm: '2.125rem' },
-                  position: 'relative',
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    bottom: -10,
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    width: '60px',
-                    height: '4px',
-                    backgroundColor: '#03427c',
-                    borderRadius: '2px'
-                  }
-                }}
-              >
-                Registro
-              </Typography>
-
-              <Stepper
-                activeStep={activeStep}
-                sx={{
-                  mb: 5,
-                  '& .MuiStepLabel-root .Mui-completed': {
-                    color: '#03427c',
-                  },
-                  '& .MuiStepLabel-root .Mui-active': {
-                    color: '#03427c',
-                  },
-                  '& .MuiStepLabel-root .Mui-active .MuiStepIcon-text': {
-                    fill: 'white',
-                    fontWeight: 'bold'
-                  },
-                  '& .MuiStepConnector-line': {
-                    borderColor: 'rgba(3, 66, 124, 0.2)'
-                  }
-                }}
-              >
-                {steps.map((label) => (
-                  <Step key={label}>
-                    <StepLabel
-                      StepIconProps={{
-                        sx: {
-                          width: { xs: 28, sm: 32 },
-                          height: { xs: 28, sm: 32 }
-                        }
-                      }}
-                      sx={{
-                        '& .MuiStepLabel-label': {
-                          display: { xs: 'none', sm: 'block' },
-                          color: 'rgba(3, 66, 124, 0.8)',
-                          '&.Mui-active': {
-                            color: '#03427c',
-                            fontWeight: 600
-                          }
-                        }
-                      }}
-                    >
-                      {label}
-                    </StepLabel>
-                  </Step>
-                ))}
-              </Stepper>
+              {/* Stepper personalizado */}
+              <Box sx={{ mb: 5, px: { xs: 0, sm: 3 }, position: 'relative' }}>
+                <Stepper
+                  activeStep={activeStep}
+                  connector={<CustomStepConnector />}
+                  sx={{
+                    '& .MuiStepLabel-iconContainer': {
+                      p: 0,
+                      pr: 2
+                    },
+                    '& .MuiStepLabel-labelContainer': {
+                      width: isMobile ? 'auto' : 'auto',
+                      color: 'red'
+                    }
+                  }}
+                >
+                  {steps.map((label, index) => (
+                    <Step key={label}>
+                      <StepLabel
+                        StepIconComponent={() => <CustomStepIcon active={activeStep === index} completed={activeStep > index} icon={index + 1} />}
+                      >
+                        {!isMobile && (
+                          <Typography
+                            sx={{
+                              color: activeStep === index ? colors.primary : colors.textSecondary,
+                              fontWeight: activeStep === index ? 600 : 400,
+                              fontSize: '0.9rem'
+                            }}
+                          >
+                            {label}
+                          </Typography>
+                        )}
+                      </StepLabel>
+                    </Step>
+                  ))}
+                </Stepper>
+              </Box>
 
               <form onSubmit={handleSubmit}>
-                <Box sx={{ px: { xs: 0, sm: 2 } }}>
+                <AnimatePresence mode="wait">
                   {getStepContent(activeStep)}
-                </Box>
+                </AnimatePresence>
 
                 <Box sx={{ mt: 4 }}>
-                  {activeStep === steps.length - 1 && (
-                    <Box
-                      sx={{
-                        p: 3,
-                        bgcolor: 'rgba(3, 66, 124, 0.03)',
-                        borderRadius: 2,
-                        mb: 3
-                      }}
-                    >
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={allAccepted}
-                            onChange={handleAcceptChange}
-                            name="acceptAll"
-                            sx={{
-                              color: '#03427c',
-                              '&.Mui-checked': {
-                                color: '#03427c',
-                              },
-                            }}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" sx={{ color: 'rgba(0, 0, 0, 0.7)' }}>
-                            Al registrarte, confirmas que estás de acuerdo con nuestros{' '}
-                            <Link
-                              component="span"
-                              onClick={handleOpenTermsModal}
-                              sx={{
-                                cursor: 'pointer',
-                                color: '#03427c',
-                                textDecoration: 'none',
-                                borderBottom: '1px dashed #03427c',
-                                '&:hover': {
-                                  borderBottom: '1px solid #03427c',
-                                }
-                              }}
-                            >
-                              términos y condiciones
-                            </Link>
-                            {' '}y que entiendes nuestra{' '}
-                            <Link
-                              component="span"
-                              onClick={handleOpenPrivacyModal}
-                              sx={{
-                                cursor: 'pointer',
-                                color: '#03427c',
-                                textDecoration: 'none',
-                                borderBottom: '1px dashed #03427c',
-                                '&:hover': {
-                                  borderBottom: '1px solid #03427c',
-                                }
-                              }}
-                            >
-                              política de privacidad
-                            </Link>.
-                          </Typography>
-                        }
-                      />
-                    </Box>
-                  )}
-
                   {/* Box para los botones */}
                   <Box
                     sx={{
                       display: 'flex',
-                      justifyContent: activeStep === 0 ? 'flex-end' : 'space-between', // Alineación condicional
+                      justifyContent: activeStep === 0 ? 'flex-end' : 'space-between',
                       flexDirection: { xs: 'column', sm: 'row' },
                       gap: 2
                     }}
@@ -2144,24 +3395,17 @@ const Register = () => {
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ duration: 0.3 }}
+                        style={{ width: isMobile ? '100%' : 'auto' }}
                       >
                         <Button
                           onClick={handleBack}
                           sx={{
-                            minWidth: '100px', // Ancho mínimo más pequeño
-                            px: 3,  // Padding horizontal reducido
-                            py: 1,  // Padding vertical reducido
-                            color: '#03427c',
-                            borderColor: 'rgba(3, 66, 124, 0.5)',
-                            '&:hover': {
-                              borderColor: '#03427c',
-                              bgcolor: 'rgba(3, 66, 124, 0.05)',
-                              transform: 'translateX(-3px)',
-                              transition: 'transform 0.2s'
-                            }
+                            ...formStyles.button.secondary,
+                            width: isMobile ? '100%' : 'auto'
                           }}
                           variant="outlined"
                           disabled={isLoading}
+                          startIcon={<Box sx={{ transform: 'rotate(180deg)' }}>→</Box>}
                         >
                           Regresar
                         </Button>
@@ -2171,28 +3415,23 @@ const Register = () => {
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ duration: 0.3 }}
+                      style={{ width: isMobile ? '100%' : 'auto' }}
                     >
                       <Button
                         variant="contained"
                         type={activeStep === steps.length - 1 ? "submit" : "button"}
                         onClick={activeStep === steps.length - 1 ? undefined : handleNext}
-                        disabled={isLoading || isSubmitting || (activeStep === steps.length - 1 && !allAccepted)}
+                        disabled={
+                          isLoading ||
+                          isSubmitting ||
+                          (activeStep === steps.length - 1 && !allAccepted) ||
+                          (activeStep === 1 && !isEmailVerified && !formData.noTieneEmail)
+                        }
                         sx={{
-                          minWidth: '120px',
-                          px: 4,
-                          py: 1,
-                          bgcolor: '#03427c',
-                          position: 'relative',
-                          '&:hover': {
-                            bgcolor: '#02305c',
-                            transform: 'translateX(3px)',
-                            transition: 'transform 0.2s'
-                          },
-                          '&.Mui-disabled': {
-                            bgcolor: 'rgba(3, 66, 124, 0.4)'
-                          },
-                          width: { xs: '100%', sm: 'auto' }
+                          ...formStyles.button.primary,
+                          width: isMobile ? '100%' : 'auto'
                         }}
+                        endIcon={activeStep !== steps.length - 1 ? '→' : null}
                       >
                         {(isLoading || isSubmitting) ? (
                           <Box
@@ -2216,13 +3455,14 @@ const Register = () => {
                             <span>Procesando...</span>
                           </Box>
                         ) : (
-                          activeStep === steps.length - 1 ? 'Registrar' : 'Siguiente'
+                          activeStep === steps.length - 1 ? 'Completar Registro' : 'Siguiente'
                         )}
                       </Button>
                     </motion.div>
                   </Box>
                 </Box>
 
+                {/* Modales de Privacy y Terms */}
                 <Modal
                   open={openPrivacyModal || openTermsModal}
                   onClose={openPrivacyModal ? handleClosePrivacyModal : handleCloseTermsModal}
@@ -2232,24 +3472,24 @@ const Register = () => {
                       width: '90%',
                       maxWidth: 600,
                       maxHeight: '85vh',
-                      bgcolor: '#ffffff',
+                      bgcolor: colors.paper,
                       p: { xs: 3, sm: 4 },
                       m: 'auto',
                       mt: '5vh',
-                      borderRadius: 3,
+                      borderRadius: '16px',
                       overflowY: 'auto',
-                      boxShadow: '0 8px 32px rgba(3, 66, 124, 0.1)',
-                      border: '1px solid rgba(3, 66, 124, 0.1)'
+                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
+                      border: `1px solid ${colors.border}`
                     }}
                   >
                     <Typography
                       variant="h5"
                       sx={{
-                        color: '#03427c',
+                        color: colors.primary,
                         fontWeight: 600,
                         mb: 3,
                         pb: 2,
-                        borderBottom: '2px solid rgba(3, 66, 124, 0.1)'
+                        borderBottom: `2px solid ${colors.border}`
                       }}
                     >
                       {openPrivacyModal ? 'Políticas de Privacidad' : 'Términos y Condiciones'}
@@ -2257,7 +3497,7 @@ const Register = () => {
                     <Typography
                       variant="body1"
                       sx={{
-                        color: 'rgba(0, 0, 0, 0.7)',
+                        color: colors.text,
                         whiteSpace: 'pre-line',
                         lineHeight: 1.7
                       }}
@@ -2267,11 +3507,8 @@ const Register = () => {
                     <Button
                       onClick={openPrivacyModal ? handleClosePrivacyModal : handleCloseTermsModal}
                       sx={{
+                        ...formStyles.button.primary,
                         mt: 3,
-                        bgcolor: '#03427c',
-                        '&:hover': {
-                          bgcolor: '#02305c'
-                        },
                         py: 1.5
                       }}
                       variant="contained"
