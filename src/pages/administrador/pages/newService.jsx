@@ -2,18 +2,22 @@ import React, { useState, useEffect } from 'react';
 import {
     Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
     Grid, FormControl, InputLabel, Select, MenuItem, Box, IconButton,
-    Typography, Paper, Tooltip, Divider
+    Typography, Paper, Tooltip, Divider, FormControlLabel, Switch
 } from '@mui/material';
 import {
     Close, Add as AddIcon, Delete as DeleteIcon,
-    InfoOutlined, AccessTime, AttachMoney, Category,
+    InfoOutlined, AccessTime, AttachMoney, 
     Description, CheckCircle, List, HealthAndSafety,
-    Save as SaveIcon,
-    EventAvailable
+    Save as SaveIcon, EventAvailable, LocalHospital,
+    CalendarMonth
 } from '@mui/icons-material';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
+/**
+ * Componente para crear un nuevo servicio dental
+ * Incluye funcionalidad para indicar si es un tratamiento y el número estimado de citas
+ */
 const NewService = ({ open, handleClose, onServiceCreated }) => {
     const { isDarkTheme } = useThemeContext();
     const [categories, setCategories] = useState([]);
@@ -27,10 +31,12 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         durationMin: '',
         durationMax: '',
         price: '',
+        citasEstimadas: '1', // Nuevo campo para número de citas estimadas
         benefits: [''],
         includes: [''],
         preparation: [''],
-        aftercare: ['']
+        aftercare: [''],
+        tratamiento: 0 // 0 = No es tratamiento (por defecto), 1 = Es tratamiento
     });
 
     const handleNotificationClose = () => {
@@ -44,7 +50,8 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         paperBg: isDarkTheme ? '#2d2d2d' : '#E5F3FD',
         paperBg2: isDarkTheme ? '#333333' : '#F9FDFF',
         text: isDarkTheme ? '#ffffff' : '#000000',
-        error: '#ff3d00'
+        error: '#ff3d00',
+        treatment: '#E91E63'
     };
 
     // Fetch categories on component mount
@@ -74,6 +81,16 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         if (errors[name]) {
             setErrors(prev => ({ ...prev, [name]: null }));
         }
+    };
+
+    // Manejador especial para el switch de tratamiento
+    const handleTratamientoChange = (event) => {
+        setNewService(prev => ({ 
+            ...prev, 
+            tratamiento: event.target.checked ? 1 : 0,
+            // Resetear el campo de citas estimadas si no es tratamiento
+            citasEstimadas: event.target.checked ? prev.citasEstimadas : '1'
+        }));
     };
 
     const handleArrayChange = (field, index, value) => {
@@ -139,6 +156,17 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
             newErrors.price = 'Ingrese un precio válido mayor a 0.';
         }
 
+        // Validación para citas estimadas (solo si es tratamiento)
+        if (newService.tratamiento === 1) {
+            if (!newService.citasEstimadas || isNaN(newService.citasEstimadas)) {
+                newErrors.citasEstimadas = 'Ingrese un número válido de citas.';
+            } else if (parseInt(newService.citasEstimadas) < 1) {
+                newErrors.citasEstimadas = 'Debe haber al menos 1 cita.';
+            } else if (parseInt(newService.citasEstimadas) > 50) {
+                newErrors.citasEstimadas = 'El número de citas parece muy alto.';
+            }
+        }
+
         // 🟢 Corrección de validación para arrays
         const detalleCampos = {
             benefits: "beneficio",
@@ -164,7 +192,6 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
     };
-
 
     const handleSubmit = async () => {
         console.log("🔍 Intentando guardar el servicio...");
@@ -219,10 +246,12 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                 durationMin: '',
                 durationMax: '',
                 price: '',
+                citasEstimadas: '1',
                 benefits: [''],
                 includes: [''],
                 preparation: [''],
-                aftercare: ['']
+                aftercare: [''],
+                tratamiento: 0
             });
 
             // Notificar al componente padre y cerrar el diálogo
@@ -242,7 +271,6 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
             });
         }
     };
-
 
     useEffect(() => {
         if (notification.open) {
@@ -266,7 +294,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
             }}
         >
             <DialogTitle sx={{
-                backgroundColor: colors.primary,
+                backgroundColor: newService.tratamiento === 1 ? colors.treatment : colors.primary,
                 color: 'white',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -283,7 +311,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
 
             <DialogContent sx={{ mt: 2 }}>
                 <Paper sx={{ p: 3, mb: 3, backgroundColor: colors.paperBg }}>
-                    <Typography variant="h6" color={colors.primary} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                    <Typography variant="h6" color={newService.tratamiento === 1 ? colors.treatment : colors.primary} sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Description />
                         Detalles del Servicio
                     </Typography>
@@ -303,6 +331,81 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                                 }}
                             />
                         </Grid>
+                        
+                        {/* Campo de tratamiento */}
+                        <Grid item xs={12} md={6}>
+                            <FormControlLabel
+                                control={
+                                    <Switch
+                                        checked={newService.tratamiento === 1}
+                                        onChange={handleTratamientoChange}
+                                        color={newService.tratamiento === 1 ? "secondary" : "primary"}
+                                        icon={<LocalHospital />}
+                                        checkedIcon={<LocalHospital />}
+                                        sx={{
+                                            '& .MuiSwitch-switchBase.Mui-checked': {
+                                                color: colors.treatment,
+                                                '&:hover': {
+                                                    backgroundColor: 'rgba(233, 30, 99, 0.1)'
+                                                }
+                                            },
+                                            '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                                                backgroundColor: colors.treatment
+                                            }
+                                        }}
+                                    />
+                                }
+                                label={
+                                    <Typography 
+                                        variant="body1" 
+                                        sx={{ 
+                                            color: newService.tratamiento === 1 ? colors.treatment : colors.primary,
+                                            fontWeight: 'medium',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: 1
+                                        }}
+                                    >
+                                        <LocalHospital fontSize="small" />
+                                        {newService.tratamiento === 1 ? "Es tratamiento" : "No es tratamiento"}
+                                    </Typography>
+                                }
+                                labelPlacement="end"
+                                sx={{ 
+                                    m: 0,
+                                    backgroundColor: newService.tratamiento === 1 
+                                        ? (isDarkTheme ? 'rgba(233, 30, 99, 0.15)' : 'rgba(233, 30, 99, 0.08)') 
+                                        : 'transparent',
+                                    p: 1,
+                                    borderRadius: 1,
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    border: newService.tratamiento === 1 
+                                        ? `1px solid ${colors.treatment}` 
+                                        : '1px solid transparent'
+                                }}
+                            />
+                        </Grid>
+                        
+                        {/* Duración por cita */}
+                        <Grid item xs={12}>
+                            <Typography 
+                                variant="subtitle2" 
+                                sx={{ 
+                                    mb: 1,
+                                    color: newService.tratamiento === 1 ? colors.treatment : colors.primary,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1
+                                }}
+                            >
+                                <AccessTime fontSize="small" />
+                                Duración por cita
+                            </Typography>
+                        </Grid>
+                        
                         <Grid item xs={12} md={3}>
                             <TextField
                                 fullWidth
@@ -339,6 +442,48 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                                 }}
                             />
                         </Grid>
+                        
+                        {/* Campo de citas estimadas (solo visible si es tratamiento) */}
+                        {newService.tratamiento === 1 && (
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Número de citas estimadas"
+                                    name="citasEstimadas"
+                                    value={newService.citasEstimadas}
+                                    onChange={(e) => {
+                                        const value = e.target.value.replace(/\D/g, '');
+                                        handleChange({ target: { name: 'citasEstimadas', value } });
+                                    }}
+                                    error={!!errors.citasEstimadas}
+                                    helperText={errors.citasEstimadas || 'Cantidad aproximada de citas para completar el tratamiento'}
+                                    InputProps={{
+                                        startAdornment: <CalendarMonth sx={{ color: colors.treatment, mr: 1 }} />,
+                                        endAdornment: <Typography variant="caption">citas</Typography>
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            '& fieldset': {
+                                                borderColor: colors.treatment,
+                                            },
+                                            '&:hover fieldset': {
+                                                borderColor: colors.treatment,
+                                            },
+                                            '&.Mui-focused fieldset': {
+                                                borderColor: colors.treatment,
+                                            },
+                                        },
+                                        '& .MuiInputLabel-root': {
+                                            color: colors.treatment,
+                                            '&.Mui-focused': {
+                                                color: colors.treatment,
+                                            }
+                                        }
+                                    }}
+                                />
+                            </Grid>
+                        )}
+                        
                         <Grid item xs={12} md={6}>
                             <TextField
                                 fullWidth
@@ -388,7 +533,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                 </Paper>
 
                 <Paper sx={{ p: 3, backgroundColor: colors.paperBg2 }}>
-                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2 }}>
+                    <Typography variant="h6" color={newService.tratamiento === 1 ? colors.treatment : colors.primary} sx={{ mb: 2 }}>
                         Detalles Adicionales
                     </Typography>
 
@@ -405,7 +550,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                                 alignItems: 'center',
                                 mb: 2
                             }}>
-                                <Typography variant="subtitle1" color={colors.primary} sx={{
+                                <Typography variant="subtitle1" color={newService.tratamiento === 1 ? colors.treatment : colors.primary} sx={{
                                     fontWeight: 'bold',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -417,7 +562,7 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                                 <Tooltip title={`Agregar ${label}`}>
                                     <IconButton
                                         onClick={() => handleAddItem(field)}
-                                        sx={{ color: colors.primary }}
+                                        sx={{ color: newService.tratamiento === 1 ? colors.treatment : colors.primary }}
                                     >
                                         <AddIcon />
                                     </IconButton>
@@ -459,10 +604,10 @@ const NewService = ({ open, handleClose, onServiceCreated }) => {
                     <IconButton
                         onClick={handleSubmit}
                         sx={{
-                            backgroundColor: colors.primary,
+                            backgroundColor: newService.tratamiento === 1 ? colors.treatment : colors.primary,
                             color: '#fff',
                             '&:hover': {
-                                backgroundColor: colors.primary,
+                                backgroundColor: newService.tratamiento === 1 ? colors.treatment : colors.primary,
                                 opacity: 0.9
                             }
                         }}

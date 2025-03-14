@@ -3,13 +3,13 @@ import {
   TextField, Button, Grid, MenuItem, FormControl, Select, InputLabel,
   Card, CardContent, Typography, TableContainer, Table, TableBody, TableCell,
   TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions,
-  Box, IconButton, Tooltip, Chip, Fab, Alert, AlertTitle
+  Box, IconButton, Tooltip, Chip, Fab, Alert, AlertTitle, Switch, FormControlLabel
 } from '@mui/material';
 
 import {
   MedicalServices, Timer, AttachMoney, Edit, Delete, Description, CheckCircle,
   Info, EventAvailable, HealthAndSafety, MenuBook, AccessTime, Add, Close, BorderColor,
-  Warning
+  Warning, LocalHospital
 } from '@mui/icons-material';
 
 import { alpha } from '@mui/material/styles';
@@ -44,6 +44,8 @@ const ServicioForm = () => {
     text: isDarkTheme ? '#ffffff' : '#1a1a1a',
     secondary: isDarkTheme ? '#A0AEC0' : '#666666',
     cardBg: isDarkTheme ? '#1A2735' : '#ffffff',
+    treatment: '#E91E63', // Color para destacar tratamientos
+    nonTreatment: '#4CAF50', // Color para servicios que no son tratamientos
   };
 
   const handleNotificationClose = () => {
@@ -55,7 +57,7 @@ const ServicioForm = () => {
     fetchServices(); // Vuelve a cargar la lista de servicios después de agregar uno nuevo
   };
 
-
+  // Función para eliminar un servicio
   const handleDeleteService = async () => {
     if (!serviceToDelete) return;
 
@@ -103,8 +105,7 @@ const ServicioForm = () => {
     }
   };
 
-
-
+  // Función para mostrar los detalles de un servicio
   const handleViewDetails = (service) => {
     const details = {
       benefits: service.benefits || [],
@@ -117,8 +118,7 @@ const ServicioForm = () => {
     setOpenDialog(true);
   };
 
-
-  // Función para filtrar servicios basados en la búsqueda
+  // Función para obtener todos los servicios
   const fetchServices = async () => {
     try {
       const response = await fetch("https://back-end-4803.onrender.com/api/servicios/all");
@@ -152,7 +152,6 @@ const ServicioForm = () => {
           .map(d => d.descripcion),
       }));
 
-
       setServices(servicesWithDetails);
     } catch (error) {
       console.error("Error cargando servicios:", error);
@@ -162,6 +161,14 @@ const ServicioForm = () => {
   useEffect(() => {
     fetchServices();
   }, []);
+
+  // Función para filtrar servicios basados en la búsqueda
+  const filteredServices = services
+    .filter(service => 
+      service.title?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      service.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.category?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
   // Renderizado del componente
   return (
@@ -208,6 +215,29 @@ const ServicioForm = () => {
               sx={{ width: '50%' }}
             />
           </Box>
+          
+          {/* Leyenda para identificar tratamientos */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2, gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%', 
+                backgroundColor: colors.treatment 
+              }} />
+              <Typography variant="caption">Tratamiento</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Box sx={{ 
+                width: 12, 
+                height: 12, 
+                borderRadius: '50%', 
+                backgroundColor: colors.nonTreatment 
+              }} />
+              <Typography variant="caption">No Tratamiento</Typography>
+            </Box>
+          </Box>
+          
           <TableContainer
             component={Paper}
             sx={{
@@ -232,14 +262,18 @@ const ServicioForm = () => {
               </TableHead>
 
               <TableBody>
-                {services.length > 0 ? (
-                  services.map((service, index) => (
+                {filteredServices.length > 0 ? (
+                  filteredServices.map((service, index) => (
                     <TableRow
                       key={service?.id || index}
                       sx={{
                         height: '69px', // 🔹 Igualar la altura de las filas a la de pacientes
                         '&:hover': { backgroundColor: 'rgba(25,118,210,0.1)' }, // 🔹 Igualar hover
-                        transition: 'background-color 0.2s ease'
+                        transition: 'background-color 0.2s ease',
+                        // Indicador visual sutil para tratamientos (borde izquierdo)
+                        borderLeft: service?.tratamiento === 1 
+                          ? `4px solid ${colors.treatment}` 
+                          : `4px solid ${colors.nonTreatment}`
                       }}
                     >
                       <TableCell sx={{ color: colors.text }}>{index + 1}</TableCell>
@@ -323,7 +357,7 @@ const ServicioForm = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
+                    <TableCell colSpan={7} align="center">
                       <Typography color="textSecondary">No hay servicios disponibles</Typography>
                     </TableCell>
                   </TableRow>
@@ -333,6 +367,7 @@ const ServicioForm = () => {
           </TableContainer>
         </CardContent>
       </Card>
+      
       {/* Diálogo de detalles del servicio */}
       <Dialog
         open={openDialog}

@@ -500,190 +500,207 @@ const Register = () => {
 
     return (
       <Box>
-        <Typography
-          variant="body2"
-          sx={{
-            mb: 1,
-            color: error ? colors.error : colors.textSecondary,
-            fontWeight: 500
-          }}
-        >
-          Número de teléfono *
-        </Typography>
-
         <Box
           sx={{
-            position: 'relative',
             display: 'flex',
             alignItems: 'center',
-            padding: '3px',
-            borderRadius: '10px',
-            border: phoneFieldActive ? `2px solid ${alpha(colors.primary, 0.5)}` : '2px solid transparent',
-            transition: 'all 0.2s ease'
+            mb: 2
           }}
         >
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            color: phoneFieldActive ? colors.primary : colors.textSecondary,
-            mr: 1,
-            transition: 'color 0.2s'
+            color: colors.primary,
+            mr: 1
           }}>
             <FaPhone size={18} />
           </Box>
-
-          {/* 10 casillas con inputs */}
-          <Box sx={{
+          
+          <Typography
+            variant="body1"
+            sx={{
+              color: colors.primary,
+              fontWeight: 500
+            }}
+          >
+            Número de teléfono
+          </Typography>
+        </Box>
+    
+        {/* Contenedor principal del input */}
+        <Box 
+          sx={{
+            backgroundColor: '#f5f9ff',
+            p: 1.5,
+            borderRadius: '8px',
+            mb: 1
+          }}
+        >
+          <Box sx={{ 
             display: 'flex',
-            alignItems: 'center',
-            gap: { xs: 0.5, sm: 0.75 },
-            ml: 1,
-            flex: 1
+            alignItems: 'center'
           }}>
-            {Array(10).fill(0).map((_, index) => (
-              <Box
-                key={index}
-                sx={{
-                  width: '32px',
-                  height: '38px',
-                  position: 'relative'
-                }}
-              >
-                {/* Caja visual */}
+            {/* 10 casillas con inputs */}
+            <Box sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 0.5, sm: 0.5 },
+              flex: 1
+            }}>
+              {Array(10).fill(0).map((_, index) => (
                 <Box
+                  key={index}
                   sx={{
-                    width: '100%',
-                    height: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: formData.telefono[index]
-                      ? alpha(colors.primary, 0.1) // Casilla con número: azul suave
-                      : isDarkTheme ? alpha(colors.paper, 0.5) : '#fff',
-                    border: `${activeIndex === index && phoneFieldActive ? '2px' : '1px'} solid ${error
-                      ? colors.error
-                      : activeIndex === index && phoneFieldActive
-                        ? colors.primary
-                        : formData.isNumberConfirmed
-                          ? alpha(colors.success, 0.5)
-                          : alpha(colors.primary, 0.3)
-                      }`,
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    fontWeight: '500',
-                    color: colors.text,
-                    transition: 'all 0.2s',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    pointerEvents: 'none',
-                    zIndex: 1,
-                    boxShadow: activeIndex === index && phoneFieldActive
-                      ? `0 0 0 2px ${alpha(colors.primary, 0.2)}` : 'none',
-                    opacity: formData.isNumberConfirmed ? 0.9 : 1
+                    width: '34px',
+                    height: '42px',
+                    position: 'relative'
                   }}
                 >
-                  {formData.telefono[index] || ''}
-                </Box>
-
-                {/* Input real */}
-                <input
-                  ref={phoneInputRefs.current[index]}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={formData.telefono[index] || ''}
-                  onChange={(e) => handleDigitInput(index, e)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={index === 0 ? handlePaste : null}
-                  onFocus={() => {
-                    setActiveIndex(index);
-                    setPhoneFieldActive(true);
-                  }}
-                  onBlur={() => {
-                    // Verificar si el foco sigue en algún input del teléfono
-                    setTimeout(() => {
-                      const anyFocused = phoneInputRefs.current.some(
-                        ref => document.activeElement === ref.current
-                      );
-                      if (!anyFocused) {
-                        setPhoneFieldActive(false);
-                        setActiveIndex(-1);
-                      }
-                    }, 10);
-                  }}
-                  disabled={formData.isNumberConfirmed || formData.noTieneTelefono}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    opacity: 0,
-                    cursor: formData.isNumberConfirmed ? 'not-allowed' : 'text',
-                    zIndex: 2
-                  }}
-                />
-
-                {/* Área clickeable */}
-                <Box
-                  sx={{
-                    width: '100%',
-                    height: '100%',
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    cursor: formData.isNumberConfirmed || formData.noTieneTelefono ? 'not-allowed' : 'text',
-                    zIndex: 3,
-                    border: 'none',
-                    backgroundColor: 'transparent'
-                  }}
-                  onClick={() => {
-                    if (!formData.isNumberConfirmed && !formData.noTieneTelefono) {
-                      phoneInputRefs.current[index].current.focus();
+                  {/* Caja visual */}
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: '#fff',
+                      border: `1px solid ${activeIndex === index ? colors.primary : '#e0e0e0'}`,
+                      borderRadius: '4px',
+                      fontSize: '16px',
+                      fontWeight: '500',
+                      color: colors.text,
+                      position: 'relative',
+                      boxShadow: activeIndex === index ? `0 0 0 1px ${colors.primary}` : 'none',
+                      '&::after': activeIndex === index && !formData.telefono[index] ? {
+                        content: '"|"',
+                        position: 'absolute',
+                        color: colors.primary,
+                        fontWeight: 400,
+                        animation: 'blink 1s infinite',
+                        '@keyframes blink': {
+                          '0%, 100%': {
+                            opacity: 1,
+                          },
+                          '50%': {
+                            opacity: 0,
+                          },
+                        },
+                      } : {}
+                    }}
+                  >
+                    {formData.telefono[index] || ''}
+                  </Box>
+    
+                  {/* Input real */}
+                  <input
+                    ref={phoneInputRefs.current[index]}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={formData.telefono[index] || ''}
+                    onChange={(e) => handleDigitInput(index, e)}
+                    onKeyDown={(e) => handleKeyDown(index, e)}
+                    onPaste={index === 0 ? handlePaste : null}
+                    onFocus={() => {
                       setActiveIndex(index);
                       setPhoneFieldActive(true);
-                    }
-                  }}
-                />
-              </Box>
-            ))}
+                    }}
+                    onBlur={() => {
+                      setTimeout(() => {
+                        const anyFocused = phoneInputRefs.current.some(
+                          ref => document.activeElement === ref.current
+                        );
+                        if (!anyFocused) {
+                          setPhoneFieldActive(false);
+                          setActiveIndex(-1);
+                        }
+                      }, 10);
+                    }}
+                    disabled={formData.isNumberConfirmed || formData.noTieneTelefono}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      opacity: 0,
+                      cursor: formData.isNumberConfirmed ? 'not-allowed' : 'text',
+                      zIndex: 2
+                    }}
+                  />
+    
+                  {/* Área clickeable */}
+                  <Box
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      cursor: formData.isNumberConfirmed || formData.noTieneTelefono ? 'not-allowed' : 'text',
+                      zIndex: 3,
+                      border: 'none',
+                      backgroundColor: 'transparent'
+                    }}
+                    onClick={() => {
+                      if (!formData.isNumberConfirmed && !formData.noTieneTelefono) {
+                        phoneInputRefs.current[index].current.focus();
+                        setActiveIndex(index);
+                        setPhoneFieldActive(true);
+                      }
+                    }}
+                  />
+                </Box>
+              ))}
+            </Box>
+            
+            {/* Botón de confirmar/editar */}
+            {!formData.noTieneTelefono && (
+              <Button
+                size="small"
+                variant={formData.isNumberConfirmed ? "outlined" : "contained"}
+                color={formData.isNumberConfirmed ? "secondary" : "primary"}
+                onClick={formData.isNumberConfirmed ? handleEditNumber : handleConfirmNumber}
+                disabled={formData.telefono.length === 0}
+                sx={{
+                  ml: 2,
+                  minWidth: 'auto',
+                  height: '38px',
+                  borderRadius: '8px',
+                  fontSize: '0.8rem',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                {formData.isNumberConfirmed ? "Editar" : "Confirmar"}
+              </Button>
+            )}
           </Box>
-
-          {/* Botón de confirmar/editar */}
-          {!formData.noTieneTelefono && (
-            <Button
-              size="small"
-              variant={formData.isNumberConfirmed ? "outlined" : "contained"}
-              color={formData.isNumberConfirmed ? "secondary" : "primary"}
-              onClick={formData.isNumberConfirmed ? handleEditNumber : handleConfirmNumber}
-              disabled={formData.telefono.length === 0}
-              sx={{
-                ml: 2,
-                minWidth: 'auto',
-                height: '38px',
-                borderRadius: '8px',
-                fontSize: '0.8rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              {formData.isNumberConfirmed ? "Editar" : "Confirmar"}
-            </Button>
-          )}
         </Box>
-
+    
+        {/* Mensaje de información */}
+        <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
+          <InfoIcon sx={{ color: colors.primary, fontSize: 16, mr: 0.5 }} />
+          <Typography variant="caption" sx={{ color: colors.textSecondary }}>
+            Ingresa 10 dígitos sin espacios ni guiones
+          </Typography>
+        </Box>
+    
+        {/* Error message */}
         {error && (
           <FormHelperText error sx={{ ml: 0, mt: 1 }}>
-            {helperText || 'Formato: 10 dígitos numéricos'}
+            {helperText}
           </FormHelperText>
         )}
-
+    
+        {/* Success message */}
         {formData.isNumberConfirmed && !error && (
           <FormHelperText sx={{ color: colors.success, ml: 0, mt: 1 }}>
             Número confirmado correctamente
           </FormHelperText>
         )}
-
+    
+        {/* No tengo teléfono checkbox */}
         <FormControlLabel
           control={
             <Checkbox
@@ -693,10 +710,9 @@ const Register = () => {
                   ...formData,
                   noTieneTelefono: e.target.checked,
                   telefono: e.target.checked ? '' : formData.telefono,
-                  isNumberConfirmed: false // Resetear confirmación al marcar "no tengo teléfono"
+                  isNumberConfirmed: false
                 });
-
-                // Si marca que no tiene teléfono, limpiar el error
+    
                 if (e.target.checked) {
                   setErrors(prev => ({ ...prev, telefono: '' }));
                   setPhoneFieldActive(false);
@@ -1046,11 +1062,19 @@ const Register = () => {
   const handleNext = () => {
     if (validateStep()) {
       setActiveStep((prevActiveStep) => prevActiveStep + 1);
+      window.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
     }
   };
 
   const handleBack = () => {
     setActiveStep((prevActiveStep) => prevActiveStep - 1);
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
   };
 
   // Manejo del submit del formulario
