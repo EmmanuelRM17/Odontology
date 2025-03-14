@@ -27,119 +27,121 @@ import {
     SupportAgent as SupportIcon
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
-import { useThemeContext } from '../Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
-
-// Definimos las animaciones
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-const fadeOut = keyframes`
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-`;
-
-const pulse = keyframes`
-  0% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(3, 66, 124, 0.7);
-  }
-  70% {
-    transform: scale(1.05);
-    box-shadow: 0 0 0 10px rgba(3, 66, 124, 0);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(3, 66, 124, 0);
-  }
-`;
-
-const typing = keyframes`
-  0% { opacity: 0.3; }
-  50% { opacity: 1; }
-  100% { opacity: 0.3; }
-`;
-
-// Mensajes de bienvenida e instrucciones
-const WELCOME_MESSAGE = [
-    "👋 ¡Hola! Soy el asistente virtual de Odontología Carol. Estoy aquí para ayudarte con tus consultas dentales.",
-    "Puedo asistirte con:\n• Información sobre tratamientos\n• Consejos de salud dental\n• Agendar citas\n• Resolver dudas generales",
-    "¿En qué puedo ayudarte hoy?"
-];
-
-// Preguntas frecuentes sugeridas
-const FAQ_QUESTIONS = [
-    "¿Cuánto cuesta una limpieza dental?",
-    "¿Cada cuánto debo visitar al dentista?",
-    "¿Qué hacer en caso de dolor dental?",
-    "¿Cuánto dura un blanqueamiento?",
-    "¿Aceptan todas las aseguradoras?"
-];
-
-// Mensajes emergentes para el botón de chat
-const TOOLTIP_MESSAGES = [
-    "¿Tienes una consulta dental? ¡Pregúntame!",
-    "¡Hola! ¿Necesitas ayuda con tu salud dental?",
-    "¿Dudas sobre tratamientos? Consulta conmigo",
-    "Asistente dental a tu servicio 🦷",
-    "¿En qué puedo ayudarte hoy? 😊"
-];
-
-// Sistema simple de respuestas predefinidas
-const PREDEFINED_RESPONSES = {
-    greeting: [
-        "¡Hola! ¿En qué puedo ayudarte hoy?",
-        "¡Hola! Soy el asistente virtual dental. ¿Cómo puedo asistirte?",
-        "¡Saludos! Estoy aquí para resolver tus dudas dentales. ¿En qué te puedo ayudar?"
-    ],
-    thanks: [
-        "¡De nada! Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?",
-        "Es un placer poder ayudarte. ¿Necesitas algo más?",
-        "No hay de qué. Si tienes más preguntas, no dudes en consultarme."
-    ],
-    notUnderstood: [
-        "Lo siento, no he comprendido tu consulta. ¿Podrías reformularla de otra manera?",
-        "Disculpa, no he entendido lo que necesitas. ¿Podrías ser más específico?",
-        "Parece que no puedo entender tu mensaje. ¿Podrías intentar expresarlo de otra forma?"
-    ],
-    pricing: [
-        "Los precios varían según el tratamiento específico y las necesidades individuales. Una limpieza dental básica oscila entre $600-$1,200 MXN. Para un presupuesto personalizado, te recomendaría agendar una evaluación inicial sin costo."
-    ],
-    visitFrequency: [
-        "Se recomienda visitar al dentista cada 6 meses para revisiones y limpiezas regulares. Sin embargo, si tienes tratamientos en curso o condiciones especiales, tu dentista podría recomendarte visitas más frecuentes."
-    ],
-    toothache: [
-        "Para un dolor dental repentino:\n• Toma un analgésico como paracetamol o ibuprofeno siguiendo las indicaciones\n• Enjuaga con agua tibia con sal\n• Evita alimentos muy fríos, calientes o dulces\n• Contacta con nuestra clínica para una cita de emergencia al 55-1234-5678"
-    ],
-    whitening: [
-        "Un tratamiento de blanqueamiento dental profesional en nuestra clínica dura aproximadamente una hora. Los resultados son inmediatos, y con buenos cuidados, pueden durar entre 1-3 años dependiendo de tus hábitos alimenticios y de higiene dental."
-    ],
-    insurance: [
-        "Trabajamos con las principales aseguradoras como Axa, GNP, Metlife, Allianz y MAPFRE. También ofrecemos planes de financiamiento y descuentos para pacientes sin seguro. ¿Te gustaría más información sobre algún plan específico?"
-    ],
-    appointmentScheduling: [
-        "Para agendar una cita, necesitaría algunos datos básicos. ¿Prefieres que te contacte un asistente para programarla, o deseas hacerlo por teléfono? Nuestro número es 55-1234-5678 y atendemos de lunes a viernes de 9am a 7pm."
-    ],
-};
+import { useThemeContext } from '../Tools/ThemeContext'; 
+import { createPortal } from 'react-dom';
 
 /**
  * Componente profesional de chat para asistencia dental
  * Proporciona una interfaz intuitiva para consultas y asistencia al paciente
+ * Corregido para solucionar problemas de visualización y posicionamiento
  */
 const DentalChat = () => {
+    // Definimos las animaciones
+    const fadeIn = keyframes`
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    `;
+
+    const fadeOut = keyframes`
+      from {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+    `;
+
+    const pulse = keyframes`
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(3, 66, 124, 0.7);
+      }
+      70% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(3, 66, 124, 0);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(3, 66, 124, 0);
+      }
+    `;
+
+    const typing = keyframes`
+      0% { opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { opacity: 0.3; }
+    `;
+
+    // Mensajes de bienvenida e instrucciones
+    const WELCOME_MESSAGE = [
+        "👋 ¡Hola! Soy el asistente virtual de Odontología Carol. Estoy aquí para ayudarte con tus consultas dentales.",
+        "Puedo asistirte con:\n• Información sobre tratamientos\n• Consejos de salud dental\n• Agendar citas\n• Resolver dudas generales",
+        "¿En qué puedo ayudarte hoy?"
+    ];
+
+    // Preguntas frecuentes sugeridas
+    const FAQ_QUESTIONS = [
+        "¿Cuánto cuesta una limpieza dental?",
+        "¿Cada cuánto debo visitar al dentista?",
+        "¿Qué hacer en caso de dolor dental?",
+        "¿Cuánto dura un blanqueamiento?",
+        "¿Aceptan todas las aseguradoras?"
+    ];
+
+    // Mensajes emergentes para el botón de chat
+    const TOOLTIP_MESSAGES = [
+        "¿Tienes una consulta dental? ¡Pregúntame!",
+        "¡Hola! ¿Necesitas ayuda con tu salud dental?",
+        "¿Dudas sobre tratamientos? Consulta conmigo",
+        "Asistente dental a tu servicio 🦷",
+        "¿En qué puedo ayudarte hoy? 😊"
+    ];
+
+    // Sistema simple de respuestas predefinidas
+    const PREDEFINED_RESPONSES = {
+        greeting: [
+            "¡Hola! ¿En qué puedo ayudarte hoy?",
+            "¡Hola! Soy el asistente virtual dental. ¿Cómo puedo asistirte?",
+            "¡Saludos! Estoy aquí para resolver tus dudas dentales. ¿En qué te puedo ayudar?"
+        ],
+        thanks: [
+            "¡De nada! Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?",
+            "Es un placer poder ayudarte. ¿Necesitas algo más?",
+            "No hay de qué. Si tienes más preguntas, no dudes en consultarme."
+        ],
+        notUnderstood: [
+            "Lo siento, no he comprendido tu consulta. ¿Podrías reformularla de otra manera?",
+            "Disculpa, no he entendido lo que necesitas. ¿Podrías ser más específico?",
+            "Parece que no puedo entender tu mensaje. ¿Podrías intentar expresarlo de otra forma?"
+        ],
+        pricing: [
+            "Los precios varían según el tratamiento específico y las necesidades individuales. Una limpieza dental básica oscila entre $600-$1,200 MXN. Para un presupuesto personalizado, te recomendaría agendar una evaluación inicial sin costo."
+        ],
+        visitFrequency: [
+            "Se recomienda visitar al dentista cada 6 meses para revisiones y limpiezas regulares. Sin embargo, si tienes tratamientos en curso o condiciones especiales, tu dentista podría recomendarte visitas más frecuentes."
+        ],
+        toothache: [
+            "Para un dolor dental repentino:\n• Toma un analgésico como paracetamol o ibuprofeno siguiendo las indicaciones\n• Enjuaga con agua tibia con sal\n• Evita alimentos muy fríos, calientes o dulces\n• Contacta con nuestra clínica para una cita de emergencia al 55-1234-5678"
+        ],
+        whitening: [
+            "Un tratamiento de blanqueamiento dental profesional en nuestra clínica dura aproximadamente una hora. Los resultados son inmediatos, y con buenos cuidados, pueden durar entre 1-3 años dependiendo de tus hábitos alimenticios y de higiene dental."
+        ],
+        insurance: [
+            "Trabajamos con las principales aseguradoras como Axa, GNP, Metlife, Allianz y MAPFRE. También ofrecemos planes de financiamiento y descuentos para pacientes sin seguro. ¿Te gustaría más información sobre algún plan específico?"
+        ],
+        appointmentScheduling: [
+            "Para agendar una cita, necesitaría algunos datos básicos. ¿Prefieres que te contacte un asistente para programarla, o deseas hacerlo por teléfono? Nuestro número es 55-1234-5678 y atendemos de lunes a viernes de 9am a 7pm."
+        ],
+    };
+
     // Estados principales
     const [isOpen, setIsOpen] = useState(false);
     const [position, setPosition] = useState('right');
@@ -152,12 +154,13 @@ const DentalChat = () => {
     const [currentTooltipIndex, setCurrentTooltipIndex] = useState(0);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [portalContainer, setPortalContainer] = useState(null);
 
     // Referencias
     const messagesEndRef = useRef(null);
     const tooltipTimeoutRef = useRef(null);
     const inputRef = useRef(null);
-    const chatWindowRef = useRef(null); // Referencia para el contenedor del chat
+    const chatWindowRef = useRef(null);
 
     // Contexto y temas
     const { isDarkTheme } = useThemeContext();
@@ -165,11 +168,31 @@ const DentalChat = () => {
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
+    // Crear contenedor del portal al montar el componente
+    useEffect(() => {
+        // Crear un div para el portal
+        const portalDiv = document.createElement('div');
+        portalDiv.id = 'dental-chat-portal';
+        portalDiv.style.position = 'fixed';
+        portalDiv.style.zIndex = '9999';
+        portalDiv.style.top = '0';
+        portalDiv.style.left = '0';
+        portalDiv.style.width = '100%';
+        portalDiv.style.height = '0';
+        portalDiv.style.overflow = 'visible';
+        document.body.appendChild(portalDiv);
+        
+        setPortalContainer(portalDiv);
+        
+        // Limpiar al desmontar
+        return () => {
+            document.body.removeChild(portalDiv);
+        };
+    }, []);
+
     // Inicializar mensajes de bienvenida
     useEffect(() => {
         if (messages.length === 0 && isOpen) {
-            const welcomeMessages = [];
-
             // Añadir los mensajes de bienvenida con un pequeño retraso entre ellos
             WELCOME_MESSAGE.forEach((msg, index) => {
                 setTimeout(() => {
@@ -347,24 +370,6 @@ const DentalChat = () => {
         }, 300);
     };
 
-    // Evento para detectar clics fuera del chat y cerrarlo
-    useEffect(() => {
-        const handleClickOutside = (event) => {
-            if (isOpen &&
-                chatWindowRef.current &&
-                !chatWindowRef.current.contains(event.target) &&
-                !event.target.closest('[data-chat-button="true"]')) {
-                handleClose();
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isOpen]);
-
     // Seleccionar una pregunta frecuente
     const handleSelectQuestion = (question) => {
         setMessage(question);
@@ -381,13 +386,10 @@ const DentalChat = () => {
             position: 'fixed',
             bottom: isMobile ? '16px' : '32px',
             [position]: isMobile ? '16px' : '32px',
-            zIndex: 999,
-            animation: `${fadeIn} 0.3s ease-out`,
-            '&.closing': {
-                animation: `${fadeOut} 0.3s ease-out`
-            },
+            zIndex: 1500,
             maxWidth: '100vw',
-            maxHeight: '100vh'
+            maxHeight: '100vh',
+            pointerEvents: 'auto',
         },
 
         // Ventana de chat
@@ -575,7 +577,6 @@ const DentalChat = () => {
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
             border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
             zIndex: 100,
-            animation: `${fadeIn} 0.2s ease-out`,
         },
 
         // Botón de chat flotante
@@ -583,7 +584,7 @@ const DentalChat = () => {
             position: 'fixed',
             bottom: isMobile ? '16px' : '32px',
             [position]: isMobile ? '16px' : '32px',
-            zIndex: 1000,
+            zIndex: 1500,
             width: '60px',
             height: '60px',
             background: isDarkTheme
@@ -593,13 +594,11 @@ const DentalChat = () => {
             boxShadow: '0 4px 10px rgba(49, 130, 206, 0.4)',
             borderRadius: '50%',
             transition: 'all 0.3s ease',
+            pointerEvents: 'auto',
             '&:hover': {
                 transform: 'scale(1.05) translateY(-2px)',
                 boxShadow: '0 6px 20px rgba(49, 130, 206, 0.6)',
             },
-            '&.pulse': {
-                animation: `${pulse} 2s infinite`
-            }
         },
 
         // Texto emergente del botón
@@ -612,12 +611,10 @@ const DentalChat = () => {
             padding: '10px 16px',
             borderRadius: '12px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            whiteSpace: 'nowrap',
-            animation: `${fadeIn} 0.3s ease-out`,
-            zIndex: 1001,
+            whiteSpace: 'normal',
+            zIndex: 1501,
             border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
             maxWidth: isMobile ? '200px' : '250px',
-            whiteSpace: 'normal',
             fontSize: '0.9rem',
             lineHeight: 1.5,
             '&::after': {
@@ -648,15 +645,18 @@ const DentalChat = () => {
             width: 40,
             height: 40,
             borderRadius: '50%',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            marginRight: '10px',
         }
     };
 
-    return (
+    // Contenido a renderizar en el portal
+    const chatPortal = portalContainer && createPortal(
         <>
             {/* Ventana de chat */}
             {isOpen && (
                 <Fade in={!isClosing} timeout={300}>
-                    <Box sx={styles.container} className={isClosing ? 'closing' : ''}>
+                    <Box sx={styles.container}>
                         <Paper sx={styles.chatWindow} elevation={6} ref={chatWindowRef}>
                             {/* Cabecera */}
                             <Box sx={styles.header}>
@@ -819,30 +819,11 @@ const DentalChat = () => {
                                     inputRef={inputRef}
                                 />
 
-                                {/* Botón de enviar separado y más visible */}
+                                {/* Botón de enviar */}
                                 <IconButton
                                     type="submit"
                                     disabled={!message.trim()}
-                                    sx={{
-                                        bgcolor: message.trim() ? '#3182CE' : 'rgba(49, 130, 206, 0.4)',
-                                        color: 'white',
-                                        width: 40,
-                                        height: 40,
-                                        '&:hover': {
-                                            bgcolor: '#2B6CB0',
-                                        },
-                                        '&.Mui-disabled': {
-                                            bgcolor: isDarkTheme ? 'rgba(45, 55, 72, 0.8)' : 'rgba(226, 232, 240, 0.8)',
-                                            color: isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
-                                        },
-                                        zIndex: 5, // Aumentado para asegurar que esté por encima de otros elementos
-                                        position: 'relative',
-                                        ml: 1,
-                                        transition: 'all 0.2s ease',
-                                        // Añadir estas propiedades para asegurar visibilidad
-                                        marginRight: '10px', // Separación del borde derecho
-                                        boxShadow: '0 2px 5px rgba(0,0,0,0.2)' // Sombra para destacarlo
-                                    }}
+                                    sx={styles.sendButton}
                                 >
                                     <SendIcon fontSize="small" />
                                 </IconButton>
@@ -871,7 +852,7 @@ const DentalChat = () => {
                     <Box
                         sx={{
                             ...styles.chatButton,
-                            ...(unreadCount > 0 && { className: 'pulse' })
+                            animation: unreadCount > 0 ? `${pulse} 2s infinite` : 'none'
                         }}
                         onMouseEnter={handleMouseEnter}
                         onMouseLeave={handleMouseLeave}
@@ -879,10 +860,7 @@ const DentalChat = () => {
                     >
                         {showTooltip && !isOpen && (
                             <Box
-                                sx={{
-                                    ...styles.tooltipBox,
-                                    animation: `${fadeIn} 0.3s ease-out`,
-                                }}
+                                sx={styles.tooltipBox}
                                 key={currentTooltipIndex}
                             >
                                 {TOOLTIP_MESSAGES[currentTooltipIndex]}
@@ -904,8 +882,12 @@ const DentalChat = () => {
                         </IconButton>
                     </Box>
                 </Badge>
-            )}      </>
+            )}
+        </>,
+        portalContainer
     );
+
+    return chatPortal || null;
 };
 
 export default DentalChat;

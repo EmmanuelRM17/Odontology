@@ -1,16 +1,22 @@
-import InfoIcon from '@mui/icons-material/Info';
 import ArrowBack from '@mui/icons-material/ArrowBack';
-import VerifiedUser from '@mui/icons-material/VerifiedUser';
 import ContactSupport from '@mui/icons-material/ContactSupport';
+import InfoIcon from '@mui/icons-material/Info';
+import VerifiedUser from '@mui/icons-material/VerifiedUser';
 import {
   Alert,
+  AlertTitle,
+  alpha,
+  Backdrop,
   Box,
   Button,
   Card,
   CardContent,
   Checkbox,
+  Chip,
   CircularProgress,
   Container,
+  Divider,
+  Fade,
   FormControl,
   FormControlLabel,
   FormHelperText,
@@ -28,41 +34,34 @@ import {
   StepLabel,
   Stepper,
   TextField,
-  Typography,
-  useMediaQuery,
-  alpha,
   Tooltip,
-  Divider,
-  Stack,
-  Fade,
-  Backdrop, AlertTitle, Chip, ListSubheader
+  Typography,
+  useMediaQuery
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
-import { motion, AnimatePresence } from 'framer-motion';
-import React, { useState, useEffect, forwardRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import React, { forwardRef, useEffect, useRef, useState, createRef } from 'react';
 import {
+  FaBirthdayCake,
   FaCheckCircle,
+  FaPencilAlt,
+  FaClipboardCheck,
   FaEnvelope,
+  FaExclamationTriangle,
   FaEye,
   FaEyeSlash,
+  FaIdCard,
   FaInfoCircle,
   FaLock,
+  FaMapMarkerAlt,
   FaPhone,
   FaPlusCircle,
-  FaUser,
-  FaCalendarAlt,
-  FaBirthdayCake,
-  FaMapMarkerAlt,
   FaShieldAlt,
-  FaUniversity,
-  FaIdCard,
-  FaWhatsapp,
-  FaClipboardCheck,
-  FaExclamationTriangle
+  FaUser
 } from 'react-icons/fa';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import zxcvbn from 'zxcvbn';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import ErrorBoundary from '../../../components/Tools/ErrorBoundary';
@@ -92,7 +91,9 @@ const Register = () => {
     telefono: '',
     email: '',
     alergias: [],
+    condicionesMedicas: [],
     otraAlergia: '',
+    otraCondicion: '',
     tipoTutor: '',
     nombreTutor: '',
     password: '',
@@ -103,8 +104,8 @@ const Register = () => {
     telefono4: '',
     noTieneEmail: false,
     noTieneTelefono: false,
+    isNumberConfirmed: false,
   });
-
   // Estados para errores y validaciones
   const [errors, setErrors] = useState({});
   const [isEmailSent, setIsEmailSent] = useState(false);
@@ -357,86 +358,146 @@ const Register = () => {
 
   // Input personalizado para el teléfono con formato de grupos
   const PhoneDigitInput = forwardRef(({ value, onChange, error, helperText, ...props }, ref) => {
-    // Crear un arreglo con los valores actuales de los dígitos del teléfono
-    const [digits, setDigits] = useState(['', '', '', '']);
+    // Referencias para los inputs
+    const phoneInputRefs = useRef(Array(10).fill(0).map(() => createRef()));
 
+    // Estado local (solo para UI)
+    const [activeIndex, setActiveIndex] = useState(-1); // Índice de la casilla activa
+    const [phoneFieldActive, setPhoneFieldActive] = useState(false); // Campo completo activo
+
+    // Efecto para inicializar según teléfono existente
     useEffect(() => {
-      // Si ya existe un teléfono en formData, inicializar los dígitos
-      if (formData.telefono && formData.telefono.length === 10) {
-        const phone = formData.telefono;
-        setDigits([
-          phone.substring(0, 3),
-          phone.substring(3, 6),
-          phone.substring(6, 8),
-          phone.substring(8, 10)
-        ]);
+      if (formData.telefono && formData.telefono.length > 0 && !formData.isNumberConfirmed) {
+        // Si hay un número parcial, enfocar la siguiente posición
+        const nextIndex = Math.min(formData.telefono.length, 9);
+        if (phoneInputRefs.current[nextIndex]?.current) {
+          phoneInputRefs.current[nextIndex].current.focus();
+        }
       }
     }, []);
 
-    // Función para manejar cambios en los inputs
-    const handleDigitChange = (index, e) => {
-      const value = e.target.value.replace(/\D/g, ''); // Solo permitir dígitos
+    // Función para manejar entrada en cada dígito
+    const handleDigitInput = (index, e) => {
+      if (formData.isNumberConfirmed) return;
 
-      // Si se pega un número largo, distribúyelo en los campos
-      if (value.length > 3 && index === 0) {
-        const allDigits = value.substring(0, 10); // Limitar a 10 dígitos
+      const inputValue = e.target.value.replace(/\D/g, '');
+      const lastChar = inputValue.slice(-1);
 
-        const newDigits = [
-          allDigits.substring(0, 3),
-          allDigits.substring(3, 6),
-          allDigits.substring(6, 8),
-          allDigits.substring(8, 10)
-        ];
+      if (lastChar) {
+        // Actualizar el valor en formData
+        const newPhone = formData.telefono.split('');
+        newPhone[index] = lastChar;
 
-        setDigits(newDigits);
+        setFormData({
+          ...formData,
+          telefono: newPhone.join('')
+        });
 
-        // Combinar todos los dígitos para actualizar el formData
-        const fullPhone = newDigits.join('');
-
-        // Actualizar el telefono en formData
-        setFormData(prev => ({
-          ...prev,
-          telefono: fullPhone,
-          telefono1: newDigits[0],
-          telefono2: newDigits[1],
-          telefono3: newDigits[2],
-          telefono4: newDigits[3]
-        }));
-
-        return;
-      }
-
-      // Para entradas normales de un solo campo
-      const maxLength = index === 0 || index === 1 ? 3 : 2;
-
-      if (value.length <= maxLength) {
-        const newDigits = [...digits];
-        newDigits[index] = value;
-        setDigits(newDigits);
-
-        // Actualizar el estado del grupo correspondiente
-        setFormData(prev => ({
-          ...prev,
-          [`telefono${index + 1}`]: value,
-          telefono: newDigits.join('')
-        }));
-
-        // Auto-avanzar al siguiente campo si este está lleno
-        if (value.length === maxLength && index < 3) {
-          const nextInput = document.getElementById(`phone-digit-${index + 1}`);
-          if (nextInput) nextInput.focus();
+        // Avanzar al siguiente campo si hay un valor y no es el último
+        if (index < 9) {
+          phoneInputRefs.current[index + 1].current.focus();
+          setActiveIndex(index + 1);
         }
       }
     };
 
-    // Función para manejar el retroceso entre campos
+    // Manejar teclas especiales
     const handleKeyDown = (index, e) => {
-      if (e.key === 'Backspace' && !digits[index] && index > 0) {
-        const prevInput = document.getElementById(`phone-digit-${index - 1}`);
-        if (prevInput) prevInput.focus();
+      if (formData.isNumberConfirmed) return;
+
+      if (e.key === 'Backspace') {
+        // Si el campo actual está vacío y no es el primero, retroceder
+        if (!formData.telefono[index] && index > 0) {
+          phoneInputRefs.current[index - 1].current.focus();
+          setActiveIndex(index - 1);
+        } else if (formData.telefono[index]) {
+          // Si el campo actual tiene valor, borrarlo
+          const newPhone = formData.telefono.split('');
+          newPhone[index] = '';
+
+          setFormData({
+            ...formData,
+            telefono: newPhone.join('')
+          });
+        }
+      } else if (e.key === 'ArrowLeft' && index > 0) {
+        phoneInputRefs.current[index - 1].current.focus();
+        setActiveIndex(index - 1);
+      } else if (e.key === 'ArrowRight' && index < 9) {
+        phoneInputRefs.current[index + 1].current.focus();
+        setActiveIndex(index + 1);
       }
     };
- //numerp de telefono
+
+    // Manejar pegado de número completo
+    const handlePaste = (e) => {
+      if (formData.isNumberConfirmed) {
+        e.preventDefault();
+        return;
+      }
+
+      e.preventDefault();
+      const pastedText = e.clipboardData.getData('text');
+      const digits = pastedText.replace(/\D/g, '').substring(0, 10);
+
+      if (digits) {
+        setFormData({
+          ...formData,
+          telefono: digits
+        });
+
+        // Si se pegaron todos los dígitos, enfocar el último campo
+        if (digits.length === 10) {
+          phoneInputRefs.current[9].current.focus();
+          setActiveIndex(9);
+        } else if (digits.length > 0) {
+          // Enfocar la siguiente posición después del último dígito
+          phoneInputRefs.current[digits.length].current.focus();
+          setActiveIndex(digits.length);
+        }
+      }
+    };
+
+    // Confirmar el número
+    const handleConfirmNumber = () => {
+      if (formData.telefono.length === 10) {
+        setFormData(prev => ({
+          ...prev,
+          isNumberConfirmed: true
+        }));
+        setActiveIndex(-1);
+        setPhoneFieldActive(false);
+      } else {
+        // Mostrar un mensaje de error si el número no está completo
+        setErrors(prev => ({
+          ...prev,
+          telefono: 'Debes ingresar los 10 dígitos para confirmar'
+        }));
+
+        // Enfocar la primera casilla vacía
+        const emptyIndex = formData.telefono.split('').findIndex(digit => !digit);
+        if (emptyIndex >= 0) {
+          phoneInputRefs.current[emptyIndex].current.focus();
+          setActiveIndex(emptyIndex);
+        } else {
+          phoneInputRefs.current[0].current.focus();
+          setActiveIndex(0);
+        }
+      }
+    };
+
+    // Editar el número (desbloquear)
+    const handleEditNumber = () => {
+      setFormData(prev => ({
+        ...prev,
+        isNumberConfirmed: false
+      }));
+      // Enfocar el primer dígito al editar
+      phoneInputRefs.current[0].current.focus();
+      setActiveIndex(0);
+      setPhoneFieldActive(true);
+    };
+
     return (
       <Box>
         <Typography
@@ -454,52 +515,30 @@ const Register = () => {
           sx={{
             position: 'relative',
             display: 'flex',
-            alignItems: 'center'
+            alignItems: 'center',
+            padding: '3px',
+            borderRadius: '10px',
+            border: phoneFieldActive ? `2px solid ${alpha(colors.primary, 0.5)}` : '2px solid transparent',
+            transition: 'all 0.2s ease'
           }}
         >
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
-            color: colors.primary,
-            mr: 1
+            color: phoneFieldActive ? colors.primary : colors.textSecondary,
+            mr: 1,
+            transition: 'color 0.2s'
           }}>
             <FaPhone size={18} />
           </Box>
 
-          {/* Campo invisible para capturar entrada continua */}
-          <TextField
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              opacity: 0,
-              width: '100%',
-              height: '100%',
-              zIndex: 1,
-              pointerEvents: formData.noTieneTelefono ? 'none' : 'auto'
-            }}
-            value={formData.telefono}
-            onChange={(e) => {
-              // Permitir solo números y limitar a 10 dígitos
-              const numericValue = e.target.value.replace(/\D/g, '').slice(0, 10);
-              setFormData({
-                ...formData,
-                telefono: numericValue
-              });
-            }}
-            inputProps={{
-              maxLength: 10,
-              inputMode: "numeric"
-            }}
-            disabled={formData.noTieneTelefono}
-          />
-
-          {/* 10 casillas visibles */}
+          {/* 10 casillas con inputs */}
           <Box sx={{
             display: 'flex',
             alignItems: 'center',
             gap: { xs: 0.5, sm: 0.75 },
-            ml: 1
+            ml: 1,
+            flex: 1
           }}>
             {Array(10).fill(0).map((_, index) => (
               <Box
@@ -507,35 +546,141 @@ const Register = () => {
                 sx={{
                   width: '32px',
                   height: '38px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: isDarkTheme ? alpha(colors.paper, 0.5) : '#fff',
-                  border: `1px solid ${(error ? colors.error : alpha(colors.primary, 0.3))}`,
-                  borderRadius: '6px',
-                  cursor: 'text',
-                  fontSize: '16px',
-                  fontWeight: '500',
-                  color: colors.text,
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    borderColor: colors.primary
-                  }
-                }}
-                onClick={() => {
-                  const inputEl = document.querySelector('input[type="text"]');
-                  if (inputEl && !formData.noTieneTelefono) inputEl.focus();
+                  position: 'relative'
                 }}
               >
-                {formData.telefono[index] || ''}
+                {/* Caja visual */}
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: formData.telefono[index]
+                      ? alpha(colors.primary, 0.1) // Casilla con número: azul suave
+                      : isDarkTheme ? alpha(colors.paper, 0.5) : '#fff',
+                    border: `${activeIndex === index && phoneFieldActive ? '2px' : '1px'} solid ${error
+                      ? colors.error
+                      : activeIndex === index && phoneFieldActive
+                        ? colors.primary
+                        : formData.isNumberConfirmed
+                          ? alpha(colors.success, 0.5)
+                          : alpha(colors.primary, 0.3)
+                      }`,
+                    borderRadius: '6px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    color: colors.text,
+                    transition: 'all 0.2s',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    pointerEvents: 'none',
+                    zIndex: 1,
+                    boxShadow: activeIndex === index && phoneFieldActive
+                      ? `0 0 0 2px ${alpha(colors.primary, 0.2)}` : 'none',
+                    opacity: formData.isNumberConfirmed ? 0.9 : 1
+                  }}
+                >
+                  {formData.telefono[index] || ''}
+                </Box>
+
+                {/* Input real */}
+                <input
+                  ref={phoneInputRefs.current[index]}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={formData.telefono[index] || ''}
+                  onChange={(e) => handleDigitInput(index, e)}
+                  onKeyDown={(e) => handleKeyDown(index, e)}
+                  onPaste={index === 0 ? handlePaste : null}
+                  onFocus={() => {
+                    setActiveIndex(index);
+                    setPhoneFieldActive(true);
+                  }}
+                  onBlur={() => {
+                    // Verificar si el foco sigue en algún input del teléfono
+                    setTimeout(() => {
+                      const anyFocused = phoneInputRefs.current.some(
+                        ref => document.activeElement === ref.current
+                      );
+                      if (!anyFocused) {
+                        setPhoneFieldActive(false);
+                        setActiveIndex(-1);
+                      }
+                    }, 10);
+                  }}
+                  disabled={formData.isNumberConfirmed || formData.noTieneTelefono}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    opacity: 0,
+                    cursor: formData.isNumberConfirmed ? 'not-allowed' : 'text',
+                    zIndex: 2
+                  }}
+                />
+
+                {/* Área clickeable */}
+                <Box
+                  sx={{
+                    width: '100%',
+                    height: '100%',
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    cursor: formData.isNumberConfirmed || formData.noTieneTelefono ? 'not-allowed' : 'text',
+                    zIndex: 3,
+                    border: 'none',
+                    backgroundColor: 'transparent'
+                  }}
+                  onClick={() => {
+                    if (!formData.isNumberConfirmed && !formData.noTieneTelefono) {
+                      phoneInputRefs.current[index].current.focus();
+                      setActiveIndex(index);
+                      setPhoneFieldActive(true);
+                    }
+                  }}
+                />
               </Box>
             ))}
           </Box>
+
+          {/* Botón de confirmar/editar */}
+          {!formData.noTieneTelefono && (
+            <Button
+              size="small"
+              variant={formData.isNumberConfirmed ? "outlined" : "contained"}
+              color={formData.isNumberConfirmed ? "secondary" : "primary"}
+              onClick={formData.isNumberConfirmed ? handleEditNumber : handleConfirmNumber}
+              disabled={formData.telefono.length === 0}
+              sx={{
+                ml: 2,
+                minWidth: 'auto',
+                height: '38px',
+                borderRadius: '8px',
+                fontSize: '0.8rem',
+                whiteSpace: 'nowrap'
+              }}
+            >
+              {formData.isNumberConfirmed ? "Editar" : "Confirmar"}
+            </Button>
+          )}
         </Box>
 
         {error && (
           <FormHelperText error sx={{ ml: 0, mt: 1 }}>
             {helperText || 'Formato: 10 dígitos numéricos'}
+          </FormHelperText>
+        )}
+
+        {formData.isNumberConfirmed && !error && (
+          <FormHelperText sx={{ color: colors.success, ml: 0, mt: 1 }}>
+            Número confirmado correctamente
           </FormHelperText>
         )}
 
@@ -547,12 +692,15 @@ const Register = () => {
                 setFormData({
                   ...formData,
                   noTieneTelefono: e.target.checked,
-                  telefono: e.target.checked ? '' : formData.telefono
+                  telefono: e.target.checked ? '' : formData.telefono,
+                  isNumberConfirmed: false // Resetear confirmación al marcar "no tengo teléfono"
                 });
 
                 // Si marca que no tiene teléfono, limpiar el error
                 if (e.target.checked) {
                   setErrors(prev => ({ ...prev, telefono: '' }));
+                  setPhoneFieldActive(false);
+                  setActiveIndex(-1);
                 }
               }}
               sx={{
@@ -561,6 +709,7 @@ const Register = () => {
                   color: colors.primary,
                 }
               }}
+              disabled={formData.isNumberConfirmed}
             />
           }
           label={
@@ -572,8 +721,6 @@ const Register = () => {
         />
       </Box>
     );
-
-
   });
 
   // Handlers y funciones
@@ -704,8 +851,8 @@ const Register = () => {
       // Si marca que no tiene email, establecer un valor por defecto para el email y limpiar errores
       setFormData(prev => ({
         ...prev,
-        email: `paciente_${Date.now()}@noemail.com`,
-        [name]: checked
+        email: 'sin-correo@clinica.local',       
+         [name]: checked
       }));
       setIsEmailVerified(true); // Considerar como verificado automáticamente
       setErrors(prev => ({ ...prev, email: '' }));
@@ -967,17 +1114,34 @@ const Register = () => {
 
       // Preparar datos para el envío
       const dataToSubmit = {
-        ...formData,
+        nombre: formData.nombre,
+        aPaterno: formData.aPaterno,
+        aMaterno: formData.aMaterno,
+        fechaNacimiento: formData.fechaNacimiento,
+        genero: formData.genero,
         lugar: formData.lugar === 'Otro' ? formData.otroLugar : formData.lugar,
-        alergias: formData.alergias.map(alergia =>
-          alergia === 'Otro' ? formData.otraAlergia : alergia
-        ),
-        tutor: !formData.esMayorDeEdad
-          ? { tipo: formData.tipoTutor, nombre: formData.nombreTutor }
-          : null,
+        telefono: formData.noTieneTelefono ? '' : formData.telefono,
+        email: formData.email,
+
+        // Procesar alergias y agregar "otra alergia" si es necesario
+        alergias: formData.alergias.includes('Otro')
+          ? [...formData.alergias.filter(a => a !== 'Otro'), formData.otraAlergia]
+          : formData.alergias,
+
+        // Procesar condiciones médicas y agregar "otra condición" si es necesario
+        condicionesMedicas: formData.condicionesMedicas.includes('OtraCondicion')
+          ? [...formData.condicionesMedicas.filter(c => c !== 'OtraCondicion'), formData.otraCondicion]
+          : formData.condicionesMedicas,
+
+        // Resto de datos
+        tipoTutor: formData.tipoTutor,
+        nombreTutor: formData.nombreTutor,
+        password: formData.password,
+        noTieneTelefono: formData.noTieneTelefono,
+        noTieneEmail: formData.noTieneEmail
       };
 
-      // Enviar datos
+      // Enviar datos al backend
       const response = await axios.post(
         'https://back-end-4803.onrender.com/api/register',
         dataToSubmit,
@@ -1969,49 +2133,60 @@ const Register = () => {
                         <InputLabel>Alergias</InputLabel>
                         <Select
                           multiple
-                          value={formData.alergias.filter(item =>
-                            Object.keys(alergiasInfo).includes(item) ||
-                            item === 'Otro'
-                          )}
+                          value={formData.alergias || []}
                           onChange={(e) => {
                             const { value } = e.target;
-                            // Si seleccionas "Ninguna", deselecciona todas las demás
-                            if (value.includes('Ninguna')) {
+
+                            // Si seleccionas "NingunaAlergia", deselecciona todas las demás alergias
+                            if (value.includes('NingunaAlergia')) {
                               setFormData({
                                 ...formData,
-                                alergias: ['Ninguna'],
+                                alergias: ['NingunaAlergia'],
+                                otraAlergia: ''
                               });
                             } else {
-                              // Filtrar solo las alergias y mantener las condiciones médicas
-                              const currentCondiciones = formData.alergias.filter(item =>
-                                !Object.keys(alergiasInfo).includes(item) &&
-                                item !== 'Ninguna' &&
-                                item !== 'Otro'
-                              );
-
-                              // Remover "Ninguna" si se seleccionan otras alergias
+                              // Remover "NingunaAlergia" si se seleccionan otras alergias
                               setFormData({
                                 ...formData,
-                                alergias: [
-                                  ...((typeof value === 'string') ? value.split(',') : value.filter(alergia => alergia !== 'Ninguna')),
-                                  ...currentCondiciones
-                                ],
+                                alergias: (typeof value === 'string') ? value.split(',') : value.filter(alergia => alergia !== 'NingunaAlergia')
                               });
                             }
                           }}
                           label="Alergias"
                           name="alergias"
-                          renderValue={(selected) =>
-                            selected.length > 0
-                              ? selected.join(', ')
-                              : 'Seleccione alergias'
-                          }
+                          renderValue={(selected) => {
+                            if (selected.includes('NingunaAlergia')) return 'Ninguna alergia';
+                            if (selected.length === 0) return 'Seleccione alergias';
+
+                            return selected.map(val => {
+                              if (val === 'Otro') return formData.otraAlergia || 'Otra alergia';
+                              return val;
+                            }).join(', ');
+                          }}
                         >
-                          {Object.entries(alergiasInfo).map(([alergia, info]) => (
+                          <MenuItem value="NingunaAlergia">
+                            <Box sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              width: '100%'
+                            }}>
+                              <Typography>Ninguna alergia</Typography>
+                              {formData.alergias?.includes('NingunaAlergia') ? (
+                                <FaCheckCircle style={{ color: colors.primary }} />
+                              ) : (
+                                <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
+                              )}
+                            </Box>
+                          </MenuItem>
+
+                          <Divider sx={{ my: 1 }} />
+
+                          {Object.entries(alergiasInfo).filter(([k]) => k !== 'Ninguna').map(([alergia, info]) => (
                             <MenuItem
                               key={alergia}
                               value={alergia}
-                              disabled={formData.alergias.includes('Ninguna') && alergia !== 'Ninguna'}
+                              disabled={formData.alergias?.includes('NingunaAlergia')}
                             >
                               <Box sx={{
                                 display: 'flex',
@@ -2029,7 +2204,7 @@ const Register = () => {
                                     </Tooltip>
                                   )}
                                 </Box>
-                                {formData.alergias.includes(alergia) ? (
+                                {formData.alergias?.includes(alergia) ? (
                                   <FaCheckCircle style={{ color: colors.primary }} />
                                 ) : (
                                   <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
@@ -2040,7 +2215,7 @@ const Register = () => {
 
                           <MenuItem
                             value="Otro"
-                            disabled={formData.alergias.includes('Ninguna')}
+                            disabled={formData.alergias?.includes('NingunaAlergia')}
                           >
                             <Box sx={{
                               display: 'flex',
@@ -2049,7 +2224,7 @@ const Register = () => {
                               width: '100%'
                             }}>
                               <Typography>Otra alergia</Typography>
-                              {formData.alergias.includes('Otro') ? (
+                              {formData.alergias?.includes('Otro') ? (
                                 <FaCheckCircle style={{ color: colors.primary }} />
                               ) : (
                                 <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
@@ -2057,15 +2232,18 @@ const Register = () => {
                             </Box>
                           </MenuItem>
                         </Select>
+                        {errors.alergias && (
+                          <FormHelperText error>{errors.alergias}</FormHelperText>
+                        )}
                       </FormControl>
 
                       {/* Campo para especificar otra alergia */}
-                      {formData.alergias.includes('Otro') && (
+                      {formData.alergias?.includes('Otro') && (
                         <TextField
                           fullWidth
                           label="Especificar Alergia"
                           name="otraAlergia"
-                          value={formData.otraAlergia}
+                          value={formData.otraAlergia || ''}
                           onChange={handleChange}
                           required
                           error={!!errors.otraAlergia}
@@ -2083,73 +2261,71 @@ const Register = () => {
                     <Grid item xs={12} md={6}>
                       <FormControl
                         fullWidth
+                        error={!!errors.condicionesMedicas}
                         sx={formStyles.select}
                       >
                         <InputLabel>Condiciones médicas</InputLabel>
                         <Select
                           multiple
-                          value={formData.alergias.filter(item =>
-                            condicionesMedicas.some(c => c.value === item)
-                          )}
+                          value={formData.condicionesMedicas || []}
                           onChange={(e) => {
                             const { value } = e.target;
 
-                            // Si seleccionas "Ninguna", limpiar otras condiciones
-                            if (value.includes('Ninguna')) {
-                              // Mantener solo alergias, eliminar todas las condiciones
-                              const onlyAlergias = formData.alergias.filter(item =>
-                                Object.keys(alergiasInfo).includes(item) ||
-                                item === 'Otro' ||
-                                item === 'OtraCondicion'
-                              );
-
+                            // Si seleccionas "NingunaCondicion", limpiar otras condiciones
+                            if (value.includes('NingunaCondicion')) {
                               setFormData({
                                 ...formData,
-                                alergias: [...onlyAlergias, 'Ninguna']
+                                condicionesMedicas: ['NingunaCondicion'],
+                                otraCondicion: ''
                               });
                             } else {
                               // Filtrar condiciones seleccionadas
                               const condicionesSeleccionadas = typeof value === 'string'
                                 ? value.split(',')
-                                : value;
+                                : value.filter(c => c !== 'NingunaCondicion');
 
-                              // Obtener alergias actuales (sin las condiciones)
-                              const alergias = formData.alergias.filter(item =>
-                                Object.keys(alergiasInfo).includes(item) ||
-                                item === 'Otro' ||
-                                item === 'OtraCondicion'
-                              );
-
-                              // Combinar alergias con nuevas condiciones
                               setFormData({
                                 ...formData,
-                                alergias: [
-                                  ...alergias.filter(a => a !== 'Ninguna'), // Remover "Ninguna"
-                                  ...condicionesSeleccionadas
-                                ]
+                                condicionesMedicas: condicionesSeleccionadas
                               });
                             }
                           }}
                           label="Condiciones médicas"
-                          renderValue={(selected) =>
-                            selected.length > 0
-                              ? selected.map(val => {
-                                const condition = condicionesMedicas.find(c => c.value === val);
-                                return condition ? condition.label : val;
-                              }).join(', ')
-                              : 'Seleccione condiciones'
-                          }
+                          name="condicionesMedicas"
+                          renderValue={(selected) => {
+                            if (selected.includes('NingunaCondicion')) return 'Ninguna condición médica';
+                            if (selected.length === 0) return 'Seleccione condiciones';
+
+                            return selected.map(val => {
+                              if (val === 'OtraCondicion') return formData.otraCondicion || 'Otra condición';
+                              const condition = condicionesMedicas.find(c => c.value === val);
+                              return condition ? condition.label : val;
+                            }).join(', ');
+                          }}
                         >
-                          {condicionesMedicas.map((condicion) => (
+                          <MenuItem value="NingunaCondicion">
+                            <Box sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              width: '100%'
+                            }}>
+                              <Typography>Ninguna condición médica</Typography>
+                              {formData.condicionesMedicas?.includes('NingunaCondicion') ? (
+                                <FaCheckCircle style={{ color: colors.primary }} />
+                              ) : (
+                                <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
+                              )}
+                            </Box>
+                          </MenuItem>
+
+                          <Divider sx={{ my: 1 }} />
+
+                          {condicionesMedicas.filter(c => c.value !== 'Ninguna').map((condicion) => (
                             <MenuItem
                               key={condicion.value}
                               value={condicion.value}
-                              disabled={
-                                (condicion.value !== 'Ninguna' && formData.alergias.includes('Ninguna')) ||
-                                (condicion.value === 'Ninguna' && formData.alergias.some(item =>
-                                  condicionesMedicas.some(c => c.value === item && c.value !== 'Ninguna')
-                                ))
-                              }
+                              disabled={formData.condicionesMedicas?.includes('NingunaCondicion')}
                             >
                               <Box sx={{
                                 display: 'flex',
@@ -2167,7 +2343,7 @@ const Register = () => {
                                     </Tooltip>
                                   )}
                                 </Box>
-                                {formData.alergias.includes(condicion.value) ? (
+                                {formData.condicionesMedicas?.includes(condicion.value) ? (
                                   <FaCheckCircle style={{ color: colors.primary }} />
                                 ) : (
                                   <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
@@ -2175,47 +2351,49 @@ const Register = () => {
                               </Box>
                             </MenuItem>
                           ))}
+
+                          <MenuItem
+                            value="OtraCondicion"
+                            disabled={formData.condicionesMedicas?.includes('NingunaCondicion')}
+                          >
+                            <Box sx={{
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center',
+                              width: '100%'
+                            }}>
+                              <Typography>Otra condición médica</Typography>
+                              {formData.condicionesMedicas?.includes('OtraCondicion') ? (
+                                <FaCheckCircle style={{ color: colors.primary }} />
+                              ) : (
+                                <FaPlusCircle style={{ color: colors.textSecondary, opacity: 0.6 }} />
+                              )}
+                            </Box>
+                          </MenuItem>
                         </Select>
+                        {errors.condicionesMedicas && (
+                          <FormHelperText error>{errors.condicionesMedicas}</FormHelperText>
+                        )}
                       </FormControl>
                     </Grid>
 
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="¿Otra condición médica relevante? Especifique"
-                        name="otraCondicion"
-                        value={formData.otraCondicion || ''}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          setFormData({
-                            ...formData,
-                            otraCondicion: value
-                          });
-
-                          // Si hay valor, agregar a alergias (que es en realidad el campo para todas las condiciones médicas)
-                          if (value && value.trim() !== '') {
-                            // Primero eliminar cualquier "otra condición" anterior
-                            const newAlergias = formData.alergias.filter(item =>
-                              item !== 'OtraCondicion'
-                            );
-
-                            setFormData(prev => ({
-                              ...prev,
-                              alergias: [...newAlergias, 'OtraCondicion']
-                            }));
-                          } else {
-                            // Si se vacía el campo, eliminar OtraCondicion de alergias
-                            setFormData(prev => ({
-                              ...prev,
-                              alergias: prev.alergias.filter(item => item !== 'OtraCondicion')
-                            }));
-                          }
-                        }}
-                        disabled={formData.alergias.includes('Ninguna')}
-                        size="small"
-                        sx={formStyles.textField}
-                      />
-                    </Grid>
+                    {/* Campo para especificar otra condición médica */}
+                    {formData.condicionesMedicas?.includes('OtraCondicion') && (
+                      <Grid item xs={12}>
+                        <TextField
+                          fullWidth
+                          label="Especificar condición médica"
+                          name="otraCondicion"
+                          value={formData.otraCondicion || ''}
+                          onChange={handleChange}
+                          required
+                          error={!!errors.otraCondicion}
+                          helperText={errors.otraCondicion || 'Por favor, especifique la condición médica'}
+                          size="small"
+                          sx={formStyles.textField}
+                        />
+                      </Grid>
+                    )}
                   </Grid>
                 </Grid>
               </Grid>
@@ -2677,6 +2855,7 @@ const Register = () => {
                       <FaShieldAlt /> Información de Salud
                     </Typography>
 
+                    {/* Sección de Alergias */}
                     <Typography
                       variant="body2"
                       sx={{
@@ -2688,23 +2867,80 @@ const Register = () => {
                     </Typography>
 
                     {formData.alergias && formData.alergias.length > 0 ? (
-                      <Box sx={{ mt: 1 }}>
+                      <Box sx={{ mt: 1, mb: 3 }}>
                         {formData.alergias.map((alergia, index) => (
                           <Chip
                             key={index}
                             label={alergia === 'Otro' ? formData.otraAlergia : alergia}
                             sx={{
                               m: 0.5,
-                              backgroundColor: alergia === 'Ninguna'
+                              backgroundColor: alergia === 'NingunaAlergia'
                                 ? alpha(colors.success, 0.1)
                                 : alpha(colors.primary, 0.1),
-                              color: alergia === 'Ninguna'
+                              color: alergia === 'NingunaAlergia'
                                 ? colors.success
                                 : colors.primary,
                               fontWeight: 500
                             }}
                           />
                         ))}
+                      </Box>
+                    ) : (
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          fontWeight: 500,
+                          color: colors.text,
+                          mb: 3
+                        }}
+                      >
+                        No especificadas
+                      </Typography>
+                    )}
+
+                    {/* Sección de Condiciones Médicas */}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: colors.textSecondary,
+                        mb: 0.5
+                      }}
+                    >
+                      Condiciones Médicas
+                    </Typography>
+
+                    {formData.condicionesMedicas && formData.condicionesMedicas.length > 0 ? (
+                      <Box sx={{ mt: 1 }}>
+                        {formData.condicionesMedicas.map((condicion, index) => {
+                          // Determinar la etiqueta a mostrar
+                          let label;
+                          if (condicion === 'NingunaCondicion') {
+                            label = 'Ninguna condición médica';
+                          } else if (condicion === 'OtraCondicion') {
+                            label = formData.otraCondicion || 'Otra condición';
+                          } else {
+                            // Buscar el label en el array de condicionesMedicas
+                            const foundCondition = condicionesMedicas.find(c => c.value === condicion);
+                            label = foundCondition ? foundCondition.label : condicion;
+                          }
+
+                          return (
+                            <Chip
+                              key={index}
+                              label={label}
+                              sx={{
+                                m: 0.5,
+                                backgroundColor: condicion === 'NingunaCondicion'
+                                  ? alpha(colors.success, 0.1)
+                                  : alpha(colors.primary, 0.1),
+                                color: condicion === 'NingunaCondicion'
+                                  ? colors.success
+                                  : colors.primary,
+                                fontWeight: 500
+                              }}
+                            />
+                          );
+                        })}
                       </Box>
                     ) : (
                       <Typography
