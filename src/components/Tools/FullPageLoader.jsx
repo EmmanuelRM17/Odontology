@@ -1,31 +1,26 @@
-import React, { useEffect, useState, useContext } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Box, 
   Typography, 
   keyframes, 
-  useTheme,
-  Fade,
-  CircularProgress,
-  Paper
+  Paper,
+  CircularProgress
 } from '@mui/material';
 import { 
-  MedicalServices, 
   LocalHospital, 
   AccessTime,
-  CheckCircleOutline
+  CheckCircleOutline,
+  MedicalServices
 } from '@mui/icons-material';
 
 /**
- * Componente FullPageLoader - Pantalla de carga personalizada para aplicación dental
+ * Componente FullPageLoader - Pantalla de carga optimizada para aplicación dental
  * 
  * Características:
- * - Animaciones fluidas y profesionales
- * - Compatibilidad con tema claro/oscuro
- * - Múltiples etapas de carga con indicadores visuales
- * - Mensaje personalizable y dinámico
- * - Efectos visuales mejorados con gradientes y sombras
- * - Props adicionales:
- *   - isDarkTheme: boolean - Forzar tema oscuro/claro
+ * - Animaciones optimizadas para mejor rendimiento
+ * - Diseño limpio con colores sólidos y contrastantes
+ * - Efectos visuales simplificados para reducir lag
+ * - Mantiene la funcionalidad de pasos de carga y consejos
  */
 
 // Animación de rotación para los círculos de carga
@@ -38,23 +33,20 @@ const rotate = keyframes`
   }
 `;
 
-// Animación de brillo pulsante para el icono central
+// Animación para el ícono central - simplificada
 const pulse = keyframes`
   0% {
-    filter: drop-shadow(0 0 5px rgba(0, 183, 255, 0.3));
     transform: scale(1);
   }
   50% {
-    filter: drop-shadow(0 0 15px rgba(0, 183, 255, 0.7));
     transform: scale(1.05);
   }
   100% {
-    filter: drop-shadow(0 0 5px rgba(0, 183, 255, 0.3));
     transform: scale(1);
   }
 `;
 
-// Animación para la aparición de los puntos de carga
+// Animación para los puntos de carga
 const fadeInOut = keyframes`
   0% {
     opacity: 0.3;
@@ -67,39 +59,6 @@ const fadeInOut = keyframes`
   }
 `;
 
-// Animación para el movimiento de las partículas decorativas
-const float = keyframes`
-  0% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-20px) rotate(10deg);
-  }
-  100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-`;
-
-// Animación para el texto que se escribe
-const typewriter = keyframes`
-  from {
-    width: 0;
-  }
-  to {
-    width: 100%;
-  }
-`;
-
-// Animación para la barra de progreso
-const progressBarAnimation = keyframes`
-  0% {
-    width: 0%;
-  }
-  100% {
-    width: 100%;
-  }
-`;
-
 const FullPageLoader = ({ 
   message = "Cargando...", 
   showProgress = true,
@@ -107,19 +66,27 @@ const FullPageLoader = ({
   autoProgress = true,
   customIcon = null,
   showTips = true,
-  isDarkTheme: propIsDarkTheme = false, // Valor predeterminado
+  isDarkTheme = false,
   ...props
 }) => {
-  const theme = useTheme();
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [showLoadingDots, setShowLoadingDots] = useState(true);
   const [tip, setTip] = useState(0);
   
-  // Usar el tema proporcionado como prop directamente
-  const isDarkTheme = propIsDarkTheme;
+  // Paleta de colores moderna y limpia
+  const colors = {
+    primary: isDarkTheme ? '#2196F3' : '#0288D1',
+    secondary: isDarkTheme ? '#03A9F4' : '#00BCD4',
+    background: isDarkTheme ? '#1E2A3E' : '#FFFFFF',
+    paper: isDarkTheme ? '#283546' : '#F5F9FF',
+    text: isDarkTheme ? '#FFFFFF' : '#0277BD',
+    secondaryText: isDarkTheme ? '#B0BEC5' : '#546E7A',
+    success: '#4CAF50',
+    border: isDarkTheme ? '#384B65' : '#E1F5FE',
+  };
 
-  // Lista de consejos dentales para mostrar durante la carga
+  // Lista de consejos dentales
   const dentalTips = [
     "Cepille sus dientes al menos dos veces al día",
     "Use hilo dental diariamente para una limpieza completa",
@@ -129,7 +96,7 @@ const FullPageLoader = ({
     "No use los dientes para abrir envases"
   ];
 
-  // Efecto para simular el progreso automático de carga
+  // Efecto para simular el progreso de carga
   useEffect(() => {
     if (!autoProgress) return;
 
@@ -168,37 +135,14 @@ const FullPageLoader = ({
     };
   }, [autoProgress, loadingSteps.length]);
 
-  // Calcular colores según el tema
-  const getBackgroundColor = () => {
-    return isDarkTheme
-      ? 'linear-gradient(180deg, rgba(18,25,38,0.97) 0%, rgba(14,20,33,0.98) 100%)'
-      : 'linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(240,247,255,0.98) 100%)';
-  };
-
-  const getPrimaryColor = () => {
-    return isDarkTheme ? '#0288D1' : '#00BCD4';
-  };
-
-  const getSecondaryColor = () => {
-    return isDarkTheme ? '#5C6BC0' : '#2196F3';
-  };
-
-  const getTextColor = () => {
-    return isDarkTheme ? 'rgba(255,255,255,0.9)' : '#0288D1';
-  };
-
-  const getSecondaryTextColor = () => {
-    return isDarkTheme ? 'rgba(255,255,255,0.6)' : '#546E7A';
-  };
-
   // Renderizar icono de estado según la etapa actual
   const renderStepIcon = (index) => {
     if (index < currentStep) {
-      return <CheckCircleOutline sx={{ color: 'success.main', fontSize: 16 }} />;
+      return <CheckCircleOutline sx={{ color: colors.success, fontSize: 16 }} />;
     } else if (index === currentStep) {
-      return <AccessTime sx={{ color: getPrimaryColor(), fontSize: 16, animation: `${pulse} 2s infinite` }} />;
+      return <AccessTime sx={{ color: colors.primary, fontSize: 16, animation: `${pulse} 2s infinite` }} />;
     } else {
-      return <CircularProgress size={14} sx={{ color: getSecondaryColor(), opacity: 0.5 }} />;
+      return <CircularProgress size={14} sx={{ color: colors.secondary, opacity: 0.5 }} />;
     }
   };
 
@@ -214,35 +158,14 @@ const FullPageLoader = ({
         left: 0,
         width: '100%',
         height: '100%',
-        background: getBackgroundColor(),
-        backdropFilter: 'blur(10px)',
+        background: colors.background,
         zIndex: 1300,
         overflow: 'hidden'
       }}
     >
-      {/* Elementos decorativos flotantes */}
-      {[...Array(6)].map((_, index) => (
-        <Box
-          key={index}
-          sx={{
-            position: 'absolute',
-            width: theme.spacing(index % 2 ? 4 : 6),
-            height: theme.spacing(index % 2 ? 4 : 6),
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${getPrimaryColor()}33, ${getSecondaryColor()}22)`,
-            top: `${10 + (index * 15)}%`,
-            left: `${5 + (index * 15)}%`,
-            animation: `${float} ${4 + index}s infinite ease-in-out`,
-            animationDelay: `${index * 0.5}s`,
-            opacity: 0.4,
-            filter: 'blur(2px)'
-          }}
-        />
-      ))}
-      
-      {/* Contenedor principal con papel para dar profundidad */}
+      {/* Contenedor principal */}
       <Paper
-        elevation={isDarkTheme ? 4 : 8}
+        elevation={isDarkTheme ? 8 : 4}
         sx={{
           borderRadius: 4,
           p: 4,
@@ -251,44 +174,25 @@ const FullPageLoader = ({
           alignItems: 'center',
           maxWidth: 380,
           width: '90%',
-          backgroundColor: isDarkTheme ? 'rgba(30, 40, 60, 0.6)' : 'rgba(255, 255, 255, 0.8)',
-          backdropFilter: 'blur(10px)',
-          border: isDarkTheme ? '1px solid rgba(255,255,255,0.1)' : 'none',
+          backgroundColor: colors.paper,
+          border: `1px solid ${colors.border}`,
           position: 'relative',
           overflow: 'hidden',
           boxShadow: isDarkTheme 
-            ? '0 10px 30px rgba(0,0,0,0.3)' 
-            : '0 10px 30px rgba(0,150,220,0.1)'
+            ? '0 8px 24px rgba(0,0,0,0.25)' 
+            : '0 8px 24px rgba(0,0,0,0.08)'
         }}
       >
-        {/* Círculo de brillo decorativo detrás del loader */}
-        <Box
-          sx={{
-            position: 'absolute',
-            width: '200px',
-            height: '200px',
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${getPrimaryColor()}22 0%, transparent 70%)`,
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 0,
-            filter: 'blur(20px)',
-            animation: `${pulse} 4s infinite ease-in-out`
-          }}
-        />
-
         {/* Contenedor de la animación de carga */}
         <Box
           sx={{
             position: 'relative',
-            width: '120px',
-            height: '120px',
+            width: '110px',
+            height: '110px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            mb: 3,
-            zIndex: 1
+            mb: 3
           }}
         >
           {/* Círculo de carga exterior */}
@@ -299,10 +203,9 @@ const FullPageLoader = ({
               height: '100%',
               borderRadius: '50%',
               border: '3px solid transparent',
-              borderTopColor: getPrimaryColor(),
-              borderBottomColor: getPrimaryColor(),
+              borderTopColor: colors.primary,
+              borderBottomColor: colors.primary,
               animation: `${rotate} 1.5s linear infinite`,
-              boxShadow: `0 0 10px ${getPrimaryColor()}66`,
             }}
           />
           
@@ -314,10 +217,9 @@ const FullPageLoader = ({
               height: '80%',
               borderRadius: '50%',
               border: '3px solid transparent',
-              borderLeftColor: getSecondaryColor(),
-              borderRightColor: getSecondaryColor(),
+              borderLeftColor: colors.secondary,
+              borderRightColor: colors.secondary,
               animation: `${rotate} 2s linear infinite reverse`,
-              boxShadow: `0 0 10px ${getSecondaryColor()}66`,
             }}
           />
           
@@ -329,13 +231,14 @@ const FullPageLoader = ({
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: isDarkTheme ? 'rgba(40, 50, 70, 0.9)' : 'white',
+              backgroundColor: isDarkTheme ? colors.background : '#FFFFFF',
               borderRadius: '50%',
-              boxShadow: '0 0 20px rgba(0, 0, 0, 0.1)',
+              boxShadow: isDarkTheme 
+                ? '0 4px 8px rgba(0,0,0,0.3)' 
+                : '0 4px 8px rgba(0,0,0,0.08)',
               zIndex: 2,
               animation: `${pulse} 2s infinite ease-in-out`,
-              transition: 'all 0.3s ease',
-              border: `2px solid ${getPrimaryColor()}22`
+              border: `2px solid ${colors.border}`
             }}
           >
             {customIcon || (
@@ -343,23 +246,22 @@ const FullPageLoader = ({
                 <CheckCircleOutline 
                   sx={{ 
                     fontSize: 30, 
-                    color: 'success.main',
-                    animation: `${pulse} 1s infinite ease-in-out`
+                    color: colors.success
                   }} 
                 />
               ) : (
-                <LocalHospital sx={{ fontSize: 30, color: getPrimaryColor() }} />
+                <LocalHospital sx={{ fontSize: 30, color: colors.primary }} />
               )
             )}
           </Box>
         </Box>
         
-        {/* Mensaje principal animado */}
+        {/* Mensaje principal */}
         <Box sx={{ position: 'relative', width: '100%', textAlign: 'center', mb: 0.5 }}>
           <Typography
             variant="h6"
             sx={{
-              color: getTextColor(),
+              color: colors.text,
               fontWeight: '500',
               display: 'flex',
               justifyContent: 'center',
@@ -378,7 +280,7 @@ const FullPageLoader = ({
                     sx={{
                       width: '5px',
                       height: '5px',
-                      backgroundColor: getTextColor(),
+                      backgroundColor: colors.text,
                       borderRadius: '50%',
                       animation: `${fadeInOut} 1.5s infinite`,
                       animationDelay: `${i * 0.2}s`
@@ -390,7 +292,7 @@ const FullPageLoader = ({
           </Typography>
         </Box>
         
-        {/* Barra de progreso */}
+        {/* Barra de progreso simplificada */}
         {showProgress && (
           <Box
             sx={{
@@ -406,11 +308,10 @@ const FullPageLoader = ({
             <Box
               sx={{
                 height: '100%',
-                background: `linear-gradient(90deg, ${getPrimaryColor()} 0%, ${getSecondaryColor()} 100%)`,
+                backgroundColor: colors.primary,
                 width: `${progress}%`,
                 borderRadius: '2px',
                 transition: 'width 0.3s ease',
-                boxShadow: `0 0 5px ${getPrimaryColor()}66`,
               }}
             />
           </Box>
@@ -434,7 +335,7 @@ const FullPageLoader = ({
                 alignItems: 'center',
                 gap: 1.5,
                 opacity: index <= currentStep ? 1 : 0.6,
-                transform: index <= currentStep ? 'translateX(0)' : 'translateX(-10px)',
+                transform: index <= currentStep ? 'translateX(0)' : 'translateX(-5px)',
                 transition: 'all 0.3s ease',
               }}
             >
@@ -442,7 +343,7 @@ const FullPageLoader = ({
               <Typography
                 variant="body2"
                 sx={{
-                  color: getSecondaryTextColor(),
+                  color: colors.secondaryText,
                   fontWeight: index === currentStep ? 500 : 400,
                 }}
               >
@@ -452,55 +353,38 @@ const FullPageLoader = ({
           ))}
         </Box>
         
-        {/* Consejo dental */}
+        {/* Consejo dental - simplificado */}
         {showTips && (
-          <Fade in={true} timeout={1000}>
-            <Box
+          <Box
+            sx={{
+              mt: 2,
+              p: 2,
+              borderRadius: 2,
+              background: isDarkTheme ? 'rgba(33,150,243,0.08)' : 'rgba(3,169,244,0.06)',
+              border: `1px solid ${colors.border}`,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1.5,
+              width: '100%'
+            }}
+          >
+            <MedicalServices 
+              sx={{ 
+                color: colors.secondary,
+                fontSize: 20 
+              }} 
+            />
+            <Typography
+              variant="body2"
               sx={{
-                mt: 2,
-                p: 2,
-                borderRadius: 2,
-                background: isDarkTheme ? 'rgba(0,120,212,0.1)' : 'rgba(0,183,255,0.1)',
-                border: `1px solid ${isDarkTheme ? 'rgba(0,120,212,0.2)' : 'rgba(0,183,255,0.2)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.5,
-                width: '100%'
+                color: colors.secondaryText,
+                fontWeight: '400',
+                lineHeight: 1.4
               }}
             >
-              <MedicalServices 
-                sx={{ 
-                  color: getSecondaryColor(),
-                  fontSize: 20 
-                }} 
-              />
-              <Typography
-                variant="body2"
-                sx={{
-                  color: getSecondaryTextColor(),
-                  fontWeight: '400',
-                  lineHeight: 1.4,
-                  overflow: 'hidden',
-                  position: 'relative',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                <Box
-                  sx={{
-                    animation: `${typewriter} 3s steps(40, end)`,
-                    overflow: 'hidden',
-                    whiteSpace: 'nowrap',
-                    borderRight: `1px solid ${getSecondaryColor()}`,
-                    paddingRight: 1,
-                    width: 0,
-                    display: 'inline-block',
-                  }}
-                >
-                  {dentalTips[tip]}
-                </Box>
-              </Typography>
-            </Box>
-          </Fade>
+              {dentalTips[tip]}
+            </Typography>
+          </Box>
         )}
       </Paper>
     </Box>

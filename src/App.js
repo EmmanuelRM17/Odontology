@@ -38,6 +38,7 @@ import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm";
+import TratamientosForm  from "./pages/administrador/pages/TratamientosForm.jsx";
 import HorariosForm from "./pages/administrador/pages/HorariosForm";
 import ImagenesForm from "./pages/administrador/pages/ImagenesForm.jsx";
 
@@ -198,7 +199,6 @@ function App() {
           <Route path="/confirmacion" element={<Confirmacion />} />
           <Route path="/about" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
           <Route path="/servicios" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
-          <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
           <Route path="/recuperacion" element={<Recuperacion />} />
           <Route path="/resetContra" element={<Reset />} />
 
@@ -213,6 +213,7 @@ function App() {
           <Route path="/Administrador/pacientes" element={<LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Pacientes' }]} /><Pacientes /></LayoutAdmin>} />
           <Route path="/Administrador/servicios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de servicios' }]} /><ServicioForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/citas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de citas' }]} /><CitasForm /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/tratamientos" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de tratamientos' }]} /><TratamientosForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/horarios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de Horarios' }]} /><HorariosForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />

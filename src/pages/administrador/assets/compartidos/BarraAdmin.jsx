@@ -73,6 +73,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
                 { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
                 { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas' },
+                { icon: FaCalendarCheck, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
                 { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
                 { icon: FaCloudUploadAlt, text: 'Subida de Imágenes', path: '/Administrador/imagenes' } 
 

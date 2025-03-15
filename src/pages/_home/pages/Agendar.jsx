@@ -14,7 +14,7 @@ import {
     Tooltip,
     Zoom,
     CircularProgress,
-    Snackbar 
+    Snackbar
 } from '@mui/material';
 import {
     ArrowBack,
@@ -63,7 +63,7 @@ const steps = [
 ];
 
 const ReservaCitas = () => {
-    const { isDarkTheme } = useThemeContext();    const [activeStep, setActiveStep] = useState(0);
+    const { isDarkTheme } = useThemeContext(); const [activeStep, setActiveStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [stepsCompleted, setStepsCompleted] = useState({
         step1: false,
@@ -89,12 +89,14 @@ const ReservaCitas = () => {
         lugar: '',
         otroLugar: '',
         servicio: '',
+        servicio_id: null, // Asegurarse de que este campo existe
         fechaCita: '',
         horaCita: '',
-        omitCorreo: false, // Valor predeterminado booleano
-        omitTelefono: false // Valor predeterminado booleano
+        omitCorreo: false,
+        omitTelefono: false,
+        pacienteExistente: false,
+        paciente_id: null // Añadir explícitamente este campo
     });
-
 
     const [selectedDate, setSelectedDate] = useState(null);
     const [selectedTime, setSelectedTime] = useState(null);
@@ -117,7 +119,7 @@ const ReservaCitas = () => {
         success: '#4caf50',
         warning: '#ff9800'
     };
-    
+
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
@@ -188,7 +190,7 @@ const ReservaCitas = () => {
                 categoria_servi: servicioSeleccionado.category,
                 precio_servicio: servicioSeleccionado.price
             }));
-            
+
             // Also show a notification
             setNotification({
                 open: true,
@@ -197,7 +199,7 @@ const ReservaCitas = () => {
             });
         }
     }, [servicioSeleccionado]);
-    
+
     const renderStep = () => {
         const commonProps = {
             colors,

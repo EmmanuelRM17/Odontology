@@ -28,7 +28,8 @@ import {
     Skeleton,
     Stack,
     Divider,
-    Avatar
+    Avatar,
+    Paper
 } from '@mui/material';
 import {
     Timer,
@@ -49,10 +50,12 @@ import {
     ThumbUp,
     ThumbDown,
     Share,
-    ContentCopy
+    ContentCopy,
+    MedicalServices
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
+// Componente principal del diálogo de detalles del servicio
 const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, service: initialService = null }) => {
     const [service, setService] = useState(initialService);
     const [loading, setLoading] = useState(!initialService);
@@ -63,6 +66,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
     const muiTheme = useMuiTheme();
     const fullScreen = useMediaQuery(muiTheme.breakpoints.down('md'));
     const isMobile = useMediaQuery(muiTheme.breakpoints.down('sm'));
+    const isTablet = useMediaQuery(muiTheme.breakpoints.down('lg'));
 
     // Estado para controlar la interacción y feedback
     const [isFavorite, setIsFavorite] = useState(false);
@@ -70,8 +74,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
     const [feedback, setFeedback] = useState(null); // null, 'positive', 'negative'
     const [animateSection, setAnimateSection] = useState(null);
 
-    // Optimización: Si ya tenemos el servicio, no lo volvemos a cargar
-    // Cache para servicios
+    // Optimización: Cache para servicios
     const [serviceCache, setServiceCache] = useState({});
 
     // Prefetch servicios en segundo plano
@@ -119,7 +122,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 // Solo limpiamos el servicio si no fue proporcionado inicialmente
                 setTimeout(() => {
                     if (!open) setService(null);
-                }, 200); // Reducido el tiempo
+                }, 200); // Tiempo reducido
             }
         }
     }, [open, servicioId, initialService, serviceCache]);
@@ -188,6 +191,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         gradient: isDarkTheme
             ? 'linear-gradient(135deg, #1A2735 0%, #0D1B2A 100%)'
             : 'linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%)',
+        treatment: '#4CAF50', // Color verde para tratamientos
+        nonTreatment: '#FF5252', // Color rojo para no tratamientos
     };
 
     const handleAgendarCita = () => {
@@ -197,6 +202,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         onClose();
     };
 
+    // Componente para encabezados de sección
     const SectionHeader = ({ icon: Icon, title, description, color = colors.primary }) => (
         <Box sx={{
             display: 'flex',
@@ -222,16 +228,23 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
     // Componente de Esqueleto para cargar
     const SkeletonLoader = () => (
         <Box sx={{ width: '100%' }}>
-            <Skeleton variant="rectangular" height={250} sx={{ borderRadius: 2, mb: 2 }} />
-            <Skeleton variant="text" height={60} sx={{ mb: 1 }} />
-            <Skeleton variant="text" height={80} sx={{ mb: 2 }} />
+            <Grid container spacing={3}>
+                <Grid item xs={12} md={5} lg={4}>
+                    <Skeleton variant="rectangular" height={350} sx={{ borderRadius: 2, mb: 2 }} />
+                </Grid>
+                <Grid item xs={12} md={7} lg={8}>
+                    <Skeleton variant="text" height={60} sx={{ mb: 1 }} />
+                    <Skeleton variant="text" height={40} sx={{ mb: 1 }} />
+                    <Skeleton variant="text" height={80} sx={{ mb: 2 }} />
 
-            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 3 }}>
-                <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 16 }} />
-                <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 16 }} />
-            </Box>
+                    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                        <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 16 }} />
+                        <Skeleton variant="rectangular" width={100} height={32} sx={{ borderRadius: 16 }} />
+                    </Box>
+                </Grid>
+            </Grid>
 
-            <Grid container spacing={2}>
+            <Grid container spacing={2} sx={{ mt: 2 }}>
                 {[1, 2, 3, 4].map((item) => (
                     <Grid item xs={12} sm={6} key={item}>
                         <Card sx={{ height: '100%', borderRadius: 2 }}>
@@ -250,7 +263,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         </Box>
     );
 
-    // Error Display Component
+    // Componente para mostrar errores
     const ErrorDisplay = ({ message }) => (
         <Box
             sx={{
@@ -294,6 +307,43 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 Intentar nuevamente
             </Button>
         </Box>
+    );
+
+    // Componente para mostrar el indicador de tratamiento
+    const TreatmentIndicator = ({ isTreatment, sessionCount }) => (
+        <Paper
+            elevation={2}
+            sx={{
+                p: 1.5,
+                borderRadius: 2,
+                mb: 2,
+                backgroundColor: isTreatment ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
+                border: `1px solid ${isTreatment ? colors.treatment : colors.nonTreatment}`,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+            }}
+        >
+            <Avatar 
+                sx={{ 
+                    bgcolor: isTreatment ? colors.treatment : colors.nonTreatment,
+                    width: 40,
+                    height: 40
+                }}
+            >
+                {isTreatment ? <MedicalServices /> : <Info />}
+            </Avatar>
+            <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text }}>
+                    {isTreatment ? 'Tratamiento Dental' : 'Servicio Regular'}
+                </Typography>
+                <Typography variant="body2" sx={{ color: colors.secondary }}>
+                    {isTreatment && sessionCount > 1 
+                        ? `Requiere aproximadamente ${sessionCount} citas`
+                        : 'Se realiza en una única sesión'}
+                </Typography>
+            </Box>
+        </Paper>
     );
 
     // Componente de sección de información
@@ -361,51 +411,57 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 }}
                                 dense={isMobile}
                             >
-                                {section.data.map((item, idx) => (
-                                    <Zoom
-                                        key={idx}
-                                        in={isVisible}
-                                        timeout={300 + (idx * 30)}
-                                        style={{ transitionDelay: isActive ? '0ms' : `${idx * 30}ms` }}
-                                    >
-                                        <ListItem
-                                            alignItems="flex-start"
-                                            sx={{
-                                                px: 1,
-                                                py: 0.7,
-                                                borderRadius: 1,
-                                                mb: 0.5,
-                                                transition: 'all 0.2s ease',
-                                                '&:hover': {
-                                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(3,66,124,0.04)',
-                                                    transform: 'translateX(4px)'
-                                                }
-                                            }}
-                                            button
-                                            component="div"
+                                {section.data && section.data.length > 0 ? (
+                                    section.data.map((item, idx) => (
+                                        <Zoom
+                                            key={idx}
+                                            in={isVisible}
+                                            timeout={300 + (idx * 30)}
+                                            style={{ transitionDelay: isActive ? '0ms' : `${idx * 30}ms` }}
                                         >
-                                            <ListItemIcon sx={{ minWidth: 36 }}>
-                                                <section.itemIcon
-                                                    sx={{
-                                                        color: section.color || colors.primary,
-                                                        fontSize: isMobile ? 18 : 20
-                                                    }}
-                                                />
-                                            </ListItemIcon>
-                                            <ListItemText
-                                                primary={item}
+                                            <ListItem
+                                                alignItems="flex-start"
                                                 sx={{
-                                                    color: colors.text,
-                                                    my: 0,
-                                                    '& .MuiListItemText-primary': {
-                                                        fontSize: isMobile ? '0.85rem' : '0.95rem',
-                                                        lineHeight: 1.5
+                                                    px: 1,
+                                                    py: 0.7,
+                                                    borderRadius: 1,
+                                                    mb: 0.5,
+                                                    transition: 'all 0.2s ease',
+                                                    '&:hover': {
+                                                        bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(3,66,124,0.04)',
+                                                        transform: 'translateX(4px)'
                                                     }
                                                 }}
-                                            />
-                                        </ListItem>
-                                    </Zoom>
-                                ))}
+                                                button
+                                                component="div"
+                                            >
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <section.itemIcon
+                                                        sx={{
+                                                            color: section.color || colors.primary,
+                                                            fontSize: isMobile ? 18 : 20
+                                                        }}
+                                                    />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={item}
+                                                    sx={{
+                                                        color: colors.text,
+                                                        my: 0,
+                                                        '& .MuiListItemText-primary': {
+                                                            fontSize: isMobile ? '0.85rem' : '0.95rem',
+                                                            lineHeight: 1.5
+                                                        }
+                                                    }}
+                                                />
+                                            </ListItem>
+                                        </Zoom>
+                                    ))
+                                ) : (
+                                    <Typography variant="body2" sx={{ color: colors.secondary, py: 2, px: 1, fontStyle: 'italic' }}>
+                                        No hay información disponible
+                                    </Typography>
+                                )}
                             </List>
                         </CardContent>
                     </Card>
@@ -424,33 +480,40 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
             return <ErrorDisplay message={error} />;
         }
 
+        // Verificamos si es un tratamiento y cuántas citas requiere
+        const isTreatment = service.tratamiento === 1;
+        const sessionCount = service.citasEstimadas || 1;
+
         return (
             <Box sx={{ pt: 1 }}>
-                {/* Header Section */}
+                {/* Header Section con imagen a la izquierda y detalles a la derecha */}
                 <Grid container spacing={3}>
-                    <Grid item xs={12}>
+                    {/* Columna de la imagen a la izquierda */}
+                    <Grid item xs={12} md={5} lg={4}>
                         <Card
-                            elevation={0}
+                            elevation={2}
                             sx={{
                                 backgroundColor: colors.cardBg,
                                 borderRadius: 2,
                                 overflow: 'hidden',
                                 position: 'relative',
-                                border: `1px solid ${colors.cardBorder}`,
+                                height: { md: '100%' },
+                                display: 'flex',
+                                flexDirection: 'column',
+                                border: `1px solid ${isTreatment ? colors.treatment : colors.nonTreatment}`,
+                                transition: 'transform 0.3s ease',
+                                '&:hover': {
+                                    transform: 'scale(1.02)'
+                                }
                             }}
                         >
+                            {/* Indicador de categoría */}
                             <Box
                                 sx={{
                                     position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                    width: '100%',
+                                    top: 10,
+                                    left: 10,
                                     zIndex: 5,
-                                    background: 'linear-gradient(to bottom, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 100%)',
-                                    height: 80,
-                                    display: 'flex',
-                                    alignItems: 'flex-start',
-                                    p: 2
                                 }}
                             >
                                 <Chip
@@ -465,19 +528,19 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 />
                             </Box>
 
-                            <Box sx={{ position: 'relative' }}>
+                            <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 250 }}>
                                 {imageLoading && (
                                     <Skeleton
                                         variant="rectangular"
                                         width="100%"
-                                        height={220}
+                                        height="100%"
                                         animation="wave"
+                                        sx={{ position: 'absolute', top: 0, left: 0 }}
                                     />
                                 )}
                                 {/* Primera imagen pequeña para carga rápida (placeholder) */}
                                 <CardMedia
                                     component="img"
-                                    height={220}
                                     image={service.image_url
                                         ? service.image_url.replace('/upload/', '/upload/w_20,h_20,c_fill,q_10,e_blur:1000,f_auto/')
                                         : `https://via.placeholder.com/20x20/cccccc/ffffff`
@@ -495,106 +558,177 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                         zIndex: 1
                                     }}
                                 />
-                                {/* Imagen final de alta calidad con carga progresiva */}
+                                {/* Imagen final de alta calidad */}
                                 <CardMedia
                                     component="img"
-                                    height={220}
                                     image={service.image_url
-                                        ? service.image_url.replace('/upload/', '/upload/w_800,h_500,c_fill,q_auto,f_auto/')
+                                        ? service.image_url.replace('/upload/', '/upload/w_800,h_800,c_fill,q_auto,f_auto/')
                                         : `https://source.unsplash.com/featured/?dental,${service.title.replace(' ', ',')}`
                                     }
                                     alt={service.title}
-                                    loading="eager" // Cambiado a eager para carga prioritaria
+                                    loading="eager"
                                     onLoad={() => setImageLoading(false)}
                                     sx={{
                                         objectFit: 'cover',
                                         objectPosition: 'center',
                                         opacity: imageLoading ? 0 : 1,
                                         transition: 'opacity 0.3s ease-in-out',
-                                        position: 'relative',
+                                        position: 'absolute',
+                                        width: '100%',
+                                        height: '100%',
+                                        top: 0,
+                                        left: 0,
                                         zIndex: 2
                                     }}
                                 />
                             </Box>
 
-                            <CardContent sx={{ p: 3 }}>
-                                <Fade in={true} timeout={300}>
-                                    <Typography
-                                        variant={isMobile ? "h5" : "h4"}
-                                        sx={{
-                                            color: colors.text,
-                                            fontWeight: 700,
-                                            mb: 1.5,
-                                            lineHeight: 1.2
-                                        }}
-                                    >
-                                        {service.title}
-                                    </Typography>
-                                </Fade>
-
-                                <Fade in={true} timeout={400}>
-                                    <Typography
-                                        variant="body1"
-                                        sx={{
-                                            color: colors.secondary,
-                                            mb: 3,
-                                            lineHeight: 1.6
-                                        }}
-                                    >
-                                        {service.description}
-                                    </Typography>
-                                </Fade>
-
-                                <Divider sx={{ mb: 2.5 }} />
-
-                                <Box sx={{
+                            {/* Barra inferior con info rápida */}
+                            <Box 
+                                sx={{ 
+                                    p: 1.5, 
+                                    borderTop: `4px solid ${isTreatment ? colors.treatment : colors.nonTreatment}`,
+                                    bgcolor: isTreatment ? 'rgba(76, 175, 80, 0.1)' : 'rgba(255, 82, 82, 0.1)',
                                     display: 'flex',
-                                    alignItems: 'center',
                                     justifyContent: 'space-between',
-                                    flexWrap: 'wrap',
-                                    gap: 1
-                                }}>
-                                    <Box sx={{
-                                        display: 'flex',
-                                        flexWrap: 'wrap',
-                                        gap: 1
-                                    }}>
-                                        <Zoom in={true} timeout={500}>
-                                            <Chip
-                                                icon={<Timer />}
-                                                label={`Duración: ${service.duration}`}
-                                                sx={{
-                                                    bgcolor: colors.primary,
-                                                    color: '#fff',
-                                                    fontWeight: 500,
-                                                    '& .MuiChip-icon': { color: '#fff' },
-                                                    pl: 0.5,
-                                                    height: 32
-                                                }}
-                                            />
-                                        </Zoom>
-                                        <Zoom in={true} timeout={600}>
-                                            <Chip
-                                                icon={<AttachMoney />}
-                                                label={`Precio: ${service.price}`}
-                                                sx={{
-                                                    bgcolor: colors.primary === '#03427C' ? '#4CAF50' : colors.accent,
-                                                    color: '#fff',
-                                                    fontWeight: 500,
-                                                    '& .MuiChip-icon': { color: '#fff' },
-                                                    pl: 0.5,
-                                                    height: 32
-                                                }}
-                                            />
-                                        </Zoom>
-                                    </Box>
-
+                                    alignItems: 'center'
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <LocalHospital sx={{ color: isTreatment ? colors.treatment : colors.nonTreatment, mr: 1 }} />
+                                    <Typography variant="subtitle2" sx={{ color: colors.text, fontWeight: 600 }}>
+                                        {isTreatment ? 'Tratamiento' : 'Servicio'}
+                                    </Typography>
                                 </Box>
-                            </CardContent>
+                                
+                                {isTreatment && sessionCount > 1 && (
+                                    <Chip
+                                        icon={<CalendarMonth sx={{ fontSize: '0.9rem !important' }} />}
+                                        label={`${sessionCount} citas`}
+                                        size="small"
+                                        sx={{
+                                            bgcolor: 'rgba(76, 175, 80, 0.2)',
+                                            color: colors.treatment,
+                                            fontWeight: 600,
+                                            '& .MuiChip-icon': { 
+                                                color: colors.treatment,
+                                                mr: '-4px' 
+                                            }
+                                        }}
+                                    />
+                                )}
+                            </Box>
                         </Card>
                     </Grid>
 
-                    {/* Info Sections with colors */}
+                    {/* Columna de detalles a la derecha */}
+                    <Grid item xs={12} md={7} lg={8}>
+                        <Card
+                            elevation={0}
+                            sx={{
+                                backgroundColor: colors.cardBg,
+                                borderRadius: 2,
+                                p: 3,
+                                height: '100%',
+                                border: `1px solid ${colors.cardBorder}`,
+                                display: 'flex',
+                                flexDirection: 'column'
+                            }}
+                        >
+                            {/* Título del servicio */}
+                            <Fade in={true} timeout={300}>
+                                <Typography
+                                    variant={isMobile ? "h5" : "h4"}
+                                    sx={{
+                                        color: colors.text,
+                                        fontWeight: 700,
+                                        mb: 1,
+                                        lineHeight: 1.2
+                                    }}
+                                >
+                                    {service.title}
+                                </Typography>
+                            </Fade>
+
+                            {/* Indicador de tratamiento y número de citas */}
+                            <TreatmentIndicator 
+                                isTreatment={isTreatment} 
+                                sessionCount={sessionCount} 
+                            />
+
+                            {/* Descripción */}
+                            <Fade in={true} timeout={400}>
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: colors.secondary,
+                                        mb: 3,
+                                        lineHeight: 1.6,
+                                        flexGrow: 1
+                                    }}
+                                >
+                                    {service.description}
+                                </Typography>
+                            </Fade>
+
+                            <Divider sx={{ mb: 2 }} />
+
+                            {/* Chips de información */}
+                            <Box sx={{
+                                display: 'flex',
+                                flexWrap: 'wrap',
+                                gap: 1,
+                                mb: 1
+                            }}>
+                                <Zoom in={true} timeout={500}>
+                                    <Chip
+                                        icon={<Timer />}
+                                        label={`Duración: ${service.duration}`}
+                                        sx={{
+                                            bgcolor: colors.primary,
+                                            color: '#fff',
+                                            fontWeight: 500,
+                                            '& .MuiChip-icon': { color: '#fff' },
+                                            pl: 0.5,
+                                            height: 32
+                                        }}
+                                    />
+                                </Zoom>
+                                <Zoom in={true} timeout={600}>
+                                    <Chip
+                                        icon={<AttachMoney />}
+                                        label={`Precio: $${service.price}`}
+                                        sx={{
+                                            bgcolor: colors.accent,
+                                            color: '#fff',
+                                            fontWeight: 500,
+                                            '& .MuiChip-icon': { color: '#fff' },
+                                            pl: 0.5,
+                                            height: 32
+                                        }}
+                                    />
+                                </Zoom>
+                                <Zoom in={true} timeout={700}>
+                                    <Chip
+                                        icon={<AccessTime />}
+                                        label={isTreatment && sessionCount > 1 
+                                            ? `${sessionCount} sesiones aprox.` 
+                                            : "Sesión única"}
+                                        sx={{
+                                            bgcolor: isTreatment ? colors.treatment : colors.nonTreatment,
+                                            color: '#fff',
+                                            fontWeight: 500,
+                                            '& .MuiChip-icon': { color: '#fff' },
+                                            pl: 0.5,
+                                            height: 32
+                                        }}
+                                    />
+                                </Zoom>
+                            </Box>
+                        </Card>
+                    </Grid>
+
+                    {/* Info Sections con colores */}
                     {[
                         {
                             title: 'Beneficios',
@@ -632,23 +766,29 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             delay: 400,
                             color: '#9C27B0' // Púrpura
                         }
-                    ].map((section, index) => (
-                        <InfoSection key={section.title} section={section} index={index} />
+                    ].map((section) => (
+                        <InfoSection key={section.title} section={section} />
                     ))}
                 </Grid>
             </Box>
         );
     };
 
-    // Este componente reemplazará la sección de compartir en el diálogo
+    // Componente para opciones de compartir
     const ShareOptions = ({ service, onClose, isDarkTheme, colors }) => {
         const [showToast, setShowToast] = useState(false);
         const [toastMessage, setToastMessage] = useState('');
 
         // Crear un mensaje con datos del servicio para compartir
         const createServiceMessage = () => {
-            return `*ODONTOLOGÍA CAROL*\n\n*${service.title}*\n\n${service.description}\n\n*Detalles del servicio:*\n• Precio: ${service.price}\n• Duración estimada: ${service.duration}\n\nPuedes agendar tu cita o solicitar más información sobre este servicio a través de nuestra página web.\n\n*Visítanos en:* https://odontologiacarol.com\n\nTu sonrisa es nuestra prioridad.\nOdontología Carol - Atención dental de calidad.`;
+            // Incluir información sobre si es tratamiento y número de citas
+            const treatmentInfo = service.tratamiento === 1 
+                ? `\n• Tipo: Tratamiento${service.citasEstimadas > 1 ? ` (${service.citasEstimadas} citas aprox.)` : ''}`
+                : '\n• Tipo: Servicio (sesión única)';
+                
+            return `*ODONTOLOGÍA CAROL*\n\n*${service.title}*\n\n${service.description}\n\n*Detalles del servicio:*\n• Precio: $${service.price}\n• Duración estimada: ${service.duration}${treatmentInfo}\n\nPuedes agendar tu cita o solicitar más información sobre este servicio a través de nuestra página web.\n\n*Visítanos en:* https://odontologiacarol.com\n\nTu sonrisa es nuestra prioridad.\nOdontología Carol - Atención dental de calidad.`;
         };
+        
         // Compartir vía WhatsApp
         const shareViaWhatsApp = () => {
             const message = createServiceMessage();
@@ -695,9 +835,6 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 </svg>
                             </IconButton>
                         </Tooltip>
-
-
-
 
                         {/* Mensaje Toast */}
                         {showToast && (
@@ -747,7 +884,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 sx={{
                     m: 0,
                     p: { xs: 1.5, sm: 2 },
-                    bgcolor: colors.primary,
+                    bgcolor: service && service.tratamiento === 1 ? colors.treatment : colors.primary,
                     color: '#fff',
                     display: 'flex',
                     alignItems: 'center',
@@ -755,9 +892,12 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Description sx={{ mr: 1, fontSize: 22 }} />
+                    {service && service.tratamiento === 1 ? 
+                        <MedicalServices sx={{ mr: 1, fontSize: 22 }} /> : 
+                        <Description sx={{ mr: 1, fontSize: 22 }} />
+                    }
                     <Typography variant="h6" component="div" sx={{ fontWeight: 600 }}>
-                        Detalles del Servicio
+                        {service && service.tratamiento === 1 ? 'Detalles del Tratamiento' : 'Detalles del Servicio'}
                     </Typography>
                 </Box>
                 <MuiIconButton
@@ -863,7 +1003,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     onClick={handleAgendarCita}
                     disabled={!service || loading}
                     sx={{
-                        backgroundColor: colors.accent,
+                        backgroundColor: service && service.tratamiento === 1 ? colors.treatment : colors.accent,
                         color: '#fff',
                         px: 3,
                         py: 1,
@@ -872,10 +1012,9 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         fontWeight: 600,
                         boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                         '&:hover': {
-                            backgroundColor:
-                                colors.accent === '#2B6CB0'
-                                    ? '#1E5A9A'
-                                    : '#3CB0A8',
+                            backgroundColor: service && service.tratamiento === 1 
+                                ? '#3d9140' // Verde más oscuro
+                                : '#1E5A9A', // Azul más oscuro
                             boxShadow: '0 6px 20px rgba(0,0,0,0.2)',
                             transform: 'translateY(-2px)'
                         },

@@ -28,6 +28,7 @@ import {
     Category as CategoryIcon,
     ArrowBack as ArrowBackIcon,
     ArrowForward as ArrowForwardIcon,
+    Info as InfoIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -80,9 +81,9 @@ const StepFour = ({
                 setLoading(false);
             }
         };
-
         fetchServiceDetails();
     }, [formData.servicio]);
+
 
     const handleConfirm = async () => {
         if (!formData.nombre || !formData.apellidoPaterno || !formData.fechaCita || !formData.horaCita) {
@@ -117,16 +118,37 @@ const StepFour = ({
                 notas: formData.notas || '',
                 horario_id: formData.horario_id || null
             };
-
-            console.log('Datos enviados para la cita:', citaData);
+    
+            console.log('Datos enviados para la cita/tratamiento:', citaData);
+            console.log('¿Paciente registrado?:', formData.pacienteExistente ? 'Sí' : 'No');
+            console.log('ID del paciente:', formData.paciente_id);
 
             const response = await axios.post('https://back-end-4803.onrender.com/api/citas/nueva', citaData);
 
             if (response.status === 201) {
+                // Determinar si es un tratamiento o una cita regular
+                const esTratamiento = response.data.es_tratamiento;
+
+                let mensaje = '';
+                let tipo = 'success';
+
+                if (esTratamiento) {
+                    mensaje = '¡Tratamiento solicitado correctamente! El odontólogo revisará y confirmará tu solicitud.';
+
+                    // Guardar información del tratamiento
+                    localStorage.setItem('ultimo_tratamiento_id', response.data.tratamiento_id);
+                    localStorage.setItem('ultima_cita_id', response.data.cita_id);
+                    localStorage.setItem('es_tratamiento', 'true');
+                } else {
+                    mensaje = '¡Cita agendada exitosamente!';
+                    localStorage.setItem('ultima_cita_id', response.data.cita_id);
+                    localStorage.setItem('es_tratamiento', 'false');
+                }
+
                 setNotification({
                     open: true,
-                    message: '¡Cita guardada exitosamente!',
-                    type: 'success'
+                    message: mensaje,
+                    type: tipo
                 });
 
                 setTimeout(() => {
@@ -134,15 +156,36 @@ const StepFour = ({
                 }, 3000);
 
                 onStepCompletion('step4', true);
-                navigate('/confirmacion');
+
+                // Navegar a la página de confirmación con la información
+                navigate('/confirmacion', {
+                    state: {
+                        esTratamiento: esTratamiento,
+                        citaId: response.data.cita_id,
+                        tratamientoId: response.data.tratamiento_id,
+                        fechaCita: formData.fechaCita,
+                        horaCita: formData.horaCita,
+                        servicio: formData.servicio,
+                        especialista: formData.especialista
+                    }
+                });
             }
         } catch (error) {
-            console.error('Error al guardar la cita:', error);
+            console.error('Error al guardar la cita/tratamiento:', error);
+
+            let mensajeError = 'Error al procesar tu solicitud. Inténtalo de nuevo.';
+
+            // Si hay un mensaje específico del servidor, lo usamos
+            if (error.response && error.response.data && error.response.data.message) {
+                mensajeError = error.response.data.message;
+            }
+
             setNotification({
                 open: true,
-                message: 'Error al guardar la cita. Inténtalo de nuevo.',
+                message: mensajeError,
                 type: 'error'
             });
+
             setTimeout(() => {
                 setNotification({ open: false, message: '', type: '' });
             }, 3000);
@@ -181,7 +224,7 @@ const StepFour = ({
                 variant="h5"
                 sx={{ mb: 3, textAlign: 'center', color: colors.primary, fontWeight: 'bold' }}
             >
-                Resumen de tu Cita
+                Resumen de tu {serviceDetails && serviceDetails.tratamiento === 1 ? 'Tratamiento' : 'Cita'}
             </Typography>
 
             <Card
@@ -250,14 +293,14 @@ const StepFour = ({
                     {/* Sección de Detalles de la Cita */}
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
-                            Detalles de la Cita
+                            Detalles de la {serviceDetails && serviceDetails.tratamiento === 1 ? 'Primera Cita' : 'Cita'}
                         </Typography>
 
                         <Grid container spacing={2}>
                             <Grid item xs={12} sm={6}>
                                 <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
                                     <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
-                                        Fecha
+                                        Fecha {serviceDetails && serviceDetails.tratamiento === 1 ? 'Propuesta' : ''}
                                     </Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                         <CalendarIcon sx={{ mr: 1, fontSize: 20, color: colors.primary }} />
@@ -270,7 +313,7 @@ const StepFour = ({
                             <Grid item xs={12} sm={6}>
                                 <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.primary}` }}>
                                     <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
-                                        Hora
+                                        Hora {serviceDetails && serviceDetails.tratamiento === 1 ? 'Propuesta' : ''}
                                     </Typography>
                                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                         <TimeIcon sx={{ mr: 1, fontSize: 20, color: colors.primary }} />
@@ -301,7 +344,7 @@ const StepFour = ({
                     {/* Sección de Detalles del Servicio */}
                     <Box>
                         <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 2, color: colors.secondary }}>
-                            Detalles del Servicio
+                            Detalles del {serviceDetails && serviceDetails.tratamiento === 1 ? 'Tratamiento' : 'Servicio'}
                         </Typography>
 
                         {loading ? (
@@ -313,7 +356,7 @@ const StepFour = ({
                                 <Grid item xs={12}>
                                     <Paper elevation={1} sx={{ p: 1.5, borderLeft: `4px solid ${colors.accent}` }}>
                                         <Typography variant="caption" sx={{ display: 'block', color: colors.secondary }}>
-                                            Servicio
+                                            {serviceDetails.tratamiento === 1 ? 'Tratamiento' : 'Servicio'}
                                         </Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                             <MedicalServicesIcon sx={{ mr: 1, fontSize: 20, color: colors.accent }} />
@@ -361,6 +404,51 @@ const StepFour = ({
                 </CardContent>
             </Card>
 
+            {serviceDetails && serviceDetails.tratamiento === 1 && (
+                <Box sx={{ mt: 3, mb: 3 }}>
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            p: 2,
+                            bgcolor: isDarkTheme ? 'rgba(33, 150, 243, 0.1)' : '#e3f2fd',
+                            borderRadius: 2,
+                            border: `1px solid ${colors.primary}`,
+                            borderLeft: `4px solid ${colors.primary}`
+                        }}
+                    >
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 'bold',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: colors.primary,
+                                mb: 1
+                            }}
+                        >
+                            <InfoIcon sx={{ mr: 1 }} /> Información sobre tratamientos
+                        </Typography>
+
+                        <Typography variant="body2" paragraph>
+                            Has seleccionado un servicio que es un <strong>tratamiento</strong>, lo que implica un proceso que requerirá
+                            {serviceDetails.citasEstimadas && serviceDetails.citasEstimadas > 1
+                                ? ` aproximadamente ${serviceDetails.citasEstimadas} sesiones.`
+                                : ' múltiples sesiones.'}
+                        </Typography>
+
+                        <Typography variant="body2">
+                            <strong>Próximos pasos:</strong>
+                            <Box component="ol" sx={{ mt: 1, pl: 2 }}>
+                                <li>Tu solicitud de tratamiento será enviada con la fecha y hora que has seleccionado.</li>
+                                <li>Un odontólogo revisará tu caso y confirmará el tratamiento.</li>
+                                <li>Recibirás una notificación cuando tu tratamiento sea confirmado.</li>
+                                <li>La fecha seleccionada será tu primera cita del tratamiento.</li>
+                            </Box>
+                        </Typography>
+                    </Paper>
+                </Box>
+            )}
+
             <Box sx={{
                 display: 'flex',
                 flexDirection: { xs: 'column', sm: 'row' },
@@ -398,7 +486,10 @@ const StepFour = ({
                         boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
                     }}
                 >
-                    Confirmar Cita
+                    {serviceDetails && serviceDetails.tratamiento === 1
+                        ? 'Solicitar Tratamiento'
+                        : 'Confirmar Cita'
+                    }
                 </Button>
             </Box>
         </Paper>

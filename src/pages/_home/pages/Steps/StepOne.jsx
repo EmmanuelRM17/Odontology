@@ -116,6 +116,7 @@ const StepOne = ({
         }
     }, [formData.servicio, availableServices]);
 
+    // Modifica esta función en StepOne.jsx
     const checkPatientExists = async (email) => {
         try {
             setLoading(true);
@@ -124,18 +125,20 @@ const StepOne = ({
             if (response.data.exists && response.data.data) {
                 const patientData = response.data.data;
 
+                // CAMBIO IMPORTANTE: Ahora guardamos el ID del paciente
                 onFormDataChange({
+                    paciente_id: patientData.id, // Guardamos el ID del paciente existente
                     nombre: patientData.nombre,
                     apellidoPaterno: patientData.aPaterno.trim(),
                     apellidoMaterno: patientData.aMaterno.trim(),
                     genero: patientData.genero,
-                    fechaNacimiento: patientData.fechaNacimiento.split('T')[0], // Formato YYYY-MM-DD
+                    fechaNacimiento: patientData.fechaNacimiento.split('T')[0],
                     correo: patientData.email,
                     telefono: patientData.telefono,
                     lugar: patientData.lugar,
-                    omitCorreo: false, // Ahora se muestra el correo real
-                    omitTelefono: false, // Ahora se muestra el teléfono real
-                    pacienteExistente: true // Nueva bandera para deshabilitar los campos
+                    omitCorreo: false,
+                    omitTelefono: false,
+                    pacienteExistente: true
                 });
 
                 setNotification({
@@ -156,7 +159,7 @@ const StepOne = ({
                     message: 'No se encontró un paciente registrado con este correo.',
                     type: 'warning',
                 });
-                onFormDataChange({ pacienteExistente: false });
+                onFormDataChange({ pacienteExistente: false, paciente_id: null }); // Aseguramos que paciente_id sea null
             }
         } catch (error) {
             console.error('Error al verificar el paciente:', error);
@@ -165,10 +168,11 @@ const StepOne = ({
                 message: 'Error al verificar el correo electrónico. Inténtalo de nuevo.',
                 type: 'error',
             });
-            onFormDataChange({ pacienteExistente: false });
+            onFormDataChange({ pacienteExistente: false, paciente_id: null }); // Aseguramos que paciente_id sea null
+        } finally {
+            setLoading(false);
         }
     };
-
 
     const handleOpenPrivacyModal = async (event) => {
         event.preventDefault();
