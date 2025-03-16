@@ -50,7 +50,13 @@ import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 /**
  * Componente para gestionar tratamientos
- * Maneja los estados: Pre-Registro, Pendiente, Activo, Finalizado, Abandonado
+ * 
+ * Maneja los estados:
+ * - "Pre-Registro": Para pacientes no registrados, pueden pasar a Pendiente o Activo
+ * - "Pendiente": Para pacientes registrados, pendientes de activación
+ * - "Activo": Tratamiento en curso
+ * - "Finalizado": Tratamiento completado (todas las citas realizadas)
+ * - "Abandonado": Tratamiento interrumpido
  */
 const TratamientosForm = () => {
     const { isDarkTheme } = useThemeContext();
@@ -61,9 +67,12 @@ const TratamientosForm = () => {
     const [tratamientos, setTratamientos] = useState([]);
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
     const [isProcessing, setIsProcessing] = useState(false);
-    // Agregar estos nuevos estados justo después de los otros estados
+    const [isLoadingData, setIsLoadingData] = useState(true);
+    
+    // Estados para visualización de citas
     const [citasTratamiento, setCitasTratamiento] = useState([]);
     const [openCitasDialog, setOpenCitasDialog] = useState(false);
+    const [isLoadingCitas, setIsLoadingCitas] = useState(false);
 
     // Estados para finalizar tratamiento
     const [openFinalizeDialog, setOpenFinalizeDialog] = useState(false);
@@ -126,7 +135,7 @@ const TratamientosForm = () => {
 
     // Función para obtener tratamientos
     const fetchTratamientos = useCallback(async () => {
-        setIsProcessing(true);
+        setIsLoadingData(true);
         try {
             const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/all");
             if (!response.ok) throw new Error("Error al obtener los tratamientos");
@@ -142,14 +151,47 @@ const TratamientosForm = () => {
                 type: 'error',
             });
         } finally {
-            setIsProcessing(false);
+            setIsLoadingData(false);
         }
     }, []);
+
+    // Función para actualizar un tratamiento en el estado local
+    const updateTratamientoLocally = (id, updatedData) => {
+        setTratamientos(currentTratamientos => 
+            currentTratamientos.map(tratamiento => 
+                tratamiento.id === id 
+                    ? { ...tratamiento, ...updatedData, actualizado_en: new Date().toISOString() } 
+                    : tratamiento
+            )
+        );
+    };
 
     // Función para ver detalles del tratamiento
     const handleViewDetails = (tratamiento) => {
         setSelectedTratamiento(tratamiento);
         setOpenDialog(true);
+    };
+
+    // Función para ver citas del tratamiento
+    const handleViewCitas = async (tratamientoId) => {
+        setIsLoadingCitas(true);
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/${tratamientoId}/citas`);
+            if (!response.ok) throw new Error("Error al obtener citas");
+            
+            const data = await response.json();
+            setCitasTratamiento(data);
+            setOpenCitasDialog(true);
+        } catch (error) {
+            console.error("Error:", error);
+            setNotification({
+                open: true,
+                message: "Error al cargar las citas del tratamiento",
+                type: 'error'
+            });
+        } finally {
+            setIsLoadingCitas(false);
+        }
     };
 
     // Función para calcular el progreso del tratamiento
@@ -241,6 +283,25 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al actualizar el estado");
+            
+            // Actualizar localmente sin refrescar toda la tabla
+            updateTratamientoLocally(tratamientoToPending.id, {
+                estado: 'Pendiente',
+                notas: pendingMessage 
+                    ? `${tratamientoToPending.notas ? tratamientoToPending.notas + '\n\n' : ''}${pendingMessage}`
+                    : tratamientoToPending.notas
+            });
+
+            // Si es el tratamiento actualmente seleccionado, actualizarlo también
+            if (selectedTratamiento && selectedTratamiento.id === tratamientoToPending.id) {
+                setSelectedTratamiento(prevSelected => ({
+                    ...prevSelected,
+                    estado: 'Pendiente',
+                    notas: pendingMessage 
+                        ? `${prevSelected.notas ? prevSelected.notas + '\n\n' : ''}${pendingMessage}`
+                        : prevSelected.notas
+                }));
+            }
 
             setNotification({
                 open: true,
@@ -248,7 +309,6 @@ const TratamientosForm = () => {
                 type: 'info'
             });
 
-            fetchTratamientos();
             setOpenPendingDialog(false);
             setTratamientoToPending(null);
 
@@ -304,14 +364,34 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al activar el tratamiento");
+            
+            const data = await response.json();
+            
+            // Actualizar localmente sin refrescar toda la tabla
+            updateTratamientoLocally(tratamientoToActivate.id, {
+                estado: 'Activo',
+                notas: activateMessage 
+                    ? `${tratamientoToActivate.notas ? tratamientoToActivate.notas + '\n\n' : ''}${activateMessage}`
+                    : tratamientoToActivate.notas
+            });
+
+            // Si es el tratamiento actualmente seleccionado, actualizarlo también
+            if (selectedTratamiento && selectedTratamiento.id === tratamientoToActivate.id) {
+                setSelectedTratamiento(prevSelected => ({
+                    ...prevSelected,
+                    estado: 'Activo',
+                    notas: activateMessage 
+                        ? `${prevSelected.notas ? prevSelected.notas + '\n\n' : ''}${activateMessage}`
+                        : prevSelected.notas
+                }));
+            }
 
             setNotification({
                 open: true,
-                message: 'Tratamiento activado correctamente',
+                message: data.message || 'Tratamiento activado correctamente. La primera cita ha sido confirmada.',
                 type: 'success'
             });
 
-            fetchTratamientos();
             setOpenActivateDialog(false);
             setTratamientoToActivate(null);
 
@@ -361,6 +441,25 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al finalizar el tratamiento");
+            
+            // Actualizar localmente sin refrescar toda la tabla
+            const nuevasNotas = finalizeNote 
+                ? `${tratamientoToFinalize.notas ? tratamientoToFinalize.notas + '\n\n' : ''}[FINALIZACIÓN]: ${finalizeNote}` 
+                : tratamientoToFinalize.notas;
+            
+            updateTratamientoLocally(tratamientoToFinalize.id, {
+                estado: 'Finalizado',
+                notas: nuevasNotas
+            });
+
+            // Si es el tratamiento actualmente seleccionado, actualizarlo también
+            if (selectedTratamiento && selectedTratamiento.id === tratamientoToFinalize.id) {
+                setSelectedTratamiento(prevSelected => ({
+                    ...prevSelected,
+                    estado: 'Finalizado',
+                    notas: nuevasNotas
+                }));
+            }
 
             setNotification({
                 open: true,
@@ -368,7 +467,6 @@ const TratamientosForm = () => {
                 type: 'success'
             });
 
-            fetchTratamientos(); // Recargar la lista
             setOpenFinalizeDialog(false);
             setTratamientoToFinalize(null);
 
@@ -419,13 +517,29 @@ const TratamientosForm = () => {
 
             if (!response.ok) throw new Error("Error al abandonar el tratamiento");
 
+            // Actualizar localmente sin refrescar toda la tabla
+            const nuevasNotas = `${tratamientoToAbandon.notas ? tratamientoToAbandon.notas + '\n\n' : ''}[ABANDONADO]: ${abandonReason}`;
+            
+            updateTratamientoLocally(tratamientoToAbandon.id, {
+                estado: 'Abandonado',
+                notas: nuevasNotas
+            });
+
+            // Si es el tratamiento actualmente seleccionado, actualizarlo también
+            if (selectedTratamiento && selectedTratamiento.id === tratamientoToAbandon.id) {
+                setSelectedTratamiento(prevSelected => ({
+                    ...prevSelected,
+                    estado: 'Abandonado',
+                    notas: nuevasNotas
+                }));
+            }
+
             setNotification({
                 open: true,
-                message: 'Tratamiento marcado como abandonado',
+                message: 'Tratamiento marcado como abandonado. Todas las citas pendientes han sido canceladas.',
                 type: 'warning'
             });
 
-            fetchTratamientos(); // Recargar la lista
             setOpenAbandonDialog(false);
             setTratamientoToAbandon(null);
 
@@ -464,6 +578,15 @@ const TratamientosForm = () => {
         return `${diasRestantes} días`;
     };
 
+    // Descripción de estados del flujo de trabajo
+    const estadosDescripcion = {
+        'Pre-Registro': 'Tratamiento para paciente no registrado. Se debe registrar al paciente o marcar como pendiente.',
+        'Pendiente': 'Tratamiento pendiente de activación para un paciente registrado.',
+        'Activo': 'Tratamiento en curso, con citas programadas.',
+        'Finalizado': 'Tratamiento completado exitosamente.',
+        'Abandonado': 'Tratamiento interrumpido antes de su finalización.'
+    };
+
     return (
         <Box sx={{ p: 3, backgroundColor: colors.background, minHeight: '100vh' }}>
             <Card sx={{
@@ -494,22 +617,34 @@ const TratamientosForm = () => {
                     {/* Leyenda de estados */}
                     <Box sx={{
                         display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
                         justifyContent: 'flex-end',
-                        alignItems: 'center',
+                        alignItems: { xs: 'flex-start', sm: 'center' },
+                        flexWrap: 'wrap',
                         mb: 2,
                         p: 1,
                         backgroundColor: '#f5f5f5',
                         borderRadius: '8px'
                     }}>
-                        <Typography variant="body2" sx={{ mr: 3, fontWeight: 'medium' }}>
+                        <Typography variant="body2" sx={{ mr: 3, fontWeight: 'medium', mb: { xs: 1, sm: 0 } }}>
                             Estados:
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                            <Chip label="Pre-Registro" size="small" sx={{ bgcolor: colors.purple, color: 'white' }} />
-                            <Chip label="Pendiente" size="small" sx={{ bgcolor: colors.warning, color: 'white' }} />
-                            <Chip label="Activo" size="small" sx={{ bgcolor: colors.success, color: 'white' }} />
-                            <Chip label="Finalizado" size="small" sx={{ bgcolor: colors.info, color: 'white' }} />
-                            <Chip label="Abandonado" size="small" sx={{ bgcolor: colors.error, color: 'white' }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                            <Tooltip title={estadosDescripcion['Pre-Registro']} arrow>
+                                <Chip label="Pre-Registro" size="small" sx={{ bgcolor: colors.purple, color: 'white' }} />
+                            </Tooltip>
+                            <Tooltip title={estadosDescripcion['Pendiente']} arrow>
+                                <Chip label="Pendiente" size="small" sx={{ bgcolor: colors.warning, color: 'white' }} />
+                            </Tooltip>
+                            <Tooltip title={estadosDescripcion['Activo']} arrow>
+                                <Chip label="Activo" size="small" sx={{ bgcolor: colors.success, color: 'white' }} />
+                            </Tooltip>
+                            <Tooltip title={estadosDescripcion['Finalizado']} arrow>
+                                <Chip label="Finalizado" size="small" sx={{ bgcolor: colors.info, color: 'white' }} />
+                            </Tooltip>
+                            <Tooltip title={estadosDescripcion['Abandonado']} arrow>
+                                <Chip label="Abandonado" size="small" sx={{ bgcolor: colors.error, color: 'white' }} />
+                            </Tooltip>
                         </Box>
                     </Box>
 
@@ -530,8 +665,8 @@ const TratamientosForm = () => {
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>#</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Paciente</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Tratamiento</TableCell>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Inicio</TableCell>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Fin Estimado</TableCell>
+                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>Inicio</TableCell>
+                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>Fin Estimado</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Progreso</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Estado</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Acciones</TableCell>
@@ -540,7 +675,7 @@ const TratamientosForm = () => {
 
                             {/* Cuerpo de la tabla */}
                             <TableBody>
-                                {isProcessing ? (
+                                {isLoadingData ? (
                                     <TableRow>
                                         <TableCell colSpan={8} align="center">
                                             <LinearProgress sx={{ my: 2 }} />
@@ -611,12 +746,12 @@ const TratamientosForm = () => {
                                                     </TableCell>
 
                                                     {/* Fecha inicio */}
-                                                    <TableCell>
+                                                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                                                         {formatDate(tratamiento.fecha_inicio)}
                                                     </TableCell>
 
                                                     {/* Fecha fin estimada */}
-                                                    <TableCell>
+                                                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                             {formatDate(tratamiento.fecha_estimada_fin)}
                                                             <Tooltip title={`Días restantes: ${diasRestantes}`}>
@@ -650,21 +785,23 @@ const TratamientosForm = () => {
 
                                                     {/* Estado */}
                                                     <TableCell>
-                                                        <Chip
-                                                            label={tratamiento.estado || "Pre-Registro"}
-                                                            sx={{
-                                                                backgroundColor: getStatusColor(tratamiento.estado),
-                                                                color: '#FFF',
-                                                                fontWeight: '500',
-                                                                fontSize: '0.875rem',
-                                                                height: '28px',
-                                                            }}
-                                                        />
+                                                        <Tooltip title={estadosDescripcion[tratamiento.estado] || ''} arrow>
+                                                            <Chip
+                                                                label={tratamiento.estado || "Pre-Registro"}
+                                                                sx={{
+                                                                    backgroundColor: getStatusColor(tratamiento.estado),
+                                                                    color: '#FFF',
+                                                                    fontWeight: '500',
+                                                                    fontSize: '0.875rem',
+                                                                    height: '28px',
+                                                                }}
+                                                            />
+                                                        </Tooltip>
                                                     </TableCell>
 
                                                     {/* Acciones */}
                                                     <TableCell>
-                                                        <Box sx={{ display: 'flex', gap: 1 }}>
+                                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
                                                             {/* Ver Detalles (siempre visible) */}
                                                             <Tooltip title="Ver detalles" arrow>
                                                                 <IconButton
@@ -747,6 +884,21 @@ const TratamientosForm = () => {
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
+
+                                                            {/* Ver Citas (siempre visible para tratamientos) */}
+                                                            <Tooltip title="Ver citas asociadas" arrow>
+                                                                <IconButton
+                                                                    onClick={() => handleViewCitas(tratamiento.id)}
+                                                                    sx={{
+                                                                        backgroundColor: '#2196F3',
+                                                                        '&:hover': { backgroundColor: '#1976D2' },
+                                                                        padding: '8px',
+                                                                        borderRadius: '50%',
+                                                                    }}
+                                                                >
+                                                                    <EventAvailable sx={{ color: 'white', fontSize: 20 }} />
+                                                                </IconButton>
+                                                            </Tooltip>
                                                         </Box>
                                                     </TableCell>
                                                 </TableRow>
@@ -799,16 +951,18 @@ const TratamientosForm = () => {
                                         }}
                                     />
                                 )}
-                                <Chip
-                                    label={selectedTratamiento.estado}
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: 'white',
-                                        color: getStatusColor(selectedTratamiento.estado),
-                                        fontWeight: 'bold',
-                                        border: `1px solid ${getStatusColor(selectedTratamiento.estado)}`
-                                    }}
-                                />
+                                <Tooltip title={estadosDescripcion[selectedTratamiento.estado] || ''} arrow>
+                                    <Chip
+                                        label={selectedTratamiento.estado}
+                                        size="small"
+                                        sx={{
+                                            backgroundColor: 'white',
+                                            color: getStatusColor(selectedTratamiento.estado),
+                                            fontWeight: 'bold',
+                                            border: `1px solid ${getStatusColor(selectedTratamiento.estado)}`
+                                        }}
+                                    />
+                                </Tooltip>
                             </Box>
                         </DialogTitle>
 
@@ -968,29 +1122,7 @@ const TratamientosForm = () => {
                                 variant="contained"
                                 color="primary"
                                 startIcon={<EventAvailable />}
-                                onClick={() => {
-                                    // Obtener las citas del tratamiento
-                                    fetch(`https://back-end-4803.onrender.com/api/tratamientos/${selectedTratamiento.id}/citas`)
-                                        .then(response => {
-                                            if (!response.ok) throw new Error("Error al obtener citas");
-                                            return response.json();
-                                        })
-                                        .then(data => {
-                                            // Aquí deberías abrir un diálogo con las citas
-                                            // Puedes implementar un nuevo estado y componente de diálogo
-                                            // que muestre estas citas en una tabla
-                                            setCitasTratamiento(data);
-                                            setOpenCitasDialog(true);
-                                        })
-                                        .catch(error => {
-                                            console.error("Error:", error);
-                                            setNotification({
-                                                open: true,
-                                                message: "Error al cargar las citas del tratamiento",
-                                                type: 'error'
-                                            });
-                                        });
-                                }}
+                                onClick={() => handleViewCitas(selectedTratamiento.id)}
                             >
                                 Ver Citas Asociadas
                             </Button>
@@ -1015,44 +1147,51 @@ const TratamientosForm = () => {
                 </DialogTitle>
 
                 <DialogContent>
-                    <TableContainer component={Paper} sx={{ mt: 2 }}>
-                        <Table>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>#</TableCell>
-                                    <TableCell>Número de Cita</TableCell>
-                                    <TableCell>Fecha</TableCell>
-                                    <TableCell>Estado</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {citasTratamiento.length > 0 ? (
-                                    citasTratamiento.map((cita) => (
-                                        <TableRow key={cita.consulta_id}>
-                                            <TableCell>{cita.consulta_id}</TableCell>
-                                            <TableCell>{cita.numero_cita_tratamiento}</TableCell>
-                                            <TableCell>{formatDate(cita.fecha_consulta)}</TableCell>
-                                            <TableCell>
-                                                <Chip
-                                                    label={cita.estado}
-                                                    sx={{
-                                                        backgroundColor: getStatusColor(cita.estado),
-                                                        color: 'white'
-                                                    }}
-                                                />
+                    {isLoadingCitas ? (
+                        <Box sx={{ width: '100%', mt: 3, textAlign: 'center' }}>
+                            <LinearProgress sx={{ mb: 2 }} />
+                            <Typography>Cargando citas asociadas...</Typography>
+                        </Box>
+                    ) : (
+                        <TableContainer component={Paper} sx={{ mt: 2 }}>
+                            <Table>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell>#</TableCell>
+                                        <TableCell>Número de Cita</TableCell>
+                                        <TableCell>Fecha</TableCell>
+                                        <TableCell>Estado</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {citasTratamiento.length > 0 ? (
+                                        citasTratamiento.map((cita) => (
+                                            <TableRow key={cita.consulta_id}>
+                                                <TableCell>{cita.consulta_id}</TableCell>
+                                                <TableCell>{cita.numero_cita_tratamiento}</TableCell>
+                                                <TableCell>{formatDate(cita.fecha_consulta)}</TableCell>
+                                                <TableCell>
+                                                    <Chip
+                                                        label={cita.estado}
+                                                        sx={{
+                                                            backgroundColor: getStatusColor(cita.estado === 'Confirmada' ? 'Activo' : cita.estado),
+                                                            color: 'white'
+                                                        }}
+                                                    />
+                                                </TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={4} align="center">
+                                                No hay citas asociadas a este tratamiento
                                             </TableCell>
                                         </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} align="center">
-                                            No hay citas asociadas a este tratamiento
-                                        </TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </TableContainer>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </TableContainer>
+                    )}
                 </DialogContent>
 
                 <DialogActions>

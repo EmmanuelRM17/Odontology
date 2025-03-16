@@ -60,6 +60,12 @@ import NewCita from './citas/nuevaCita.jsx';
  * - Distinguir entre pacientes registrados y no registrados
  * - Mantener consistencia visual para el mismo paciente
  * - Realizar acciones como confirmar, completar, cancelar y archivar citas
+ * 
+ * Reglas de negocio para tratamientos:
+ * - "Pre-Registro": Para pacientes no registrados, no se pueden confirmar directamente.
+ * - "Pendiente": Para pacientes registrados que necesitan evaluación.
+ * - "Activo": Tratamiento confirmado con citas programadas.
+ * - Las citas de tratamientos en estado "Pre-Registro" o "Pendiente" NO se pueden confirmar desde aquí.
  */
 const CitasForm = () => {
     const { isDarkTheme } = useThemeContext();
@@ -95,9 +101,13 @@ const CitasForm = () => {
 
     // Mapa para asignar colores consistentes a pacientes
     const [pacienteColores, setPacienteColores] = useState({});
+    
+    // Estado para almacenar la información de tratamientos
+    const [tratamientos, setTratamientos] = useState({});
 
     useEffect(() => {
         fetchCitas();
+        fetchTratamientos();
     }, []);
 
     // Colores del tema - Simplificados 
@@ -113,6 +123,30 @@ const CitasForm = () => {
         consulta: isDarkTheme ? '#9E9E9E' : '#9E9E9E',
         noRegistrado: '#FFA726',
         registrado: '#42A5F5'
+    };
+
+    // Función para cargar los tratamientos y mapearlos por ID
+    const fetchTratamientos = async () => {
+        try {
+            const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/all");
+            if (!response.ok) throw new Error("Error al obtener los tratamientos");
+
+            const data = await response.json();
+            const tratamientosMap = {};
+            
+            data.forEach(tratamiento => {
+                tratamientosMap[tratamiento.id] = tratamiento;
+            });
+            
+            setTratamientos(tratamientosMap);
+        } catch (error) {
+            console.error("Error cargando tratamientos:", error);
+            setNotification({
+                open: true,
+                message: 'Error al cargar los tratamientos.',
+                type: 'error',
+            });
+        }
     };
 
     // Función para generar un color para un paciente específico
@@ -172,6 +206,27 @@ const CitasForm = () => {
         }
     };
 
+    // Función para verificar si una cita puede ser confirmada directamente
+    // NUEVA FUNCIÓN: Verifica si una cita asociada a un tratamiento puede ser confirmada
+    const canConfirmAppointment = (cita) => {
+        // Si no es un tratamiento, siempre se puede confirmar
+        if (!cita.tratamiento_id) {
+            return true;
+        }
+        
+        // Si es un tratamiento, verificar su estado
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        
+        // Si no encontramos el tratamiento, por seguridad no permitimos confirmar
+        if (!tratamiento) {
+            return false;
+        }
+        
+        // Solo se puede confirmar si el tratamiento está Activo
+        // No se puede confirmar si está en Pre-Registro o Pendiente
+        return tratamiento.estado === 'Activo';
+    };
+    
     // Función genérica para cambiar el estado de una cita
     const handleChangeState = async (cita, newState, message = '') => {
         if (!cita || !canChangeToState(cita.estado, newState)) {
@@ -179,6 +234,16 @@ const CitasForm = () => {
                 open: true,
                 message: `No se puede cambiar de "${cita?.estado}" a "${newState}"`,
                 type: 'error',
+            });
+            return;
+        }
+        
+        // Verificación adicional para confirmar citas de tratamientos
+        if (newState === 'Confirmada' && cita.tratamiento_id && !canConfirmAppointment(cita)) {
+            setNotification({
+                open: true,
+                message: 'Las citas de tratamientos en estado "Pre-Registro" o "Pendiente" deben activarse desde la gestión de tratamientos.',
+                type: 'warning',
             });
             return;
         }
@@ -220,6 +285,16 @@ const CitasForm = () => {
 
     // Funciones específicas para cada cambio de estado
     const confirmCita = (cita) => {
+        // Verificar si la cita puede ser confirmada (si es tratamiento, verificar estado)
+        if (cita.tratamiento_id && !canConfirmAppointment(cita)) {
+            setNotification({
+                open: true,
+                message: 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos.',
+                type: 'warning',
+            });
+            return;
+        }
+        
         setCitaToConfirm(cita);
         setConfirmMessage('');
         setOpenConfirmCitaDialog(true);
@@ -267,7 +342,7 @@ const CitasForm = () => {
                     // Programar la siguiente cita si el tratamiento no está completo
                     setNotification({
                         open: true,
-                        message: `Cita completada. Contador actualizado a ${data.citas_completadas}/${citaToComplete.total_citas_programadas}.`,
+                        message: `Cita completada. Contador actualizado a ${data.citas_completadas}/${citaToComplete.total_citas_programadas}. Se ha programado la siguiente cita.`,
                         type: 'success',
                     });
                 } else {
@@ -282,6 +357,7 @@ const CitasForm = () => {
             setOpenCompleteCitaDialog(false);
             setCitaToComplete(null);
             fetchCitas(); // Recargar citas
+            fetchTratamientos(); // Actualizar también la lista de tratamientos
         } catch (error) {
             console.error("Error:", error);
             setNotification({
@@ -452,6 +528,7 @@ const CitasForm = () => {
             case "Confirmada": return '#66BB6A';
             case "Cancelada": return '#EF5350';
             case "Completada": return '#42A5F5';
+            case "PRE-REGISTRO": return '#9C27B0'; // Añadido para distinguir pre-registros
             default: return '#BDBDBD';
         }
     };
@@ -472,8 +549,27 @@ const CitasForm = () => {
         return cita?.paciente_id != null;
     };
 
+    // Obtener el estado del tratamiento asociado a una cita
+    const getTratamientoEstado = (cita) => {
+        if (!cita?.tratamiento_id) return null;
+        
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        return tratamiento?.estado || null;
+    };
+
     // Renderizar botones de acción según el estado de la cita
     const renderStateActionButtons = (cita) => {
+        // Si es un tratamiento, verificar su estado actual para decidir si mostrar o no el botón
+        if (cita.tratamiento_id) {
+            const estadoTratamiento = getTratamientoEstado(cita);
+            
+            // Si el tratamiento está en "Pre-Registro" o "Pendiente", no mostrar botón de confirmar
+            if (estadoTratamiento === 'Pre-Registro' || estadoTratamiento === 'Pendiente') {
+                return null; // No mostrar botón para cambiar estado
+            }
+        }
+        
+        // Continuar con la lógica normal según el estado de la cita
         switch (cita.estado) {
             case 'Pendiente':
                 return (
@@ -611,6 +707,12 @@ const CitasForm = () => {
                                             const estaRegistrado = isRegistered(cita);
                                             const numCita = getNumeroCitaTratamiento(cita);
                                             const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
+                                            const tratamientoEstado = getTratamientoEstado(cita);
+                                            
+                                            // Determinar si mostrar indicador especial cuando es tratamiento no activado
+                                            const esTratamientoNoActivado = esTratamiento && 
+                                                tratamientoEstado && 
+                                                (tratamientoEstado === 'Pre-Registro' || tratamientoEstado === 'Pendiente');
                                             
                                             return (
                                                 <TableRow
@@ -700,15 +802,30 @@ const CitasForm = () => {
                                                                         <Typography variant="body2">
                                                                             {cita?.servicio_nombre || "N/A"}
                                                                         </Typography>
-                                                                        <Typography variant="caption" 
-                                                                            sx={{ 
-                                                                                color: colors.tratamiento,
-                                                                                display: 'flex',
-                                                                                alignItems: 'center' 
-                                                                            }}
-                                                                        >
-                                                                            Tratamiento (cita {numCita})
-                                                                        </Typography>
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                            <Typography variant="caption" 
+                                                                                sx={{ 
+                                                                                    color: colors.tratamiento,
+                                                                                }}
+                                                                            >
+                                                                                Tratamiento (cita {numCita})
+                                                                            </Typography>
+                                                                            
+                                                                            {/* Agregar insignia si el tratamiento no está activado */}
+                                                                            {esTratamientoNoActivado && (
+                                                                                <Chip
+                                                                                    size="small"
+                                                                                    label={tratamientoEstado}
+                                                                                    sx={{
+                                                                                        height: 16,
+                                                                                        fontSize: '0.6rem',
+                                                                                        ml: 0.5,
+                                                                                        bgcolor: tratamientoEstado === 'Pre-Registro' ? '#9C27B0' : '#FF9800',
+                                                                                        color: 'white'
+                                                                                    }}
+                                                                                />
+                                                                            )}
+                                                                        </Box>
                                                                     </Box>
                                                                 </Box>
                                                             ) : (
@@ -901,15 +1018,29 @@ const CitasForm = () => {
                                         `Detalles de la Cita`
                                     )}
                                 </Box>
-                                <Chip
-                                    label={isTratamiento(selectedCita) ? 'Tratamiento' : 'Consulta'}
-                                    size="small"
-                                    sx={{
-                                        backgroundColor: 'white',
-                                        color: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
-                                        fontWeight: 'bold',
-                                    }}
-                                />
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    {/* Mostrar estado del tratamiento si aplica */}
+                                    {isTratamiento(selectedCita) && getTratamientoEstado(selectedCita) && (
+                                        <Chip
+                                            label={`Tratamiento: ${getTratamientoEstado(selectedCita)}`}
+                                            size="small"
+                                            sx={{
+                                                backgroundColor: 'rgba(255,255,255,0.9)',
+                                                color: getStatusColor(getTratamientoEstado(selectedCita)),
+                                                fontWeight: 'bold',
+                                            }}
+                                        />
+                                    )}
+                                    <Chip
+                                        label={isTratamiento(selectedCita) ? 'Tratamiento' : 'Consulta'}
+                                        size="small"
+                                        sx={{
+                                            backgroundColor: 'white',
+                                            color: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
+                                            fontWeight: 'bold',
+                                        }}
+                                    />
+                                </Box>
                             </Box>
                         </DialogTitle>
                         <DialogContent sx={{ mt: 2 }}>
@@ -1326,6 +1457,15 @@ const CitasForm = () => {
                             <Typography><strong>Servicio:</strong> {citaToComplete.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToComplete.fecha_consulta)}</Typography>
                             <Typography><strong>Odontólogo:</strong> {citaToComplete.odontologo_nombre || "No asignado"}</Typography>
+                            
+                            {/* Mostrar información adicional si es tratamiento */}
+                            {citaToComplete.tratamiento_id && (
+                                <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                                    <Typography><strong>Tratamiento ID:</strong> {citaToComplete.tratamiento_id}</Typography>
+                                    <Typography><strong>Número de cita:</strong> {getNumeroCitaTratamiento(citaToComplete)}</Typography>
+                                    <Typography><strong>Al completar:</strong> Se programará automáticamente la siguiente cita para el próximo mes</Typography>
+                                </Box>
+                            )}
                         </Box>
                     )}
 
@@ -1349,6 +1489,7 @@ const CitasForm = () => {
                     >
                         <AlertTitle>Información</AlertTitle>
                         Esta acción marcará la cita como "Completada" y no podrá ser cancelada posteriormente.
+                        {citaToComplete?.tratamiento_id && " También se registrará el progreso en el tratamiento asociado."}
                     </Alert>
                 </DialogContent>
 
