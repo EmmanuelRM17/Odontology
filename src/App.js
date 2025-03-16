@@ -7,6 +7,8 @@ import ErrorPage from "./components/Tools/ErrorPage";
 import Chatbot from "./components/Tools/Chatbot.jsx";
 import Breadcrumbs from './pages/_home/tools/Breadcrumbs';
 import FullPageLoader from "./components/Tools/FullPageLoader";
+import ScrollToTop from './components/Tools/ScrollToTop';
+
 
 // Componentes Importados
 import LayoutConEncabezado from "./components/Layout/LayoutConEncabezado";
@@ -175,6 +177,7 @@ function App() {
   return (
     <ThemeProviderComponent>
       <Router>
+       <ScrollToTop />
         <Routes>
           {/* Rutas públicas */}
           <Route

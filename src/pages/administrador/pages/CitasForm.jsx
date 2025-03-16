@@ -19,7 +19,9 @@ import {
     TableHead, TableRow,
     TextField,
     Tooltip,
-    Typography
+    Typography,
+    Avatar,
+    useTheme
 } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -37,7 +39,11 @@ import {
     ChangeCircle,
     Circle as CircleIcon,
     CheckCircle,
-    Error as ErrorIcon
+    Error as ErrorIcon,
+    MedicalServices, 
+    Healing,
+    LocalHospital,
+    PersonOff
 } from '@mui/icons-material';
 
 import { alpha } from '@mui/material/styles';
@@ -46,8 +52,18 @@ import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import EditCita from './citas/editarCita.jsx';
 import NewCita from './citas/nuevaCita.jsx';
 
+/**
+ * Componente CitasForm - Gestión de citas y tratamientos odontológicos
+ * 
+ * Este componente muestra una tabla de citas con funcionalidades para:
+ * - Identificar tratamientos vs consultas normales basado en el campo tratamiento (1/0)
+ * - Distinguir entre pacientes registrados y no registrados
+ * - Mantener consistencia visual para el mismo paciente
+ * - Realizar acciones como confirmar, completar, cancelar y archivar citas
+ */
 const CitasForm = () => {
     const { isDarkTheme } = useThemeContext();
+    const theme = useTheme();
     const [openDialog, setOpenDialog] = useState(false);
     const [openNewAppointmentForm, setOpenNewAppointmentForm] = useState(false);
     const [selectedCita, setSelectedCita] = useState(null);
@@ -77,21 +93,58 @@ const CitasForm = () => {
     const [completeMessage, setCompleteMessage] = useState('');
     const [isCompleting, setIsCompleting] = useState(false);
 
+    // Mapa para asignar colores consistentes a pacientes
+    const [pacienteColores, setPacienteColores] = useState({});
+
     useEffect(() => {
         fetchCitas();
     }, []);
 
-    // Colores del tema
+    // Colores del tema - Simplificados 
     const colors = {
-        background: isDarkTheme ? '#0D1B2A' : '#ffffff',
-        primary: isDarkTheme ? '#00BCD4' : '#03427C',
+        background: isDarkTheme ? '#0D1B2A' : '#F8F9FA',
+        primary: isDarkTheme ? '#00BCD4' : '#1976D2',
         text: isDarkTheme ? '#ffffff' : '#1a1a1a',
         secondary: isDarkTheme ? '#A0AEC0' : '#666666',
         cardBg: isDarkTheme ? '#1A2735' : '#ffffff',
         paper: isDarkTheme ? '#1A2735' : '#ffffff',
         divider: isDarkTheme ? '#2D3748' : '#E2E8F0',
-        tratamiento: '#4caf50',       // Color para tratamientos
-        consulta: '#f44336',          // Color para consultas regulares
+        tratamiento: isDarkTheme ? '#4CAF50' : '#4CAF50',
+        consulta: isDarkTheme ? '#9E9E9E' : '#9E9E9E',
+        noRegistrado: '#FFA726',
+        registrado: '#42A5F5'
+    };
+
+    // Función para generar un color para un paciente específico
+    const getPatientColor = (patientId, pacienteName) => {
+        // Si el paciente no tiene ID, está no registrado
+        if (!patientId) {
+            return colors.noRegistrado;
+        }
+        
+        // Si ya tiene un color asignado, usarlo
+        if (pacienteColores[patientId]) {
+            return pacienteColores[patientId];
+        }
+        
+        // Generar un nuevo color
+        const colorPool = [
+            '#5C6BC0', '#26A69A', '#EC407A', 
+            '#AB47BC', '#7E57C2', '#5C6BC0', 
+            '#42A5F5', '#29B6F6', '#26C6DA'
+        ];
+        
+        // Asignar un color basado en ID o alfabéticamente
+        const colorIndex = patientId % colorPool.length;
+        const newColor = colorPool[colorIndex];
+        
+        // Actualizar el mapa de colores
+        setPacienteColores(prev => ({
+            ...prev,
+            [patientId]: newColor
+        }));
+        
+        return newColor;
     };
 
     const handleNotificationClose = () => {
@@ -188,10 +241,57 @@ const CitasForm = () => {
 
     const processCompleteCita = async () => {
         setIsCompleting(true);
-        await handleChangeState(citaToComplete, 'Completada', completeMessage);
-        setOpenCompleteCitaDialog(false);
-        setCitaToComplete(null);
-        setIsCompleting(false);
+        try {
+            // Primero actualizar el estado de la cita a completada
+            await handleChangeState(citaToComplete, 'Completada', completeMessage);
+            
+            // Verificar si la cita pertenece a un tratamiento
+            if (citaToComplete.tratamiento_id) {
+                // Llamar al endpoint para incrementar el contador en el tratamiento
+                const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/incrementarCitas/${citaToComplete.tratamiento_id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ 
+                        cita_id: citaToComplete.consulta_id
+                    }),
+                });
+                
+                if (!response.ok) throw new Error("Error al actualizar el contador del tratamiento");
+                
+                // Verificar si se debe programar la siguiente cita
+                const data = await response.json();
+                
+                if (!data.tratamiento_completado) {
+                    // Programar la siguiente cita si el tratamiento no está completo
+                    setNotification({
+                        open: true,
+                        message: `Cita completada. Contador actualizado a ${data.citas_completadas}/${citaToComplete.total_citas_programadas}.`,
+                        type: 'success',
+                    });
+                } else {
+                    setNotification({
+                        open: true,
+                        message: `Tratamiento finalizado. Todas las citas han sido completadas.`,
+                        type: 'success',
+                    });
+                }
+            }
+            
+            setOpenCompleteCitaDialog(false);
+            setCitaToComplete(null);
+            fetchCitas(); // Recargar citas
+        } catch (error) {
+            console.error("Error:", error);
+            setNotification({
+                open: true,
+                message: "Error al procesar la cita completada.",
+                type: 'error',
+            });
+        } finally {
+            setIsCompleting(false);
+        }
     };
 
     // Función para abrir el diálogo de confirmación de archivado
@@ -223,11 +323,6 @@ const CitasForm = () => {
             setOpenConfirmDialog(false);
             setCitaToDelete(null);
             fetchCitas(); // Recargar la lista de citas para que desaparezca
-
-            setTimeout(() => {
-                setNotification({ open: false, message: '', type: '' });
-            }, 3000);
-
         } catch (error) {
             console.error('Error al archivar la cita:', error);
             setNotification({
@@ -235,10 +330,6 @@ const CitasForm = () => {
                 message: 'Hubo un error al archivar la cita.',
                 type: 'error',
             });
-
-            setTimeout(() => {
-                setNotification({ open: false, message: '', type: '' });
-            }, 3000);
         } finally {
             setIsProcessing(false);
         }
@@ -326,7 +417,7 @@ const CitasForm = () => {
         }
     }, []);
 
-    // Función para formatear la fecha de manera más amigable
+    // Función para formatear la fecha de manera amigable
     const formatDate = (dateString) => {
         if (!dateString) return "N/A";
         try {
@@ -367,13 +458,18 @@ const CitasForm = () => {
 
     // Función para determinar si es un tratamiento o no
     const isTratamiento = (cita) => {
-        // Lógica para determinar si es un tratamiento basado en los datos de la cita
-        return cita?.tratamiento === 1 || cita?.es_tratamiento === true;
+        // Usando directamente es_tratamiento que viene del campo tratamiento de la BD (1 = true)
+        return cita?.es_tratamiento === 1;
     };
 
     // Obtener el número de cita dentro del tratamiento
     const getNumeroCitaTratamiento = (cita) => {
         return cita?.numero_cita_tratamiento || cita?.numero_cita || 1;
+    };
+
+    // Verificar si un paciente está registrado (tiene paciente_id)
+    const isRegistered = (cita) => {
+        return cita?.paciente_id != null;
     };
 
     // Renderizar botones de acción según el estado de la cita
@@ -384,14 +480,19 @@ const CitasForm = () => {
                     <Tooltip title="Confirmar cita" arrow>
                         <IconButton
                             onClick={() => confirmCita(cita)}
+                            size="small"
                             sx={{
                                 backgroundColor: '#66BB6A',
                                 '&:hover': { backgroundColor: '#388E3C' },
-                                padding: '8px',
-                                borderRadius: '50%',
+                                color: 'white',
+                                width: { xs: 28, sm: 32 },
+                                height: { xs: 28, sm: 32 },
+                                '& .MuiSvgIcon-root': {
+                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                }
                             }}
                         >
-                            <CheckCircle fontSize="medium" sx={{ color: 'white' }} />
+                            <CheckCircle />
                         </IconButton>
                     </Tooltip>
                 );
@@ -400,14 +501,19 @@ const CitasForm = () => {
                     <Tooltip title="Completar cita" arrow>
                         <IconButton
                             onClick={() => completeCita(cita)}
+                            size="small"
                             sx={{
                                 backgroundColor: '#42A5F5',
                                 '&:hover': { backgroundColor: '#1976D2' },
-                                padding: '8px',
-                                borderRadius: '50%',
+                                color: 'white',
+                                width: { xs: 28, sm: 32 },
+                                height: { xs: 28, sm: 32 },
+                                '& .MuiSvgIcon-root': {
+                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                }
                             }}
                         >
-                            <CheckCircle fontSize="medium" sx={{ color: 'white' }} />
+                            <CheckCircle />
                         </IconButton>
                     </Tooltip>
                 );
@@ -445,7 +551,7 @@ const CitasForm = () => {
                         />
                     </Box>
 
-                    {/* Leyenda de colores */}
+                    {/* Leyenda simplificada */}
                     <Box sx={{ 
                         display: 'flex', 
                         justifyContent: 'flex-end', 
@@ -455,35 +561,17 @@ const CitasForm = () => {
                         backgroundColor: '#f5f5f5',
                         borderRadius: '8px'
                     }}>
-                        <Typography variant="body2" sx={{ mr: 3, fontWeight: 'medium' }}>
-                            Tipo de cita:
-                        </Typography>
-                        <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            mr: 3
-                        }}>
-                            <Box sx={{ 
-                                width: 12, 
-                                height: 12, 
-                                borderRadius: '50%', 
-                                bgcolor: colors.tratamiento, 
-                                mr: 1 
-                            }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
+                            <MedicalServices sx={{ color: colors.tratamiento, fontSize: 16, mr: 1 }} />
                             <Typography variant="body2">Tratamiento</Typography>
                         </Box>
-                        <Box sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center'
-                        }}>
-                            <Box sx={{ 
-                                width: 12, 
-                                height: 12, 
-                                borderRadius: '50%', 
-                                bgcolor: colors.consulta, 
-                                mr: 1 
-                            }} />
-                            <Typography variant="body2">No Tratamiento</Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
+                            <LocalHospital sx={{ color: colors.consulta, fontSize: 16, mr: 1 }} />
+                            <Typography variant="body2">Consulta</Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <PersonOff sx={{ color: colors.noRegistrado, fontSize: 16, mr: 1 }} />
+                            <Typography variant="body2">No Registrado</Typography>
                         </Box>
                     </Box>
 
@@ -493,7 +581,7 @@ const CitasForm = () => {
                             boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
                             backgroundColor: colors.paper,
                             borderRadius: '12px',
-                            overflow: 'hidden',
+                            overflow: 'auto',
                             transition: 'all 0.3s ease'
                         }}
                     >
@@ -501,11 +589,9 @@ const CitasForm = () => {
                             {/* Encabezado de la tabla */}
                             <TableHead sx={{ backgroundColor: '#E3F2FD' }}>
                                 <TableRow>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>#</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Paciente</TableCell>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Servicio</TableCell>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Categoría</TableCell>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Fecha y Hora</TableCell>
+                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold', display: { xs: 'none', sm: 'table-cell' } }}>Servicio</TableCell>
+                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>Fecha y Hora</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Estado</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Acciones</TableCell>
                                 </TableRow>
@@ -522,78 +608,135 @@ const CitasForm = () => {
                                         )
                                         .map((cita, index) => {
                                             const esTratamiento = isTratamiento(cita);
+                                            const estaRegistrado = isRegistered(cita);
                                             const numCita = getNumeroCitaTratamiento(cita);
+                                            const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
                                             
                                             return (
                                                 <TableRow
                                                     key={cita?.consulta_id || index}
                                                     sx={{
-                                                        height: '69px',
-                                                        '&:hover': { backgroundColor: 'rgba(25,118,210,0.1)' },
+                                                        height: '65px',
+                                                        '&:hover': { backgroundColor: 'rgba(25,118,210,0.05)' },
                                                         transition: 'background-color 0.2s ease',
-                                                        position: 'relative',
-                                                        // Barra de color a la izquierda según tipo
                                                         borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`
                                                     }}
                                                 >
-                                                    {/* Indicador numérico para tratamientos */}
-                                                    {esTratamiento && (
-                                                        <Box 
-                                                            sx={{
-                                                                position: 'absolute',
-                                                                left: '-15px',
-                                                                top: '50%',
-                                                                transform: 'translateY(-50%)',
-                                                                backgroundColor: colors.tratamiento,
-                                                                color: 'white',
-                                                                width: '24px',
-                                                                height: '24px',
-                                                                borderRadius: '50%',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                fontSize: '12px',
-                                                                fontWeight: 'bold',
-                                                                zIndex: 1
-                                                            }}
-                                                        >
-                                                            {numCita}
+                                                    {/* Paciente con avatar e indicador de registro */}
+                                                    <TableCell>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                            <Avatar 
+                                                                sx={{ 
+                                                                    bgcolor: avatarColor,
+                                                                    width: { xs: 32, sm: 36 }, 
+                                                                    height: { xs: 32, sm: 36 },
+                                                                    mr: { xs: 1, sm: 2 },
+                                                                    border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`
+                                                                }}
+                                                            >
+                                                                {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                                                            </Avatar>
+                                                            <Box>
+                                                                <Typography 
+                                                                    variant="body2" 
+                                                                    fontWeight="medium"
+                                                                    sx={{ 
+                                                                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                                                                        maxWidth: { xs: '110px', sm: '100%' },
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
+                                                                    {cita?.paciente_nombre ?
+                                                                        `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''} ${cita.paciente_apellido_materno || ''}`.trim() :
+                                                                        "No registrado"}
+                                                                </Typography>
+                                                                <Box 
+                                                                    sx={{ 
+                                                                        display: 'flex', 
+                                                                        alignItems: 'center',
+                                                                        gap: 0.5
+                                                                    }}
+                                                                >
+                                                                    {esTratamiento && (
+                                                                        <Chip 
+                                                                            size="small"
+                                                                            label={`Cita ${numCita}`}
+                                                                            sx={{ 
+                                                                                height: 18, 
+                                                                                fontSize: '0.65rem',
+                                                                                bgcolor: colors.tratamiento,
+                                                                                color: 'white',
+                                                                                display: { xs: 'flex', md: 'none' }
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                    <Typography 
+                                                                        variant="caption" 
+                                                                        color="textSecondary"
+                                                                        sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' } }}
+                                                                    >
+                                                                        {estaRegistrado ? 'Registrado' : 'No registrado'}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </Box>
                                                         </Box>
-                                                    )}
-
-                                                    <TableCell sx={{ color: '#333' }}>{cita?.consulta_id || "N/A"}</TableCell>
-
-                                                    {/* Paciente */}
-                                                    <TableCell sx={{ color: '#333' }}>
-                                                        {cita?.paciente_nombre ?
-                                                            `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''} ${cita.paciente_apellido_materno || ''}`.trim() :
-                                                            "No registrado"}
                                                     </TableCell>
 
-                                                    {/* Servicio */}
-                                                    <TableCell sx={{ color: '#333' }}>
+                                                    {/* Servicio con icono según tipo */}
+                                                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                            {esTratamiento && (
-                                                                <Tooltip title="Tratamiento" arrow>
-                                                                    <CircleIcon 
+                                                            {esTratamiento ? (
+                                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                    <MedicalServices 
                                                                         sx={{ 
                                                                             color: colors.tratamiento, 
-                                                                            fontSize: 12, 
-                                                                            mr: 1,
-                                                                            opacity: 0.8
+                                                                            fontSize: 18, 
+                                                                            mr: 1 
                                                                         }} 
                                                                     />
-                                                                </Tooltip>
+                                                                    <Box>
+                                                                        <Typography variant="body2">
+                                                                            {cita?.servicio_nombre || "N/A"}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" 
+                                                                            sx={{ 
+                                                                                color: colors.tratamiento,
+                                                                                display: 'flex',
+                                                                                alignItems: 'center' 
+                                                                            }}
+                                                                        >
+                                                                            Tratamiento (cita {numCita})
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </Box>
+                                                            ) : (
+                                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                    <LocalHospital 
+                                                                        sx={{ 
+                                                                            color: colors.consulta, 
+                                                                            fontSize: 18, 
+                                                                            mr: 1 
+                                                                        }} 
+                                                                    />
+                                                                    <Box>
+                                                                        <Typography variant="body2">
+                                                                            {cita?.servicio_nombre || "N/A"}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" color="textSecondary">
+                                                                            {cita?.categoria_servicio || "General"}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                </Box>
                                                             )}
-                                                            {cita?.servicio_nombre || "N/A"}
                                                         </Box>
                                                     </TableCell>
 
-                                                    {/* Categoría */}
-                                                    <TableCell sx={{ color: '#333' }}>{cita?.categoria_servicio || "General"}</TableCell>
-
                                                     {/* Fecha de Consulta */}
-                                                    <TableCell sx={{ color: '#333' }}>{formatDate(cita?.fecha_consulta)}</TableCell>
+                                                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                                                        <Typography variant="body2">{formatDate(cita?.fecha_consulta)}</Typography>
+                                                    </TableCell>
 
                                                     {/* Estado con Chip de colores */}
                                                     <TableCell>
@@ -603,79 +746,104 @@ const CitasForm = () => {
                                                                 backgroundColor: getStatusColor(cita?.estado),
                                                                 color: '#FFF',
                                                                 fontWeight: '500',
-                                                                fontSize: '0.875rem',
-                                                                height: '28px',
+                                                                fontSize: '0.75rem',
+                                                                height: '24px',
                                                             }}
                                                         />
                                                     </TableCell>
 
                                                     {/* Acciones */}
                                                     <TableCell>
-                                                        <Box sx={{ display: 'flex', gap: 1 }}>
-                                                            {/* 🔍 Ver Detalles */}
+                                                        <Box sx={{ 
+                                                            display: 'flex', 
+                                                            gap: { xs: 0.5, sm: 1 },
+                                                            flexWrap: { xs: 'wrap', md: 'nowrap' },
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            {/* Ver Detalles */}
                                                             <Tooltip title="Ver detalles" arrow>
                                                                 <IconButton
                                                                     onClick={() => handleViewDetails(cita)}
+                                                                    size="small"
                                                                     sx={{
                                                                         backgroundColor: '#0288d1',
                                                                         '&:hover': { backgroundColor: '#0277bd' },
-                                                                        padding: '8px',
-                                                                        borderRadius: '50%',
+                                                                        color: 'white',
+                                                                        width: { xs: 28, sm: 32 },
+                                                                        height: { xs: 28, sm: 32 },
+                                                                        '& .MuiSvgIcon-root': {
+                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <Info fontSize="medium" sx={{ color: 'white' }} />
+                                                                    <Info />
                                                                 </IconButton>
                                                             </Tooltip>
 
-                                                            {/* ✏️ Editar Cita */}
+                                                            {/* Editar Cita */}
                                                             <Tooltip title="Editar cita" arrow>
                                                                 <IconButton
                                                                     onClick={() => {
                                                                         setSelectedCita(cita);
                                                                         setOpenEditDialog(true);
                                                                     }}
+                                                                    size="small"
                                                                     sx={{
                                                                         backgroundColor: '#4caf50',
                                                                         '&:hover': { backgroundColor: '#388e3c' },
-                                                                        padding: '8px',
-                                                                        borderRadius: '50%',
+                                                                        color: 'white',
+                                                                        width: { xs: 28, sm: 32 },
+                                                                        height: { xs: 28, sm: 32 },
+                                                                        '& .MuiSvgIcon-root': {
+                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <BorderColor fontSize="medium" sx={{ color: 'white' }} />
+                                                                    <BorderColor />
                                                                 </IconButton>
                                                             </Tooltip>
 
                                                             {/* Botón de acción según estado (Confirmar o Completar) */}
                                                             {renderStateActionButtons(cita)}
 
-                                                            {/* 📁 Archivar Cita */}
+                                                            {/* Archivar Cita */}
                                                             <Tooltip title="Archivar cita" arrow>
                                                                 <IconButton
                                                                     onClick={() => openArchiveConfirmation(cita)}
+                                                                    size="small"
                                                                     sx={{
                                                                         backgroundColor: '#ff9800',
                                                                         '&:hover': { backgroundColor: '#f57c00' },
-                                                                        padding: '8px',
-                                                                        borderRadius: '50%',
+                                                                        color: 'white',
+                                                                        width: { xs: 28, sm: 32 },
+                                                                        height: { xs: 28, sm: 32 },
+                                                                        '& .MuiSvgIcon-root': {
+                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <MenuBook fontSize="medium" sx={{ color: 'white' }} />
+                                                                    <MenuBook />
                                                                 </IconButton>
                                                             </Tooltip>
 
-                                                            {/* 🛑 Cancelar Cita - Solo si se puede cancelar */}
+                                                            {/* Cancelar Cita - Solo si se puede cancelar */}
                                                             {canCancelAppointment(cita) && (
                                                                 <Tooltip title="Cancelar cita" arrow>
                                                                     <IconButton
                                                                         onClick={() => handleCancelAppointment(cita)}
+                                                                        size="small"
                                                                         sx={{
                                                                             backgroundColor: '#e53935',
                                                                             '&:hover': { backgroundColor: '#c62828' },
-                                                                            padding: '8px',
-                                                                            borderRadius: '50%',
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
                                                                         }}
                                                                     >
-                                                                        <Close fontSize="medium" sx={{ color: 'white' }} />
+                                                                        <Close />
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
@@ -686,7 +854,7 @@ const CitasForm = () => {
                                         })
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={7} align="center">
+                                        <TableCell colSpan={5} align="center">
                                             <Typography color="textSecondary">No hay citas disponibles</Typography>
                                         </TableCell>
                                     </TableRow>
@@ -696,6 +864,20 @@ const CitasForm = () => {
                     </TableContainer>
                 </CardContent>
             </Card>
+
+            {/* Botón para agregar nueva cita */}
+            <Fab 
+                color="primary" 
+                aria-label="add"
+                onClick={() => setOpenNewAppointmentForm(true)}
+                sx={{
+                    position: 'fixed',
+                    bottom: 20,
+                    right: 20,
+                }}
+            >
+                <Add />
+            </Fab>
 
             {/* Diálogo de detalles de la cita */}
             <Dialog
@@ -707,26 +889,25 @@ const CitasForm = () => {
                 {selectedCita && (
                     <>
                         <DialogTitle sx={{ 
-                            backgroundColor: isTratamiento(selectedCita) ? '#4caf50' : colors.primary, 
+                            backgroundColor: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary, 
                             color: 'white' 
                         }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                     <Event sx={{ mr: 2 }} />
                                     {isTratamiento(selectedCita) ? (
-                                        `Detalles del Tratamiento #${selectedCita.consulta_id} (Cita ${getNumeroCitaTratamiento(selectedCita)})`
+                                        `Detalles del Tratamiento (Cita ${getNumeroCitaTratamiento(selectedCita)})`
                                     ) : (
-                                        `Detalles de la Cita #${selectedCita.consulta_id}`
+                                        `Detalles de la Cita`
                                     )}
                                 </Box>
                                 <Chip
-                                    label={isTratamiento(selectedCita) ? 'Tratamiento' : 'No Tratamiento'}
+                                    label={isTratamiento(selectedCita) ? 'Tratamiento' : 'Consulta'}
                                     size="small"
                                     sx={{
                                         backgroundColor: 'white',
-                                        color: isTratamiento(selectedCita) ? '#4caf50' : '#f44336',
+                                        color: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
                                         fontWeight: 'bold',
-                                        border: `1px solid ${isTratamiento(selectedCita) ? '#4caf50' : '#f44336'}`
                                     }}
                                 />
                             </Box>
@@ -735,10 +916,22 @@ const CitasForm = () => {
                             <Grid container spacing={3}>
                                 {/* Información del Paciente */}
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="h6" color={colors.primary}>
-                                        <Person sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Información del Paciente
-                                    </Typography>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                        <Avatar 
+                                            sx={{ 
+                                                bgcolor: getPatientColor(selectedCita.paciente_id, selectedCita.paciente_nombre),
+                                                width: 40, 
+                                                height: 40,
+                                                mr: 2,
+                                                border: isRegistered(selectedCita) ? 'none' : `2px solid ${colors.noRegistrado}`
+                                            }}
+                                        >
+                                            {selectedCita.paciente_nombre ? selectedCita.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                                        </Avatar>
+                                        <Typography variant="h6" color={colors.primary}>
+                                            Información del Paciente
+                                        </Typography>
+                                    </Box>
                                     <Box sx={{ ml: 4, mt: 1 }}>
                                         <Typography><strong>Nombre:</strong> {selectedCita.paciente_nombre} {selectedCita.paciente_apellido_paterno} {selectedCita.paciente_apellido_materno}</Typography>
                                         <Typography><strong>Género:</strong> {selectedCita.paciente_genero || "No especificado"}</Typography>
@@ -747,6 +940,7 @@ const CitasForm = () => {
                                         )}
                                         <Typography><strong>Correo:</strong> {selectedCita.paciente_correo || "No especificado"}</Typography>
                                         <Typography><strong>Teléfono:</strong> {selectedCita.paciente_telefono || "No especificado"}</Typography>
+                                        <Typography><strong>Estado:</strong> {isRegistered(selectedCita) ? 'Registrado' : 'No registrado'}</Typography>
                                     </Box>
                                 </Grid>
 
@@ -1186,37 +1380,13 @@ const CitasForm = () => {
                 </DialogActions>
             </Dialog>
 
-            {/* Botón FAB para agregar nueva cita */}
-            <Tooltip title="Agregar nueva cita">
-                <Fab
-                    color="primary"
-                    sx={{
-                        position: 'fixed',
-                        bottom: 32,
-                        right: 32,
-                        bgcolor: colors.primary,
-                        '&:hover': {
-                            bgcolor: colors.primary,
-                            opacity: 0.9
-                        }
-                    }}
-                    onClick={() => setOpenNewAppointmentForm(true)}
-                >
-                    <Add />
-                </Fab>
-            </Tooltip>
-
-            <NewCita
-                open={openNewAppointmentForm}
-                handleClose={() => setOpenNewAppointmentForm(false)}
-                onAppointmentCreated={handleAppointmentCreated}
-            />
             <EditCita
                 open={openEditDialog}
                 handleClose={() => setOpenEditDialog(false)}
                 appointmentData={selectedCita}
-                onUpdate={fetchCitas} // Esto recargará las citas después de editar
+                onUpdate={fetchCitas}
             />
+            
             <Notificaciones
                 open={notification.open}
                 message={notification.message}

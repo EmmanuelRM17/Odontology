@@ -286,8 +286,9 @@ const AlertBox = styled(Box)(({ theme, isDarkTheme }) => ({
   }
 }));
 
-// Nuevo componente para alertas de contacto
-const ContactAlert = styled(Box)(({ theme, isDarkTheme, severity }) => {
+// Cambiado de styled component a función de estilos
+// Esto resuelve el error "ContactAlert is not a function"
+const contactAlertStyles = ({ theme, isDarkTheme, severity }) => {
   // Definir colores según la severidad
   let bgColor, borderColor, iconColor;
   
@@ -326,7 +327,7 @@ const ContactAlert = styled(Box)(({ theme, isDarkTheme, severity }) => {
       animation: severity === 'error' ? `${pulse} 2s infinite` : 'none',
     }
   };
-});
+};
 
 const Confetti = styled(Box)(({ delay, duration, left }) => ({
   position: 'absolute',
@@ -340,6 +341,10 @@ const Confetti = styled(Box)(({ delay, duration, left }) => ({
   zIndex: 0,
 }));
 
+/**
+ * Componente de confirmación para mostrar el estado de citas y tratamientos
+ * Proporciona feedback visual al usuario sobre su solicitud y los próximos pasos
+ */
 const Confirmacion = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -373,6 +378,7 @@ const Confirmacion = () => {
   const tieneTelefono = state?.telefono || localStorage.getItem('telefono');
   const omitioCorreo = state?.omitioCorreo || localStorage.getItem('omitCorreo') === 'true';
   const omitioTelefono = state?.omitioTelefono || localStorage.getItem('omitTelefono') === 'true';
+  const pacienteExistente = state?.pacienteExistente || localStorage.getItem('paciente_existente') === 'true';
 
   useEffect(() => {
     // Activar animación después de un pequeño retraso para mejor efecto
@@ -418,6 +424,22 @@ const Confirmacion = () => {
   
   // Función para determinar la información de alerta de contacto
   const getContactAlertInfo = () => {
+    // Verificar si el usuario es un paciente existente
+    const pacienteExistente = state?.pacienteExistente || localStorage.getItem('paciente_existente') === 'true';
+    
+    // Si es un paciente existente, no mostramos alertas de advertencia o error
+    if (pacienteExistente) {
+      return {
+        severity: 'info',
+        icon: <InfoIcon />,
+        title: 'Te mantendremos informado',
+        message: esTratamiento 
+          ? 'El odontólogo revisará tu solicitud y te contactará para confirmar los detalles del tratamiento. Mantente pendiente de tu correo y teléfono ya registrados.' 
+          : 'Te enviaremos un recordatorio por correo o teléfono antes de tu cita.',
+      };
+    }
+    
+    // Para pacientes nuevos
     const noTieneContacto = (omitioCorreo || !tieneCorreo) && (omitioTelefono || !tieneTelefono);
     
     if (noTieneContacto) {
@@ -538,7 +560,7 @@ const Confirmacion = () => {
             </Typography>
           </motion.div>
           
-          {/* Alerta de contacto (NUEVA) */}
+          {/* Alerta de contacto (CORREGIDA) */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -551,8 +573,9 @@ const Confirmacion = () => {
                 mb: 3
               }}
             >
+              {/* Aquí aplicamos los estilos con la función contactAlertStyles en lugar del componente ContactAlert */}
               <Box 
-                sx={ContactAlert({ 
+                sx={contactAlertStyles({ 
                   theme, 
                   isDarkTheme, 
                   severity: contactAlertInfo.severity 
@@ -725,7 +748,7 @@ const Confirmacion = () => {
                       </Box>
                     </InfoRow>
                     
-                    {/* Información de contacto proporcionada (NUEVA) */}
+                    {/* Información de contacto proporcionada */}
                     <InfoRow isDarkTheme={isDarkTheme}>
                       <Box className="info-icon">
                         {tieneCorreo && !omitioCorreo ? (

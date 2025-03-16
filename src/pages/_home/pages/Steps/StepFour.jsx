@@ -126,47 +126,52 @@ const StepFour = ({
             const response = await axios.post('https://back-end-4803.onrender.com/api/citas/nueva', citaData);
 
             if (response.status === 201) {
-                // Determinar si es un tratamiento o una cita regular
                 const esTratamiento = response.data.es_tratamiento;
-
-                let mensaje = '';
-                let tipo = 'success';
-
-                if (esTratamiento) {
-                    mensaje = '¡Tratamiento solicitado correctamente! El odontólogo revisará y confirmará tu solicitud.';
-
-                    // Guardar información del tratamiento
-                    localStorage.setItem('ultimo_tratamiento_id', response.data.tratamiento_id);
-                    localStorage.setItem('ultima_cita_id', response.data.cita_id);
-                    localStorage.setItem('es_tratamiento', 'true');
-                } else {
-                    mensaje = '¡Cita agendada exitosamente!';
-                    localStorage.setItem('ultima_cita_id', response.data.cita_id);
-                    localStorage.setItem('es_tratamiento', 'false');
-                }
-
+            
+                let mensaje = esTratamiento 
+                    ? '¡Tratamiento solicitado correctamente! El odontólogo revisará y confirmará tu solicitud.' 
+                    : '¡Cita agendada exitosamente!';
+                
                 setNotification({
                     open: true,
                     message: mensaje,
-                    type: tipo
+                    type: 'success'
                 });
-
+    
                 setTimeout(() => {
                     setNotification({ open: false, message: '', type: '' });
                 }, 3000);
-
+    
                 onStepCompletion('step4', true);
-
+                
                 // Navegar a la página de confirmación con la información
                 navigate('/confirmacion', {
                     state: {
+                        // Datos básicos de la cita
                         esTratamiento: esTratamiento,
                         citaId: response.data.cita_id,
                         tratamientoId: response.data.tratamiento_id,
                         fechaCita: formData.fechaCita,
                         horaCita: formData.horaCita,
                         servicio: formData.servicio,
-                        especialista: formData.especialista
+                        especialista: formData.especialista,
+                        
+                        // Datos importantes para la lógica de alertas
+                        pacienteExistente: formData.pacienteExistente || false,
+                        correo: formData.correo || '',
+                        telefono: formData.telefono || '',
+                        omitioCorreo: !formData.correo,
+                        omitioTelefono: !formData.telefono,
+                        
+                        // Datos adicionales que podrían ser útiles
+                        genero: formData.genero,
+                        nombre: formData.nombre,
+                        apellidoPaterno: formData.apellidoPaterno,
+                        apellidoMaterno: formData.apellidoMaterno,
+                        paciente_id: formData.paciente_id,
+                        servicio_id: formData.servicio_id,
+                        categoriaServicio: serviceDetails?.category,
+                        precioServicio: serviceDetails?.price
                     }
                 });
             }
