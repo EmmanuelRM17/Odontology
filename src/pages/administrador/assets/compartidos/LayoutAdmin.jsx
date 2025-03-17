@@ -9,25 +9,25 @@ const LayoutPaciente = ({ children }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isDarkTheme } = useThemeContext();
-
+  
   // Recibir estado del drawer desde BarraAdmin
   const handleDrawerChange = (isOpen) => {
     setDrawerOpen(isOpen);
   };
-
+  
   // Inicializar estado del drawer según el tamaño de pantalla
   useEffect(() => {
     setDrawerOpen(!isMobile);
   }, [isMobile]);
-
+  
   const colors = {
     background: isDarkTheme ? '#0F172A' : '#F8FAFC', // Fondo elegante para el contenido
     boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)',
     border: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
   };
-
+  
   return (
-    <Box 
+    <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
@@ -39,7 +39,7 @@ const LayoutPaciente = ({ children }) => {
     >
       <BarraAdmin onDrawerChange={handleDrawerChange} />
       
-      <Box 
+      <Box
         component="main"
         sx={{
           flexGrow: 1,
@@ -47,7 +47,7 @@ const LayoutPaciente = ({ children }) => {
           '@media (max-width: 600px)': {
             mt: '56px', // Altura más pequeña en móviles
           },
-          ml: isMobile ? 0 : (drawerOpen ? '280px' : '68px'),
+          ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           p: { xs: 2, sm: 3, md: 4 }
         }}
@@ -69,10 +69,10 @@ const LayoutPaciente = ({ children }) => {
         </Paper>
       </Box>
       
-      <Box 
+      <Box
         component="footer"
         sx={{
-          ml: isMobile ? 0 : (drawerOpen ? '280px' : '68px'),
+          ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
@@ -82,4 +82,4 @@ const LayoutPaciente = ({ children }) => {
   );
 };
 
-export default LayoutPaciente
+export default LayoutPaciente;

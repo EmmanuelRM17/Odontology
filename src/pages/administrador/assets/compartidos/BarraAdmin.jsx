@@ -22,11 +22,31 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     FaHome, FaUsers, FaCalendarAlt, FaChartLine, FaMoneyBillWave, FaCalendarCheck,
     FaClock, FaBell, FaCog, FaSignOutAlt, FaFileAlt, FaTooth, FaUserCircle,
-    FaAngleDown, FaAngleRight, FaBars, FaQuestionCircle, FaCloudUploadAlt
+    FaAngleDown, FaAngleRight, FaBars, FaQuestionCircle, FaCloudUploadAlt,
+    FaChevronLeft, FaChevronRight
 } from 'react-icons/fa';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
+
+// Componente para el botón de contraer/expandir menú
+const MenuToggleButton = ({ isOpen, onClick, color }) => {
+    return (
+        <IconButton
+            onClick={onClick}
+            sx={{
+                color: color,
+                width: 32,
+                height: 32,
+                '&:hover': {
+                    backgroundColor: 'rgba(0,0,0,0.04)'
+                }
+            }}
+        >
+            {isOpen ? <FaChevronLeft /> : <FaChevronRight />}
+        </IconButton>
+    );
+};
 
 const BarraAdmin = ({ onDrawerChange }) => {
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -76,7 +96,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 { icon: FaCalendarCheck, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
                 { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
                 { icon: FaCloudUploadAlt, text: 'Subida de Imágenes', path: '/Administrador/imagenes' } 
-
             ]
         },
         {
@@ -99,7 +118,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
         }
     ];
 
-    const drawerWidth = drawerOpen ? (isMobile ? '85%' : 280) : (isMobile ? 0 : 68);
+    const drawerWidth = drawerOpen ? (isMobile ? '85%' : 280) : 0;
 
     // Notificar al componente padre cuando cambia el estado del drawer
     useEffect(() => {
@@ -220,6 +239,11 @@ const BarraAdmin = ({ onDrawerChange }) => {
         }
     };
 
+    // Función para alternar la apertura/cierre del drawer
+    const toggleDrawer = () => {
+        setDrawerOpen(!drawerOpen);
+    };
+
     // Renderizado del drawer lateral
     const renderDrawer = () => (
         <Drawer
@@ -238,9 +262,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
                     color: colors.text,
                     borderRight: `1px solid ${colors.divider}`,
                     boxShadow: colors.boxShadow,
-                    transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     overflow: 'hidden',
-                    zIndex: theme.zIndex.drawer
+                    zIndex: theme.zIndex.drawer,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transform: !drawerOpen && !isMobile ? 'translateX(-100%)' : 'translateX(0)',
+                    visibility: drawerOpen || isMobile ? 'visible' : 'hidden'
                 }
             }}
             elevation={0}
@@ -289,21 +317,12 @@ const BarraAdmin = ({ onDrawerChange }) => {
                     )}
                 </Box>
 
-                {drawerOpen && (
-                    <IconButton
-                        onClick={() => setDrawerOpen(false)}
-                        sx={{
-                            color: colors.iconColor,
-                            width: 32,
-                            height: 32,
-                            '&:hover': {
-                                backgroundColor: colors.hover
-                            }
-                        }}
-                    >
-                        <FaAngleLeft />
-                    </IconButton>
-                )}
+                {/* Botón para contraer/expandir el menú */}
+                <MenuToggleButton 
+                    isOpen={drawerOpen} 
+                    onClick={toggleDrawer} 
+                    color={colors.iconColor} 
+                />
             </Box>
 
             {/* Área de usuario - Perfil de Administrador */}
@@ -345,13 +364,15 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 </Box>
             )}
 
-            {/* Contenido del Drawer */}
+            {/* Contenido principal del menú */}
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
-                height: drawerOpen ? 'calc(100% - 200px)' : 'calc(100% - 64px)',
+                height: 'calc(100% - 200px)',
+                flexGrow: 1,
+                overflow: 'hidden',
             }}>
-                {/* Menú de navegación */}
+                {/* Menú de navegación con scroll */}
                 <List sx={{
                     px: 1.5,
                     py: 2,
@@ -575,60 +596,95 @@ const BarraAdmin = ({ onDrawerChange }) => {
                         </Paper>
                     )}
                 </List>
+            </Box>
 
-                {/* Cerrar Sesión (separado al final) */}
-                <Box sx={{
-                    p: 1.5,
-                    mt: 'auto',
-                    borderTop: `1px solid ${colors.divider}`,
-                    backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)',
-                }}>
-                    <Paper
-                        elevation={0}
+            {/* Cerrar Sesión (fijo en la parte inferior) */}
+            <Box sx={{
+                p: 1.5,
+                borderTop: `1px solid ${colors.divider}`,
+                backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)',
+                mt: 'auto', // Empuja este componente al fondo
+            }}>
+                <Paper
+                    elevation={0}
+                    sx={{
+                        backgroundColor: 'transparent',
+                        borderRadius: 1.5,
+                        overflow: 'hidden',
+                        transition: 'background-color 0.2s ease',
+                        '&:hover': {
+                            backgroundColor: isDarkTheme ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)',
+                        }
+                    }}
+                >
+                    <ListItem
+                        button
+                        onClick={handleLogout}
+                        disableRipple
                         sx={{
-                            backgroundColor: 'transparent',
-                            borderRadius: 1.5,
-                            overflow: 'hidden',
-                            transition: 'background-color 0.2s ease',
-                            '&:hover': {
-                                backgroundColor: isDarkTheme ? 'rgba(239,68,68,0.1)' : 'rgba(239,68,68,0.05)',
-                            }
+                            py: 1.2,
+                            px: 1.5
                         }}
                     >
-                        <ListItem
-                            button
-                            onClick={handleLogout}
-                            disableRipple
+                        <ListItemIcon
                             sx={{
-                                py: 1.2,
-                                px: 1.5
+                                color: colors.error,
+                                minWidth: drawerOpen ? 36 : 'auto',
                             }}
                         >
-                            <ListItemIcon
-                                sx={{
-                                    color: colors.error,
-                                    minWidth: drawerOpen ? 36 : 'auto',
-                                }}
-                            >
-                                <FaSignOutAlt size={16} />
-                            </ListItemIcon>
+                            <FaSignOutAlt size={16} />
+                        </ListItemIcon>
 
-                            {drawerOpen && (
-                                <ListItemText
-                                    primary="Cerrar Sesión"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.875rem',
-                                        fontWeight: 500,
-                                        color: colors.error
-                                    }}
-                                />
-                            )}
-                        </ListItem>
-                    </Paper>
-                </Box>
+                        {drawerOpen && (
+                            <ListItemText
+                                primary="Cerrar Sesión"
+                                primaryTypographyProps={{
+                                    fontSize: '0.875rem',
+                                    fontWeight: 500,
+                                    color: colors.error
+                                }}
+                            />
+                        )}
+                    </ListItem>
+                </Paper>
             </Box>
         </Drawer>
     );
+
+    // Botón de expansión para cuando el menú está contraído (en versión de escritorio)
+    const renderExpandButton = () => {
+        if (drawerOpen || isMobile) return null;
+        
+        return (
+            <Box
+                sx={{
+                    position: 'fixed',
+                    left: 0,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    zIndex: theme.zIndex.drawer - 1,
+                    backgroundColor: colors.primary,
+                    borderRadius: '0 4px 4px 0',
+                    boxShadow: '2px 0 8px rgba(0,0,0,0.15)',
+                    opacity: 0.9,
+                    '&:hover': {
+                        opacity: 1
+                    },
+                    transition: 'opacity 0.2s'
+                }}
+            >
+                <IconButton
+                    onClick={toggleDrawer}
+                    sx={{
+                        color: '#fff',
+                        p: 0.8
+                    }}
+                >
+                    <FaChevronRight size={18} />
+                </IconButton>
+            </Box>
+        );
+    };
 
     return (
         <>
@@ -731,14 +787,15 @@ const BarraAdmin = ({ onDrawerChange }) => {
                         >
                             <FaHome size={18} />
                         </IconButton>
-
-
                     </Box>
                 </Toolbar>
             </AppBar>
 
             {/* Drawer lateral */}
             {renderDrawer()}
+
+            {/* Botón para expandir cuando el menú está contraído */}
+            {renderExpandButton()}
 
             {/* Componente de notificaciones */}
             <Notificaciones
@@ -749,11 +806,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
             />
         </>
     );
-};
-
-// Implementación del icono FaAngleLeft
-const FaAngleLeft = () => {
-    return <FaAngleRight style={{ transform: 'rotate(180deg)' }} />;
 };
 
 export default BarraAdmin;

@@ -16,7 +16,9 @@ import {
     TableHead, TableRow,
     TextField,
     Tooltip,
-    Typography
+    Typography,
+    Avatar,
+    useTheme
 } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 
@@ -38,16 +40,10 @@ import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 /**
  * Componente para gestionar tratamientos
- * 
- * Maneja los estados:
- * - "Pre-Registro": Para pacientes no registrados, pueden pasar a Pendiente o Activo
- * - "Pendiente": Para pacientes registrados, pendientes de activación
- * - "Activo": Tratamiento en curso
- * - "Finalizado": Tratamiento completado (todas las citas realizadas)
- * - "Abandonado": Tratamiento interrumpido
  */
 const TratamientosForm = () => {
     const { isDarkTheme } = useThemeContext();
+    const theme = useTheme();
     const [openDialog, setOpenDialog] = useState(false);
     const [openNewTreatmentForm, setOpenNewTreatmentForm] = useState(false);
     const [selectedTratamiento, setSelectedTratamiento] = useState(null);
@@ -86,6 +82,9 @@ const TratamientosForm = () => {
     const [activateMessage, setActivateMessage] = useState('');
     const [isActivating, setIsActivating] = useState(false);
 
+    // Mapa para asignar colores consistentes a pacientes
+    const [pacienteColores, setPacienteColores] = useState({});
+
     // Cargar tratamientos al iniciar
     useEffect(() => {
         // Cargar datos iniciales
@@ -111,18 +110,59 @@ const TratamientosForm = () => {
 
     // Colores del tema
     const colors = {
-        background: isDarkTheme ? '#0D1B2A' : '#ffffff',
-        primary: isDarkTheme ? '#00BCD4' : '#03427C',
+        background: isDarkTheme ? '#0D1B2A' : '#F8F9FA',
+        primary: isDarkTheme ? '#00BCD4' : '#1976D2',
         text: isDarkTheme ? '#ffffff' : '#1a1a1a',
         secondary: isDarkTheme ? '#A0AEC0' : '#666666',
         cardBg: isDarkTheme ? '#1A2735' : '#ffffff',
         paper: isDarkTheme ? '#1A2735' : '#ffffff',
         divider: isDarkTheme ? '#2D3748' : '#E2E8F0',
-        success: '#4caf50',
-        warning: '#ff9800',
-        error: '#f44336',
-        info: '#2196f3',
+        success: '#4CAF50',
+        warning: '#FFA726',
+        error: '#E53935',
+        info: '#03A9F4',
         purple: '#9C27B0',
+        tratamiento: isDarkTheme ? '#4CAF50' : '#4CAF50',
+        consulta: isDarkTheme ? '#9E9E9E' : '#9E9E9E',
+        noRegistrado: '#FFA726',
+        registrado: '#42A5F5',
+        details: '#03A9F4',
+        archive: '#FF9800',
+        edit: '#4CAF50',
+        confirm: '#66BB6A',
+        complete: '#42A5F5'
+    };
+
+    // Función para generar un color para un paciente específico
+    const getPatientColor = (patientId, pacienteName) => {
+        // Si el paciente no tiene ID, está no registrado
+        if (!patientId) {
+            return colors.noRegistrado;
+        }
+
+        // Si ya tiene un color asignado, usarlo
+        if (pacienteColores[patientId]) {
+            return pacienteColores[patientId];
+        }
+
+        // Generar un nuevo color
+        const colorPool = [
+            '#5C6BC0', '#26A69A', '#EC407A',
+            '#AB47BC', '#7E57C2', '#5C6BC0',
+            '#42A5F5', '#29B6F6', '#26C6DA'
+        ];
+
+        // Asignar un color basado en ID o alfabéticamente
+        const colorIndex = patientId % colorPool.length;
+        const newColor = colorPool[colorIndex];
+
+        // Actualizar el mapa de colores
+        setPacienteColores(prev => ({
+            ...prev,
+            [patientId]: newColor
+        }));
+
+        return newColor;
     };
 
     const handleNotificationClose = () => {
@@ -280,8 +320,8 @@ const TratamientosForm = () => {
     // Función para obtener el color del estado
     const getStatusColor = (status) => {
         switch (status) {
-            case "Pre-Registro": return colors.purple; // Color púrpura para Pre-Registro
-            case "Pendiente": return colors.warning;   // Color naranja para Pendiente
+            case "Pre-Registro": return colors.purple;  // Color púrpura para Pre-Registro
+            case "Pendiente": return colors.warning;    // Color naranja para Pendiente
             case "Activo": return colors.success;
             case "Finalizado": return colors.info;
             case "Abandonado": return colors.error;
@@ -621,24 +661,6 @@ const TratamientosForm = () => {
         return tratamiento && tratamiento.paciente_id !== null;
     };
 
-    // Función para calcular días restantes
-    const calcularDiasRestantes = (fechaFin) => {
-        if (!fechaFin) return "No definida";
-
-        const hoy = new Date();
-        const fin = new Date(fechaFin);
-
-        // Si la fecha ya pasó
-        if (fin < hoy) {
-            const diasPasados = Math.ceil((hoy - fin) / (1000 * 60 * 60 * 24));
-            return `Vencido (${diasPasados} días)`;
-        }
-
-        // Si la fecha es en el futuro
-        const diasRestantes = Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
-        return `${diasRestantes} días`;
-    };
-
     // Descripción de estados del flujo de trabajo
     const estadosDescripcion = {
         'Pre-Registro': 'Tratamiento para paciente no registrado. Se debe registrar al paciente o marcar como pendiente.',
@@ -673,7 +695,6 @@ const TratamientosForm = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             sx={{ width: { xs: '100%', sm: '300px' } }}
                         />
-
                     </Box>
 
                     {/* Leyenda de estados */}
@@ -724,7 +745,6 @@ const TratamientosForm = () => {
                             {/* Encabezado de la tabla */}
                             <TableHead sx={{ backgroundColor: '#E3F2FD' }}>
                                 <TableRow>
-                                    <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>#</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Paciente</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold' }}>Tratamiento</TableCell>
                                     <TableCell sx={{ color: '#0277BD', fontWeight: 'bold', display: { xs: 'none', md: 'table-cell' } }}>Inicio</TableCell>
@@ -739,7 +759,7 @@ const TratamientosForm = () => {
                             <TableBody>
                                 {isLoadingData ? (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center">
+                                        <TableCell colSpan={7} align="center">
                                             <LinearProgress sx={{ my: 2 }} />
                                             <Typography>Cargando tratamientos...</Typography>
                                         </TableCell>
@@ -753,73 +773,91 @@ const TratamientosForm = () => {
                                         )
                                         .map((tratamiento) => {
                                             const porcentajeProgreso = calcularPorcentajeProgreso(tratamiento);
-                                            const diasRestantes = calcularDiasRestantes(tratamiento.fecha_estimada_fin);
                                             const esRegistrado = isPacienteRegistrado(tratamiento);
+                                            const avatarColor = getPatientColor(tratamiento.paciente_id, tratamiento.paciente_nombre);
 
                                             return (
                                                 <TableRow
                                                     key={tratamiento.id}
                                                     sx={{
-                                                        height: '69px',
-                                                        '&:hover': { backgroundColor: 'rgba(25,118,210,0.1)' },
+                                                        height: '65px',
+                                                        '&:hover': { backgroundColor: 'rgba(25,118,210,0.05)' },
                                                         transition: 'background-color 0.2s ease',
-                                                        position: 'relative',
-                                                        // Barra de color a la izquierda según tipo de paciente
-                                                        borderLeft: `4px solid ${esRegistrado ? '#4caf50' : '#ff9800'}`
+                                                        borderLeft: `4px solid ${esRegistrado ? colors.tratamiento : colors.noRegistrado}`
                                                     }}
                                                 >
-                                                    <TableCell>{tratamiento.id}</TableCell>
-
                                                     {/* Paciente */}
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                            <Person sx={{ color: colors.primary, mr: 1, fontSize: 18 }} />
+                                                            <Avatar
+                                                                sx={{
+                                                                    bgcolor: avatarColor,
+                                                                    width: { xs: 32, sm: 36 },
+                                                                    height: { xs: 32, sm: 36 },
+                                                                    mr: { xs: 1, sm: 2 },
+                                                                    border: esRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`
+                                                                }}
+                                                            >
+                                                                {tratamiento.paciente_nombre ? tratamiento.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                                                            </Avatar>
                                                             <Box>
-                                                                <Typography variant="body2">
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    fontWeight="medium"
+                                                                    sx={{
+                                                                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                                                                        maxWidth: { xs: '110px', sm: '100%' },
+                                                                        overflow: 'hidden',
+                                                                        textOverflow: 'ellipsis',
+                                                                        whiteSpace: 'nowrap'
+                                                                    }}
+                                                                >
                                                                     {tratamiento.paciente_nombre} {tratamiento.paciente_apellido_paterno || ''} {tratamiento.paciente_apellido_materno || ''}
                                                                 </Typography>
-                                                                {!esRegistrado && (
-                                                                    <Chip
-                                                                        label="No registrado"
-                                                                        size="small"
-                                                                        sx={{
-                                                                            fontSize: '0.7rem',
-                                                                            height: 20,
-                                                                            backgroundColor: '#FFF3E0',
-                                                                            color: '#E65100',
-                                                                            mt: 0.5
-                                                                        }}
-                                                                    />
-                                                                )}
+                                                                <Typography
+                                                                    variant="caption"
+                                                                    color="textSecondary"
+                                                                    sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' } }}
+                                                                >
+                                                                    {esRegistrado ? 'Registrado' : 'No registrado'}
+                                                                </Typography>
                                                             </Box>
                                                         </Box>
                                                     </TableCell>
 
                                                     {/* Nombre del tratamiento */}
                                                     <TableCell>
-                                                        <Typography fontWeight="medium">
-                                                            {tratamiento.nombre_tratamiento}
-                                                        </Typography>
-                                                        {tratamiento.categoria_servicio && (
-                                                            <Typography variant="caption" color="textSecondary">
-                                                                {tratamiento.categoria_servicio}
-                                                            </Typography>
-                                                        )}
+                                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                            <MedicalServices
+                                                                sx={{
+                                                                    color: colors.tratamiento,
+                                                                    fontSize: 18,
+                                                                    mr: 1
+                                                                }}
+                                                            />
+                                                            <Box>
+                                                                <Typography variant="body2" fontWeight="medium">
+                                                                    {tratamiento.nombre_tratamiento}
+                                                                </Typography>
+                                                                <Typography variant="caption" color="textSecondary">
+                                                                    {tratamiento.categoria_servicio || "General"}
+                                                                </Typography>
+                                                            </Box>
+                                                        </Box>
                                                     </TableCell>
 
                                                     {/* Fecha inicio */}
                                                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                                                        {formatDate(tratamiento.fecha_inicio)}
+                                                        <Typography variant="body2">
+                                                            {formatDate(tratamiento.fecha_inicio)}
+                                                        </Typography>
                                                     </TableCell>
 
                                                     {/* Fecha fin estimada */}
                                                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                        <Typography variant="body2">
                                                             {formatDate(tratamiento.fecha_estimada_fin)}
-                                                            <Tooltip title={`Días restantes: ${diasRestantes}`}>
-                                                                <DateRange sx={{ ml: 1, fontSize: 16, color: colors.secondary }} />
-                                                            </Tooltip>
-                                                        </Box>
+                                                        </Typography>
                                                     </TableCell>
 
                                                     {/* Progreso */}
@@ -847,35 +885,43 @@ const TratamientosForm = () => {
 
                                                     {/* Estado */}
                                                     <TableCell>
-                                                        <Tooltip title={estadosDescripcion[tratamiento.estado] || ''} arrow>
-                                                            <Chip
-                                                                label={tratamiento.estado || "Pre-Registro"}
-                                                                sx={{
-                                                                    backgroundColor: getStatusColor(tratamiento.estado),
-                                                                    color: '#FFF',
-                                                                    fontWeight: '500',
-                                                                    fontSize: '0.875rem',
-                                                                    height: '28px',
-                                                                }}
-                                                            />
-                                                        </Tooltip>
+                                                        <Chip
+                                                            label={tratamiento.estado || "Pre-Registro"}
+                                                            sx={{
+                                                                backgroundColor: getStatusColor(tratamiento.estado),
+                                                                color: '#FFF',
+                                                                fontWeight: '500',
+                                                                fontSize: '0.75rem',
+                                                                height: '24px',
+                                                            }}
+                                                        />
                                                     </TableCell>
 
                                                     {/* Acciones */}
                                                     <TableCell>
-                                                        <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', justifyContent: 'center' }}>
-                                                            {/* Ver Detalles (siempre visible) */}
+                                                        <Box sx={{
+                                                            display: 'flex',
+                                                            gap: { xs: 0.5, sm: 1 },
+                                                            flexWrap: { xs: 'wrap', md: 'nowrap' },
+                                                            justifyContent: 'center'
+                                                        }}>
+                                                            {/* Ver Detalles */}
                                                             <Tooltip title="Ver detalles" arrow>
                                                                 <IconButton
                                                                     onClick={() => handleViewDetails(tratamiento)}
+                                                                    size="small"
                                                                     sx={{
-                                                                        backgroundColor: '#0288d1',
+                                                                        backgroundColor: colors.details,
                                                                         '&:hover': { backgroundColor: '#0277bd' },
-                                                                        padding: '8px',
-                                                                        borderRadius: '50%',
+                                                                        color: 'white',
+                                                                        width: { xs: 28, sm: 32 },
+                                                                        height: { xs: 28, sm: 32 },
+                                                                        '& .MuiSvgIcon-root': {
+                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <Visibility sx={{ color: 'white', fontSize: 20 }} />
+                                                                    <Visibility />
                                                                 </IconButton>
                                                             </Tooltip>
 
@@ -884,14 +930,19 @@ const TratamientosForm = () => {
                                                                 <Tooltip title="Marcar como pendiente" arrow>
                                                                     <IconButton
                                                                         onClick={() => openPendingConfirmation(tratamiento)}
+                                                                        size="small"
                                                                         sx={{
-                                                                            backgroundColor: '#FF9800',
+                                                                            backgroundColor: colors.warning,
                                                                             '&:hover': { backgroundColor: '#F57C00' },
-                                                                            padding: '8px',
-                                                                            borderRadius: '50%',
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
                                                                         }}
                                                                     >
-                                                                        <ChangeCircle sx={{ color: 'white', fontSize: 20 }} />
+                                                                        <ChangeCircle />
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
@@ -901,14 +952,19 @@ const TratamientosForm = () => {
                                                                 <Tooltip title="Activar tratamiento" arrow>
                                                                     <IconButton
                                                                         onClick={() => openActivateConfirmation(tratamiento)}
+                                                                        size="small"
                                                                         sx={{
-                                                                            backgroundColor: '#673AB7',
+                                                                            backgroundColor: colors.purple,
                                                                             '&:hover': { backgroundColor: '#512DA8' },
-                                                                            padding: '8px',
-                                                                            borderRadius: '50%',
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
                                                                         }}
                                                                     >
-                                                                        <CheckCircle sx={{ color: 'white', fontSize: 20 }} />
+                                                                        <CheckCircle />
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
@@ -918,14 +974,19 @@ const TratamientosForm = () => {
                                                                 <Tooltip title="Finalizar tratamiento" arrow>
                                                                     <IconButton
                                                                         onClick={() => openFinalizeConfirmation(tratamiento)}
+                                                                        size="small"
                                                                         sx={{
-                                                                            backgroundColor: '#4caf50',
+                                                                            backgroundColor: colors.success,
                                                                             '&:hover': { backgroundColor: '#388e3c' },
-                                                                            padding: '8px',
-                                                                            borderRadius: '50%',
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
                                                                         }}
                                                                     >
-                                                                        <AssignmentTurnedIn sx={{ color: 'white', fontSize: 20 }} />
+                                                                        <AssignmentTurnedIn />
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
@@ -935,14 +996,19 @@ const TratamientosForm = () => {
                                                                 <Tooltip title="Abandonar tratamiento" arrow>
                                                                     <IconButton
                                                                         onClick={() => openAbandonConfirmation(tratamiento)}
+                                                                        size="small"
                                                                         sx={{
-                                                                            backgroundColor: '#f44336',
+                                                                            backgroundColor: colors.error,
                                                                             '&:hover': { backgroundColor: '#d32f2f' },
-                                                                            padding: '8px',
-                                                                            borderRadius: '50%',
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
                                                                         }}
                                                                     >
-                                                                        <EventBusy sx={{ color: 'white', fontSize: 20 }} />
+                                                                        <EventBusy />
                                                                     </IconButton>
                                                                 </Tooltip>
                                                             )}
@@ -951,14 +1017,19 @@ const TratamientosForm = () => {
                                                             <Tooltip title="Ver citas asociadas" arrow>
                                                                 <IconButton
                                                                     onClick={() => handleViewCitas(tratamiento.id)}
+                                                                    size="small"
                                                                     sx={{
-                                                                        backgroundColor: '#2196F3',
+                                                                        backgroundColor: colors.complete,
                                                                         '&:hover': { backgroundColor: '#1976D2' },
-                                                                        padding: '8px',
-                                                                        borderRadius: '50%',
+                                                                        color: 'white',
+                                                                        width: { xs: 28, sm: 32 },
+                                                                        height: { xs: 28, sm: 32 },
+                                                                        '& .MuiSvgIcon-root': {
+                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    <EventAvailable sx={{ color: 'white', fontSize: 20 }} />
+                                                                    <EventAvailable />
                                                                 </IconButton>
                                                             </Tooltip>
                                                         </Box>
@@ -968,7 +1039,7 @@ const TratamientosForm = () => {
                                         })
                                 ) : (
                                     <TableRow>
-                                        <TableCell colSpan={8} align="center">
+                                        <TableCell colSpan={7} align="center">
                                             <Typography color="textSecondary">No hay tratamientos disponibles</Typography>
                                         </TableCell>
                                     </TableRow>
@@ -1102,9 +1173,6 @@ const TratamientosForm = () => {
                                             <Paper elevation={2} sx={{ p: 2, borderLeft: `4px solid ${colors.warning}` }}>
                                                 <Typography variant="body2" color="textSecondary">Fecha Estimada de Fin</Typography>
                                                 <Typography variant="h6">{formatDate(selectedTratamiento.fecha_estimada_fin)}</Typography>
-                                                <Typography variant="caption" color={colors.warning}>
-                                                    {calcularDiasRestantes(selectedTratamiento.fecha_estimada_fin)}
-                                                </Typography>
                                             </Paper>
                                         </Grid>
 
@@ -1262,6 +1330,7 @@ const TratamientosForm = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
+
             {/* Diálogo para marcar como pendiente */}
             <Dialog
                 open={openPendingDialog}

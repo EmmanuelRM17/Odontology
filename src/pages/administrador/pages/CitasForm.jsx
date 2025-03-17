@@ -197,6 +197,7 @@ const CitasForm = () => {
         }
 
         // Si no es un tratamiento (es una consulta normal), siempre se puede confirmar
+        // independientemente de si el paciente está registrado o no
         return true;
     };
 
