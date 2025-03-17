@@ -10,10 +10,7 @@ import {
     DialogTitle,
     Fab,
     Grid,
-    IconButton,
-    Menu,
-    MenuItem,
-    Paper,
+    IconButton, Paper,
     Table, TableBody, TableCell,
     TableContainer,
     TableHead, TableRow,
@@ -33,40 +30,15 @@ import {
     Description,
     Event,
     HealthAndSafety,
-    Info,
-    MenuBook,
-    Person,
-    ChangeCircle,
-    Circle as CircleIcon,
-    CheckCircle,
-    Error as ErrorIcon,
-    MedicalServices, 
-    Healing,
-    LocalHospital,
-    PersonOff
+    MenuBook, CheckCircle, MedicalServices, LocalHospital,
+    PersonOff, Visibility
 } from '@mui/icons-material';
 
 import { alpha } from '@mui/material/styles';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import EditCita from './citas/editarCita.jsx';
-import NewCita from './citas/nuevaCita.jsx';
 
-/**
- * Componente CitasForm - Gestión de citas y tratamientos odontológicos
- * 
- * Este componente muestra una tabla de citas con funcionalidades para:
- * - Identificar tratamientos vs consultas normales basado en el campo tratamiento (1/0)
- * - Distinguir entre pacientes registrados y no registrados
- * - Mantener consistencia visual para el mismo paciente
- * - Realizar acciones como confirmar, completar, cancelar y archivar citas
- * 
- * Reglas de negocio para tratamientos:
- * - "Pre-Registro": Para pacientes no registrados, no se pueden confirmar directamente.
- * - "Pendiente": Para pacientes registrados que necesitan evaluación.
- * - "Activo": Tratamiento confirmado con citas programadas.
- * - Las citas de tratamientos en estado "Pre-Registro" o "Pendiente" NO se pueden confirmar desde aquí.
- */
 const CitasForm = () => {
     const { isDarkTheme } = useThemeContext();
     const theme = useTheme();
@@ -80,7 +52,7 @@ const CitasForm = () => {
     const [citaToDelete, setCitaToDelete] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
-    
+
     // Estados para la cancelación de citas
     const [openCancelDialog, setOpenCancelDialog] = useState(false);
     const [citaToCancel, setCitaToCancel] = useState(null);
@@ -101,7 +73,7 @@ const CitasForm = () => {
 
     // Mapa para asignar colores consistentes a pacientes
     const [pacienteColores, setPacienteColores] = useState({});
-    
+
     // Estado para almacenar la información de tratamientos
     const [tratamientos, setTratamientos] = useState({});
 
@@ -122,7 +94,13 @@ const CitasForm = () => {
         tratamiento: isDarkTheme ? '#4CAF50' : '#4CAF50',
         consulta: isDarkTheme ? '#9E9E9E' : '#9E9E9E',
         noRegistrado: '#FFA726',
-        registrado: '#42A5F5'
+        registrado: '#42A5F5',
+        details: '#03A9F4',    // Color para el botón de detalles (ojito)
+        archive: '#FF9800',    // Color para archivar (consistente con el original)
+        cancel: '#E53935',     // Color para cancelar
+        edit: '#4CAF50',       // Color para editar
+        confirm: '#66BB6A',    // Color para confirmar
+        complete: '#42A5F5'    // Color para completar
     };
 
     // Función para cargar los tratamientos y mapearlos por ID
@@ -133,11 +111,11 @@ const CitasForm = () => {
 
             const data = await response.json();
             const tratamientosMap = {};
-            
+
             data.forEach(tratamiento => {
                 tratamientosMap[tratamiento.id] = tratamiento;
             });
-            
+
             setTratamientos(tratamientosMap);
         } catch (error) {
             console.error("Error cargando tratamientos:", error);
@@ -155,29 +133,29 @@ const CitasForm = () => {
         if (!patientId) {
             return colors.noRegistrado;
         }
-        
+
         // Si ya tiene un color asignado, usarlo
         if (pacienteColores[patientId]) {
             return pacienteColores[patientId];
         }
-        
+
         // Generar un nuevo color
         const colorPool = [
-            '#5C6BC0', '#26A69A', '#EC407A', 
-            '#AB47BC', '#7E57C2', '#5C6BC0', 
+            '#5C6BC0', '#26A69A', '#EC407A',
+            '#AB47BC', '#7E57C2', '#5C6BC0',
             '#42A5F5', '#29B6F6', '#26C6DA'
         ];
-        
+
         // Asignar un color basado en ID o alfabéticamente
         const colorIndex = patientId % colorPool.length;
         const newColor = colorPool[colorIndex];
-        
+
         // Actualizar el mapa de colores
         setPacienteColores(prev => ({
             ...prev,
             [patientId]: newColor
         }));
-        
+
         return newColor;
     };
 
@@ -207,26 +185,21 @@ const CitasForm = () => {
     };
 
     // Función para verificar si una cita puede ser confirmada directamente
-    // NUEVA FUNCIÓN: Verifica si una cita asociada a un tratamiento puede ser confirmada
     const canConfirmAppointment = (cita) => {
-        // Si no es un tratamiento, siempre se puede confirmar
-        if (!cita.tratamiento_id) {
-            return true;
+        // Si la cita está vinculada a un tratamiento (tiene tratamiento_id o es_tratamiento es 1)
+        if (cita.tratamiento_id || cita.es_tratamiento === 1) {
+            const tratamiento = tratamientos[cita.tratamiento_id];
+
+            // Si no encontramos el tratamiento o no está Activo, no permitimos confirmar
+            if (!tratamiento || tratamiento.estado !== 'Activo') {
+                return false;
+            }
         }
-        
-        // Si es un tratamiento, verificar su estado
-        const tratamiento = tratamientos[cita.tratamiento_id];
-        
-        // Si no encontramos el tratamiento, por seguridad no permitimos confirmar
-        if (!tratamiento) {
-            return false;
-        }
-        
-        // Solo se puede confirmar si el tratamiento está Activo
-        // No se puede confirmar si está en Pre-Registro o Pendiente
-        return tratamiento.estado === 'Activo';
+
+        // Si no es un tratamiento (es una consulta normal), siempre se puede confirmar
+        return true;
     };
-    
+
     // Función genérica para cambiar el estado de una cita
     const handleChangeState = async (cita, newState, message = '') => {
         if (!cita || !canChangeToState(cita.estado, newState)) {
@@ -237,7 +210,7 @@ const CitasForm = () => {
             });
             return;
         }
-        
+
         // Verificación adicional para confirmar citas de tratamientos
         if (newState === 'Confirmada' && cita.tratamiento_id && !canConfirmAppointment(cita)) {
             setNotification({
@@ -247,7 +220,7 @@ const CitasForm = () => {
             });
             return;
         }
-        
+
         setIsProcessing(true);
         try {
             const response = await fetch(`https://back-end-4803.onrender.com/api/citas/updateStatus/${cita.consulta_id}`, {
@@ -255,7 +228,7 @@ const CitasForm = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     estado: newState,
                     mensaje: message // Agregar mensaje para notificación si existe
                 }),
@@ -285,8 +258,8 @@ const CitasForm = () => {
 
     // Funciones específicas para cada cambio de estado
     const confirmCita = (cita) => {
-        // Verificar si la cita puede ser confirmada (si es tratamiento, verificar estado)
-        if (cita.tratamiento_id && !canConfirmAppointment(cita)) {
+        // Verificar nuevamente si la cita puede ser confirmada
+        if (!canConfirmAppointment(cita)) {
             setNotification({
                 open: true,
                 message: 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos.',
@@ -294,7 +267,7 @@ const CitasForm = () => {
             });
             return;
         }
-        
+
         setCitaToConfirm(cita);
         setConfirmMessage('');
         setOpenConfirmCitaDialog(true);
@@ -314,55 +287,93 @@ const CitasForm = () => {
         setOpenCompleteCitaDialog(true);
     };
 
+    // Modifica la función processCompleteCita en CitasForm.jsx
     const processCompleteCita = async () => {
         setIsCompleting(true);
         try {
-            // Primero actualizar el estado de la cita a completada
+            console.log("OBJETO CITA COMPLETO:", citaToComplete);
+            console.log("tratamiento_id está presente:", citaToComplete.tratamiento_id ? "SÍ" : "NO");
+
+            // 1. Primero actualizar el estado de la cita a completada
             await handleChangeState(citaToComplete, 'Completada', completeMessage);
-            
-            // Verificar si la cita pertenece a un tratamiento
-            if (citaToComplete.tratamiento_id) {
-                // Llamar al endpoint para incrementar el contador en el tratamiento
-                const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/incrementarCitas/${citaToComplete.tratamiento_id}`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ 
-                        cita_id: citaToComplete.consulta_id
-                    }),
-                });
-                
-                if (!response.ok) throw new Error("Error al actualizar el contador del tratamiento");
-                
-                // Verificar si se debe programar la siguiente cita
-                const data = await response.json();
-                
-                if (!data.tratamiento_completado) {
-                    // Programar la siguiente cita si el tratamiento no está completo
-                    setNotification({
-                        open: true,
-                        message: `Cita completada. Contador actualizado a ${data.citas_completadas}/${citaToComplete.total_citas_programadas}. Se ha programado la siguiente cita.`,
-                        type: 'success',
-                    });
-                } else {
-                    setNotification({
-                        open: true,
-                        message: `Tratamiento finalizado. Todas las citas han sido completadas.`,
-                        type: 'success',
-                    });
+            console.log("Cita marcada como completada. ID:", citaToComplete.consulta_id || citaToComplete.id);
+
+            // 2. Determinar el ID del tratamiento
+            // Intentar primero obtener directamente de la propiedad
+            let tratamientoId = citaToComplete.tratamiento_id;
+
+            // Si no está disponible directamente, intentar extraerlo de las notas
+            if (!tratamientoId && citaToComplete.notas) {
+                const match = citaToComplete.notas.match(/tratamiento #(\d+)/i);
+                if (match && match[1]) {
+                    tratamientoId = parseInt(match[1]);
+                    console.log("Tratamiento ID extraído de las notas:", tratamientoId);
                 }
             }
-            
+
+            // Si tenemos tratamiento_id (de cualquier fuente), proceder con la actualización
+            if (tratamientoId) {
+                const citaId = citaToComplete.consulta_id || citaToComplete.id;
+                console.log(`Actualizando tratamiento ${tratamientoId} para cita ${citaId}`);
+
+                try {
+                    // Usar el endpoint en router de tratamientos (no el de citas)
+                    const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/actualizarProgreso", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            tratamiento_id: tratamientoId,
+                            cita_id: citaId
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        throw new Error(`Error HTTP ${response.status}: ${errorText}`);
+                    }
+
+                    const data = await response.json();
+                    console.log("Respuesta del servidor:", data);
+
+                    setNotification({
+                        open: true,
+                        message: data.tratamiento_completado
+                            ? `Tratamiento finalizado. Todas las citas han sido completadas.`
+                            : `Cita completada. Contador actualizado a ${data.citas_completadas}/${data.total_citas}. Se ha programado la siguiente cita.`,
+                        type: 'success',
+                    });
+                } catch (error) {
+                    console.error("Error al actualizar progreso:", error);
+                    throw new Error("Error al actualizar el progreso del tratamiento: " + error.message);
+                }
+            } else {
+                console.warn("No se encontró tratamiento_id para esta cita");
+                setNotification({
+                    open: true,
+                    message: "Cita completada con éxito.",
+                    type: 'success',
+                });
+            }
+
+            // Cerrar diálogo y actualizar datos
             setOpenCompleteCitaDialog(false);
             setCitaToComplete(null);
-            fetchCitas(); // Recargar citas
-            fetchTratamientos(); // Actualizar también la lista de tratamientos
+            await fetchCitas();
+
+            // También recargar tratamientos si la función existe
+            if (typeof fetchTratamientos === 'function') {
+                setTimeout(() => {
+                    fetchTratamientos();
+                }, 1000);
+            }
+
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error al completar cita:", error);
             setNotification({
                 open: true,
-                message: "Error al procesar la cita completada.",
+                message: "Error al procesar la cita completada: " + error.message,
                 type: 'error',
             });
         } finally {
@@ -413,16 +424,25 @@ const CitasForm = () => {
 
     // Función para abrir el diálogo de cancelación
     const handleCancelAppointment = (cita) => {
-        // Verificar si se puede cancelar
-        if (!canChangeToState(cita.estado, 'Cancelada')) {
+        // Verificar si se puede cancelar según las reglas actualizadas
+        if (!canCancelAppointment(cita)) {
+            let mensaje = `No se puede cancelar una cita en estado "${cita.estado}"`;
+
+            // Si es un tratamiento no activado
+            if ((cita.tratamiento_id || cita.es_tratamiento === 1) &&
+                tratamientos[cita.tratamiento_id] &&
+                tratamientos[cita.tratamiento_id].estado !== 'Activo') {
+                mensaje = 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos antes de poder ser cancelada.';
+            }
+
             setNotification({
                 open: true,
-                message: `No se puede cancelar una cita en estado "${cita.estado}"`,
-                type: 'error',
+                message: mensaje,
+                type: 'warning',
             });
             return;
         }
-        
+
         setCitaToCancel(cita);
         setOpenCancelDialog(true);
         setCancelReason(''); // Reiniciar el motivo de cancelación
@@ -431,7 +451,7 @@ const CitasForm = () => {
     // Función para procesar la cancelación con el motivo
     const processCancelAppointment = async () => {
         if (!citaToCancel) return;
-        
+
         setIsCancelling(true);
         try {
             const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${citaToCancel.consulta_id}`, {
@@ -439,7 +459,7 @@ const CitasForm = () => {
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     motivo: cancelReason
                 }),
             });
@@ -499,21 +519,21 @@ const CitasForm = () => {
         try {
             const date = new Date(dateString);
             date.setHours(date.getHours() + 6); // 6 horas mas 
-            
+
             // Formato de día y mes
             const dia = date.toLocaleString('es-MX', { weekday: 'long' });
             const diaMes = date.toLocaleString('es-MX', { day: 'numeric', month: 'long' });
-            
+
             // Formato de hora
             const hora = date.toLocaleString('es-MX', {
                 hour: '2-digit',
                 minute: '2-digit',
                 hour12: true,
             });
-            
+
             // Primer letra mayúscula para el día de la semana
             const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
-            
+
             return `${diaCapitalizado} ${diaMes}, ${hora}`;
         } catch (error) {
             console.error("Error formateando fecha:", error);
@@ -552,33 +572,31 @@ const CitasForm = () => {
     // Obtener el estado del tratamiento asociado a una cita
     const getTratamientoEstado = (cita) => {
         if (!cita?.tratamiento_id) return null;
-        
+
         const tratamiento = tratamientos[cita.tratamiento_id];
         return tratamiento?.estado || null;
     };
 
+    // Verificar si una cita está completada
+    const isCitaCompletada = (cita) => {
+        return cita?.estado === 'Completada';
+    };
+
     // Renderizar botones de acción según el estado de la cita
     const renderStateActionButtons = (cita) => {
-        // Si es un tratamiento, verificar su estado actual para decidir si mostrar o no el botón
-        if (cita.tratamiento_id) {
-            const estadoTratamiento = getTratamientoEstado(cita);
-            
-            // Si el tratamiento está en "Pre-Registro" o "Pendiente", no mostrar botón de confirmar
-            if (estadoTratamiento === 'Pre-Registro' || estadoTratamiento === 'Pendiente') {
-                return null; // No mostrar botón para cambiar estado
-            }
-        }
-        
-        // Continuar con la lógica normal según el estado de la cita
+        // Primero verificamos si la cita se puede confirmar según las reglas de negocio
+        const puedeConfirmar = canConfirmAppointment(cita);
+
         switch (cita.estado) {
             case 'Pendiente':
-                return (
+                // Solo mostrar botón de confirmar si la cita puede confirmarse
+                return puedeConfirmar ? (
                     <Tooltip title="Confirmar cita" arrow>
                         <IconButton
                             onClick={() => confirmCita(cita)}
                             size="small"
                             sx={{
-                                backgroundColor: '#66BB6A',
+                                backgroundColor: colors.confirm,
                                 '&:hover': { backgroundColor: '#388E3C' },
                                 color: 'white',
                                 width: { xs: 28, sm: 32 },
@@ -591,7 +609,8 @@ const CitasForm = () => {
                             <CheckCircle />
                         </IconButton>
                     </Tooltip>
-                );
+                ) : null;
+
             case 'Confirmada':
                 return (
                     <Tooltip title="Completar cita" arrow>
@@ -599,7 +618,7 @@ const CitasForm = () => {
                             onClick={() => completeCita(cita)}
                             size="small"
                             sx={{
-                                backgroundColor: '#42A5F5',
+                                backgroundColor: colors.complete,
                                 '&:hover': { backgroundColor: '#1976D2' },
                                 color: 'white',
                                 width: { xs: 28, sm: 32 },
@@ -620,7 +639,25 @@ const CitasForm = () => {
 
     // Verificar si una cita se puede cancelar
     const canCancelAppointment = (cita) => {
-        return cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+        // Primero verificar si está en un estado que permita cancelación
+        const estadoPermiteCancelar = cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+
+        if (!estadoPermiteCancelar) {
+            return false;
+        }
+
+        // Para tratamientos, aplicar la misma regla que para confirmar
+        if (cita.tratamiento_id || cita.es_tratamiento === 1) {
+            const tratamiento = tratamientos[cita.tratamiento_id];
+
+            // Si no encontramos el tratamiento o no está Activo, no permitimos cancelar
+            if (!tratamiento || tratamiento.estado !== 'Activo') {
+                return false;
+            }
+        }
+
+        // Si no es un tratamiento (es una consulta normal), siempre se puede cancelar
+        return true;
     };
 
     return (
@@ -648,10 +685,10 @@ const CitasForm = () => {
                     </Box>
 
                     {/* Leyenda simplificada */}
-                    <Box sx={{ 
-                        display: 'flex', 
-                        justifyContent: 'flex-end', 
-                        alignItems: 'center', 
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'flex-end',
+                        alignItems: 'center',
                         mb: 2,
                         p: 1,
                         backgroundColor: '#f5f5f5',
@@ -708,12 +745,13 @@ const CitasForm = () => {
                                             const numCita = getNumeroCitaTratamiento(cita);
                                             const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
                                             const tratamientoEstado = getTratamientoEstado(cita);
-                                            
+                                            const citaCompletada = isCitaCompletada(cita);
+
                                             // Determinar si mostrar indicador especial cuando es tratamiento no activado
-                                            const esTratamientoNoActivado = esTratamiento && 
-                                                tratamientoEstado && 
+                                            const esTratamientoNoActivado = esTratamiento &&
+                                                tratamientoEstado &&
                                                 (tratamientoEstado === 'Pre-Registro' || tratamientoEstado === 'Pendiente');
-                                            
+
                                             return (
                                                 <TableRow
                                                     key={cita?.consulta_id || index}
@@ -727,10 +765,10 @@ const CitasForm = () => {
                                                     {/* Paciente con avatar e indicador de registro */}
                                                     <TableCell>
                                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                            <Avatar 
-                                                                sx={{ 
+                                                            <Avatar
+                                                                sx={{
                                                                     bgcolor: avatarColor,
-                                                                    width: { xs: 32, sm: 36 }, 
+                                                                    width: { xs: 32, sm: 36 },
                                                                     height: { xs: 32, sm: 36 },
                                                                     mr: { xs: 1, sm: 2 },
                                                                     border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`
@@ -739,10 +777,10 @@ const CitasForm = () => {
                                                                 {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
                                                             </Avatar>
                                                             <Box>
-                                                                <Typography 
-                                                                    variant="body2" 
+                                                                <Typography
+                                                                    variant="body2"
                                                                     fontWeight="medium"
-                                                                    sx={{ 
+                                                                    sx={{
                                                                         fontSize: { xs: '0.8rem', sm: '0.875rem' },
                                                                         maxWidth: { xs: '110px', sm: '100%' },
                                                                         overflow: 'hidden',
@@ -754,19 +792,19 @@ const CitasForm = () => {
                                                                         `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''} ${cita.paciente_apellido_materno || ''}`.trim() :
                                                                         "No registrado"}
                                                                 </Typography>
-                                                                <Box 
-                                                                    sx={{ 
-                                                                        display: 'flex', 
+                                                                <Box
+                                                                    sx={{
+                                                                        display: 'flex',
                                                                         alignItems: 'center',
                                                                         gap: 0.5
                                                                     }}
                                                                 >
                                                                     {esTratamiento && (
-                                                                        <Chip 
+                                                                        <Chip
                                                                             size="small"
                                                                             label={`Cita ${numCita}`}
-                                                                            sx={{ 
-                                                                                height: 18, 
+                                                                            sx={{
+                                                                                height: 18,
                                                                                 fontSize: '0.65rem',
                                                                                 bgcolor: colors.tratamiento,
                                                                                 color: 'white',
@@ -774,8 +812,8 @@ const CitasForm = () => {
                                                                             }}
                                                                         />
                                                                     )}
-                                                                    <Typography 
-                                                                        variant="caption" 
+                                                                    <Typography
+                                                                        variant="caption"
                                                                         color="textSecondary"
                                                                         sx={{ fontSize: { xs: '0.65rem', sm: '0.7rem' } }}
                                                                     >
@@ -791,26 +829,26 @@ const CitasForm = () => {
                                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                             {esTratamiento ? (
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <MedicalServices 
-                                                                        sx={{ 
-                                                                            color: colors.tratamiento, 
-                                                                            fontSize: 18, 
-                                                                            mr: 1 
-                                                                        }} 
+                                                                    <MedicalServices
+                                                                        sx={{
+                                                                            color: colors.tratamiento,
+                                                                            fontSize: 18,
+                                                                            mr: 1
+                                                                        }}
                                                                     />
                                                                     <Box>
                                                                         <Typography variant="body2">
                                                                             {cita?.servicio_nombre || "N/A"}
                                                                         </Typography>
                                                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                            <Typography variant="caption" 
-                                                                                sx={{ 
+                                                                            <Typography variant="caption"
+                                                                                sx={{
                                                                                     color: colors.tratamiento,
                                                                                 }}
                                                                             >
                                                                                 Tratamiento (cita {numCita})
                                                                             </Typography>
-                                                                            
+
                                                                             {/* Agregar insignia si el tratamiento no está activado */}
                                                                             {esTratamientoNoActivado && (
                                                                                 <Chip
@@ -830,12 +868,12 @@ const CitasForm = () => {
                                                                 </Box>
                                                             ) : (
                                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                                    <LocalHospital 
-                                                                        sx={{ 
-                                                                            color: colors.consulta, 
-                                                                            fontSize: 18, 
-                                                                            mr: 1 
-                                                                        }} 
+                                                                    <LocalHospital
+                                                                        sx={{
+                                                                            color: colors.consulta,
+                                                                            fontSize: 18,
+                                                                            mr: 1
+                                                                        }}
                                                                     />
                                                                     <Box>
                                                                         <Typography variant="body2">
@@ -871,19 +909,19 @@ const CitasForm = () => {
 
                                                     {/* Acciones */}
                                                     <TableCell>
-                                                        <Box sx={{ 
-                                                            display: 'flex', 
+                                                        <Box sx={{
+                                                            display: 'flex',
                                                             gap: { xs: 0.5, sm: 1 },
                                                             flexWrap: { xs: 'wrap', md: 'nowrap' },
                                                             justifyContent: 'center'
                                                         }}>
-                                                            {/* Ver Detalles */}
+                                                            {/* Ver Detalles - Cambiado a ícono de ojo */}
                                                             <Tooltip title="Ver detalles" arrow>
                                                                 <IconButton
                                                                     onClick={() => handleViewDetails(cita)}
                                                                     size="small"
                                                                     sx={{
-                                                                        backgroundColor: '#0288d1',
+                                                                        backgroundColor: colors.details,
                                                                         '&:hover': { backgroundColor: '#0277bd' },
                                                                         color: 'white',
                                                                         width: { xs: 28, sm: 32 },
@@ -893,43 +931,45 @@ const CitasForm = () => {
                                                                         }
                                                                     }}
                                                                 >
-                                                                    <Info />
+                                                                    <Visibility />
                                                                 </IconButton>
                                                             </Tooltip>
 
-                                                            {/* Editar Cita */}
-                                                            <Tooltip title="Editar cita" arrow>
-                                                                <IconButton
-                                                                    onClick={() => {
-                                                                        setSelectedCita(cita);
-                                                                        setOpenEditDialog(true);
-                                                                    }}
-                                                                    size="small"
-                                                                    sx={{
-                                                                        backgroundColor: '#4caf50',
-                                                                        '&:hover': { backgroundColor: '#388e3c' },
-                                                                        color: 'white',
-                                                                        width: { xs: 28, sm: 32 },
-                                                                        height: { xs: 28, sm: 32 },
-                                                                        '& .MuiSvgIcon-root': {
-                                                                            fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <BorderColor />
-                                                                </IconButton>
-                                                            </Tooltip>
+                                                            {/* Editar Cita - Solo si NO está completada */}
+                                                            {!citaCompletada && (
+                                                                <Tooltip title="Editar cita" arrow>
+                                                                    <IconButton
+                                                                        onClick={() => {
+                                                                            setSelectedCita(cita);
+                                                                            setOpenEditDialog(true);
+                                                                        }}
+                                                                        size="small"
+                                                                        sx={{
+                                                                            backgroundColor: colors.edit,
+                                                                            '&:hover': { backgroundColor: '#388e3c' },
+                                                                            color: 'white',
+                                                                            width: { xs: 28, sm: 32 },
+                                                                            height: { xs: 28, sm: 32 },
+                                                                            '& .MuiSvgIcon-root': {
+                                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
+                                                                            }
+                                                                        }}
+                                                                    >
+                                                                        <BorderColor />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            )}
 
                                                             {/* Botón de acción según estado (Confirmar o Completar) */}
                                                             {renderStateActionButtons(cita)}
 
-                                                            {/* Archivar Cita */}
+                                                            {/* Archivar Cita - Siempre disponible */}
                                                             <Tooltip title="Archivar cita" arrow>
                                                                 <IconButton
                                                                     onClick={() => openArchiveConfirmation(cita)}
                                                                     size="small"
                                                                     sx={{
-                                                                        backgroundColor: '#ff9800',
+                                                                        backgroundColor: colors.archive,
                                                                         '&:hover': { backgroundColor: '#f57c00' },
                                                                         color: 'white',
                                                                         width: { xs: 28, sm: 32 },
@@ -943,14 +983,14 @@ const CitasForm = () => {
                                                                 </IconButton>
                                                             </Tooltip>
 
-                                                            {/* Cancelar Cita - Solo si se puede cancelar */}
-                                                            {canCancelAppointment(cita) && (
+                                                            {/* Cancelar Cita - Solo si se puede cancelar y NO está completada */}
+                                                            {canCancelAppointment(cita) && !citaCompletada && (
                                                                 <Tooltip title="Cancelar cita" arrow>
                                                                     <IconButton
                                                                         onClick={() => handleCancelAppointment(cita)}
                                                                         size="small"
                                                                         sx={{
-                                                                            backgroundColor: '#e53935',
+                                                                            backgroundColor: colors.cancel,
                                                                             '&:hover': { backgroundColor: '#c62828' },
                                                                             color: 'white',
                                                                             width: { xs: 28, sm: 32 },
@@ -983,8 +1023,8 @@ const CitasForm = () => {
             </Card>
 
             {/* Botón para agregar nueva cita */}
-            <Fab 
-                color="primary" 
+            <Fab
+                color="primary"
                 aria-label="add"
                 onClick={() => setOpenNewAppointmentForm(true)}
                 sx={{
@@ -1005,9 +1045,9 @@ const CitasForm = () => {
             >
                 {selectedCita && (
                     <>
-                        <DialogTitle sx={{ 
-                            backgroundColor: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary, 
-                            color: 'white' 
+                        <DialogTitle sx={{
+                            backgroundColor: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
+                            color: 'white'
                         }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1048,10 +1088,10 @@ const CitasForm = () => {
                                 {/* Información del Paciente */}
                                 <Grid item xs={12} md={6}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                        <Avatar 
-                                            sx={{ 
+                                        <Avatar
+                                            sx={{
                                                 bgcolor: getPatientColor(selectedCita.paciente_id, selectedCita.paciente_nombre),
-                                                width: 40, 
+                                                width: 40,
                                                 height: 40,
                                                 mr: 2,
                                                 border: isRegistered(selectedCita) ? 'none' : `2px solid ${colors.noRegistrado}`
@@ -1090,8 +1130,8 @@ const CitasForm = () => {
                                         <Typography><strong>Categoría:</strong> {selectedCita.categoria_servicio || "No especificada"}</Typography>
                                         <Typography><strong>Precio:</strong> ${selectedCita.precio_servicio || "0.00"}</Typography>
                                         <Typography><strong>Fecha de Consulta:</strong> {formatDate(selectedCita.fecha_consulta)}</Typography>
-                                        <Typography><strong>Estado:</strong> 
-                                            <Chip 
+                                        <Typography><strong>Estado:</strong>
+                                            <Chip
                                                 label={selectedCita.estado || "Pendiente"}
                                                 size="small"
                                                 sx={{
@@ -1164,7 +1204,7 @@ const CitasForm = () => {
                         borderBottom: `1px solid ${colors.divider}`
                     }}
                 >
-                    <MenuBook sx={{ color: '#ff9800' }} />
+                    <MenuBook sx={{ color: colors.archive }} />
                     Confirmar Archivado de Cita
                 </DialogTitle>
 
@@ -1178,7 +1218,7 @@ const CitasForm = () => {
                             <Typography><strong>Paciente:</strong> {citaToDelete.paciente_nombre} {citaToDelete.paciente_apellido_paterno} {citaToDelete.paciente_apellido_materno}</Typography>
                             <Typography><strong>Servicio:</strong> {citaToDelete.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToDelete.fecha_consulta)}</Typography>
-                            <Typography><strong>Estado actual:</strong> <Chip 
+                            <Typography><strong>Estado actual:</strong> <Chip
                                 label={citaToDelete.estado || "Pendiente"}
                                 size="small"
                                 sx={{
@@ -1222,16 +1262,16 @@ const CitasForm = () => {
                         onClick={handleArchiveAppointment}
                         disabled={isProcessing}
                         sx={{
-                            bgcolor: '#ff9800',
+                            bgcolor: colors.archive,
                             '&:hover': { bgcolor: '#f57c00' },
-                            '&:disabled': { bgcolor: alpha('#ff9800', 0.5) }
+                            '&:disabled': { bgcolor: alpha(colors.archive, 0.5) }
                         }}
                     >
                         {isProcessing ? 'Archivando...' : 'Confirmar Archivado'}
                     </Button>
                 </DialogActions>
             </Dialog>
-            
+
             {/* Diálogo de cancelación de cita */}
             <Dialog
                 open={openCancelDialog}
@@ -1319,9 +1359,9 @@ const CitasForm = () => {
                         onClick={processCancelAppointment}
                         disabled={isCancelling || !cancelReason.trim()}
                         sx={{
-                            bgcolor: '#e53935',
+                            bgcolor: colors.cancel,
                             '&:hover': { bgcolor: '#c62828' },
-                            '&:disabled': { bgcolor: alpha('#e53935', 0.5) }
+                            '&:disabled': { bgcolor: alpha(colors.cancel, 0.5) }
                         }}
                     >
                         {isCancelling ? 'Procesando...' : 'Confirmar Cancelación'}
@@ -1410,9 +1450,9 @@ const CitasForm = () => {
                         onClick={processConfirmCita}
                         disabled={isConfirming}
                         sx={{
-                            bgcolor: '#66BB6A',
+                            bgcolor: colors.confirm,
                             '&:hover': { bgcolor: '#388e3c' },
-                            '&:disabled': { bgcolor: alpha('#66BB6A', 0.5) }
+                            '&:disabled': { bgcolor: alpha(colors.confirm, 0.5) }
                         }}
                     >
                         {isConfirming ? 'Procesando...' : 'Confirmar Cita'}
@@ -1457,7 +1497,7 @@ const CitasForm = () => {
                             <Typography><strong>Servicio:</strong> {citaToComplete.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToComplete.fecha_consulta)}</Typography>
                             <Typography><strong>Odontólogo:</strong> {citaToComplete.odontologo_nombre || "No asignado"}</Typography>
-                            
+
                             {/* Mostrar información adicional si es tratamiento */}
                             {citaToComplete.tratamiento_id && (
                                 <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
@@ -1511,9 +1551,9 @@ const CitasForm = () => {
                         onClick={processCompleteCita}
                         disabled={isCompleting}
                         sx={{
-                            bgcolor: '#42A5F5',
+                            bgcolor: colors.complete,
                             '&:hover': { bgcolor: '#1976d2' },
-                            '&:disabled': { bgcolor: alpha('#42A5F5', 0.5) }
+                            '&:disabled': { bgcolor: alpha(colors.complete, 0.5) }
                         }}
                     >
                         {isCompleting ? 'Procesando...' : 'Completar Cita'}
@@ -1527,7 +1567,7 @@ const CitasForm = () => {
                 appointmentData={selectedCita}
                 onUpdate={fetchCitas}
             />
-            
+
             <Notificaciones
                 open={notification.open}
                 message={notification.message}

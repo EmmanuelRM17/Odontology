@@ -7,10 +7,7 @@ import {
     Dialog,
     DialogActions,
     DialogContent,
-    DialogTitle,
-    Divider,
-    Fab,
-    Grid,
+    DialogTitle, Grid,
     IconButton,
     LinearProgress,
     Paper,
@@ -24,27 +21,18 @@ import {
 import React, { useCallback, useEffect, useState } from 'react';
 
 import {
-    Add,
     AssignmentTurnedIn,
     Cancel,
     CheckCircle,
     DateRange,
-    EventAvailable,
-    HealthAndSafety,
-    Info,
-    MedicalServices,
+    EventAvailable, MedicalServices,
     Person,
-    Visibility,
-    Edit as EditIcon,
-    EventBusy,
+    Visibility, EventBusy,
     Task,
     ChangeCircle,
-    NotificationImportant,
-    Circle as CircleIcon,
-    PeopleAlt
+    NotificationImportant, PeopleAlt
 } from '@mui/icons-material';
 
-import { alpha } from '@mui/material/styles';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
@@ -68,7 +56,7 @@ const TratamientosForm = () => {
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
     const [isProcessing, setIsProcessing] = useState(false);
     const [isLoadingData, setIsLoadingData] = useState(true);
-    
+
     // Estados para visualización de citas
     const [citasTratamiento, setCitasTratamiento] = useState([]);
     const [openCitasDialog, setOpenCitasDialog] = useState(false);
@@ -100,7 +88,25 @@ const TratamientosForm = () => {
 
     // Cargar tratamientos al iniciar
     useEffect(() => {
-        fetchTratamientos();
+        // Cargar datos iniciales
+        fetchTratamientos(true);
+
+        // Variable para controlar si el componente está montado
+        let estaMontado = true;
+
+        // Actualizar cada 2 minutos en lugar de cada 15 segundos
+        const intervalo = setInterval(() => {
+            if (estaMontado) {
+                // Actualización silenciosa (sin indicador de carga)
+                fetchTratamientos(false);
+            }
+        }, 120000); // 2 minutos
+
+        // Limpiar intervalo al desmontar
+        return () => {
+            estaMontado = false;
+            clearInterval(intervalo);
+        };
     }, []);
 
     // Colores del tema
@@ -133,34 +139,79 @@ const TratamientosForm = () => {
         });
     };
 
+    const sonDatosDiferentes = (nuevos, actuales) => {
+        // Si las longitudes son diferentes, hay cambios
+        if (!nuevos || !actuales || nuevos.length !== actuales.length) {
+            return true;
+        }
+
+        // Comparar solo las propiedades clave para cada tratamiento
+        for (let i = 0; i < nuevos.length; i++) {
+            const nuevo = nuevos[i];
+
+            // Buscar el tratamiento correspondiente por ID
+            const actual = actuales.find(t => t.id === nuevo.id);
+
+            // Si no se encuentra o hay cambios en propiedades clave
+            if (!actual ||
+                nuevo.estado !== actual.estado ||
+                nuevo.citas_completadas !== actual.citas_completadas) {
+                return true;
+            }
+        }
+
+        // Si llegamos aquí, no hay cambios significativos
+        return false;
+    };
+
     // Función para obtener tratamientos
-    const fetchTratamientos = useCallback(async () => {
-        setIsLoadingData(true);
+    const fetchTratamientos = useCallback(async (mostrarCarga = true) => {
+        if (mostrarCarga) {
+            setIsLoadingData(true);
+        }
+
         try {
-            const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/all");
+            // Usar timestamp para evitar caché pero sin headers adicionales
+            const timestamp = new Date().getTime();
+            const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/all?t=${timestamp}`);
+
             if (!response.ok) throw new Error("Error al obtener los tratamientos");
 
             const data = await response.json();
-            setTratamientos(data);
+
+            // Solo actualizar el estado si hay cambios significativos
+            if (sonDatosDiferentes(data, tratamientos)) {
+                console.log("Actualizando lista de tratamientos - cambios detectados");
+                setTratamientos(data);
+            } else {
+                console.log("No hay cambios significativos en los tratamientos");
+            }
         } catch (error) {
             console.error("Error cargando tratamientos:", error);
-            setTratamientos([]);
-            setNotification({
-                open: true,
-                message: 'Error al cargar los tratamientos.',
-                type: 'error',
-            });
+            if (tratamientos.length === 0) {
+                setTratamientos([]);
+
+                if (mostrarCarga) {
+                    setNotification({
+                        open: true,
+                        message: 'Error al cargar los tratamientos.',
+                        type: 'error',
+                    });
+                }
+            }
         } finally {
-            setIsLoadingData(false);
+            if (mostrarCarga) {
+                setIsLoadingData(false);
+            }
         }
-    }, []);
+    }, [tratamientos]);
 
     // Función para actualizar un tratamiento en el estado local
     const updateTratamientoLocally = (id, updatedData) => {
-        setTratamientos(currentTratamientos => 
-            currentTratamientos.map(tratamiento => 
-                tratamiento.id === id 
-                    ? { ...tratamiento, ...updatedData, actualizado_en: new Date().toISOString() } 
+        setTratamientos(currentTratamientos =>
+            currentTratamientos.map(tratamiento =>
+                tratamiento.id === id
+                    ? { ...tratamiento, ...updatedData, actualizado_en: new Date().toISOString() }
                     : tratamiento
             )
         );
@@ -174,19 +225,29 @@ const TratamientosForm = () => {
 
     // Función para ver citas del tratamiento
     const handleViewCitas = async (tratamientoId) => {
+        console.log("Solicitando citas del tratamiento ID:", tratamientoId);
         setIsLoadingCitas(true);
         try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/${tratamientoId}/citas`);
+            const timestamp = new Date().getTime();
+            const response = await fetch(`https://back-end-4803.onrender.com/api/tratamientos/${tratamientoId}/citas?t=${timestamp}`);
             if (!response.ok) throw new Error("Error al obtener citas");
-            
-            const data = await response.json();
-            setCitasTratamiento(data);
-            setOpenCitasDialog(true);
+
+            const responseText = await response.text();
+            console.log("Respuesta textual citas:", responseText);
+
+            try {
+                const data = JSON.parse(responseText);
+                console.log("Datos completos de citas:", data);
+                setCitasTratamiento(data);
+                setOpenCitasDialog(true);
+            } catch (e) {
+                console.error("Error al parsear JSON:", e);
+            }
         } catch (error) {
-            console.error("Error:", error);
+            console.error("Error completo:", error);
             setNotification({
                 open: true,
-                message: "Error al cargar las citas del tratamiento",
+                message: "Error al cargar las citas del tratamiento: " + error.message,
                 type: 'error'
             });
         } finally {
@@ -283,11 +344,11 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al actualizar el estado");
-            
+
             // Actualizar localmente sin refrescar toda la tabla
             updateTratamientoLocally(tratamientoToPending.id, {
                 estado: 'Pendiente',
-                notas: pendingMessage 
+                notas: pendingMessage
                     ? `${tratamientoToPending.notas ? tratamientoToPending.notas + '\n\n' : ''}${pendingMessage}`
                     : tratamientoToPending.notas
             });
@@ -297,7 +358,7 @@ const TratamientosForm = () => {
                 setSelectedTratamiento(prevSelected => ({
                     ...prevSelected,
                     estado: 'Pendiente',
-                    notas: pendingMessage 
+                    notas: pendingMessage
                         ? `${prevSelected.notas ? prevSelected.notas + '\n\n' : ''}${pendingMessage}`
                         : prevSelected.notas
                 }));
@@ -364,13 +425,13 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al activar el tratamiento");
-            
+
             const data = await response.json();
-            
+
             // Actualizar localmente sin refrescar toda la tabla
             updateTratamientoLocally(tratamientoToActivate.id, {
                 estado: 'Activo',
-                notas: activateMessage 
+                notas: activateMessage
                     ? `${tratamientoToActivate.notas ? tratamientoToActivate.notas + '\n\n' : ''}${activateMessage}`
                     : tratamientoToActivate.notas
             });
@@ -380,7 +441,7 @@ const TratamientosForm = () => {
                 setSelectedTratamiento(prevSelected => ({
                     ...prevSelected,
                     estado: 'Activo',
-                    notas: activateMessage 
+                    notas: activateMessage
                         ? `${prevSelected.notas ? prevSelected.notas + '\n\n' : ''}${activateMessage}`
                         : prevSelected.notas
                 }));
@@ -441,12 +502,12 @@ const TratamientosForm = () => {
             });
 
             if (!response.ok) throw new Error("Error al finalizar el tratamiento");
-            
+
             // Actualizar localmente sin refrescar toda la tabla
-            const nuevasNotas = finalizeNote 
-                ? `${tratamientoToFinalize.notas ? tratamientoToFinalize.notas + '\n\n' : ''}[FINALIZACIÓN]: ${finalizeNote}` 
+            const nuevasNotas = finalizeNote
+                ? `${tratamientoToFinalize.notas ? tratamientoToFinalize.notas + '\n\n' : ''}[FINALIZACIÓN]: ${finalizeNote}`
                 : tratamientoToFinalize.notas;
-            
+
             updateTratamientoLocally(tratamientoToFinalize.id, {
                 estado: 'Finalizado',
                 notas: nuevasNotas
@@ -519,7 +580,7 @@ const TratamientosForm = () => {
 
             // Actualizar localmente sin refrescar toda la tabla
             const nuevasNotas = `${tratamientoToAbandon.notas ? tratamientoToAbandon.notas + '\n\n' : ''}[ABANDONADO]: ${abandonReason}`;
-            
+
             updateTratamientoLocally(tratamientoToAbandon.id, {
                 estado: 'Abandonado',
                 notas: nuevasNotas
@@ -581,7 +642,7 @@ const TratamientosForm = () => {
     // Descripción de estados del flujo de trabajo
     const estadosDescripcion = {
         'Pre-Registro': 'Tratamiento para paciente no registrado. Se debe registrar al paciente o marcar como pendiente.',
-        'Pendiente': 'Tratamiento pendiente de activación para un paciente registrado.',
+        'Pendiente': 'Tratamiento pendiente de activación.',
         'Activo': 'Tratamiento en curso, con citas programadas.',
         'Finalizado': 'Tratamiento completado exitosamente.',
         'Abandonado': 'Tratamiento interrumpido antes de su finalización.'
@@ -612,6 +673,7 @@ const TratamientosForm = () => {
                             onChange={(e) => setSearchQuery(e.target.value)}
                             sx={{ width: { xs: '100%', sm: '300px' } }}
                         />
+
                     </Box>
 
                     {/* Leyenda de estados */}
