@@ -18,9 +18,9 @@ import { alpha } from '@mui/material/styles';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 // Importar componentes con lazy loading
-const EditServiceDialog = lazy(() => import('./EditService'));
-const NewService = lazy(() => import('./newService'));
-const CategoryService = lazy(() => import('./CategoryService'));
+const EditServiceDialog = lazy(() => import('./servicios/EditService'));
+const NewService = lazy(() => import('./servicios/newService'));
+const CategoryService = lazy(() => import('./servicios/CategoryService'));
 const Notificaciones = lazy(() => import('../../../components/Layout/Notificaciones'));
 
 // Hook personalizado para gestionar notificaciones

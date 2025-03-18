@@ -11,8 +11,8 @@ import {
   Save as SaveIcon, EventAvailable, LocalHospital,
   CalendarMonth
 } from '@mui/icons-material';
-import Notificaciones from '../../../components/Layout/Notificaciones';
-import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import Notificaciones from '../../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 /**
  * Componente para editar un servicio dental existente

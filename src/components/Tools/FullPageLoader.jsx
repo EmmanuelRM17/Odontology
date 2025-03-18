@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { 
   Box, 
   Typography, 
-  keyframes, 
-  Paper,
-  CircularProgress
+  keyframes,
+  CircularProgress,
+  useTheme,
+  useMediaQuery,
+  alpha
 } from '@mui/material';
 import { 
   LocalHospital, 
@@ -13,50 +15,27 @@ import {
   MedicalServices
 } from '@mui/icons-material';
 
-/**
- * Componente FullPageLoader - Pantalla de carga optimizada para aplicación dental
- * 
- * Características:
- * - Animaciones optimizadas para mejor rendimiento
- * - Diseño limpio con colores sólidos y contrastantes
- * - Efectos visuales simplificados para reducir lag
- * - Mantiene la funcionalidad de pasos de carga y consejos
- */
-
-// Animación de rotación para los círculos de carga
+// Animaciones optimizadas
 const rotate = keyframes`
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 `;
 
-// Animación para el ícono central - simplificada
 const pulse = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
 `;
 
-// Animación para los puntos de carga
 const fadeInOut = keyframes`
-  0% {
-    opacity: 0.3;
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0.3;
-  }
+  0% { opacity: 0.3; }
+  50% { opacity: 1; }
+  100% { opacity: 0.3; }
+`;
+
+const slideIn = keyframes`
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
 `;
 
 const FullPageLoader = ({ 
@@ -74,16 +53,39 @@ const FullPageLoader = ({
   const [showLoadingDots, setShowLoadingDots] = useState(true);
   const [tip, setTip] = useState(0);
   
-  // Paleta de colores moderna y limpia
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // Paleta de colores profesional mejorada
   const colors = {
-    primary: isDarkTheme ? '#2196F3' : '#0288D1',
-    secondary: isDarkTheme ? '#03A9F4' : '#00BCD4',
-    background: isDarkTheme ? '#1E2A3E' : '#FFFFFF',
-    paper: isDarkTheme ? '#283546' : '#F5F9FF',
-    text: isDarkTheme ? '#FFFFFF' : '#0277BD',
-    secondaryText: isDarkTheme ? '#B0BEC5' : '#546E7A',
-    success: '#4CAF50',
-    border: isDarkTheme ? '#384B65' : '#E1F5FE',
+    // Colores principales
+    primary: isDarkTheme ? '#1E88E5' : '#1976D2',
+    secondary: isDarkTheme ? '#00B0FF' : '#0091EA',
+    accent: isDarkTheme ? '#64B5F6' : '#42A5F5',
+    
+    // Fondos
+    background: isDarkTheme ? '#121820' : '#FFFFFF',
+    surface: isDarkTheme ? '#1E2A38' : '#F8FBFF',
+    
+    // Textos
+    text: isDarkTheme ? '#FFFFFF' : '#0D47A1',
+    secondaryText: isDarkTheme ? '#B0BEC5' : '#37474F',
+    
+    // Estados
+    success: '#00C853',
+    warning: '#FFD600',
+    
+    // Elementos UI
+    border: isDarkTheme ? 'rgba(100, 181, 246, 0.12)' : 'rgba(25, 118, 210, 0.08)',
+    shadow: isDarkTheme ? 'rgba(0, 0, 0, 0.4)' : 'rgba(25, 118, 210, 0.15)',
+    
+    // Gradientes
+    gradientPrimary: isDarkTheme 
+      ? 'linear-gradient(135deg, #1976D2 0%, #1E88E5 100%)'
+      : 'linear-gradient(135deg, #1976D2 0%, #42A5F5 100%)',
+    gradientAccent: isDarkTheme 
+      ? 'linear-gradient(90deg, rgba(30, 136, 229, 0.08) 0%, rgba(0, 176, 255, 0.12) 100%)'
+      : 'linear-gradient(90deg, rgba(25, 118, 210, 0.04) 0%, rgba(0, 145, 234, 0.08) 100%)'
   };
 
   // Lista de consejos dentales
@@ -96,18 +98,18 @@ const FullPageLoader = ({
     "No use los dientes para abrir envases"
   ];
 
-  // Efecto para simular el progreso de carga
+  // Efecto para simular el progreso de carga en 3 segundos
   useEffect(() => {
     if (!autoProgress) return;
 
-    // Actualización de progreso
+    // Actualización rápida del progreso (completa en ~2.8 segundos)
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + 0.5;
+        return prev + 1.8; // Incremento ajustado
       });
     }, 50);
 
@@ -121,12 +123,12 @@ const FullPageLoader = ({
         }
         return prev + 1;
       });
-    }, Math.floor(5000 / loadingSteps.length));
+    }, Math.floor(2800 / loadingSteps.length)); // Se completa en ~2.8 segundos
 
-    // Rotación de consejos
+    // Rotación de consejos 
     const tipInterval = setInterval(() => {
       setTip(prev => (prev + 1) % dentalTips.length);
-    }, 4000);
+    }, 1200); 
 
     return () => {
       clearInterval(progressInterval);
@@ -138,11 +140,11 @@ const FullPageLoader = ({
   // Renderizar icono de estado según la etapa actual
   const renderStepIcon = (index) => {
     if (index < currentStep) {
-      return <CheckCircleOutline sx={{ color: colors.success, fontSize: 16 }} />;
+      return <CheckCircleOutline sx={{ color: colors.success, fontSize: 18 }} />;
     } else if (index === currentStep) {
-      return <AccessTime sx={{ color: colors.primary, fontSize: 16, animation: `${pulse} 2s infinite` }} />;
+      return <AccessTime sx={{ color: colors.primary, fontSize: 18, animation: `${pulse} 1.5s infinite` }} />;
     } else {
-      return <CircularProgress size={14} sx={{ color: colors.secondary, opacity: 0.5 }} />;
+      return <CircularProgress size={16} sx={{ color: colors.secondary, opacity: 0.5 }} />;
     }
   };
 
@@ -159,40 +161,35 @@ const FullPageLoader = ({
         width: '100%',
         height: '100%',
         background: colors.background,
-        zIndex: 1300,
+        zIndex: 1500,
         overflow: 'hidden'
       }}
     >
       {/* Contenedor principal */}
-      <Paper
-        elevation={isDarkTheme ? 8 : 4}
+      <Box
         sx={{
-          borderRadius: 4,
-          p: 4,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          maxWidth: 380,
-          width: '90%',
-          backgroundColor: colors.paper,
-          border: `1px solid ${colors.border}`,
+          maxWidth: isMobile ? '92%' : 520,
+          width: '100%',
           position: 'relative',
-          overflow: 'hidden',
-          boxShadow: isDarkTheme 
-            ? '0 8px 24px rgba(0,0,0,0.25)' 
-            : '0 8px 24px rgba(0,0,0,0.08)'
+          pt: 2,
+          pb: 3,
+          px: isMobile ? 2 : 4
         }}
       >
         {/* Contenedor de la animación de carga */}
         <Box
           sx={{
             position: 'relative',
-            width: '110px',
-            height: '110px',
+            width: isMobile ? '140px' : '160px',
+            height: isMobile ? '140px' : '160px',
             display: 'flex',
             justifyContent: 'center',
             alignItems: 'center',
-            mb: 3
+            mb: 4,
+            mt: 2
           }}
         >
           {/* Círculo de carga exterior */}
@@ -202,10 +199,11 @@ const FullPageLoader = ({
               width: '100%',
               height: '100%',
               borderRadius: '50%',
-              border: '3px solid transparent',
+              border: '4px solid transparent',
               borderTopColor: colors.primary,
               borderBottomColor: colors.primary,
               animation: `${rotate} 1.5s linear infinite`,
+              opacity: 0.9
             }}
           />
           
@@ -213,60 +211,61 @@ const FullPageLoader = ({
           <Box
             sx={{
               position: 'absolute',
-              width: '80%',
-              height: '80%',
+              width: '75%',
+              height: '75%',
               borderRadius: '50%',
-              border: '3px solid transparent',
+              border: '4px solid transparent',
               borderLeftColor: colors.secondary,
               borderRightColor: colors.secondary,
               animation: `${rotate} 2s linear infinite reverse`,
+              opacity: 0.9
             }}
           />
           
           {/* Icono central */}
           <Box
             sx={{
-              width: '55px',
-              height: '55px',
+              width: isMobile ? '70px' : '80px',
+              height: isMobile ? '70px' : '80px',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              backgroundColor: isDarkTheme ? colors.background : '#FFFFFF',
+              backgroundColor: isDarkTheme ? colors.surface : '#FFFFFF',
               borderRadius: '50%',
-              boxShadow: isDarkTheme 
-                ? '0 4px 8px rgba(0,0,0,0.3)' 
-                : '0 4px 8px rgba(0,0,0,0.08)',
+              boxShadow: `0 8px 32px ${colors.shadow}`,
               zIndex: 2,
               animation: `${pulse} 2s infinite ease-in-out`,
-              border: `2px solid ${colors.border}`
+              border: `2px solid ${alpha(colors.primary, 0.15)}`
             }}
           >
             {customIcon || (
               currentStep >= loadingSteps.length - 1 ? (
                 <CheckCircleOutline 
                   sx={{ 
-                    fontSize: 30, 
+                    fontSize: isMobile ? 36 : 42, 
                     color: colors.success
                   }} 
                 />
               ) : (
-                <LocalHospital sx={{ fontSize: 30, color: colors.primary }} />
+                <LocalHospital sx={{ fontSize: isMobile ? 36 : 42, color: colors.primary }} />
               )
             )}
           </Box>
         </Box>
         
         {/* Mensaje principal */}
-        <Box sx={{ position: 'relative', width: '100%', textAlign: 'center', mb: 0.5 }}>
+        <Box sx={{ position: 'relative', width: '100%', textAlign: 'center', mb: 2 }}>
           <Typography
-            variant="h6"
+            variant="h5"
             sx={{
               color: colors.text,
-              fontWeight: '500',
+              fontWeight: 600,
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
-              gap: 0.5
+              gap: 0.5,
+              fontSize: isMobile ? '1.4rem' : '1.6rem',
+              letterSpacing: '-0.01em'
             }}
           >
             {loadingSteps[currentStep] || message}
@@ -278,8 +277,8 @@ const FullPageLoader = ({
                   <Box
                     key={i}
                     sx={{
-                      width: '5px',
-                      height: '5px',
+                      width: '6px',
+                      height: '6px',
                       backgroundColor: colors.text,
                       borderRadius: '50%',
                       animation: `${fadeInOut} 1.5s infinite`,
@@ -292,39 +291,41 @@ const FullPageLoader = ({
           </Typography>
         </Box>
         
-        {/* Barra de progreso simplificada */}
+        {/* Barra de progreso profesional */}
         {showProgress && (
           <Box
             sx={{
               width: '100%',
-              height: '4px',
-              backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
-              borderRadius: '2px',
+              height: '6px',
+              backgroundColor: isDarkTheme ? alpha(colors.primary, 0.08) : alpha(colors.primary, 0.05),
+              borderRadius: '3px',
               overflow: 'hidden',
               mt: 1,
-              mb: 3
+              mb: 4
             }}
           >
             <Box
               sx={{
                 height: '100%',
-                backgroundColor: colors.primary,
+                background: colors.gradientPrimary,
                 width: `${progress}%`,
-                borderRadius: '2px',
-                transition: 'width 0.3s ease',
+                borderRadius: '3px',
+                transition: 'width 0.15s ease-out',
+                boxShadow: `0 1px 3px ${alpha(colors.primary, 0.3)}`
               }}
             />
           </Box>
         )}
         
-        {/* Pasos de carga */}
+        {/* Pasos de carga - Mejorados */}
         <Box 
           sx={{ 
             display: 'flex', 
             flexDirection: 'column', 
             width: '100%',
-            gap: 1,
-            mb: 3
+            gap: 1.5,
+            mb: 4,
+            px: isMobile ? 1 : 3
           }}
         >
           {loadingSteps.map((step, index) => (
@@ -333,18 +334,21 @@ const FullPageLoader = ({
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5,
-                opacity: index <= currentStep ? 1 : 0.6,
+                gap: 2,
+                opacity: index <= currentStep ? 1 : 0.5,
                 transform: index <= currentStep ? 'translateX(0)' : 'translateX(-5px)',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.25s ease',
               }}
             >
               {renderStepIcon(index)}
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{
-                  color: colors.secondaryText,
-                  fontWeight: index === currentStep ? 500 : 400,
+                  color: index <= currentStep 
+                    ? colors.text 
+                    : colors.secondaryText,
+                  fontWeight: index === currentStep ? 600 : 400,
+                  fontSize: '0.95rem'
                 }}
               >
                 {step}
@@ -353,40 +357,78 @@ const FullPageLoader = ({
           ))}
         </Box>
         
-        {/* Consejo dental - simplificado */}
+        {/* Consejo dental - Profesional y limpio */}
         {showTips && (
           <Box
             sx={{
-              mt: 2,
-              p: 2,
+              mt: 1,
+              py: 2.5,
+              px: 3,
               borderRadius: 2,
-              background: isDarkTheme ? 'rgba(33,150,243,0.08)' : 'rgba(3,169,244,0.06)',
+              background: colors.gradientAccent,
               border: `1px solid ${colors.border}`,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1.5,
-              width: '100%'
+              width: '100%',
+              animation: `${slideIn} 0.4s ease-out`,
+              boxShadow: `0 6px 20px ${alpha(colors.shadow, 0.08)}`,
+              position: 'relative',
+              overflow: 'hidden'
             }}
           >
-            <MedicalServices 
-              sx={{ 
-                color: colors.secondary,
-                fontSize: 20 
-              }} 
-            />
-            <Typography
-              variant="body2"
+            {/* Elemento decorativo */}
+            <Box 
               sx={{
-                color: colors.secondaryText,
-                fontWeight: '400',
-                lineHeight: 1.4
+                position: 'absolute',
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: '4px',
+                background: colors.gradientPrimary
               }}
-            >
-              {dentalTips[tip]}
-            </Typography>
+            />
+            
+            <Box sx={{ 
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 2,
+              pl: 1
+            }}>
+              <MedicalServices 
+                sx={{ 
+                  color: colors.primary,
+                  fontSize: 28,
+                  mt: 0.5
+                }} 
+              />
+              <Box>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    color: isDarkTheme ? colors.accent : colors.primary,
+                    fontWeight: 700,
+                    mb: 0.5,
+                    fontSize: '0.85rem',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase'
+                  }}
+                >
+                  Consejo Dental
+                </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: colors.text,
+                    fontWeight: 400,
+                    lineHeight: 1.6,
+                    fontSize: '1rem'
+                  }}
+                >
+                  {dentalTips[tip]}
+                </Typography>
+              </Box>
+            </Box>
           </Box>
         )}
-      </Paper>
+      </Box>
     </Box>
   );
 };

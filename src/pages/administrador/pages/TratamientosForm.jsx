@@ -23,6 +23,7 @@ import {
 import React, { useCallback, useEffect, useState } from 'react';
 
 import {
+    Add, // He movido Add aquí para que esté junto con los demás iconos
     AssignmentTurnedIn,
     Cancel,
     CheckCircle,
@@ -34,9 +35,11 @@ import {
     ChangeCircle,
     NotificationImportant, PeopleAlt
 } from '@mui/icons-material';
-
+import { Link } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import NuevoAgendamiento from "./citas/nuevaCita";
 
 /**
  * Componente para gestionar tratamientos
@@ -683,10 +686,28 @@ const TratamientosForm = () => {
                         Gestión de Tratamientos
                     </Typography>
 
-                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="subtitle1" color={colors.secondary}>
-                            Administre los tratamientos de larga duración que requieren múltiples citas
-                        </Typography>
+                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                startIcon={<Add />}
+                                component={Link}
+                                to="/Administrador/citas/nueva"
+                                state={{ from: "/Administrador/tratamientos" }}
+                                sx={{
+                                    height: 40,
+                                    backgroundColor: colors.primary,
+                                    '&:hover': { backgroundColor: alpha(colors.primary, 0.8) },
+                                    mr: 2
+                                }}
+                            >
+                                Agendar
+                            </Button>
+                            <Typography variant="subtitle1" color={colors.secondary} sx={{ display: { xs: 'none', md: 'block' } }}>
+                                Administre los tratamientos de larga duración
+                            </Typography>
+                        </Box>
                         <TextField
                             variant="outlined"
                             placeholder="Buscar tratamiento..."

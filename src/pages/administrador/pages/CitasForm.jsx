@@ -33,7 +33,7 @@ import {
     MenuBook, CheckCircle, MedicalServices, LocalHospital,
     PersonOff, Visibility
 } from '@mui/icons-material';
-
+import { Link } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
@@ -171,6 +171,8 @@ const CitasForm = () => {
     // Función para verificar si se puede cambiar a un estado específico
     const canChangeToState = (currentState, newState) => {
         switch (currentState) {
+            case 'PRE-REGISTRO': // Agregamos este caso
+                return newState === 'Confirmada' || newState === 'Cancelada';
             case 'Pendiente':
                 return newState === 'Confirmada' || newState === 'Cancelada';
             case 'Confirmada':
@@ -183,22 +185,16 @@ const CitasForm = () => {
                 return false;
         }
     };
-
     // Función para verificar si una cita puede ser confirmada directamente
     const canConfirmAppointment = (cita) => {
-        // Si la cita está vinculada a un tratamiento (tiene tratamiento_id o es_tratamiento es 1)
-        if (cita.tratamiento_id || cita.es_tratamiento === 1) {
-            const tratamiento = tratamientos[cita.tratamiento_id];
-
-            // Si no encontramos el tratamiento o no está Activo, no permitimos confirmar
-            if (!tratamiento || tratamiento.estado !== 'Activo') {
-                return false;
-            }
+        // Si es una consulta normal (no es tratamiento), siempre se puede confirmar
+        if (!isTratamiento(cita)) {
+            return true;
         }
 
-        // Si no es un tratamiento (es una consulta normal), siempre se puede confirmar
-        // independientemente de si el paciente está registrado o no
-        return true;
+        // Si es un tratamiento, verificar estado del tratamiento
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        return tratamiento && tratamiento.estado === 'Activo';
     };
 
     // Función genérica para cambiar el estado de una cita
@@ -502,7 +498,51 @@ const CitasForm = () => {
             if (!response.ok) throw new Error("Error al obtener las citas");
 
             const data = await response.json();
-            setCitas(data.filter(cita => !cita.archivado));
+            const citasFiltradas = data.filter(cita => !cita.archivado);
+
+            // Añadir este log para verificar qué datos están llegando
+            console.log("Datos de citas recibidos:", citasFiltradas);
+
+            // Agrupar las citas por tratamiento para verificar y asignar números
+            const citasPorTratamiento = {};
+
+            // Primero agrupar todas las citas por tratamiento_id
+            citasFiltradas.forEach(cita => {
+                if (cita.tratamiento_id) {
+                    if (!citasPorTratamiento[cita.tratamiento_id]) {
+                        citasPorTratamiento[cita.tratamiento_id] = [];
+                    }
+                    citasPorTratamiento[cita.tratamiento_id].push(cita);
+                }
+            });
+
+            // Ordenar las citas de cada tratamiento por fecha y asignar número
+            Object.keys(citasPorTratamiento).forEach(tratamientoId => {
+                // Ordenar por fecha de consulta
+                citasPorTratamiento[tratamientoId].sort((a, b) => {
+                    return new Date(a.fecha_consulta) - new Date(b.fecha_consulta);
+                });
+
+                // Asignar número de cita secuencial (1, 2, 3...) en el orden de las fechas
+                citasPorTratamiento[tratamientoId].forEach((cita, index) => {
+                    cita.numero_cita_calculado = index + 1;
+                });
+            });
+
+            // Actualizar las citas con los números calculados
+            const citasActualizadas = citasFiltradas.map(cita => {
+                if (cita.tratamiento_id && citasPorTratamiento[cita.tratamiento_id]) {
+                    const citaEnGrupo = citasPorTratamiento[cita.tratamiento_id].find(
+                        c => c.consulta_id === cita.consulta_id
+                    );
+                    if (citaEnGrupo) {
+                        return { ...cita, numero_cita_calculado: citaEnGrupo.numero_cita_calculado };
+                    }
+                }
+                return cita;
+            });
+
+            setCitas(citasActualizadas);
         } catch (error) {
             console.error("Error cargando citas:", error);
             setCitas([]);
@@ -556,13 +596,27 @@ const CitasForm = () => {
 
     // Función para determinar si es un tratamiento o no
     const isTratamiento = (cita) => {
-        // Usando directamente es_tratamiento que viene del campo tratamiento de la BD (1 = true)
         return cita?.es_tratamiento === 1;
     };
 
     // Obtener el número de cita dentro del tratamiento
     const getNumeroCitaTratamiento = (cita) => {
-        return cita?.numero_cita_tratamiento || cita?.numero_cita || 1;
+        // Usar el número calculado si existe
+        if (cita?.numero_cita_calculado) {
+            return cita.numero_cita_calculado;
+        }
+
+        // Verificar si hay otros campos que indiquen el número
+        if (cita?.numero_cita_tratamiento) {
+            return cita.numero_cita_tratamiento;
+        }
+
+        if (cita?.numero_cita) {
+            return cita.numero_cita;
+        }
+
+        // Si no hay información, devolver 1 como valor predeterminado
+        return 1;
     };
 
     // Verificar si un paciente está registrado (tiene paciente_id)
@@ -585,12 +639,13 @@ const CitasForm = () => {
 
     // Renderizar botones de acción según el estado de la cita
     const renderStateActionButtons = (cita) => {
-        // Primero verificamos si la cita se puede confirmar según las reglas de negocio
+        // Verificamos si la cita se puede confirmar según las reglas
         const puedeConfirmar = canConfirmAppointment(cita);
 
         switch (cita.estado) {
+            case 'PRE-REGISTRO': // Agregamos este caso para manejar el PRE-REGISTRO
             case 'Pendiente':
-                // Solo mostrar botón de confirmar si la cita puede confirmarse
+                // Mostrar botón de confirmar si la cita puede confirmarse
                 return puedeConfirmar ? (
                     <Tooltip title="Confirmar cita" arrow>
                         <IconButton
@@ -611,7 +666,6 @@ const CitasForm = () => {
                         </IconButton>
                     </Tooltip>
                 ) : null;
-
             case 'Confirmada':
                 return (
                     <Tooltip title="Completar cita" arrow>
@@ -637,28 +691,23 @@ const CitasForm = () => {
                 return null;
         }
     };
-
     // Verificar si una cita se puede cancelar
     const canCancelAppointment = (cita) => {
         // Primero verificar si está en un estado que permita cancelación
-        const estadoPermiteCancelar = cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+        const estadoPermiteCancelar = cita.estado === 'PRE-REGISTRO' || cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
 
         if (!estadoPermiteCancelar) {
             return false;
         }
 
-        // Para tratamientos, aplicar la misma regla que para confirmar
-        if (cita.tratamiento_id || cita.es_tratamiento === 1) {
-            const tratamiento = tratamientos[cita.tratamiento_id];
-
-            // Si no encontramos el tratamiento o no está Activo, no permitimos cancelar
-            if (!tratamiento || tratamiento.estado !== 'Activo') {
-                return false;
-            }
+        // Si es una consulta normal (no es tratamiento), siempre se puede cancelar
+        if (!isTratamiento(cita)) {
+            return true;
         }
 
-        // Si no es un tratamiento (es una consulta normal), siempre se puede cancelar
-        return true;
+        // Si es un tratamiento, verificar estado del tratamiento
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        return tratamiento && tratamiento.estado === 'Activo';
     };
 
     return (
@@ -674,14 +723,31 @@ const CitasForm = () => {
                         Gestión de Citas
                     </Typography>
 
-                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Button
+  variant="contained"
+  color="primary"
+  startIcon={<Add />}
+  component={Link}
+  to="/Administrador/citas/nueva"
+  state={{ from: "/Administrador/citas" }}
+  sx={{
+    height: 40,
+    backgroundColor: colors.primary,
+    '&:hover': { backgroundColor: alpha(colors.primary, 0.8) },
+    mr: 2
+  }}
+>
+  Agendar
+</Button>
+
                         <TextField
                             variant="outlined"
                             placeholder="Buscar cita..."
                             size="small"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
-                            sx={{ width: { xs: '100%', sm: '300px' } }}
+                            sx={{ width: { xs: '60%', sm: '300px' } }}
                         />
                     </Box>
 
@@ -916,7 +982,7 @@ const CitasForm = () => {
                                                             flexWrap: { xs: 'wrap', md: 'nowrap' },
                                                             justifyContent: 'center'
                                                         }}>
-                                                            {/* Ver Detalles - Cambiado a ícono de ojo */}
+                                                            {/* Ver Detalles - Siempre visible */}
                                                             <Tooltip title="Ver detalles" arrow>
                                                                 <IconButton
                                                                     onClick={() => handleViewDetails(cita)}
@@ -961,8 +1027,9 @@ const CitasForm = () => {
                                                                 </Tooltip>
                                                             )}
 
-                                                            {/* Botón de acción según estado (Confirmar o Completar) */}
-                                                            {renderStateActionButtons(cita)}
+                                                            {/* Botón de acción según estado (Confirmar o Completar) - Solo si no es tratamiento o el tratamiento está activo */}
+                                                            {!isTratamiento(cita) || (tratamientos[cita.tratamiento_id] && tratamientos[cita.tratamiento_id].estado === 'Activo') ?
+                                                                renderStateActionButtons(cita) : null}
 
                                                             {/* Archivar Cita - Siempre disponible */}
                                                             <Tooltip title="Archivar cita" arrow>
@@ -984,7 +1051,7 @@ const CitasForm = () => {
                                                                 </IconButton>
                                                             </Tooltip>
 
-                                                            {/* Cancelar Cita - Solo si se puede cancelar y NO está completada */}
+                                                            {/* Cancelar Cita - Solo si se puede cancelar según la nueva lógica y NO está completada */}
                                                             {canCancelAppointment(cita) && !citaCompletada && (
                                                                 <Tooltip title="Cancelar cita" arrow>
                                                                     <IconButton

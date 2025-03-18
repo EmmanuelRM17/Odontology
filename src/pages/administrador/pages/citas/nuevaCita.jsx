@@ -1,15 +1,21 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Dialog, DialogTitle, DialogContent, DialogActions,
   Button, TextField, FormControl, InputLabel, Select, MenuItem,
   Grid, Typography, FormHelperText, Box, CircularProgress,
-  Divider, Alert, Step, StepLabel, Stepper, Paper, Chip,
-  IconButton, alpha, Radio,
+  Divider, Alert, AlertTitle, Step, StepLabel, Stepper, Paper, Chip,
+  IconButton, alpha, Radio, RadioGroup, FormControlLabel, Card, CardContent, Container,
+  InputAdornment,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import {
-  CalendarMonth, Person, EventAvailable, Checklist, Search, ArrowBackIosNew, CheckCircle,
-  PersonAdd, Close, Event, HealthAndSafety, AccessTime, ArrowForwardIos,
+  CalendarMonth, Person, EventAvailable, Checklist, Search,
+  ArrowBackIosNew, CheckCircle, PersonAdd, Close, Event,
+  HealthAndSafety, AccessTime, ArrowForwardIos, ArrowBack,
+  MedicalServices,
+  CleaningServices, Face, Spa, Bloodtype, MedicalInformation, Apps,
+  Category, InfoOutlined, Update
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -18,32 +24,45 @@ import { es } from 'date-fns/locale';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import moment from 'moment-timezone';
 
-const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
+// Componente principal para crear una nueva cita o tratamiento
+const NuevoAgendamiento = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { isDarkTheme } = useThemeContext();
+
+  // Obtiene la ruta de origen desde el estado o usa una ruta predeterminada
+  const previousPath = location.state?.from || "/Administrador/citas";
+
+  // Estados comunes
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [servicios, setServicios] = useState([]);
   const [odontologos, setOdontologos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
-  const [horariosDisponibles, setHorariosDisponibles] = useState([]);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [showNewPatientForm, setShowNewPatientForm] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [fechasDisponibles, setFechasDisponibles] = useState([]);
-  const [workDays, setWorkDays] = useState([]);
-  const [availableTimes, setAvailableTimes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+  const [isTratamiento, setIsTratamiento] = useState(false);
+  const [isStepValid, setIsStepValid] = useState(false);
+  const [filtroServicio, setFiltroServicio] = useState('todos');
+
+  // Estados específicos para citas
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [workDays, setWorkDays] = useState([]);
+  const [availableTimes, setAvailableTimes] = useState([]);
+
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
 
+  // Estado del formulario
   const [formData, setFormData] = useState({
-    // Datos del paciente
+    // Datos del paciente (comunes)
     paciente_id: '',
     paciente_nombre: '',
     paciente_apellido_paterno: '',
@@ -53,18 +72,27 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     paciente_telefono: '',
     paciente_correo: '',
 
-    // Servicios seleccionados
+    // Datos comunes
     servicios_seleccionados: [],
-
-    // Datos de la cita
     odontologo_id: '',
+    notas: '',
+
+    // Datos específicos de cita
     fecha_consulta: null,
     hora_consulta: null,
     estado: 'Pendiente',
-    notas: ''
+
+    // Datos específicos de tratamiento
+    nombre_tratamiento: '',
+    fecha_inicio: null,
+    fecha_estimada_fin: null,
+    total_citas_programadas: 1,
+    costo_total: 0
   });
+
   // Estados de validación
   const [formErrors, setFormErrors] = useState({
+    // Validaciones comunes
     paciente_id: false,
     paciente_nombre: false,
     paciente_apellido_paterno: false,
@@ -73,13 +101,20 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     paciente_fecha_nacimiento: false,
     servicios_seleccionados: false,
     odontologo_id: false,
+
+    // Validaciones de cita
     fecha_consulta: false,
-    hora_consulta: false
+    hora_consulta: false,
+
+    // Validaciones de tratamiento
+    nombre_tratamiento: false,
+    fecha_inicio: false,
+    fecha_estimada_fin: false,
+    total_citas_programadas: false
   });
 
-
-  // Pasos del formulario
-  const steps = ['Seleccionar Paciente', 'Elegir Servicios', 'Seleccionar Fecha y Hora', 'Confirmar'];
+  // Pasos generales unificados para ambos tipos
+  const steps = ['Seleccionar Paciente', 'Elegir Servicio', 'Programar Cita', 'Confirmar'];
 
   // Colores del tema
   const colors = {
@@ -88,22 +123,25 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     text: isDarkTheme ? '#ffffff' : '#1a1a1a',
     cardBg: isDarkTheme ? '#1A2735' : '#ffffff',
     step: isDarkTheme ? '#00BCD4' : '#2196f3',
+    success: '#4CAF50',
+    warning: '#FFA726',
+    error: '#E53935',
+    info: '#03A9F4',
+    purple: '#9C27B0',
   };
 
-  // Cargar datos al abrir el diálogo
+  // Cargar datos al iniciar
   useEffect(() => {
-    if (open) {
-      resetForm();
-      fetchServicios();
-      fetchOdontologos();
-      fetchPacientes();
-      setNotification({
-        open: false,
-        message: '',
-        type: ''
-      });
-    }
-  }, [open]);
+    resetForm();
+    fetchServicios();
+    fetchOdontologos();
+    fetchPacientes();
+  }, []);
+
+  // Verificar validez del paso actual
+  useEffect(() => {
+    validateStepAsync();
+  }, [activeStep, formData, showNewPatientForm]);
 
   // Resetear formulario
   const resetForm = () => {
@@ -121,8 +159,16 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       fecha_consulta: null,
       hora_consulta: null,
       estado: 'Pendiente',
-      notas: ''
+      notas: '',
+
+      // Campos específicos de tratamiento
+      nombre_tratamiento: '',
+      fecha_inicio: null,
+      fecha_estimada_fin: null,
+      total_citas_programadas: 1,
+      costo_total: 0
     });
+
     setFormErrors({
       paciente_id: false,
       paciente_nombre: false,
@@ -133,8 +179,15 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       servicios_seleccionados: false,
       odontologo_id: false,
       fecha_consulta: false,
-      hora_consulta: false
+      hora_consulta: false,
+
+      // Validaciones de tratamiento
+      nombre_tratamiento: false,
+      fecha_inicio: false,
+      fecha_estimada_fin: false,
+      total_citas_programadas: false
     });
+
     setActiveStep(0);
     setError('');
     setSuccess('');
@@ -142,15 +195,15 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     setSearchResults([]);
     setShowNewPatientForm(false);
     setSelectedDate(null);
-    setHorariosDisponibles([]);
-
-    // Reiniciar también el estado de notificación
+    setIsTratamiento(false);
+    setIsStepValid(false);
     setNotification({
       open: false,
       message: '',
       type: ''
     });
   };
+
   // Fetching de servicios
   const fetchServicios = async () => {
     setLoading(true);
@@ -158,7 +211,25 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       const response = await fetch('https://back-end-4803.onrender.com/api/servicios/all');
       if (!response.ok) throw new Error('Error al cargar servicios');
       const data = await response.json();
-      console.log("Datos de servicios recibidos:", data); // Agregar para depuración
+
+      // Debug: Mostrar información de los servicios en consola
+      console.log('=== DEPURACIÓN DE SERVICIOS ===');
+      console.log('Servicios cargados del backend:', data.length);
+
+      // Mostrar el primer servicio como ejemplo
+      if (data.length > 0) {
+        console.log('Ejemplo del primer servicio:', data[0]);
+        console.log('Campo tratamiento:', data[0].tratamiento, 'Tipo:', typeof data[0].tratamiento);
+      }
+
+      // Listar todos los tratamientos
+      console.log('Servicios marcados como tratamientos:');
+      const tratamientos = data.filter(s => parseInt(s.tratamiento, 10) === 1);
+      console.log('Total de tratamientos encontrados:', tratamientos.length);
+      tratamientos.forEach(t => {
+        console.log(`- ${t.title}: ID=${t.id}, Tratamiento=${t.tratamiento}, Citas=${t.citasEstimadas}`);
+      });
+
       setServicios(data);
     } catch (error) {
       console.error('Error:', error);
@@ -184,8 +255,9 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
           odontologo_id: odontologo.id
         }));
 
-        // Cargar disponibilidad para este odontólogo
-        fetchDisponibilidad(odontologo.id);
+        if (!isTratamiento) {
+          fetchDisponibilidad(odontologo.id);
+        }
       }
     } catch (error) {
       console.error('Error:', error);
@@ -193,6 +265,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     }
   };
 
+  // Obtener días laborables del odontólogo
   useEffect(() => {
     if (!formData.odontologo_id) return;
     setIsLoading(true);
@@ -222,7 +295,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       .finally(() => setIsLoading(false));
   }, [formData.odontologo_id]);
 
-  // Add this function to fetch available times for a selected date
+  // Fetch horarios disponibles para una fecha
   const fetchAvailableTimes = (date) => {
     if (!(date instanceof Date) || isNaN(date)) {
       console.error('Fecha no válida para obtener horarios:', date);
@@ -258,13 +331,34 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       .finally(() => setIsLoading(false));
   };
 
-  // Update the date selection handler to fetch available times
+  // Handler para selección de fecha
   const handleDateSelection = (date) => {
+    // Para todos los casos, usamos esta fecha como fecha inicial o fecha de consulta
     setSelectedDate(date);
-    setFormData(prev => ({
-      ...prev,
-      fecha_consulta: date
-    }));
+
+    if (isTratamiento) {
+      // Para tratamiento, actualizamos la fecha de inicio
+      setFormData(prev => ({
+        ...prev,
+        fecha_inicio: date,
+        fecha_consulta: date
+      }));
+
+      // Calculamos automáticamente la fecha estimada de fin (un mes por cada cita programada)
+      const endDate = new Date(date);
+      endDate.setMonth(endDate.getMonth() + (formData.total_citas_programadas - 1));
+
+      setFormData(prev => ({
+        ...prev,
+        fecha_estimada_fin: endDate
+      }));
+    } else {
+      // Para consulta regular
+      setFormData(prev => ({
+        ...prev,
+        fecha_consulta: date
+      }));
+    }
 
     if (formErrors.fecha_consulta) {
       setFormErrors(prev => ({
@@ -277,6 +371,9 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     if (formData.odontologo_id) {
       fetchAvailableTimes(date);
     }
+
+    // Validar paso después de la selección
+    validateStepAsync();
   };
 
   // Fetching de pacientes
@@ -332,14 +429,10 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
 
   // Seleccionar paciente existente
   const handleSelectPatient = (paciente) => {
-    console.log("Datos completos del paciente seleccionado:", paciente);
-
     let fechaNacimiento = null;
     if (paciente.fechaNacimiento) {
       fechaNacimiento = new Date(paciente.fechaNacimiento);
-      console.log("Fecha de nacimiento recuperada:", fechaNacimiento);
     } else {
-      console.log("No se encontró la fecha de nacimiento en el objeto paciente");
       const currentYear = new Date().getFullYear();
       fechaNacimiento = new Date(currentYear, 0, 1);
     }
@@ -360,6 +453,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     setSearchQuery('');
     setSearchResults([]);
     setShowNewPatientForm(false);
+    validateStepAsync();
   };
 
   // Activar formulario de nuevo paciente
@@ -381,6 +475,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       paciente_nombre: false,
       paciente_apellido_paterno: false
     }));
+    validateStepAsync();
   };
 
   // Manejar cambios en el formulario de paciente
@@ -398,49 +493,85 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         [name]: false
       }));
     }
+    validateStepAsync();
   };
 
-  // Manejar selección múltiple de servicios
+  // Manejar selección de servicios
   const handleServiceSelection = (servicio) => {
-    setFormData(prev => {
-      // Verificar si es el mismo servicio que ya está seleccionado
-      const isAlreadySelected = prev.servicios_seleccionados.length > 0 &&
-        prev.servicios_seleccionados[0].servicio_id === servicio.servicio_id;
+    // Debugging para verificar la estructura del servicio recibido
+    console.log('Servicio seleccionado:', servicio);
 
-      // Si ya está seleccionado, deseleccionar (dejar la lista vacía)
-      if (isAlreadySelected) {
-        return {
-          ...prev,
-          servicios_seleccionados: []
-        };
-      }
+    const isAlreadySelected = formData.servicios_seleccionados.length > 0 &&
+      formData.servicios_seleccionados[0].servicio_id === servicio.servicio_id;
 
-      // Si no está seleccionado o hay otro seleccionado, reemplazar con el nuevo
-      return {
+    // Si ya está seleccionado, deseleccionar
+    if (isAlreadySelected) {
+      setFormData(prev => ({
         ...prev,
-        servicios_seleccionados: [{
-          servicio_id: servicio.servicio_id,
-          nombre: servicio.nombre,
-          categoria_nombre: servicio.categoria_nombre,
-          precio: servicio.precio
-        }]
-      };
-    });
+        servicios_seleccionados: [],
+        nombre_tratamiento: ''
+      }));
+      setIsTratamiento(false);
+    } else {
+      // SOLUCIÓN CORREGIDA: Usar el campo 'tratamiento' de la BD
+      // Si el servicio.tratamiento es 1, es un tratamiento, si es 0, no lo es
+      const esTratamiento = servicio.tratamiento === 1;
 
-    // Limpiar error si es necesario
+      // Imprimir para depuración - Usar la propiedad tratamiento directamente
+      console.log(`Servicio "${servicio.nombre || servicio.title}" - Campo tratamiento:`, servicio.tratamiento);
+      console.log(`¿Es tratamiento? (Valor númerico): ${servicio.tratamiento}, Convertido a booleano: ${esTratamiento}`);
+
+      setIsTratamiento(esTratamiento);
+
+      // Obtener la cantidad de citas estimadas - asegurar que sea un número
+      const citasEstimadas = parseInt(servicio.citasEstimadas || 1, 10);
+
+      // Si no está seleccionado, seleccionar nuevo
+      setFormData(prev => {
+        const newData = {
+          ...prev,
+          servicios_seleccionados: [{
+            servicio_id: servicio.servicio_id || servicio.id,
+            nombre: servicio.nombre || servicio.title,
+            categoria_nombre: servicio.categoria_nombre || servicio.category || 'General',
+            precio: servicio.precio || servicio.price || 0,
+            es_tratamiento: esTratamiento,
+            citas_estimadas: citasEstimadas
+          }]
+        };
+
+        // Si es tratamiento, actualizar campos específicos
+        if (esTratamiento) {
+          newData.nombre_tratamiento = servicio.nombre || servicio.title || '';
+          newData.total_citas_programadas = citasEstimadas;
+          newData.costo_total = parseFloat(servicio.precio || servicio.price || 0) * citasEstimadas;
+        }
+
+        return newData;
+      });
+    }
+
+    // Limpiar error
     if (formErrors.servicios_seleccionados) {
       setFormErrors(prev => ({
         ...prev,
         servicios_seleccionados: false
       }));
     }
+    validateStepAsync();
   };
-  // Calcular el precio total de los servicios seleccionados
+
+  // Calcular el precio total
   const calcularPrecioTotal = () => {
     if (formData.servicios_seleccionados.length === 0) {
       return '0.00';
     }
-    return parseFloat(formData.servicios_seleccionados[0].precio || 0).toFixed(2);
+
+    if (isTratamiento) {
+      return parseFloat(formData.costo_total || 0).toFixed(2);
+    } else {
+      return parseFloat(formData.servicios_seleccionados[0].precio || 0).toFixed(2);
+    }
   };
 
   // Manejar selección de odontólogo
@@ -449,44 +580,27 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     setFormData(prev => ({
       ...prev,
       odontologo_id: odontologoId,
-      // Reset date and time when changing dentist
       fecha_consulta: null,
       hora_consulta: null
     }));
 
-    // Clear selected date to force user to select again
+    // Resetear selección de fecha
     setSelectedDate(null);
     setAvailableTimes([]);
 
-    // Clear errors
+    // Limpiar error
     if (formErrors.odontologo_id) {
       setFormErrors(prev => ({
         ...prev,
         odontologo_id: false
       }));
     }
-
+    validateStepAsync();
   };
 
-  // Simular obtención de fechas disponibles para el odontólogo
+  // Simulación de disponibilidad (legacy)
   const fetchDisponibilidad = (odontologoId) => {
-    setLoading(true);
-    // Simulación: generar fechas disponibles para las próximas 2 semanas
-    const fechasDisp = [];
-    const hoy = new Date();
-
-    for (let i = 1; i <= 14; i++) {
-      const fecha = new Date();
-      fecha.setDate(hoy.getDate() + i);
-
-      // Excluir domingos (0 es domingo en JavaScript)
-      if (fecha.getDay() !== 0) {
-        fechasDisp.push(fecha);
-      }
-    }
-
-    setFechasDisponibles(fechasDisp);
-    setLoading(false);
+    // Esta función se mantiene para compatibilidad
   };
 
   // Manejar selección de hora
@@ -502,11 +616,41 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         hora_consulta: false
       }));
     }
+    validateStepAsync();
+  };
+
+  // Manejar cambios en el número de citas programadas
+  const handleCitasProgramadasChange = (e) => {
+    const value = Math.max(1, parseInt(e.target.value) || 1);
+
+    setFormData(prev => {
+      // Calcular costo total basado en precio por cita
+      const precioPorCita = prev.servicios_seleccionados.length > 0
+        ? parseFloat(prev.servicios_seleccionados[0].precio || 0)
+        : 0;
+
+      // Calcular nueva fecha estimada fin
+      let nuevaFechaFin = null;
+      if (prev.fecha_inicio) {
+        nuevaFechaFin = new Date(prev.fecha_inicio);
+        nuevaFechaFin.setMonth(nuevaFechaFin.getMonth() + (value - 1));
+      }
+
+      return {
+        ...prev,
+        total_citas_programadas: value,
+        costo_total: precioPorCita * value,
+        fecha_estimada_fin: nuevaFechaFin || prev.fecha_estimada_fin
+      };
+    });
+    validateStepAsync();
   };
 
   // Manejar cambios generales en el formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    // Para el resto de campos, asignar directamente
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -519,6 +663,15 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         [name]: false
       }));
     }
+    validateStepAsync();
+  };
+
+  // Validar el paso actual de forma asíncrona
+  const validateStepAsync = () => {
+    setTimeout(() => {
+      const isValid = validateStep();
+      setIsStepValid(isValid);
+    }, 0);
   };
 
   // Validar el paso actual antes de avanzar
@@ -543,21 +696,34 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
           return true;
         }
 
-      case 1: // Validar selección de servicios
+      case 1: // Validar datos del servicio
         if (formData.servicios_seleccionados.length === 0) {
           setFormErrors(prev => ({ ...prev, servicios_seleccionados: true }));
           return false;
         }
         return true;
 
-      case 2: // Validar selección de fecha y hora
-        const errors = {
-          odontologo_id: !formData.odontologo_id,
-          fecha_consulta: !formData.fecha_consulta,
-          hora_consulta: !formData.hora_consulta
-        };
-        setFormErrors(prev => ({ ...prev, ...errors }));
-        return !Object.values(errors).some(error => error);
+      case 2: // Validar fechas
+        if (isTratamiento) {
+          // Validar programación del tratamiento
+          const citasErrors = {
+            odontologo_id: !formData.odontologo_id,
+            fecha_consulta: !formData.fecha_consulta, // Usamos fecha_consulta en lugar de fecha_inicio para unificar
+            total_citas_programadas: formData.total_citas_programadas < 1
+          };
+
+          setFormErrors(prev => ({ ...prev, ...citasErrors }));
+          return !Object.values(citasErrors).some(error => error);
+        } else {
+          // Validar selección de fecha y hora para cita regular
+          const errors = {
+            odontologo_id: !formData.odontologo_id,
+            fecha_consulta: !formData.fecha_consulta,
+            hora_consulta: !formData.hora_consulta
+          };
+          setFormErrors(prev => ({ ...prev, ...errors }));
+          return !Object.values(errors).some(error => error);
+        }
 
       default:
         return true;
@@ -589,15 +755,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
 
   // Preparar datos para envío
   const prepareDataForSubmission = () => {
-    // Combinar fecha y hora para crear un objeto Date
-    let fechaHora = null;
-    if (formData.fecha_consulta && formData.hora_consulta) {
-      const [horas, minutos] = formData.hora_consulta.split(':');
-      fechaHora = new Date(formData.fecha_consulta);
-      fechaHora.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0);
-    }
-
-    // Si es un paciente nuevo, incluir los datos para creación
+    // Determinar si es un paciente nuevo
     const esNuevoPaciente = showNewPatientForm;
 
     // Obtener información del odontólogo seleccionado
@@ -610,20 +768,19 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     let fechaNacimiento = null;
     if (formData.paciente_fecha_nacimiento) {
       fechaNacimiento = moment.utc(formData.paciente_fecha_nacimiento).format("YYYY-MM-DD");
-      console.log("Fecha de nacimiento formateada:", fechaNacimiento);
     } else {
-      console.log("No se encontró fecha de nacimiento en formData");
       fechaNacimiento = moment().subtract(30, 'years').format("YYYY-MM-DD");
     }
-    // Estructura de datos según lo que espera el backend
-    const dataToSubmit = {
+
+    // Datos comunes del paciente
+    const datosComunes = {
       // Datos del paciente
       paciente_id: esNuevoPaciente ? null : formData.paciente_id,
       nombre: formData.paciente_nombre,
       apellido_paterno: formData.paciente_apellido_paterno,
       apellido_materno: formData.paciente_apellido_materno,
       genero: formData.paciente_genero || 'No especificado',
-      fecha_nacimiento: fechaNacimiento, // Asegurar que siempre tiene un valor
+      fecha_nacimiento: fechaNacimiento,
       correo: formData.paciente_correo || '',
       telefono: formData.paciente_telefono || '',
 
@@ -639,17 +796,42 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
       categoria_servicio: servicioPrincipal.categoria_nombre || 'General',
       precio_servicio: servicioPrincipal.precio || 0,
 
-      // Datos de la cita
-      fecha_hora: fechaHora?.toISOString(), // Fecha y hora combinadas
-      estado: formData.estado || 'Pendiente',
-      notas: formData.notas || '',
+      // Control
+      es_nuevo_paciente: esNuevoPaciente,
 
-      // Variables de control
-      es_nuevo_paciente: esNuevoPaciente
+      // Notas
+      notas: formData.notas || ''
     };
 
-    console.log("Datos completos a enviar:", dataToSubmit);
-    return dataToSubmit;
+    // Datos específicos según tipo
+    if (isTratamiento) {
+      // Datos para tratamiento
+      return {
+        ...datosComunes,
+        // Datos específicos de tratamiento
+        nombre_tratamiento: formData.nombre_tratamiento,
+        fecha_inicio: formData.fecha_inicio ? formData.fecha_inicio.toISOString() : null,
+        fecha_estimada_fin: formData.fecha_estimada_fin ? formData.fecha_estimada_fin.toISOString() : null,
+        total_citas_programadas: formData.total_citas_programadas,
+        costo_total: formData.costo_total,
+        estado: formData.estado || 'Pre-Registro'
+      };
+    } else {
+      // Datos para cita regular
+      let fechaHora = null;
+      if (formData.fecha_consulta && formData.hora_consulta) {
+        const [horas, minutos] = formData.hora_consulta.split(':');
+        fechaHora = new Date(formData.fecha_consulta);
+        fechaHora.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0);
+      }
+
+      return {
+        ...datosComunes,
+        // Datos específicos de cita
+        fecha_hora: fechaHora?.toISOString(),
+        estado: formData.estado || 'Pendiente'
+      };
+    }
   };
 
   // Enviar el formulario
@@ -668,11 +850,10 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         dataToSubmit.fecha_nacimiento = `${defaultYear}-01-01`;
       }
 
-      // Imprimir los datos que se enviarán al backend para debugging
-      console.log("Datos a enviar al backend:", JSON.stringify(dataToSubmit, null, 2));
-
-      // Usar un único endpoint para crear citas
-      const endpoint = 'https://back-end-4803.onrender.com/api/citas/nueva';
+      // Endpoint según tipo
+      const endpoint = isTratamiento
+        ? 'https://back-end-4803.onrender.com/api/tratamientos/nuevo'
+        : 'https://back-end-4803.onrender.com/api/citas/nueva';
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -682,10 +863,8 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         body: JSON.stringify(dataToSubmit),
       });
 
-      // Obtener respuesta detallada para depuración
+      // Obtener respuesta
       const responseText = await response.text();
-      console.log("Respuesta del servidor (texto):", responseText);
-
       let responseData;
       try {
         responseData = JSON.parse(responseText);
@@ -697,45 +876,27 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
         throw new Error(responseData?.message || `Error ${response.status}: ${response.statusText}`);
       }
 
-      console.log("Respuesta exitosa del servidor:", responseData);
-
       // Mostrar notificación de éxito
       setNotification({
         open: true,
-        message: '¡Cita creada con éxito!',
+        message: isTratamiento
+          ? '¡Tratamiento creado con éxito!'
+          : '¡Cita creada con éxito!',
         type: 'success',
       });
 
-      // Esperar 3 segundos, cerrar notificación y luego cerrar el diálogo
+      // Esperar 2 segundos y redirigir
       setTimeout(() => {
-        setNotification({
-          open: false,
-          message: '',
-          type: ''
-        });
-
-        handleClose();
-
-        if (onAppointmentCreated) onAppointmentCreated();
-      }, 3000);
+        navigate(previousPath);
+      }, 2000);
 
     } catch (error) {
-      console.error('Error al crear la cita:', error);
-      // Mostrar notificación de error
+      console.error('Error al crear:', error);
       setNotification({
         open: true,
         message: `Error: ${error.message}`,
         type: 'error',
       });
-
-      // Cerrar la notificación de error después de 3 segundos
-      setTimeout(() => {
-        setNotification({
-          open: false,
-          message: '',
-          type: ''
-        });
-      }, 3000); // 3 segundos
     } finally {
       setLoading(false);
     }
@@ -798,7 +959,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                   {searchResults.map((paciente) => (
                     <Box
                       component="li"
-                      key={paciente.paciente_id}
+                      key={paciente.id}
                       sx={{
                         p: 2,
                         borderBottom: '1px solid',
@@ -814,7 +975,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                     >
                       <Box>
                         <Typography variant="body1" component="div" sx={{ fontWeight: 'medium' }}>
-                          {paciente.nombre} {paciente.apellido_paterno} {paciente.apellido_materno || ''}
+                          {paciente.nombre} {paciente.aPaterno} {paciente.aMaterno || ''}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {paciente.email || 'Sin correo'} • {paciente.telefono || 'Sin teléfono'}
@@ -882,6 +1043,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                       }));
                       setSearchQuery('');
                       setSearchResults([]);
+                      validateStepAsync();
                     }}
                   >
                     Cancelar Selección
@@ -906,6 +1068,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                       paciente_genero: false,
                       paciente_fecha_nacimiento: false,
                     }));
+                    validateStepAsync();
                   }}
                   color="default"
                   size="small"
@@ -949,7 +1112,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                   />
                 </Grid>
 
-                {/* Nuevo campo para género */}
+                {/* Género */}
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth error={formErrors.paciente_genero}>
                     <InputLabel id="genero-select-label">Género *</InputLabel>
@@ -972,7 +1135,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                   </FormControl>
                 </Grid>
 
-                {/* Nuevo campo para fecha de nacimiento */}
+                {/* Fecha de nacimiento */}
                 <Grid item xs={12} md={6}>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                     <DatePicker
@@ -1002,6 +1165,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                             paciente_fecha_nacimiento: false
                           }));
                         }
+                        validateStepAsync();
                       }}
                       // Para pacientes nuevos, mostrar solo selección de año
                       views={showNewPatientForm ? ['year'] : ['year', 'month', 'day']}
@@ -1062,154 +1226,531 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     );
   };
 
-  // Renderizar paso de selección de servicios
+
+  // Función renderServiceSelectionStep ajustada con categorías coloreadas
   const renderServiceSelectionStep = () => {
-    console.log("Servicios disponibles:", servicios); // Para depuración
+    // Asignar colores por categoría
+    const getCategoriaColor = (categoria) => {
+      // Lista de colores disponibles
+      const coloresDisponibles = [
+        colors.primary,
+        colors.info,
+        colors.purple,
+        colors.error,
+        colors.success,
+        colors.warning
+      ];
+      
+      // Generamos un índice basado en la primera letra de la categoría (simple pero dinámico)
+      const primeraLetra = (categoria || 'General').charAt(0).toUpperCase();
+      const indice = primeraLetra.charCodeAt(0) % coloresDisponibles.length;
+      
+      // Devolvemos el color correspondiente
+      return coloresDisponibles[indice];
+    };
+    
+    // Usamos un solo icono genérico para todas las categorías
+    const getCategoriaIcon = () => {
+      return <Category />;
+    };
 
     return (
       <Box sx={{ p: 2 }}>
-        <Typography variant="h6" color={colors.primary} sx={{
+        {/* Encabezado con título y filtros */}
+        <Box sx={{
           mb: 3,
           display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 1,
+          flexWrap: 'wrap',
+          gap: 2,
           borderBottom: `1px solid ${isDarkTheme ? '#2D3748' : '#E2E8F0'}`,
-          pb: 1
+          pb: 2
         }}>
-          <EventAvailable />
-          Selección de Servicio
-        </Typography>
+          <Typography variant="h5" color={colors.primary} sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            fontWeight: 600
+          }}>
+            <EventAvailable fontSize="large" />
+            Seleccione un Servicio
+          </Typography>
+
+          {/* Filtros rápidos */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Chip
+              icon={<Apps />}
+              label="Todos"
+              color={filtroServicio === 'todos' ? 'primary' : 'default'}
+              variant={filtroServicio === 'todos' ? 'filled' : 'outlined'}
+              onClick={() => setFiltroServicio('todos')}
+              sx={{ fontWeight: 500 }}
+            />
+            <Chip
+              icon={<MedicalServices fontSize="small" />}
+              label="Tratamientos"
+              color={filtroServicio === 'tratamientos' ? 'primary' : 'default'}
+              variant={filtroServicio === 'tratamientos' ? 'filled' : 'outlined'}
+              onClick={() => setFiltroServicio('tratamientos')}
+              sx={{ fontWeight: 500 }}
+            />
+            <Chip
+              icon={<EventAvailable fontSize="small" />}
+              label="Consultas"
+              color={filtroServicio === 'consultas' ? 'info' : 'default'}
+              variant={filtroServicio === 'consultas' ? 'filled' : 'outlined'}
+              onClick={() => setFiltroServicio('consultas')}
+              sx={{ fontWeight: 500 }}
+            />
+          </Box>
+        </Box>
 
         {formErrors.servicios_seleccionados && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Debe seleccionar un servicio
+          <Alert
+            severity="error"
+            sx={{
+              mb: 3,
+              borderRadius: '10px'
+            }}
+          >
+            <AlertTitle>Selección requerida</AlertTitle>
+            Por favor seleccione un servicio para continuar
           </Alert>
         )}
 
-        <Typography variant="body2" sx={{ mb: 2 }}>
-          Seleccione el servicio o tratamiento que se realizará durante la cita.
-        </Typography>
-
-        {/* Servicio seleccionado */}
-        {formData.servicios_seleccionados.length > 0 && (
-          <Box sx={{ mb: 3 }}>
-            <Alert severity="success" icon={<CheckCircle />}>
-              Servicio seleccionado: <strong>{formData.servicios_seleccionados[0].nombre}</strong> -
-              ${parseFloat(formData.servicios_seleccionados[0].precio).toFixed(2)}
-            </Alert>
-          </Box>
-        )}
-
-        <Grid container spacing={2}>
-          {/* Lista de servicios disponibles */}
-          <Grid item xs={12}>
-            <Paper variant="outlined" sx={{ p: 0, maxHeight: 400, overflow: 'auto' }}>
-              {servicios.length === 0 ? (
-                <Box sx={{ p: 3, textAlign: 'center' }}>
-                  <Typography variant="body1" color="text.secondary">
-                    Cargando servicios disponibles...
-                  </Typography>
-                </Box>
-              ) : (
-                <Box component="ul" sx={{ p: 0, m: 0, listStyleType: 'none' }}>
-                  {servicios.map((servicio) => {
-                    // Comprobación de selección basada solo en id
-                    const isSelected = formData.servicios_seleccionados.length > 0 &&
-                      formData.servicios_seleccionados[0].servicio_id === servicio.id;
-
-                    return (
-                      <Box
-                        component="li"
-                        key={servicio.id}
-                        sx={{
-                          p: 2,
-                          borderBottom: '1px solid',
-                          borderColor: 'divider',
-                          '&:last-child': { borderBottom: 'none' },
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          backgroundColor: isSelected ? alpha(colors.primary, 0.1) : 'transparent',
-                          transition: 'background-color 0.2s ease',
-                          '&:hover': { backgroundColor: isSelected ? alpha(colors.primary, 0.2) : 'action.hover' }
-                        }}
-                        onClick={() => handleServiceSelection({
-                          servicio_id: servicio.id,
-                          nombre: servicio.title,
-                          categoria_nombre: servicio.category,
-                          precio: servicio.price
-                        })}
-                      >
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body1" component="div" sx={{ fontWeight: isSelected ? 'bold' : 'medium' }}>
-                            {servicio.title}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            {servicio.category || 'General'} • ${parseFloat(servicio.price).toFixed(2)}
-                          </Typography>
-                          {servicio.description && (
-                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                              {servicio.description}
-                            </Typography>
-                          )}
-                        </Box>
-                        <Radio
-                          checked={isSelected}
-                          color="primary"
-                          onClick={(e) => {
-                            e.stopPropagation(); // Prevenir que se propague el clic
-                            handleServiceSelection({
-                              servicio_id: servicio.id,
-                              nombre: servicio.title,
-                              categoria_nombre: servicio.category,
-                              precio: servicio.price
-                            });
+        {/* Panel principal */}
+        <Grid container spacing={3}>
+          {/* Lista de servicios - diseño simplificado */}
+          <Grid item xs={12} md={formData.servicios_seleccionados.length > 0 ? 7 : 12}>
+            {servicios.length === 0 ? (
+              <Box sx={{
+                p: 4,
+                textAlign: 'center',
+                borderRadius: '12px',
+                bgcolor: alpha(colors.primary, 0.05),
+                border: `1px dashed ${alpha(colors.primary, 0.3)}`
+              }}>
+                <CircularProgress size={40} sx={{ mb: 2 }} />
+                <Typography variant="h6" color="text.secondary">
+                  Cargando servicios disponibles...
+                </Typography>
+              </Box>
+            ) : (
+              <Paper
+                elevation={0}
+                variant="outlined"
+                sx={{
+                  borderRadius: '12px',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Tabla de servicios con diseño profesional */}
+                <TableContainer sx={{ maxHeight: 'calc(100vh - 350px)' }}>
+                  <Table stickyHeader>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell
+                          width="40%"
+                          sx={{
+                            fontWeight: 'bold',
+                            bgcolor: alpha(colors.primary, 0.05),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            position: 'relative',
+                            zIndex: 1
                           }}
-                        />
-                      </Box>
-                    );
-                  })}
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
+                        >
+                          Servicio
+                        </TableCell>
+                        <TableCell
+                          width="20%"
+                          sx={{
+                            fontWeight: 'bold',
+                            bgcolor: alpha(colors.primary, 0.05),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            position: 'relative',
+                            zIndex: 1
+                          }}
+                        >
+                          Categoría
+                        </TableCell>
+                        <TableCell
+                          width="25%"
+                          sx={{
+                            fontWeight: 'bold',
+                            bgcolor: alpha(colors.primary, 0.05),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            position: 'relative',
+                            zIndex: 1
+                          }}
+                        >
+                          Precio
+                        </TableCell>
+                        <TableCell
+                          width="15%"
+                          sx={{
+                            fontWeight: 'bold',
+                            bgcolor: alpha(colors.primary, 0.05),
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            position: 'relative',
+                            zIndex: 1
+                          }}
+                        >
+                          Seleccionar
+                        </TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {servicios
+                        .filter(servicio => {
+                          // Filtrar según selección
+                          if (filtroServicio === 'todos') return true;
+                          if (filtroServicio === 'tratamientos') return parseInt(servicio.tratamiento, 10) === 1;
+                          if (filtroServicio === 'consultas') return parseInt(servicio.tratamiento, 10) !== 1;
+                          return true;
+                        })
+                        .map(servicio => {
+                          const esTratamiento = parseInt(servicio.tratamiento, 10) === 1;
+                          const isSelected = formData.servicios_seleccionados.length > 0 &&
+                            formData.servicios_seleccionados[0].servicio_id === servicio.id;
+                          const categoriaColor = getCategoriaColor(servicio.category);
 
-        {formData.servicios_seleccionados.length > 0 && (
-          <Paper sx={{ mt: 3, p: 2, backgroundColor: alpha(colors.primary, 0.1) }}>
-            <Typography variant="h6">
-              Resumen del servicio seleccionado
-            </Typography>
-            <Box sx={{ mt: 1 }}>
-              <Typography variant="body1" sx={{ mb: 0.5, fontWeight: 'medium' }}>
-                {formData.servicios_seleccionados[0].nombre}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                Categoría: {formData.servicios_seleccionados[0].categoria_nombre || 'General'}
-              </Typography>
-              <Divider sx={{ my: 1 }} />
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                Precio: ${parseFloat(formData.servicios_seleccionados[0].precio).toFixed(2)}
-              </Typography>
-            </Box>
-          </Paper>
-        )}
+                          return (
+                            <TableRow
+                              key={servicio.id}
+                              hover
+                              onClick={() => handleServiceSelection({
+                                servicio_id: servicio.id,
+                                nombre: servicio.title,
+                                categoria_nombre: servicio.category,
+                                precio: servicio.price,
+                                tratamiento: servicio.tratamiento,
+                                citasEstimadas: servicio.citasEstimadas || 1
+                              })}
+                              sx={{
+                                cursor: 'pointer',
+                                bgcolor: isSelected ? alpha(esTratamiento ? colors.primary : colors.info, 0.1) : 'transparent',
+                                '&:hover': {
+                                  bgcolor: isSelected ? alpha(esTratamiento ? colors.primary : colors.info, 0.15) : alpha(colors.primary, 0.05)
+                                }
+                              }}
+                            >
+                              <TableCell>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                  <Box sx={{
+                                    mr: 2,
+                                    bgcolor: alpha(esTratamiento ? colors.primary : colors.info, 0.1),
+                                    borderRadius: '50%',
+                                    width: 36,
+                                    height: 36,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center'
+                                  }}>
+                                    {esTratamiento ?
+                                      <MedicalServices sx={{ color: colors.primary }} /> :
+                                      <EventAvailable sx={{ color: colors.info }} />
+                                    }
+                                  </Box>
+                                  <Box>
+                                    <Typography variant="subtitle1" fontWeight={isSelected ? 'bold' : 'medium'}>
+                                      {servicio.title}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 1,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      maxWidth: '400px'
+                                    }}>
+                                      {servicio.description || 'Sin descripción'}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Chip
+                                  label={servicio.category || 'General'}
+                                  size="small"
+                                  color="default"
+                                  sx={{
+                                    bgcolor: alpha(categoriaColor, 0.1),
+                                    color: categoriaColor,
+                                    borderColor: alpha(categoriaColor, 0.3),
+                                    fontWeight: 500
+                                  }}
+                                />
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="subtitle1" fontWeight="bold" color={esTratamiento ? 'primary' : 'info'}>
+                                  ${parseFloat(servicio.price).toFixed(2)}
+                                </Typography>
+                                {esTratamiento && (
+                                  <Typography variant="caption" color="text.secondary" display="block">
+                                    <Event fontSize="inherit" sx={{ verticalAlign: 'middle', mr: 0.5 }} />
+                                    {servicio.citasEstimadas || 1} citas estimadas
+                                  </Typography>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <Radio
+                                  checked={isSelected}
+                                  color={esTratamiento ? 'primary' : 'info'}
+                                  size="medium"
+                                  sx={{
+                                    '& .MuiSvgIcon-root': {
+                                      fontSize: 22,
+                                    }
+                                  }}
+                                />
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+
+                {/* Si no hay resultados después de filtrar */}
+                {servicios.filter(servicio => {
+                  if (filtroServicio === 'todos') return true;
+                  if (filtroServicio === 'tratamientos') return parseInt(servicio.tratamiento, 10) === 1;
+                  if (filtroServicio === 'consultas') return parseInt(servicio.tratamiento, 10) !== 1;
+                  return true;
+                }).length === 0 && (
+                    <Box sx={{
+                      p: 4,
+                      textAlign: 'center'
+                    }}>
+                      <Typography variant="subtitle1" color="text.secondary">
+                        No se encontraron servicios para el filtro seleccionado
+                      </Typography>
+                    </Box>
+                  )}
+              </Paper>
+            )}
+          </Grid>
+
+          {/* Panel de detalles del servicio seleccionado */}
+          {formData.servicios_seleccionados.length > 0 && (
+            <Grid item xs={12} md={5}>
+              <Paper elevation={3} sx={{
+                p: 0,
+                position: 'sticky',
+                top: 24,
+                overflow: 'hidden',
+                borderRadius: '12px',
+                height: '100%',
+                border: `1px solid ${alpha(formData.servicios_seleccionados[0].es_tratamiento ? colors.primary : colors.info, 0.3)}`
+              }}>
+                {/* Header */}
+                <Box sx={{
+                  bgcolor: formData.servicios_seleccionados[0].es_tratamiento ? colors.primary : colors.info,
+                  color: 'white',
+                  p: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between'
+                }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    {formData.servicios_seleccionados[0].es_tratamiento ? (
+                      <MedicalServices sx={{ mr: 1.5, fontSize: '1.5rem' }} />
+                    ) : (
+                      <EventAvailable sx={{ mr: 1.5, fontSize: '1.5rem' }} />
+                    )}
+                    <Typography variant="h6" fontWeight="bold">
+                      {formData.servicios_seleccionados[0].es_tratamiento ? 'Tratamiento Dental' : 'Consulta Dental'}
+                    </Typography>
+                  </Box>
+
+                  <IconButton
+                    size="small"
+                    onClick={() => {
+                      setFormData(prev => ({
+                        ...prev,
+                        servicios_seleccionados: [],
+                        nombre_tratamiento: ''
+                      }));
+                      setIsTratamiento(false);
+                    }}
+                    sx={{
+                      color: 'white',
+                      '&:hover': {
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                      }
+                    }}
+                  >
+                    <Close />
+                  </IconButton>
+                </Box>
+
+                {/* Detalles del servicio */}
+                <CardContent>
+                  <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+                    {formData.servicios_seleccionados[0].nombre}
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <Chip
+                      icon={getCategoriaIcon(formData.servicios_seleccionados[0].categoria_nombre)}
+                      label={formData.servicios_seleccionados[0].categoria_nombre}
+                      variant="outlined"
+                      size="medium"
+                      sx={{
+                        borderColor: alpha(getCategoriaColor(formData.servicios_seleccionados[0].categoria_nombre), 0.5),
+                        color: getCategoriaColor(formData.servicios_seleccionados[0].categoria_nombre)
+                      }}
+                    />
+                  </Box>
+
+                  {/* Detalles específicos para tratamientos */}
+                  {formData.servicios_seleccionados[0].es_tratamiento && (
+                    <>
+                      <Divider sx={{ my: 2 }} />
+
+                      <Box sx={{
+                        p: 2,
+                        borderRadius: '12px',
+                        bgcolor: alpha(colors.primary, 0.08),
+                        border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                        mb: 2
+                      }}>
+                        <Typography variant="subtitle1" sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontWeight: 'bold',
+                          color: colors.primary,
+                          mb: 1.5
+                        }}>
+                          <InfoOutlined sx={{ mr: 1 }} />
+                          Información del Tratamiento
+                        </Typography>
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          {/* Número de citas */}
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '50%',
+                              bgcolor: alpha(colors.primary, 0.2),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2
+                            }}>
+                              <Event color="primary" />
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                Número de Citas
+                              </Typography>
+                              <Typography variant="body1" fontWeight="bold">
+                                {formData.servicios_seleccionados[0].citas_estimadas} citas
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Frecuencia */}
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '50%',
+                              bgcolor: alpha(colors.info, 0.2),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2
+                            }}>
+                              <Update color="info" />
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                Frecuencia
+                              </Typography>
+                              <Typography variant="body1" fontWeight="bold">
+                                Citas mensuales
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Duración estimada */}
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Box sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: '50%',
+                              bgcolor: alpha(colors.success, 0.2),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              mr: 2
+                            }}>
+                              <CalendarMonth color="success" />
+                            </Box>
+                            <Box>
+                              <Typography variant="body2" color="text.secondary">
+                                Duración Estimada
+                              </Typography>
+                              <Typography variant="body1" fontWeight="bold">
+                                {formData.servicios_seleccionados[0].citas_estimadas} {parseInt(formData.servicios_seleccionados[0].citas_estimadas, 10) > 1 ? 'meses' : 'mes'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Box>
+                    </>
+                  )}
+
+                  {/* Precio */}
+                  <Divider sx={{ my: 2 }} />
+
+                  <Box sx={{
+                    bgcolor: alpha(formData.servicios_seleccionados[0].es_tratamiento ? colors.primary : colors.info, 0.08),
+                    p: 2,
+                    borderRadius: '12px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <Typography variant="subtitle1" fontWeight="medium">
+                      {formData.servicios_seleccionados[0].es_tratamiento ? 'Precio Total Estimado:' : 'Precio:'}
+                    </Typography>
+
+                    <Typography variant="h5" fontWeight="bold" color={formData.servicios_seleccionados[0].es_tratamiento ? 'primary' : 'info'}>
+                      ${calcularPrecioTotal()}
+                    </Typography>
+                  </Box>
+
+                  {/* Nota informativa para tratamientos */}
+                  {formData.servicios_seleccionados[0].es_tratamiento && (
+                    <Alert severity="info" sx={{ mt: 2, borderRadius: '8px' }}>
+                      <AlertTitle>Nota importante</AlertTitle>
+                      El costo total puede variar según las necesidades específicas que se identifiquen durante el tratamiento.
+                    </Alert>
+                  )}
+
+                  {/* Se elimina el botón "Continuar con este servicio" ya que está el botón "Siguiente" global */}
+                </CardContent>
+              </Paper>
+            </Grid>
+          )}
+        </Grid>
       </Box>
     );
   };
 
-  useEffect(() => {
-    if (odontologos.length === 1) {
-      const odontologo = odontologos[0];
-      setFormData(prev => ({
-        ...prev,
-        odontologo_id: odontologo.id
-      }));
-      fetchDisponibilidad(odontologo.id);
-    }
-  }, [odontologos]);
-
-  const renderDateTimeSelectionStep = () => {
+  // Renderizar paso de programación unificado (combina fecha/hora para cita y programación para tratamiento)
+  const renderSchedulingStep = () => {
     return (
       <Box sx={{ p: 2 }}>
         <Typography variant="h6" color={colors.primary} sx={{
@@ -1221,54 +1762,132 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
           pb: 1
         }}>
           <CalendarMonth />
-          Selección de Fecha y Hora
+          {isTratamiento ? 'Programar Primera Cita del Tratamiento' : 'Selección de Fecha y Hora'}
         </Typography>
-        <Grid container spacing={3}>
-          {/* Selección de odontólogo */}
-          <Grid item xs={12}>
-            <FormControl fullWidth error={formErrors.odontologo_id}>
-              <InputLabel id="odontologo-select-label">Odontólogo</InputLabel>
-              <Select
-                labelId="odontologo-select-label"
-                id="odontologo-select"
-                name="odontologo_id"
-                value={formData.odontologo_id}
-                onChange={handleOdontologoChange}
-                label="Odontólogo"
-              >
-                {odontologos.map((odontologo) => (
-                  <MenuItem key={odontologo.id} value={odontologo.id}>
-                    {`Dr. ${odontologo.nombre} ${odontologo.aPaterno} ${odontologo.aMaterno || ''}`}
-                  </MenuItem>
-                ))}
-              </Select>
-              {formErrors.odontologo_id && (
-                <FormHelperText>Por favor seleccione un odontólogo</FormHelperText>
-              )}
-            </FormControl>
-          </Grid>
 
-          {/* Información del odontólogo seleccionado */}
-          {formData.odontologo_id && selectedOdontologo && (
+        {/* Información del servicio seleccionado */}
+        {formData.servicios_seleccionados.length > 0 && (
+          <Paper elevation={3} sx={{
+            p: 3,
+            mb: 3,
+            borderLeft: `6px solid ${isTratamiento ? colors.primary : colors.info}`,
+            backgroundColor: alpha(isTratamiento ? colors.primary : colors.info, 0.05),
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Icono decorativo */}
+            <Box sx={{
+              position: 'absolute',
+              right: -15,
+              top: -15,
+              opacity: 0.07,
+              transform: 'rotate(15deg)',
+              fontSize: '150px'
+            }}>
+              {isTratamiento ? <MedicalServices fontSize="inherit" /> : <EventAvailable fontSize="inherit" />}
+            </Box>
+
+            <Box sx={{ position: 'relative', zIndex: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                {isTratamiento ? (
+                  <MedicalServices sx={{ mr: 1, color: colors.primary }} />
+                ) : (
+                  <EventAvailable sx={{ mr: 1, color: colors.info }} />
+                )}
+                <Typography variant="h6" color={isTratamiento ? colors.primary : colors.info}>
+                  {isTratamiento ? 'Tratamiento Dental' : 'Consulta Dental'}
+                </Typography>
+
+                <Chip
+                  label={isTratamiento ? "Tratamiento" : "Consulta"}
+                  size="small"
+                  color={isTratamiento ? "primary" : "info"}
+                  sx={{ ml: 2 }}
+                />
+              </Box>
+
+              <Divider sx={{ my: 1.5 }} />
+
+              <Typography variant="body1" sx={{ mt: 2, fontWeight: 'medium' }}>
+                {isTratamiento ? (
+                  <>
+                    Está programando un <strong>tratamiento de {formData.nombre_tratamiento}</strong> que
+                    requiere <strong>{formData.total_citas_programadas} citas</strong> para completarse.
+                  </>
+                ) : (
+                  <>
+                    Está programando una <strong>consulta de {formData.servicios_seleccionados[0].nombre}</strong>.
+                  </>
+                )}
+              </Typography>
+
+              <Typography variant="body1" sx={{ mt: 1.5, fontStyle: 'italic', color: isTratamiento ? colors.primary : colors.info }}>
+                {isTratamiento ? (
+                  <>Ahora seleccione la fecha para la primera cita del tratamiento.</>
+                ) : (
+                  <>Seleccione la fecha y hora para su cita.</>
+                )}
+              </Typography>
+
+              {isTratamiento && (
+                <Box sx={{ mt: 2, p: 1.5, bgcolor: alpha(colors.primary, 0.1), borderRadius: 1 }}>
+                  <Typography variant="body2">
+                    <strong>Nota:</strong> Las citas de seguimiento se programarán mensualmente a partir
+                    de la fecha que seleccione para la primera cita.
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          </Paper>
+        )}
+
+        <Grid container spacing={3}>
+          {/* Información del odontólogo - Siempre visible pero sin selector si solo hay uno */}
+          {odontologos.length === 1 ? (
             <Grid item xs={12}>
               <Paper sx={{ p: 2, backgroundColor: alpha(colors.primary, 0.1) }}>
                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
                   <HealthAndSafety sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
-                  Odontólogo: Dr. {selectedOdontologo.nombre} {selectedOdontologo.aPaterno} {selectedOdontologo.aMaterno || ''}
+                  Odontólogo asignado: Dr. {odontologos[0].nombre} {odontologos[0].aPaterno} {odontologos[0].aMaterno || ''}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Especialidad: {selectedOdontologo.puesto || 'Odontólogo'}
+                  Especialidad: {odontologos[0].puesto || 'Odontólogo'}
                 </Typography>
               </Paper>
             </Grid>
+          ) : (
+            // Selección de odontólogo (solo si hay más de uno)
+            <Grid item xs={12}>
+              <FormControl fullWidth error={formErrors.odontologo_id}>
+                <InputLabel id="odontologo-select-label">Odontólogo</InputLabel>
+                <Select
+                  labelId="odontologo-select-label"
+                  id="odontologo-select"
+                  name="odontologo_id"
+                  value={formData.odontologo_id}
+                  onChange={handleOdontologoChange}
+                  label="Odontólogo"
+                >
+                  {odontologos.map((odontologo) => (
+                    <MenuItem key={odontologo.id} value={odontologo.id}>
+                      {`Dr. ${odontologo.nombre} ${odontologo.aPaterno} ${odontologo.aMaterno || ''}`}
+                    </MenuItem>
+                  ))}
+                </Select>
+                {formErrors.odontologo_id && (
+                  <FormHelperText>Por favor seleccione un odontólogo</FormHelperText>
+                )}
+              </FormControl>
+            </Grid>
           )}
 
-          {/* Calendario para selección de fecha */}
+
+          {/* Calendario para selección de fecha (común para ambos) */}
           <Grid item xs={12} md={7}>
             <Paper sx={{ p: 2, height: '100%' }}>
               <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'medium' }}>
                 <Event sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
-                Seleccione una fecha
+                Seleccione una fecha para {isTratamiento ? "la primera cita del tratamiento" : "su cita"}
               </Typography>
 
               {isLoading && !formData.odontologo_id ? (
@@ -1303,52 +1922,200 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={5}>
-            <Paper sx={{ p: 2, height: '100%' }}>
-              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'medium' }}>
-                <AccessTime sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
-                Horarios disponibles
-              </Typography>
+          {/* Sección para selección de hora (solo para citas regulares) */}
+          {!isTratamiento && (
+            <Grid item xs={12} md={5}>
+              <Paper sx={{ p: 2, height: '100%' }}>
+                <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'medium' }}>
+                  <AccessTime sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
+                  Horarios disponibles
+                </Typography>
 
-              {isLoading && selectedDate ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-                  <CircularProgress />
+                {isLoading && selectedDate ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                    <CircularProgress />
+                  </Box>
+                ) : !formData.odontologo_id ? (
+                  <Alert severity="info">
+                    Por favor seleccione un odontólogo primero
+                  </Alert>
+                ) : !selectedDate ? (
+                  <Alert severity="info">
+                    Seleccione primero una fecha para ver los horarios disponibles
+                  </Alert>
+                ) : availableTimes.length === 0 ? (
+                  <Alert severity="warning">
+                    No hay horarios disponibles para esta fecha
+                  </Alert>
+                ) : (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                    {availableTimes.map((hora) => (
+                      <Chip
+                        key={hora}
+                        label={hora}
+                        onClick={() => handleHourSelection(hora)}
+                        color={formData.hora_consulta === hora ? 'primary' : 'default'}
+                        variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
+                        sx={{ m: 0.5 }}
+                      />
+                    ))}
+                  </Box>
+                )}
+
+                {formErrors.hora_consulta && selectedDate && (
+                  <FormHelperText error>Debe seleccionar una hora</FormHelperText>
+                )}
+              </Paper>
+            </Grid>
+          )}
+
+          {/* Resumen de fechas para tratamiento */}
+          {isTratamiento && selectedDate && (
+            <Grid item xs={12} md={5}>
+              <Paper elevation={3} sx={{
+                p: 0,
+                height: '100%',
+                borderRadius: 2,
+                overflow: 'hidden'
+              }}>
+                {/* Header */}
+                <Box sx={{
+                  bgcolor: alpha(colors.primary, 0.1),
+                  p: 2,
+                  borderBottom: `1px solid ${alpha(colors.primary, 0.2)}`,
+                  display: 'flex',
+                  alignItems: 'center'
+                }}>
+                  <Event sx={{ mr: 1.5, color: colors.primary }} />
+                  <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    Programación del Tratamiento
+                  </Typography>
                 </Box>
-              ) : !formData.odontologo_id ? (
-                <Alert severity="info">
-                  Por favor seleccione un odontólogo primero
-                </Alert>
-              ) : !selectedDate ? (
-                <Alert severity="info">
-                  Seleccione primero una fecha para ver los horarios disponibles
-                </Alert>
-              ) : availableTimes.length === 0 ? (
-                <Alert severity="warning">
-                  No hay horarios disponibles para esta fecha
-                </Alert>
-              ) : (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {availableTimes.map((hora) => (
-                    <Chip
-                      key={hora}
-                      label={hora}
-                      onClick={() => handleHourSelection(hora)}
-                      color={formData.hora_consulta === hora ? 'primary' : 'default'}
-                      variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
-                      sx={{ m: 0.5 }}
-                    />
-                  ))}
+
+                <Box sx={{ p: 2.5 }}>
+                  {/* Timeline visual */}
+                  <Box sx={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    my: 2,
+                    position: 'relative',
+                    pb: 2
+                  }}>
+                    {/* Línea de tiempo */}
+                    <Box sx={{
+                      position: 'absolute',
+                      top: 12,
+                      left: 10,
+                      bottom: 0,
+                      width: 4,
+                      bgcolor: alpha(colors.primary, 0.2),
+                      zIndex: 0
+                    }} />
+
+                    {/* Puntos y texto */}
+                    <Box sx={{ width: '100%' }}>
+                      {/* Primera cita */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, position: 'relative', zIndex: 1 }}>
+                        <Box sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          bgcolor: colors.primary,
+                          mr: 2,
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}>
+                          1
+                        </Box>
+                        <Box>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            Primera cita
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatDate(selectedDate)}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      {/* Citas intermedias */}
+                      {formData.total_citas_programadas > 2 && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3, position: 'relative', zIndex: 1 }}>
+                          <Box sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            bgcolor: alpha(colors.primary, 0.7),
+                            mr: 2,
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            color: 'white',
+                            fontSize: '0.8rem'
+                          }}>
+                            ...
+                          </Box>
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                              Citas intermedias
+                            </Typography>
+                            <Typography variant="body2">
+                              {formData.total_citas_programadas - 2} citas mensuales
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Última cita */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', position: 'relative', zIndex: 1 }}>
+                        <Box sx={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          bgcolor: colors.success.main,
+                          mr: 2,
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          color: 'white',
+                          fontWeight: 'bold'
+                        }}>
+                          {formData.total_citas_programadas}
+                        </Box>
+                        <Box>
+                          <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
+                            Finalización estimada
+                          </Typography>
+                          <Typography variant="body2">
+                            {formatDate(formData.fecha_estimada_fin)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  <Divider sx={{ my: 2 }} />
+
+                  <Box sx={{
+                    p: 2,
+                    bgcolor: alpha(colors.info, 0.1),
+                    borderRadius: 1,
+                    border: `1px solid ${alpha(colors.info, 0.3)}`
+                  }}>
+                    <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center' }}>
+                      <AccessTime sx={{ mr: 1, fontSize: '1rem', color: colors.info }} />
+                      <strong>Duración estimada:</strong> {formData.total_citas_programadas} meses
+                    </Typography>
+                  </Box>
                 </Box>
-              )}
+              </Paper>
+            </Grid>
+          )}
 
-              {formErrors.hora_consulta && selectedDate && (
-                <FormHelperText error>Debe seleccionar una hora</FormHelperText>
-              )}
-            </Paper>
-          </Grid>
-
-          {/* Resumen de la fecha y hora seleccionada */}
-          {formData.fecha_consulta && formData.hora_consulta && (
+          {/* Resumen de la fecha y hora seleccionada para citas regulares */}
+          {!isTratamiento && formData.fecha_consulta && formData.hora_consulta && (
             <Grid item xs={12}>
               <Paper sx={{ p: 2, backgroundColor: 'success.light', color: 'white' }}>
                 <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
@@ -1379,7 +2146,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     );
   };
 
-  // Renderizar paso de confirmación
+  // Renderizar confirmación unificada
   const renderConfirmationStep = () => {
     return (
       <Box sx={{ p: 2 }}>
@@ -1392,11 +2159,11 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
           pb: 1
         }}>
           <Checklist />
-          Confirmación de Cita
+          Confirmación {isTratamiento ? 'del Tratamiento' : 'de Cita'}
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3 }}>
-          Por favor revise que todos los datos sean correctos antes de confirmar la cita.
+          Por favor revise que todos los datos sean correctos antes de confirmar.
         </Alert>
 
         <Grid container spacing={3}>
@@ -1426,19 +2193,13 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                 <strong>Correo:</strong> {formData.paciente_correo || 'No especificado'}
               </Typography>
 
-              {formData.paciente_alergias && (
-                <Typography variant="body1" sx={{ mb: 1 }}>
-                  <strong>Alergias/Observaciones:</strong> {formData.paciente_alergias}
-                </Typography>
-              )}
-
               {showNewPatientForm && (
                 <Chip label="Nuevo paciente" color="secondary" size="small" sx={{ mt: 1 }} />
               )}
             </Paper>
           </Grid>
 
-          {/* Datos de la cita */}
+          {/* Datos de la cita o tratamiento */}
           <Grid item xs={12} md={6}>
             <Paper variant="outlined" sx={{ p: 2 }}>
               <Typography variant="subtitle1" sx={{
@@ -1448,21 +2209,45 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                 alignItems: 'center',
                 gap: 1
               }}>
-                <CalendarMonth fontSize="small" />
-                Detalles de la Cita
+                {isTratamiento ? (
+                  <><MedicalServices fontSize="small" />Detalles del Tratamiento</>
+                ) : (
+                  <><CalendarMonth fontSize="small" />Detalles de la Cita</>
+                )}
               </Typography>
 
-              <Typography variant="body1" sx={{ mb: 1 }}>
-                <strong>Fecha:</strong> {formatDate(formData.fecha_consulta)}
-              </Typography>
-
-              <Typography variant="body1" sx={{ mb: 1 }}>
-                <strong>Hora:</strong> {formData.hora_consulta}
-              </Typography>
+              {isTratamiento ? (
+                <>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Tratamiento:</strong> {formData.nombre_tratamiento}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Primera cita:</strong> {formatDate(formData.fecha_inicio)}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Número de sesiones:</strong> {formData.total_citas_programadas}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Finalización estimada:</strong> {formatDate(formData.fecha_estimada_fin)}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Frecuencia:</strong> Mensual (una cita cada mes)
+                  </Typography>
+                </>
+              ) : (
+                <>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Fecha:</strong> {formatDate(formData.fecha_consulta)}
+                  </Typography>
+                  <Typography variant="body1" sx={{ mb: 1 }}>
+                    <strong>Hora:</strong> {formData.hora_consulta}
+                  </Typography>
+                </>
+              )}
 
               <Typography variant="body1" sx={{ mb: 1 }}>
                 <strong>Odontólogo:</strong> {selectedOdontologo ?
-                  `${selectedOdontologo.nombre} ${selectedOdontologo.aPaterno} ${selectedOdontologo.aMaterno || ''}` :
+                  `Dr. ${selectedOdontologo.nombre} ${selectedOdontologo.aPaterno} ${selectedOdontologo.aMaterno || ''}` :
                   'No seleccionado'}
               </Typography>
 
@@ -1485,7 +2270,7 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                 gap: 1
               }}>
                 <EventAvailable fontSize="small" />
-                Servicios Seleccionados
+                {isTratamiento ? 'Detalles del Servicio' : 'Servicio Seleccionado'}
               </Typography>
 
               <Box sx={{ ml: 1 }}>
@@ -1498,10 +2283,12 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
                     py: 1
                   }}>
                     <Typography variant="body1">
-                      {index + 1}. {servicio.nombre}
+                      {servicio.nombre}
+                      {servicio.es_tratamiento && ` (Tratamiento - ${formData.total_citas_programadas} citas)`}
                     </Typography>
                     <Typography variant="body1" fontWeight="medium">
                       ${parseFloat(servicio.precio || 0).toFixed(2)}
+                      {servicio.es_tratamiento && ` por cita`}
                     </Typography>
                   </Box>
                 ))}
@@ -1529,203 +2316,238 @@ const NewCita = ({ open, handleClose, onAppointmentCreated }) => {
     );
   };
 
-
+  // Renderizar contenido según el paso actual
+  const renderContent = () => {
+    switch (activeStep) {
+      case 0:
+        return renderPatientSelectionStep();
+      case 1:
+        return renderServiceSelectionStep();
+      case 2:
+        return renderSchedulingStep();
+      case 3:
+        return renderConfirmationStep();
+      default:
+        return null;
+    }
+  };
 
   return (
-    <Dialog
-      open={open}
-      onClose={loading ? null : handleClose}
-      maxWidth="md"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: '12px',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-          backgroundColor: colors.cardBg,
-          overflow: 'hidden',
-        }
-      }}
-    >
-      <DialogTitle
-        sx={{
-          backgroundColor: colors.primary,
-          color: 'white',
-          py: 2.5,
-          px: 3,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          fontSize: '1.25rem',
-          fontWeight: 600
-        }}
-      >
-        <CalendarMonth sx={{ fontSize: 28 }} />
-        {activeStep === 3 ? 'Confirmar Cita' : 'Nueva Cita'}
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 3, pt: 4 }}>
-        {error && (
-          <Alert
-            severity="error"
-            sx={{
-              mb: 3,
-              borderRadius: '8px',
-              '& .MuiAlert-icon': { fontSize: '1.5rem' }
-            }}
-          >
-            {error}
-          </Alert>
-        )}
-
-        {success && (
-          <Alert
-            severity="success"
-            sx={{
-              mb: 3,
-              borderRadius: '8px',
-              '& .MuiAlert-icon': { fontSize: '1.5rem' }
-            }}
-          >
-            {success}
-          </Alert>
-        )}
-
-        <Stepper
-          activeStep={activeStep}
-          alternativeLabel
+    <Container maxWidth="lg" sx={{ py: 4, backgroundColor: colors.background, minHeight: '100vh' }}>
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Button
+          variant="outlined"
+          startIcon={<ArrowBack />}
+          onClick={() => navigate(previousPath)}
           sx={{
-            mb: 4,
-            '& .MuiStepIcon-root': {
-              fontSize: '1.75rem',
-              '&.Mui-completed': { color: '#4caf50' },
-              '&.Mui-active': { color: colors.primary }
-            },
-            '& .MuiStepLabel-label': {
-              mt: 1,
-              fontSize: '0.9rem'
+            borderRadius: '8px',
+            boxShadow: '0px 2px 4px rgba(0,0,0,0.08)',
+            transition: 'all 0.2s ease',
+            '&:hover': {
+              boxShadow: '0px 4px 8px rgba(0,0,0,0.15)',
+              transform: 'translateY(-2px)'
             }
           }}
         >
-          {steps.map((label, index) => (
-            <Step key={index}>
-              <StepLabel>{label}</StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        <Paper
-          elevation={0}
+          Volver
+        </Button>
+        <Typography
+          variant="h4"
+          color={colors.primary}
           sx={{
-            border: '1px solid',
-            borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
-            borderRadius: '12px',
-            overflow: 'hidden',
-            mb: 3
+            fontWeight: 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -8,
+              left: '25%',
+              width: '50%',
+              height: 4,
+              borderRadius: 2,
+              bgcolor: isTratamiento ? alpha(colors.primary, 0.5) : alpha(colors.info, 0.5)
+            }
           }}
         >
-          {/* Renderizar el contenido del paso actual */}
-          {activeStep === 0 && renderPatientSelectionStep()}
-          {activeStep === 1 && renderServiceSelectionStep()}
-          {activeStep === 2 && renderDateTimeSelectionStep()}
-          {activeStep === 3 && renderConfirmationStep()}
-        </Paper>
-      </DialogContent>
+          {activeStep === 3
+            ? (isTratamiento ? 'Confirmar Nuevo Tratamiento' : 'Confirmar Nueva Cita')
+            : (isTratamiento ? 'Agendar Tratamiento' : 'Agendar Cita')}
+        </Typography>
+        <Box sx={{ width: 100 }}></Box> {/* Espacio para mantener el layout centrado */}
+      </Box>
 
-      <DialogActions
+      <Card
+        elevation={4}
         sx={{
-          p: 3,
-          pt: 1,
-          justifyContent: 'space-between',
-          borderTop: '1px solid',
-          borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+          borderRadius: '16px',
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+          border: '1px solid',
+          borderColor: alpha(isTratamiento ? colors.primary : colors.info, 0.2)
         }}
       >
-        <Box>
-          {activeStep === 0 ? (
-            <Button
-              onClick={handleClose}
-              variant="outlined"
-              color="inherit"
-              disabled={loading}
+        <CardContent sx={{ p: 0 }}>
+          {/* Stepper */}
+          <Box sx={{
+            p: 3,
+            background: isDarkTheme
+              ? `linear-gradient(135deg, ${alpha(colors.primary, 0.15)} 0%, ${alpha(colors.primary, 0.05)} 100%)`
+              : `linear-gradient(135deg, ${alpha(colors.primary, 0.08)} 0%, ${alpha(colors.primary, 0.02)} 100%)`
+          }}>
+            <Stepper
+              activeStep={activeStep}
+              alternativeLabel
               sx={{
-                borderRadius: '8px',
-                py: 1,
-                px: 2
+                '& .MuiStepIcon-root': {
+                  fontSize: '2rem',
+                  filter: 'drop-shadow(0px 2px 3px rgba(0,0,0,0.1))',
+                  transition: 'all 0.3s ease',
+                  '&.Mui-completed': { color: '#4caf50' },
+                  '&.Mui-active': {
+                    color: isTratamiento ? colors.primary : colors.info,
+                    transform: 'scale(1.2)',
+                    filter: 'drop-shadow(0px 4px 8px rgba(0,0,0,0.2))'
+                  }
+                },
+                '& .MuiStepLabel-label': {
+                  mt: 1,
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  '&.Mui-active': {
+                    fontWeight: 700,
+                    color: isTratamiento ? colors.primary : colors.info
+                  }
+                },
+                '& .MuiStepConnector-line': {
+                  height: 3,
+                  borderRadius: 1.5,
+                  border: 0,
+                  backgroundColor: alpha(colors.primary, 0.2)
+                },
+                '& .MuiStepConnector-root.Mui-active .MuiStepConnector-line': {
+                  backgroundColor: isTratamiento ? colors.primary : colors.info
+                },
+                '& .MuiStepConnector-root.Mui-completed .MuiStepConnector-line': {
+                  backgroundColor: '#4caf50'
+                }
               }}
             >
-              Cancelar
-            </Button>
-          ) : (
-            <Button
-              onClick={handleBack}
-              variant="outlined"
-              color="inherit"
-              startIcon={<ArrowBackIosNew />}
-              disabled={loading}
-              sx={{
-                borderRadius: '8px',
-                py: 1,
-                px: 2
-              }}
-            >
-              Atrás
-            </Button>
-          )}
-        </Box>
+              {steps.map((label, index) => (
+                <Step key={index}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
 
-        <Box>
-          {activeStep < steps.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              color="primary"
-              endIcon={<ArrowForwardIos />}
+          {/* Contenido del paso actual */}
+          <Box sx={{ p: 0 }}>
+            {error && (
+              <Alert severity="error" sx={{ mx: 3, mt: 3, borderRadius: '8px' }}>
+                {error}
+              </Alert>
+            )}
+
+            {success && (
+              <Alert severity="success" sx={{ mx: 3, mt: 3, borderRadius: '8px' }}>
+                {success}
+              </Alert>
+            )}
+
+            <Paper
+              elevation={0}
               sx={{
-                borderRadius: '8px',
-                py: 1,
-                px: 3,
-                boxShadow: '0 4px 12px rgba(0, 120, 200, 0.2)',
-                '&:hover': {
-                  boxShadow: '0 6px 14px rgba(0, 120, 200, 0.3)'
-                }
+                m: 3,
+                border: '1px solid',
+                borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
+                borderRadius: '12px',
+                overflow: 'hidden'
               }}
             >
-              Siguiente
-            </Button>
-          ) : (
-            <Button
-              onClick={handleSubmit}
-              variant="contained"
-              color="success"
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
-              sx={{
-                borderRadius: '8px',
-                py: 1,
-                px: 3,
-                backgroundColor: '#2e7d32',
-                boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)',
-                '&:hover': {
-                  backgroundColor: '#1b5e20',
-                  boxShadow: '0 6px 14px rgba(46, 125, 50, 0.3)'
-                }
-              }}
-            >
-              {loading ? 'Guardando...' : 'Confirmar Cita'}
-            </Button>
-          )}
-        </Box>
-      </DialogActions>
+              {renderContent()}
+            </Paper>
+          </Box>
+
+          {/* Botones de navegación */}
+          <Box sx={{
+            p: 3,
+            display: 'flex',
+            justifyContent: 'space-between',
+            borderTop: '1px solid',
+            borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)'
+          }}>
+            <Box>
+              {activeStep > 0 && (
+                <Button
+                  onClick={handleBack}
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<ArrowBackIosNew />}
+                  disabled={loading}
+                  sx={{ borderRadius: '8px', py: 1, px: 2 }}
+                >
+                  Atrás
+                </Button>
+              )}
+            </Box>
+
+            <Box>
+              {activeStep < steps.length - 1 ? (
+                <Button
+                  onClick={handleNext}
+                  variant="contained"
+                  color="primary"
+                  endIcon={<ArrowForwardIos />}
+                  disabled={!isStepValid || loading}
+                  sx={{
+                    borderRadius: '8px',
+                    py: 1,
+                    px: 3,
+                    boxShadow: '0 4px 12px rgba(0, 120, 200, 0.2)',
+                    '&:hover': {
+                      boxShadow: '0 6px 14px rgba(0, 120, 200, 0.3)'
+                    }
+                  }}
+                >
+                  Siguiente
+                </Button>
+              ) : (
+                <Button
+                  onClick={handleSubmit}
+                  variant="contained"
+                  color="success"
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <CheckCircle />}
+                  sx={{
+                    borderRadius: '8px',
+                    py: 1,
+                    px: 3,
+                    backgroundColor: '#2e7d32',
+                    boxShadow: '0 4px 12px rgba(46, 125, 50, 0.2)',
+                    '&:hover': {
+                      backgroundColor: '#1b5e20',
+                      boxShadow: '0 6px 14px rgba(46, 125, 50, 0.3)'
+                    }
+                  }}
+                >
+                  {loading ? 'Guardando...' : 'Confirmar'}
+                </Button>
+              )}
+            </Box>
+          </Box>
+        </CardContent>
+      </Card>
+
       <Notificaciones
         open={notification.open}
         message={notification.message}
         type={notification.type}
         onClose={handleNotificationClose}
       />
-
-    </Dialog>
+    </Container>
   );
-
 };
 
-export default NewCita;
+export default NuevoAgendamiento;

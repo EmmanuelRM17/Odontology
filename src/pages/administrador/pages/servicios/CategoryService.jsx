@@ -14,8 +14,8 @@ import {
     Save as SaveIcon,
     Warning as WarningIcon
 } from '@mui/icons-material';
-import Notificaciones from '../../../components/Layout/Notificaciones';
-import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import Notificaciones from '../../../../components/Layout/Notificaciones';
+import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 const CategoryService = ({ open, handleClose }) => {
     const { isDarkTheme } = useThemeContext();
