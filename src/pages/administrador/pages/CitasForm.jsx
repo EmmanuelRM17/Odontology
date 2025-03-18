@@ -1090,20 +1090,6 @@ const CitasForm = () => {
                 </CardContent>
             </Card>
 
-            {/* Botón para agregar nueva cita */}
-            <Fab
-                color="primary"
-                aria-label="add"
-                onClick={() => setOpenNewAppointmentForm(true)}
-                sx={{
-                    position: 'fixed',
-                    bottom: 20,
-                    right: 20,
-                }}
-            >
-                <Add />
-            </Fab>
-
             {/* Diálogo de detalles de la cita */}
             <Dialog
                 open={openDialog}

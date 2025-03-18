@@ -705,17 +705,18 @@ const NuevoAgendamiento = () => {
 
       case 2: // Validar fechas
         if (isTratamiento) {
-          // Validar programación del tratamiento
+          // Validar programación del tratamiento - INCLUIR HORA
           const citasErrors = {
             odontologo_id: !formData.odontologo_id,
-            fecha_consulta: !formData.fecha_consulta, // Usamos fecha_consulta en lugar de fecha_inicio para unificar
+            fecha_consulta: !formData.fecha_consulta,
+            hora_consulta: !formData.hora_consulta, // Añadido la verificación de hora
             total_citas_programadas: formData.total_citas_programadas < 1
           };
 
           setFormErrors(prev => ({ ...prev, ...citasErrors }));
           return !Object.values(citasErrors).some(error => error);
         } else {
-          // Validar selección de fecha y hora para cita regular
+          // Validación para cita regular (sin cambios)
           const errors = {
             odontologo_id: !formData.odontologo_id,
             fecha_consulta: !formData.fecha_consulta,
@@ -820,9 +821,12 @@ const NuevoAgendamiento = () => {
       // Datos para cita regular
       let fechaHora = null;
       if (formData.fecha_consulta && formData.hora_consulta) {
-        const [horas, minutos] = formData.hora_consulta.split(':');
-        fechaHora = new Date(formData.fecha_consulta);
-        fechaHora.setHours(parseInt(horas, 10), parseInt(minutos, 10), 0);
+        // Formatear la fecha completa para mantener la zona horaria correcta
+        const fecha = moment(formData.fecha_consulta).format('YYYY-MM-DD');
+        const hora = formData.hora_consulta;
+
+        // Usar moment para combinar fecha y hora correctamente y obtener un string ISO sin conversiones
+        fechaHora = moment.tz(`${fecha} ${hora}`, 'YYYY-MM-DD HH:mm', moment.tz.guess()).format('YYYY-MM-DDTHH:mm:00');
       }
 
       return {
@@ -841,61 +845,143 @@ const NuevoAgendamiento = () => {
     setSuccess('');
 
     try {
-      const dataToSubmit = prepareDataForSubmission();
-
-      // Verificación adicional para fecha de nacimiento
-      if (!dataToSubmit.fecha_nacimiento) {
-        console.error("Advertencia: Fecha de nacimiento no encontrada. Usando fecha predeterminada.");
-        const defaultYear = new Date().getFullYear() - 30; // 30 años por defecto
-        dataToSubmit.fecha_nacimiento = `${defaultYear}-01-01`;
+      // Validar campos obligatorios
+      if (!formData.paciente_nombre || !formData.paciente_apellido_paterno ||
+        !formData.fecha_consulta || !formData.hora_consulta ||
+        formData.servicios_seleccionados.length === 0 || !formData.odontologo_id) {
+        throw new Error('Por favor complete todos los campos obligatorios antes de continuar.');
       }
 
-      // Endpoint según tipo
-      const endpoint = isTratamiento
-        ? 'https://back-end-4803.onrender.com/api/tratamientos/nuevo'
-        : 'https://back-end-4803.onrender.com/api/citas/nueva';
+      // Formatear fecha y hora en el formato ISO correcto
+      let fechaHora = null;
+      if (formData.fecha_consulta && formData.hora_consulta) {
+        // Usar moment-timezone con zona local para construir fecha/hora correctamente  
+        const fecha = moment(formData.fecha_consulta).format('YYYY-MM-DD');
+        const hora = formData.hora_consulta;
 
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(dataToSubmit),
-      });
+        // Crear un objeto moment directamente con la fecha y hora exactas sin conversión
+        // Usamos .utc(false) para asegurar que se mantenga como hora local sin conversión UTC
+        fechaHora = moment.tz(`${fecha} ${hora}`, 'YYYY-MM-DD HH:mm', moment.tz.guess()).format('YYYY-MM-DDTHH:mm:00');
 
-      // Obtener respuesta
-      const responseText = await response.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch (e) {
-        console.error("Error al parsear respuesta como JSON:", e);
+        console.log("Fecha y hora corregidas:", fecha, hora);
+        console.log("Fecha y hora concatenadas:", fechaHora);
       }
 
-      if (!response.ok) {
-        throw new Error(responseData?.message || `Error ${response.status}: ${response.statusText}`);
+      // Obtener información del servicio seleccionado
+      const servicioPrincipal = formData.servicios_seleccionados[0] || {};
+
+      // Obtener información del odontólogo
+      const odontologo = odontologos.find(o => o.id === formData.odontologo_id) || {};
+      const odontologoNombre = odontologo
+        ? `${odontologo.nombre || ''} ${odontologo.aPaterno || ''} ${odontologo.aMaterno || ''}`.trim()
+        : '';
+
+      // Preparar fecha de nacimiento con formato correcto
+      let fechaNacimiento = null;
+      if (formData.paciente_fecha_nacimiento) {
+        const fechaNacObj = formData.paciente_fecha_nacimiento instanceof Date
+          ? formData.paciente_fecha_nacimiento
+          : new Date(formData.paciente_fecha_nacimiento);
+
+        // Solo usar si es una fecha válida
+        if (!isNaN(fechaNacObj.getTime())) {
+          fechaNacimiento = moment(fechaNacObj).format('YYYY-MM-DD');
+        } else {
+          // Si no es válida, usar la fecha actual menos 30 años
+          fechaNacimiento = moment().subtract(30, 'years').format('YYYY-MM-DD');
+        }
+      } else {
+        // Si no hay fecha, usar la fecha actual menos 30 años
+        fechaNacimiento = moment().subtract(30, 'years').format('YYYY-MM-DD');
       }
 
-      // Mostrar notificación de éxito
-      setNotification({
-        open: true,
-        message: isTratamiento
-          ? '¡Tratamiento creado con éxito!'
-          : '¡Cita creada con éxito!',
-        type: 'success',
-      });
+      // Armar el objeto con los datos para el endpoint
+      const requestData = {
+        // Datos del paciente
+        paciente_id: showNewPatientForm ? null : formData.paciente_id, // null si es nuevo paciente
+        nombre: formData.paciente_nombre.trim(),
+        apellido_paterno: formData.paciente_apellido_paterno.trim(),
+        apellido_materno: formData.paciente_apellido_materno.trim(),
+        genero: formData.paciente_genero || 'No especificado',
+        fecha_nacimiento: fechaNacimiento,
+        correo: (formData.paciente_correo || '').trim(),
+        telefono: (formData.paciente_telefono || '').trim(),
 
-      // Esperar 2 segundos y redirigir
-      setTimeout(() => {
-        navigate(previousPath);
-      }, 2000);
+        // Datos del odontólogo
+        odontologo_id: formData.odontologo_id,
+        odontologo_nombre: odontologoNombre,
 
+        // Datos del servicio
+        servicio_id: servicioPrincipal.servicio_id,
+        servicio_nombre: (servicioPrincipal.nombre || '').trim(),
+        categoria_servicio: (servicioPrincipal.categoria_nombre || 'General').trim(),
+        precio_servicio: parseFloat(servicioPrincipal.precio || 0),
+
+        // Fecha y hora en formato que espera el endpoint
+        fecha_hora: fechaHora,
+
+        // Estado y notas adicionales
+        estado: 'Pendiente',
+        notas: (formData.notas || '').trim()
+      };
+
+      // Mostrar datos de depuración
+      console.log('Datos enviados para la cita/tratamiento:', requestData);
+      console.log('¿Paciente nuevo?:', showNewPatientForm ? 'Sí' : 'No');
+      console.log('¿Es tratamiento?:', isTratamiento ? 'Sí' : 'No');
+      console.log('Fecha ISO:', fechaHora);
+
+      // Hacer la petición con axios
+      const response = await axios.post('https://back-end-4803.onrender.com/api/citas/nueva', requestData);
+
+      // Manejar respuesta exitosa
+      if (response.status === 201) {
+        // Obtener información del resultado
+        const { es_tratamiento, cita_id, tratamiento_id, pre_registro_id } = response.data;
+
+        // Construir mensaje según el tipo de operación
+        let mensaje = '';
+        if (es_tratamiento) {
+          mensaje = showNewPatientForm
+            ? '¡Solicitud de tratamiento registrada! Nos pondremos en contacto pronto.'
+            : '¡Tratamiento creado con éxito!';
+        } else {
+          mensaje = showNewPatientForm
+            ? '¡Solicitud de cita registrada! Nos pondremos en contacto pronto.'
+            : '¡Cita creada con éxito!';
+        }
+
+        // Mostrar notificación de éxito
+        setNotification({
+          open: true,
+          message: mensaje,
+          type: 'success'
+        });
+
+        // Esperar 2 segundos y redirigir
+        setTimeout(() => {
+          navigate(previousPath);
+        }, 2000);
+      }
     } catch (error) {
       console.error('Error al crear:', error);
+
+      // Mostrar mensaje de error detallado
+      let mensajeError = error.message || 'Error al procesar tu solicitud. Inténtalo de nuevo.';
+
+      // Obtener mensaje de error del servidor si está disponible
+      if (error.response && error.response.data) {
+        if (error.response.data.message) {
+          mensajeError = error.response.data.message;
+        } else if (typeof error.response.data === 'string') {
+          mensajeError = error.response.data;
+        }
+      }
+
       setNotification({
         open: true,
-        message: `Error: ${error.message}`,
-        type: 'error',
+        message: `Error: ${mensajeError}`,
+        type: 'error'
       });
     } finally {
       setLoading(false);
@@ -1240,15 +1326,15 @@ const NuevoAgendamiento = () => {
         colors.success,
         colors.warning
       ];
-      
+
       // Generamos un índice basado en la primera letra de la categoría (simple pero dinámico)
       const primeraLetra = (categoria || 'General').charAt(0).toUpperCase();
       const indice = primeraLetra.charCodeAt(0) % coloresDisponibles.length;
-      
+
       // Devolvemos el color correspondiente
       return coloresDisponibles[indice];
     };
-    
+
     // Usamos un solo icono genérico para todas las categorías
     const getCategoriaIcon = () => {
       return <Category />;
@@ -1922,52 +2008,49 @@ const NuevoAgendamiento = () => {
             </Paper>
           </Grid>
 
-          {/* Sección para selección de hora (solo para citas regulares) */}
-          {!isTratamiento && (
-            <Grid item xs={12} md={5}>
-              <Paper sx={{ p: 2, height: '100%' }}>
-                <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'medium' }}>
-                  <AccessTime sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
-                  Horarios disponibles
-                </Typography>
+          <Grid item xs={12} md={5}>
+            <Paper sx={{ p: 2, height: '100%' }}>
+              <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'medium' }}>
+                <AccessTime sx={{ mr: 1, verticalAlign: 'text-bottom' }} />
+                Horarios disponibles para {isTratamiento ? "la primera cita" : "su cita"}
+              </Typography>
 
-                {isLoading && selectedDate ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
-                    <CircularProgress />
-                  </Box>
-                ) : !formData.odontologo_id ? (
-                  <Alert severity="info">
-                    Por favor seleccione un odontólogo primero
-                  </Alert>
-                ) : !selectedDate ? (
-                  <Alert severity="info">
-                    Seleccione primero una fecha para ver los horarios disponibles
-                  </Alert>
-                ) : availableTimes.length === 0 ? (
-                  <Alert severity="warning">
-                    No hay horarios disponibles para esta fecha
-                  </Alert>
-                ) : (
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                    {availableTimes.map((hora) => (
-                      <Chip
-                        key={hora}
-                        label={hora}
-                        onClick={() => handleHourSelection(hora)}
-                        color={formData.hora_consulta === hora ? 'primary' : 'default'}
-                        variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
-                        sx={{ m: 0.5 }}
-                      />
-                    ))}
-                  </Box>
-                )}
+              {isLoading && selectedDate ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+                  <CircularProgress />
+                </Box>
+              ) : !formData.odontologo_id ? (
+                <Alert severity="info">
+                  Por favor seleccione un odontólogo primero
+                </Alert>
+              ) : !selectedDate ? (
+                <Alert severity="info">
+                  Seleccione primero una fecha para ver los horarios disponibles
+                </Alert>
+              ) : availableTimes.length === 0 ? (
+                <Alert severity="warning">
+                  No hay horarios disponibles para esta fecha
+                </Alert>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                  {availableTimes.map((hora) => (
+                    <Chip
+                      key={hora}
+                      label={hora}
+                      onClick={() => handleHourSelection(hora)}
+                      color={formData.hora_consulta === hora ? 'primary' : 'default'}
+                      variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
+                      sx={{ m: 0.5 }}
+                    />
+                  ))}
+                </Box>
+              )}
 
-                {formErrors.hora_consulta && selectedDate && (
-                  <FormHelperText error>Debe seleccionar una hora</FormHelperText>
-                )}
-              </Paper>
-            </Grid>
-          )}
+              {formErrors.hora_consulta && selectedDate && (
+                <FormHelperText error>Debe seleccionar una hora</FormHelperText>
+              )}
+            </Paper>
+          </Grid>
 
           {/* Resumen de fechas para tratamiento */}
           {isTratamiento && selectedDate && (
