@@ -149,10 +149,6 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 `https://back-end-4803.onrender.com/api/servicios/get/${servicioId}`,
                 {
                     signal: controller.signal,
-                    // Agregar cache-control para mejorar el rendimiento
-                    headers: {
-                        'Cache-Control': 'max-age=300'
-                    }
                 }
             );
 

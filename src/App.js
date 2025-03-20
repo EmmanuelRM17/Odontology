@@ -16,6 +16,7 @@ import Home from "./pages/_home/pages/Home";
 import Register from "./pages/_home/pages/Register";
 import Login from "./pages/_home/pages/Login";
 import Servicios from "./pages/_home/pages/Servicios"
+import ServicioDetalleRouteHandler from "./pages/_home/pages/ServicioDetalleRouteHandler.jsx"
 import ServiciosDetalle from "./pages/_home/pages/ServiciosDetalle"
 import Recuperacion from "./pages/_home/pages/Recuperacion";
 import Reset from "./pages/_home/pages/CambiarContrasena";
@@ -40,8 +41,8 @@ import PerfilEmpresa from "./pages/administrador/pages/PerfilEmpresa";
 import Pacientes from "./pages/administrador/pages/PatientsReport";
 import ServicioForm from "./pages/administrador/pages/ServicioForm";
 import CitasForm from "./pages/administrador/pages/CitasForm";
-import NuevoAgendamiento from "./pages/administrador/pages/citas/nuevaCita";  
-import TratamientosForm  from "./pages/administrador/pages/TratamientosForm.jsx";
+import NuevoAgendamiento from "./pages/administrador/pages/citas/nuevaCita";
+import TratamientosForm from "./pages/administrador/pages/TratamientosForm.jsx";
 import HorariosForm from "./pages/administrador/pages/HorariosForm";
 import ImagenesForm from "./pages/administrador/pages/ImagenesForm.jsx";
 
@@ -178,7 +179,7 @@ function App() {
   return (
     <ThemeProviderComponent>
       <Router>
-       <ScrollToTop />
+        <ScrollToTop />
         <Routes>
           {/* Rutas públicas */}
           <Route
@@ -203,6 +204,7 @@ function App() {
           <Route path="/confirmacion" element={<Confirmacion />} />
           <Route path="/about" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Acerca de' }]} /><Acerca /></LayoutConEncabezado>} />
           <Route path="/servicios" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios' }]} /><Servicios /></LayoutConEncabezado>} />
+          <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/' }, { name: 'Servicios', path: '/servicios' }, { name: 'Detalle' }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
           <Route path="/recuperacion" element={<Recuperacion />} />
           <Route path="/resetContra" element={<Reset />} />
 
@@ -235,6 +237,7 @@ function App() {
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
         </Routes>
+        <ServicioDetalleRouteHandler />
       </Router>
     </ThemeProviderComponent>
   );
