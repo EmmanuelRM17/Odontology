@@ -6,7 +6,7 @@ import {
   Grid, Typography, FormHelperText, Box, CircularProgress,
   Divider, Alert, AlertTitle, Step, StepLabel, Stepper, Paper, Chip,
   IconButton, alpha, Radio, RadioGroup, FormControlLabel, Card, CardContent, Container,
-  InputAdornment,
+  InputAdornment, Tooltip,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
 import {
@@ -15,7 +15,7 @@ import {
   HealthAndSafety, AccessTime, ArrowForwardIos, ArrowBack,
   MedicalServices,
   CleaningServices, Face, Spa, Bloodtype, MedicalInformation, Apps,
-  Category, InfoOutlined, Update
+  Category, InfoOutlined, Update, Schedule as ScheduleIcon
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
@@ -55,6 +55,8 @@ const NuevoAgendamiento = () => {
   const [selectedDate, setSelectedDate] = useState(null);
   const [workDays, setWorkDays] = useState([]);
   const [availableTimes, setAvailableTimes] = useState([]);
+  const [occupiedTimes, setOccupiedTimes] = useState([]);
+
 
   const handleNotificationClose = () => {
     setNotification(prev => ({ ...prev, open: false }));
@@ -307,21 +309,38 @@ const NuevoAgendamiento = () => {
 
     axios.get(`https://back-end-4803.onrender.com/api/horarios/disponibilidad?odontologo_id=${formData.odontologo_id}&fecha=${formattedDate}`)
       .then((response) => {
-        const times = [];
-        response.data.forEach((item) => {
-          const startTime = new Date(`${formattedDate}T${item.hora_inicio}`);
-          const endTime = new Date(`${formattedDate}T${item.hora_fin}`);
-          const duracion = item.duracion || 30;
+        console.log('Respuesta de horarios disponibles:', response.data);
 
-          while (startTime < endTime) {
-            times.push(startTime.toTimeString().slice(0, 5));
-            startTime.setMinutes(startTime.getMinutes() + duracion);
+        const disponibles = [];
+        const ocupados = [];
+
+        // Procesar los datos similar a StepThree
+        response.data.forEach((franja) => {
+          const horarioId = franja.horario_id;
+
+          if (franja.slots_disponibles) {
+            Object.entries(franja.slots_disponibles).forEach(([timeSlot, isAvailable]) => {
+              if (isAvailable) {
+                disponibles.push(timeSlot); // Solo guardamos el string de la hora
+              } else {
+                ocupados.push(timeSlot);
+              }
+            });
           }
         });
-        setAvailableTimes(times);
+
+        // Ordenar los horarios para mejor presentación
+        disponibles.sort();
+        ocupados.sort();
+
+        console.log('Horarios disponibles procesados:', disponibles);
+        console.log('Horarios ocupados procesados:', ocupados);
+
+        setAvailableTimes(disponibles);
+        setOccupiedTimes(ocupados);
       })
       .catch((error) => {
-        console.error('Error fetching available times:', error);
+        console.error('Error al obtener horarios disponibles:', error);
         setNotification({
           open: true,
           message: 'Error al obtener los horarios disponibles.',
@@ -2027,22 +2046,151 @@ const NuevoAgendamiento = () => {
                 <Alert severity="info">
                   Seleccione primero una fecha para ver los horarios disponibles
                 </Alert>
-              ) : availableTimes.length === 0 ? (
+              ) : availableTimes.length === 0 && occupiedTimes.length === 0 ? (
                 <Alert severity="warning">
-                  No hay horarios disponibles para esta fecha
+                  No hay horarios configurados para esta fecha
                 </Alert>
               ) : (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                  {availableTimes.map((hora) => (
-                    <Chip
-                      key={hora}
-                      label={hora}
-                      onClick={() => handleHourSelection(hora)}
-                      color={formData.hora_consulta === hora ? 'primary' : 'default'}
-                      variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
-                      sx={{ m: 0.5 }}
-                    />
-                  ))}
+                <Box>
+                  {/* Horarios disponibles */}
+                  {availableTimes.length > 0 && (
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle2" sx={{
+                        mb: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'medium',
+                        color: colors.primary
+                      }}>
+                        <Box component="span" sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          display: 'inline-block',
+                          bgcolor: colors.primary,
+                          mr: 1,
+                          verticalAlign: 'middle'
+                        }}></Box>
+                        Horarios disponibles
+                      </Typography>
+
+                      <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: alpha(colors.primary, 0.05),
+                        border: `1px solid ${alpha(colors.primary, 0.1)}`
+                      }}>
+                        {availableTimes.map((hora) => (
+                          <Chip
+                            key={hora}
+                            label={hora}
+                            onClick={() => handleHourSelection(hora)}
+                            color={formData.hora_consulta === hora ? 'primary' : 'default'}
+                            variant={formData.hora_consulta === hora ? 'filled' : 'outlined'}
+                            sx={{
+                              m: 0.5,
+                              fontWeight: formData.hora_consulta === hora ? 'bold' : 'normal',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                transform: 'scale(1.05)',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                              }
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {/* Horarios ocupados */}
+                  {occupiedTimes.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="subtitle2" sx={{
+                        mb: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'medium',
+                        color: 'error.main'
+                      }}>
+                        <Box component="span" sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: '50%',
+                          display: 'inline-block',
+                          bgcolor: 'error.main',
+                          mr: 1,
+                          verticalAlign: 'middle'
+                        }}></Box>
+                        Horarios ocupados
+                      </Typography>
+
+                      <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 1,
+                        p: 1.5,
+                        borderRadius: 1,
+                        bgcolor: alpha('#f44336', 0.05),
+                        border: `1px solid ${alpha('#f44336', 0.1)}`
+                      }}>
+                        {occupiedTimes.map((hora) => (
+                          <Tooltip
+                            key={hora}
+                            title="Este horario ya está ocupado"
+                            arrow
+                            placement="top"
+                          >
+                            <Box sx={{ position: 'relative', m: 0.5 }}>
+                              <Chip
+                                label={hora}
+                                color="error"
+                                variant="outlined"
+                                disabled
+                                sx={{
+                                  opacity: 0.7,
+                                  cursor: 'not-allowed'
+                                }}
+                              />
+                              <Box sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: 8,
+                                right: 8,
+                                height: 2,
+                                bgcolor: 'error.main',
+                                transform: 'translateY(-50%) rotate(-45deg)',
+                                pointerEvents: 'none'
+                              }} />
+                            </Box>
+                          </Tooltip>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+
+                  {availableTimes.length === 0 && occupiedTimes.length > 0 && (
+                    <Alert
+                      severity="warning"
+                      sx={{
+                        mt: 2,
+                        borderRadius: 2,
+                        border: '1px solid',
+                        borderColor: 'warning.main'
+                      }}
+                      icon={<ScheduleIcon />}
+                    >
+                      <Typography variant="subtitle2" fontWeight="bold">
+                        Sin disponibilidad
+                      </Typography>
+                      <Typography variant="body2">
+                        Todos los horarios de esta fecha ya están ocupados.
+                        Por favor seleccione otra fecha o contacte al administrador.
+                      </Typography>
+                    </Alert>
+                  )}
                 </Box>
               )}
 
@@ -2051,7 +2199,6 @@ const NuevoAgendamiento = () => {
               )}
             </Paper>
           </Grid>
-
           {/* Resumen de fechas para tratamiento */}
           {isTratamiento && selectedDate && (
             <Grid item xs={12} md={5}>

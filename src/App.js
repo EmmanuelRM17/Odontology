@@ -221,7 +221,6 @@ function App() {
           <Route path="/Administrador/horarios" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Gestión de Horarios' }]} /><HorariosForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/PerfilEmpresa" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><PerfilEmpresa /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Perfil de la Empresa' }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
-
           <Route path="/Administrador/Graficas" element={<LayoutAdmin><Graficas /></LayoutAdmin>} />
           <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
           <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />

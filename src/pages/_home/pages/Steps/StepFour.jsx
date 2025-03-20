@@ -200,13 +200,17 @@ const StepFour = ({
     };
 
     const formattedDate = formData.fechaCita
-        ? new Date(formData.fechaCita).toLocaleDateString('es-ES', {
+    ? (() => {
+        // Extraer solo la parte de la fecha (YYYY-MM-DD)
+        const soloFecha = formData.fechaCita.split('T')[0];
+        return new Date(`${soloFecha}T12:00:00`).toLocaleDateString('es-ES', {
             weekday: 'long',
             day: 'numeric',
             month: 'long',
             year: 'numeric'
-        })
-        : 'Fecha no seleccionada';
+        });
+      })()
+    : 'Fecha no seleccionada';
 
     const formattedTime = formData.horaCita || 'Hora no seleccionada';
     const formattedEmail = formData.correo || 'No proporcionado';

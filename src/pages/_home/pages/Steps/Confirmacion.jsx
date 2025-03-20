@@ -404,8 +404,12 @@ const Confirmacion = () => {
 
   // Formatear fecha de la cita si está disponible
   const formattedDate = fechaCita !== 'No disponible' 
-    ? moment(fechaCita).locale('es').format('dddd, D [de] MMMM [de] YYYY')
-    : 'Fecha por confirmar';
+  ? (() => {
+      const fechaStr = typeof fechaCita === 'string' ? fechaCita : fechaCita.toISOString();
+      const soloFecha = fechaStr.split('T')[0];
+      return moment(`${soloFecha}T12:00:00`).locale('es').format('dddd, D [de] MMMM [de] YYYY');
+    })()
+  : 'Fecha por confirmar';
     
   // Pasos del proceso según tipo (tratamiento o cita)
   const stepsTratamiento = [

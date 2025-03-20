@@ -17,7 +17,9 @@ import {
     DialogContent,
     DialogActions,
     Grid,
-    Alert
+    Alert,
+    Tooltip,
+    Divider,
 } from '@mui/material';
 import {
     ChevronLeft as ChevronLeftIcon,
@@ -30,7 +32,9 @@ import {
     ArrowForward as ArrowForwardIcon,
     ArrowBack as ArrowBackIcon,
     Close as CloseIcon,
-    Info as InfoIcon
+    Info as InfoIcon,
+    EventBusy as EventBusyIcon,
+    AccessTime as AccessTimeIcon,
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -45,79 +49,103 @@ const StepThree = ({
     onStepCompletion,
     setNotification,
     onFormDataChange,
-    formData
+    formData,
 }) => {
     const [currentDate, setCurrentDate] = useState(new Date());
     const [availableTimes, setAvailableTimes] = useState([]);
+    const [bookedTimes, setBookedTimes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [workDays, setWorkDays] = useState([]);
     const [showTimeDialog, setShowTimeDialog] = useState(false);
     const [selectedDateForTimes, setSelectedDateForTimes] = useState(null);
+    const [horarioSeleccionado, setHorarioSeleccionado] = useState(null);
 
+    // Normalizar fechas para comparaciones
+    const normalizeDateForCompare = (date) => {
+        if (!date) return null;
+        const normalizedDate = typeof date === 'string' ? new Date(date) : new Date(date);
+        normalizedDate.setHours(12, 0, 0, 0);
+        return normalizedDate;
+    };
+
+    // Comparar si dos fechas son el mismo día
+    const isSameDay = (date1, date2) => {
+        const d1 = normalizeDateForCompare(date1);
+        const d2 = normalizeDateForCompare(date2);
+        return (
+            d1 &&
+            d2 &&
+            d1.getFullYear() === d2.getFullYear() &&
+            d1.getMonth() === d2.getMonth() &&
+            d1.getDate() === d2.getDate()
+        );
+    };
+
+    // Obtener días laborales
     useEffect(() => {
         if (!formData.odontologo_id) return;
         setIsLoading(true);
-
-        axios.get(`https://back-end-4803.onrender.com/api/horarios/dias_laborales?odontologo_id=${formData.odontologo_id}`)
+        axios
+            .get(
+                `https://back-end-4803.onrender.com/api/horarios/dias_laborales?odontologo_id=${formData.odontologo_id}`
+            )
             .then((response) => {
                 const daysMap = {
-                    'Domingo': 0,
-                    'Lunes': 1,
-                    'Martes': 2,
-                    'Miércoles': 3,
-                    'Jueves': 4,
-                    'Viernes': 5,
-                    'Sábado': 6
+                    Domingo: 0,
+                    Lunes: 1,
+                    Martes: 2,
+                    Miércoles: 3,
+                    Jueves: 4,
+                    Viernes: 5,
+                    Sábado: 6,
                 };
-                const availableDays = response.data.map(day => daysMap[day]);
+                const availableDays = response.data.map((day) => daysMap[day]);
                 setWorkDays(availableDays);
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error al obtener días laborales:', error);
                 setNotification({
                     open: true,
                     message: 'Error al obtener los días laborales del odontólogo.',
                     type: 'error',
                 });
-                setTimeout(() => {
-                    setNotification({ open: false, message: '', type: '' });
-                }, 3000);
+                setTimeout(() => setNotification({ open: false, message: '', type: '' }), 3000);
             })
             .finally(() => setIsLoading(false));
     }, [formData.odontologo_id]);
 
+    // Obtener horarios disponibles
     const fetchAvailableTimes = (date) => {
-        if (!(date instanceof Date) || isNaN(date)) {
-            console.error('Fecha no válida para obtener horarios:', date);
-            return;
-        }
-
         const formattedDate = date.toISOString().split('T')[0];
         setIsLoading(true);
-
-        axios.get(`https://back-end-4803.onrender.com/api/horarios/disponibilidad?odontologo_id=${formData.odontologo_id}&fecha=${formattedDate}`)
+        axios
+            .get(
+                `https://back-end-4803.onrender.com/api/horarios/disponibilidad?odontologo_id=${formData.odontologo_id}&fecha=${formattedDate}`
+            )
             .then((response) => {
-                const times = [];
-                response.data.forEach((item) => {
-                    const startTime = new Date(`${formattedDate}T${item.hora_inicio}`);
-                    const endTime = new Date(`${formattedDate}T${item.hora_fin}`);
-                    const duracion = item.duracion || 30;
-
-                    while (startTime < endTime) {
-                        times.push(startTime.toTimeString().slice(0, 5));
-                        startTime.setMinutes(startTime.getMinutes() + duracion);
+                const available = [];
+                const booked = [];
+                response.data.forEach((franja) => {
+                    const horarioId = franja.horario_id;
+                    if (franja.slots_disponibles) {
+                        Object.entries(franja.slots_disponibles).forEach(([timeSlot, isAvailable]) => {
+                            if (isAvailable)
+                                available.push({ time: timeSlot, horarioId, duracion: franja.duracion });
+                            else booked.push({ time: timeSlot, reason: 'Horario ya reservado' });
+                        });
                     }
                 });
-                setAvailableTimes(times);
+                setAvailableTimes(available);
+                setBookedTimes(booked);
             })
-            .catch(() => {
+            .catch((error) => {
+                console.error('Error al obtener horarios disponibles:', error);
                 setNotification({
                     open: true,
                     message: 'Error al obtener los horarios disponibles.',
                     type: 'error',
                 });
-                setTimeout(() => {
-                    setNotification({ open: false, message: '', type: '' });
-                }, 3000);
+                setTimeout(() => setNotification({ open: false, message: '', type: '' }), 3000);
             })
             .finally(() => setIsLoading(false));
     };
@@ -125,60 +153,38 @@ const StepThree = ({
     const handleDateClick = (date) => {
         if (date instanceof Date && !isNaN(date) && !isDateDisabled(date)) {
             setSelectedDateForTimes(date);
-
-            const formattedDate = date.toISOString().split('T')[0];
-
-            if (formattedDate) {
-                onDateTimeChange(formattedDate, null); // Restablece la hora seleccionada
-                onFormDataChange({ fechaCita: formattedDate, horaCita: null });
-                fetchAvailableTimes(date);
-                setShowTimeDialog(true);
-            } else {
-                console.error('No se pudo formatear la fecha:', date);
-            }
-        } else {
-            console.error('Fecha no válida seleccionada:', date);
+            const normalizedDate = new Date(date);
+            normalizedDate.setHours(12, 0, 0, 0);
+            onDateTimeChange(normalizedDate, null);
+            const formattedDate = normalizedDate.toISOString().split('T')[0];
+            onFormDataChange({ fechaCita: formattedDate, horaCita: null, horario_id: null });
+            fetchAvailableTimes(date);
+            setShowTimeDialog(true);
         }
     };
 
-
-    const handleTimeSelection = (time) => {
-        if (selectedDateForTimes instanceof Date && !isNaN(selectedDateForTimes)) {
-            const formattedDate = selectedDateForTimes.toISOString().split('T')[0];
-
-            onDateTimeChange(formattedDate, time);
-            onFormDataChange({
-                fechaCita: formattedDate,
-                horaCita: time
-            });
-            setShowTimeDialog(false);
-        } else {
-            console.error('Fecha no válida en handleTimeSelection:', selectedDateForTimes);
-        }
+    const handleTimeSelection = (timeData) => {
+        const normalizedDate = new Date(selectedDateForTimes);
+        normalizedDate.setHours(12, 0, 0, 0);
+        const time = typeof timeData === 'string' ? timeData : timeData.time;
+        const horarioId = typeof timeData === 'string' ? horarioSeleccionado : timeData.horarioId;
+        onDateTimeChange(normalizedDate, time);
+        const formattedDate = normalizedDate.toISOString().split('T')[0];
+        onFormDataChange({ fechaCita: formattedDate, horaCita: time, horario_id: horarioId });
+        setHorarioSeleccionado(horarioId);
+        setShowTimeDialog(false);
     };
 
     const handleContinue = () => {
-        if (!selectedDate || !selectedTime) {
+        if (!selectedDate || !selectedTime || !formData.horario_id) {
             setNotification({
                 open: true,
                 message: 'Por favor selecciona una fecha y un horario válido antes de continuar.',
                 type: 'warning',
             });
-            setTimeout(() => {
-                setNotification({ open: false, message: '', type: '' });
-            }, 3000);
+            setTimeout(() => setNotification({ open: false, message: '', type: '' }), 3000);
             return;
         }
-
-        const formattedDate = selectedDate instanceof Date
-            ? selectedDate.toISOString().split('T')[0]
-            : selectedDate;
-
-        if (!formattedDate || !selectedTime) {
-            console.error('Datos incompletos para continuar:', formattedDate, selectedTime);
-            return;
-        }
-
         onStepCompletion('step3', true);
     };
 
@@ -188,14 +194,13 @@ const StepThree = ({
         return date < today || !workDays.includes(date.getDay());
     };
 
-    const formatDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
+    const formatDate = (dateInput) => {
+        const date = new Date(dateInput);
         return date.toLocaleDateString('es-ES', {
             weekday: 'long',
             year: 'numeric',
             month: 'long',
-            day: 'numeric'
+            day: 'numeric',
         });
     };
 
@@ -204,14 +209,9 @@ const StepThree = ({
         const month = date.getMonth();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const firstDay = new Date(year, month, 1).getDay();
-
         const days = [];
         let week = [];
-
-        for (let i = 0; i < firstDay; i++) {
-            week.push(null);
-        }
-
+        for (let i = 0; i < firstDay; i++) week.push(null);
         for (let day = 1; day <= daysInMonth; day++) {
             week.push(new Date(year, month, day));
             if (week.length === 7) {
@@ -219,27 +219,33 @@ const StepThree = ({
                 week = [];
             }
         }
-
         if (week.length > 0) {
-            while (week.length < 7) {
-                week.push(null);
-            }
+            while (week.length < 7) week.push(null);
             days.push(week);
         }
-
         return days;
     };
 
-    const handlePreviousMonth = () => {
+    const handlePreviousMonth = () =>
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
-    };
-
-    const handleNextMonth = () => {
+    const handleNextMonth = () =>
         setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-    };
 
     const weekDays = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const months = [
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
+    ];
 
     return (
         <Paper
@@ -248,92 +254,30 @@ const StepThree = ({
                 p: 4,
                 borderRadius: 3,
                 backgroundColor: colors.cardBg,
-                boxShadow: isDarkTheme ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.15)',
-                border: `1px solid ${colors.primary}20`
+                boxShadow: isDarkTheme
+                    ? '0 8px 32px rgba(0,0,0,0.4)'
+                    : '0 8px 32px rgba(0,0,0,0.15)',
+                border: `1px solid ${colors.primary}20`,
+                width: '100%',
+                maxWidth: '1200px',
+                margin: '0 auto',
             }}
         >
-            <Typography variant="h5" sx={{
-                textAlign: 'center',
-                mb: 4,
-                color: colors.primary,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 'bold'
-            }}>
+            <Typography
+                variant="h5"
+                sx={{
+                    textAlign: 'center',
+                    mb: 4,
+                    color: colors.primary,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 'bold',
+                }}
+            >
                 <CalendarMonthIcon sx={{ mr: 1, fontSize: 28 }} />
                 Agenda tu Cita
             </Typography>
-
-            <Paper
-                elevation={2}
-                sx={{
-                    p: 3,
-                    mb: 4,
-                    backgroundColor: colors.cardBg,
-                    border: `1px solid ${colors.primary}40`,
-                    borderRadius: 2,
-                    borderLeft: `4px solid ${colors.primary}`
-                }}
-            >
-                <Typography variant="h6" sx={{
-                    color: colors.primary,
-                    mb: 2,
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold'
-                }}>
-                    <EditCalendarIcon sx={{ mr: 1 }} />
-                    Detalles de tu Cita
-                </Typography>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        p: 1,
-                        borderRadius: 1,
-                        backgroundColor: `${colors.primary}10`
-                    }}>
-                        <EventIcon sx={{ mr: 1, color: colors.secondary }} />
-                        <Typography>
-                            <strong>Fecha:</strong> {selectedDate ? formatDate(selectedDate) : 'No seleccionada'}
-                        </Typography>
-                    </Box>
-                    <Box sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        p: 1,
-                        borderRadius: 1,
-                        backgroundColor: `${colors.primary}10`
-                    }}>
-                        <ScheduleIcon sx={{ mr: 1, color: colors.secondary }} />
-                        <Typography>
-                            <strong>Hora:</strong> {selectedTime || 'No seleccionada'}
-                        </Typography>
-                    </Box>
-                    {selectedDate && selectedTime && (
-                        <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => {
-                                setSelectedDateForTimes(new Date(selectedDate));
-                                fetchAvailableTimes(new Date(selectedDate));
-                                setShowTimeDialog(true);
-                            }}
-                            startIcon={<EditCalendarIcon />}
-                            sx={{
-                                alignSelf: 'flex-start',
-                                mt: 1,
-                                borderRadius: 6,
-                                textTransform: 'none',
-                                px: 2
-                            }}
-                        >
-                            Cambiar Horario
-                        </Button>
-                    )}
-                </Box>
-            </Paper>
 
             {isLoading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
@@ -341,56 +285,66 @@ const StepThree = ({
                 </Box>
             ) : (
                 <>
+                    {/* Calendario */}
                     <Paper
-                        elevation={1}
+                        elevation={2}
                         sx={{
                             p: 3,
-                            mb: 3,
+                            mb: 4,
                             backgroundColor: colors.cardBg,
-                            borderRadius: 2
+                            borderRadius: 3,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            width: '100%',
                         }}
                     >
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            mb: 3
-                        }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                mb: 3,
+                            }}
+                        >
                             <IconButton
                                 onClick={handlePreviousMonth}
                                 sx={{
                                     backgroundColor: `${colors.primary}20`,
-                                    '&:hover': {
-                                        backgroundColor: `${colors.primary}40`,
-                                    }
+                                    '&:hover': { backgroundColor: `${colors.primary}40` },
                                 }}
                             >
                                 <ChevronLeftIcon />
                             </IconButton>
-                            <Typography variant="h6" sx={{
-                                color: colors.primary,
-                                fontWeight: 'bold',
-                                px: 2,
-                                py: 1,
-                                borderRadius: 2,
-                                backgroundColor: `${colors.primary}15`
-                            }}>
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    color: colors.primary,
+                                    fontWeight: 'bold',
+                                    px: 2,
+                                    py: 1,
+                                    borderRadius: 2,
+                                    backgroundColor: `${colors.primary}15`,
+                                }}
+                            >
                                 {months[currentDate.getMonth()]} {currentDate.getFullYear()}
                             </Typography>
                             <IconButton
                                 onClick={handleNextMonth}
                                 sx={{
                                     backgroundColor: `${colors.primary}20`,
-                                    '&:hover': {
-                                        backgroundColor: `${colors.primary}40`,
-                                    }
+                                    '&:hover': { backgroundColor: `${colors.primary}40` },
                                 }}
                             >
                                 <ChevronRightIcon />
                             </IconButton>
                         </Box>
 
-                        <TableContainer sx={{ borderRadius: 2, overflow: 'hidden' }}>
+                        <TableContainer
+                            sx={{
+                                borderRadius: 2,
+                                overflow: 'hidden',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            }}
+                        >
                             <Table>
                                 <TableHead>
                                     <TableRow sx={{ backgroundColor: colors.primary }}>
@@ -401,7 +355,7 @@ const StepThree = ({
                                                 sx={{
                                                     color: 'white',
                                                     fontWeight: 'bold',
-                                                    py: 2
+                                                    py: 2,
                                                 }}
                                             >
                                                 {day}
@@ -419,8 +373,10 @@ const StepThree = ({
                                                     sx={{
                                                         height: '70px',
                                                         border: '1px solid rgba(224, 224, 224, 0.3)',
-                                                        backgroundColor: date && isDateDisabled(date) ? `${colors.primary}05` : 'transparent',
-                                                        position: 'relative'
+                                                        backgroundColor: date && isDateDisabled(date)
+                                                            ? `${colors.primary}05`
+                                                            : 'transparent',
+                                                        position: 'relative',
                                                     }}
                                                 >
                                                     {date && (
@@ -432,12 +388,12 @@ const StepThree = ({
                                                                     minWidth: '45px',
                                                                     height: '45px',
                                                                     borderRadius: '50%',
-                                                                    backgroundColor: selectedDate === date.toISOString().split('T')[0]
+                                                                    backgroundColor: isSameDay(selectedDate, date)
                                                                         ? colors.primary
                                                                         : isDateDisabled(date)
                                                                             ? 'transparent'
                                                                             : `${colors.secondary}20`,
-                                                                    color: selectedDate === date.toISOString().split('T')[0]
+                                                                    color: isSameDay(selectedDate, date)
                                                                         ? 'white'
                                                                         : isDateDisabled(date)
                                                                             ? 'grey.500'
@@ -445,34 +401,38 @@ const StepThree = ({
                                                                     fontWeight: 'bold',
                                                                     border: isDateDisabled(date)
                                                                         ? 'none'
-                                                                        : selectedDate === date.toISOString().split('T')[0]
+                                                                        : isSameDay(selectedDate, date)
                                                                             ? 'none'
                                                                             : `2px solid ${colors.secondary}40`,
                                                                     '&:hover': {
-                                                                        backgroundColor: selectedDate === date.toISOString().split('T')[0]
+                                                                        backgroundColor: isSameDay(selectedDate, date)
                                                                             ? colors.primary
                                                                             : isDateDisabled(date)
                                                                                 ? 'transparent'
-                                                                                : `${colors.secondary}40`
-                                                                    }
+                                                                                : `${colors.secondary}40`,
+                                                                    },
                                                                 }}
                                                             >
                                                                 {date.getDate()}
                                                             </Button>
                                                             {isDateDisabled(date) && (
-                                                                <Box sx={{
-                                                                    position: 'absolute',
-                                                                    top: '50%',
-                                                                    left: '50%',
-                                                                    transform: 'translate(-50%, -50%)',
-                                                                    pointerEvents: 'none',
-                                                                    zIndex: 1
-                                                                }}>
-                                                                    <CloseIcon sx={{
-                                                                        color: 'grey.400',
-                                                                        opacity: 0.8,
-                                                                        fontSize: 20
-                                                                    }} />
+                                                                <Box
+                                                                    sx={{
+                                                                        position: 'absolute',
+                                                                        top: '50%',
+                                                                        left: '50%',
+                                                                        transform: 'translate(-50%, -50%)',
+                                                                        pointerEvents: 'none',
+                                                                        zIndex: 1,
+                                                                    }}
+                                                                >
+                                                                    <CloseIcon
+                                                                        sx={{
+                                                                            color: 'grey.400',
+                                                                            opacity: 0.8,
+                                                                            fontSize: 20,
+                                                                        }}
+                                                                    />
                                                                 </Box>
                                                             )}
                                                         </>
@@ -486,139 +446,217 @@ const StepThree = ({
                         </TableContainer>
                     </Paper>
 
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        gap: 3,
-                        mb: 3,
-                        mt: 2
-                    }}>
-                        <Box sx={{
+                    {/* Leyenda */}
+                    <Box
+                        sx={{
                             display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                        }}>
-                            <Box sx={{
-                                width: 12,
-                                height: 12,
-                                borderRadius: '50%',
-                                backgroundColor: colors.primary
-                            }} />
+                            justifyContent: 'center',
+                            gap: 3,
+                            mb: 4,
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                                sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: colors.primary,
+                                }}
+                            />
                             <Typography variant="body2">Seleccionado</Typography>
                         </Box>
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                        }}>
-                            <Box sx={{
-                                width: 12,
-                                height: 12,
-                                borderRadius: '50%',
-                                backgroundColor: `${colors.secondary}30`
-                            }} />
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box
+                                sx={{
+                                    width: 12,
+                                    height: 12,
+                                    borderRadius: '50%',
+                                    backgroundColor: `${colors.secondary}30`,
+                                }}
+                            />
                             <Typography variant="body2">Disponible</Typography>
                         </Box>
-                        <Box sx={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1
-                        }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <CloseIcon sx={{ color: 'grey.400', fontSize: 14 }} />
                             <Typography variant="body2">No disponible</Typography>
                         </Box>
                     </Box>
 
+                    {/* Detalles de tu Cita */}
+                    <Paper
+                        elevation={2}
+                        sx={{
+                            p: 3,
+                            mb: 4,
+                            backgroundColor: colors.cardBg,
+                            borderRadius: 3,
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                            width: '100%',
+                        }}
+                    >
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                color: colors.primary,
+                                mb: 2,
+                                display: 'flex',
+                                alignItems: 'center',
+                                fontWeight: 'bold',
+                            }}
+                        >
+                            <EditCalendarIcon sx={{ mr: 1 }} />
+                            Detalles de tu Cita
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    p: 1,
+                                    borderRadius: 1,
+                                    backgroundColor: `${colors.primary}10`,
+                                }}
+                            >
+                                <EventIcon sx={{ mr: 1, color: colors.secondary }} />
+                                <Typography>
+                                    <strong>Fecha:</strong>{' '}
+                                    {selectedDate ? formatDate(selectedDate) : 'No seleccionada'}
+                                </Typography>
+                            </Box>
+                            <Box
+                                sx={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    p: 1,
+                                    borderRadius: 1,
+                                    backgroundColor: `${colors.primary}10`,
+                                }}
+                            >
+                                <ScheduleIcon sx={{ mr: 1, color: colors.secondary }} />
+                                <Typography>
+                                    <strong>Hora:</strong> {selectedTime || 'No seleccionada'}
+                                </Typography>
+                            </Box>
+                            {selectedDate && selectedTime && (
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    onClick={() => {
+                                        setSelectedDateForTimes(normalizeDateForCompare(selectedDate));
+                                        fetchAvailableTimes(normalizeDateForCompare(selectedDate));
+                                        setShowTimeDialog(true);
+                                    }}
+                                    startIcon={<EditCalendarIcon />}
+                                    sx={{
+                                        alignSelf: 'flex-start',
+                                        mt: 1,
+                                        borderRadius: 6,
+                                        textTransform: 'none',
+                                        px: 2,
+                                    }}
+                                >
+                                    Cambiar Horario
+                                </Button>
+                            )}
+                        </Box>
+                    </Paper>
+
+                    {/* Diálogo de horarios */}
                     <Dialog
                         open={showTimeDialog}
                         onClose={() => setShowTimeDialog(false)}
                         maxWidth="sm"
                         fullWidth
                         PaperProps={{
-                            sx: {
-                                borderRadius: 3,
-                                backgroundColor: colors.cardBg
-                            }
+                            sx: { borderRadius: 3, backgroundColor: colors.cardBg },
                         }}
                     >
-                        <DialogTitle sx={{
-                            color: colors.primary,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 1,
-                            borderBottom: `1px solid ${colors.primary}20`,
-                            pb: 2
-                        }}>
+                        <DialogTitle
+                            sx={{
+                                color: colors.primary,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                borderBottom: `1px solid ${colors.primary}20`,
+                                pb: 2,
+                            }}
+                        >
                             <TimeIcon />
                             <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
                                 Horarios Disponibles
                             </Typography>
-                            <Typography variant="subtitle1" sx={{ ml: 'auto', color: colors.secondary, fontWeight: 'medium' }}>
+                            <Typography
+                                variant="subtitle1"
+                                sx={{ ml: 'auto', color: colors.secondary, fontWeight: 'medium' }}
+                            >
                                 {selectedDateForTimes && formatDate(selectedDateForTimes)}
                             </Typography>
                         </DialogTitle>
                         <DialogContent sx={{ mt: 2 }}>
-                            <Grid container spacing={2} sx={{ mt: 1 }}>
-                                {availableTimes.length > 0 ? (
-                                    availableTimes.map((time) => (
-                                        <Grid item xs={4} key={time}>
-                                            <Button
-                                                variant={selectedTime === time ? 'contained' : 'outlined'}
-                                                color="primary"
-                                                fullWidth
-                                                onClick={() => handleTimeSelection(time)}
-                                                sx={{
-                                                    mb: 1,
-                                                    py: 1.5,
-                                                    borderRadius: 8,
-                                                    fontWeight: 'bold',
-                                                    '&.MuiButton-contained': {
-                                                        boxShadow: `0 4px 8px ${colors.primary}40`
-                                                    }
-                                                }}
-                                                startIcon={<ScheduleIcon />}
-                                            >
-                                                {time}
-                                            </Button>
-                                        </Grid>
-                                    ))
-                                ) : (
-                                    <Grid item xs={12}>
-                                        <Alert
-                                            severity="info"
-                                            icon={<InfoIcon />}
+                            {availableTimes.length > 0 || bookedTimes.length > 0 ? (
+                                <Box>
+                                    {availableTimes.map((slot) => (
+                                        <Button
+                                            key={slot.time}
+                                            variant={
+                                                selectedTime === slot.time &&
+                                                horarioSeleccionado === slot.horarioId
+                                                    ? 'contained'
+                                                    : 'outlined'
+                                            }
+                                            color="primary"
+                                            fullWidth
+                                            onClick={() => handleTimeSelection(slot)}
                                             sx={{
-                                                borderRadius: 2,
-                                                py: 2
+                                                mb: 1,
+                                                py: 1.5,
+                                                borderRadius: 8,
+                                                fontWeight: 'bold',
                                             }}
+                                            startIcon={<ScheduleIcon />}
                                         >
-                                            No hay horarios disponibles para esta fecha
-                                        </Alert>
-                                    </Grid>
-                                )}
-                            </Grid>
+                                            {slot.time}
+                                        </Button>
+                                    ))}
+                                    {bookedTimes.map((slot) => (
+                                        <Button
+                                            key={slot.time}
+                                            variant="outlined"
+                                            disabled
+                                            fullWidth
+                                            sx={{
+                                                mb: 1,
+                                                py: 1.5,
+                                                borderRadius: 8,
+                                                color: 'grey.500',
+                                                borderColor: 'grey.300',
+                                            }}
+                                            startIcon={<EventBusyIcon />}
+                                        >
+                                            {slot.time} (No disponible)
+                                        </Button>
+                                    ))}
+                                </Box>
+                            ) : (
+                                <Alert severity="info" sx={{ borderRadius: 2, py: 2 }}>
+                                    No hay horarios disponibles para esta fecha
+                                </Alert>
+                            )}
                         </DialogContent>
-                        <DialogActions sx={{ p: 2, pt: 0 }}>
+                        <DialogActions sx={{ p: 2 }}>
                             <Button
                                 onClick={() => setShowTimeDialog(false)}
                                 variant="outlined"
-                                sx={{
-                                    borderRadius: 6,
-                                    px: 3,
-                                    textTransform: 'none'
-                                }}
+                                sx={{ borderRadius: 6, px: 3, textTransform: 'none' }}
                             >
                                 Cerrar
                             </Button>
                         </DialogActions>
                     </Dialog>
 
-                    <Box sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        mt: 4,
-                        gap: 2
-                    }}>
+                    {/* Botones de navegación */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4, gap: 2 }}>
                         <Button
                             variant="outlined"
                             color="primary"
@@ -628,7 +666,7 @@ const StepThree = ({
                                 textTransform: 'none',
                                 borderRadius: 8,
                                 px: 3,
-                                py: 1.2
+                                py: 1.2,
                             }}
                         >
                             Atrás
@@ -637,7 +675,7 @@ const StepThree = ({
                             variant="contained"
                             color="primary"
                             onClick={handleContinue}
-                            disabled={!selectedDate || !selectedTime}
+                            disabled={!selectedDate || !selectedTime || !formData.horario_id}
                             endIcon={<ArrowForwardIcon />}
                             sx={{
                                 textTransform: 'none',
@@ -645,12 +683,11 @@ const StepThree = ({
                                 px: 3,
                                 py: 1.2,
                                 fontWeight: 'bold',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)'
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                             }}
                         >
                             Continuar
                         </Button>
-
                     </Box>
                 </>
             )}
