@@ -575,7 +575,6 @@ const ImageDialog = React.memo(({ open, imageUrl, onClose }) => {
 });
 
 // Componente profesional para mostrar detalles del servicio
-// Componente profesional para mostrar detalles del servicio
 const ServiceDetailsDialog = React.memo(({
   open,
   service,
@@ -648,19 +647,10 @@ const ServiceDetailsDialog = React.memo(({
       onClose={onClose}
       maxWidth="lg"
       fullWidth
-      scroll="paper"
-      PaperProps={{
-        sx: {
-          borderRadius: '16px',
-          backgroundColor: colors.paper,
-          color: colors.text,
-          boxShadow: '0 12px 40px rgba(0,0,0,0.2)',
-          m: { xs: 1, sm: 2 },
-          height: { xs: 'auto', md: '90vh' }, // Altura fija en pantallas medianas y grandes
-          maxHeight: '95vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden' // Important para controlar el scroll interno
+      scroll="paper" // Crucial para habilitar el scroll
+      sx={{
+        '& .MuiDialog-paper': {
+          maxHeight: '80vh', // Limitamos la altura para forzar el scroll
         }
       }}
     >
@@ -668,8 +658,7 @@ const ServiceDetailsDialog = React.memo(({
       <Box sx={{
         position: 'relative',
         backgroundColor: alpha(serviceColor, 0.05),
-        borderBottom: `1px solid ${alpha(serviceColor, 0.2)}`,
-        flexShrink: 0 // Evita que el header se encoja
+        borderBottom: `1px solid ${alpha(serviceColor, 0.2)}`
       }}>
         {/* Background decorativo */}
         <Box sx={{
@@ -788,8 +777,7 @@ const ServiceDetailsDialog = React.memo(({
           px: { xs: 2, sm: 3 },
           py: 2,
           flexWrap: 'wrap',
-          borderBottom: `1px solid ${alpha(colors.divider, 0.7)}`,
-          flexShrink: 0 // Evita que esta sección se encoja
+          borderBottom: `1px solid ${alpha(colors.divider, 0.7)}`
         }}
       >
         <Box sx={{
@@ -843,31 +831,7 @@ const ServiceDetailsDialog = React.memo(({
       </Box>
 
       {/* Contenido principal */}
-      <DialogContent
-        sx={{
-          p: { xs: 2, sm: 3 },
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          flex: '1 1 auto', // Permite que esta sección crezca y se encoja
-          '&::-webkit-scrollbar': {
-            width: '10px',
-          },
-          '&::-webkit-scrollbar-track': {
-            background: alpha(colors.primary, 0.05),
-            borderRadius: '8px',
-          },
-          '&::-webkit-scrollbar-thumb': {
-            background: alpha(colors.primary, 0.2),
-            borderRadius: '8px',
-            '&:hover': {
-              background: alpha(colors.primary, 0.3),
-            },
-          },
-        }}
-      >
+      <DialogContent dividers>
         <Grid container spacing={3}>
           {/* Columna de imagen y plan de tratamiento (izquierda) */}
           <Grid item xs={12} md={5}>
@@ -1466,8 +1430,7 @@ const ServiceDetailsDialog = React.memo(({
           p: { xs: 2, sm: 3 },
           borderTop: `1px solid ${alpha(colors.divider, 0.7)}`,
           display: 'flex',
-          justifyContent: 'flex-end',
-          flexShrink: 0 // Evita que el footer se encoja
+          justifyContent: 'flex-end'
         }}
       >
         <Button
