@@ -29,31 +29,14 @@ import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
-// Componente para el botón de contraer/expandir menú
-const MenuToggleButton = ({ isOpen, onClick, color }) => {
-    return (
-        <IconButton
-            onClick={onClick}
-            sx={{
-                color: color,
-                width: 32,
-                height: 32,
-                '&:hover': {
-                    backgroundColor: 'rgba(0,0,0,0.04)'
-                }
-            }}
-        >
-            {isOpen ? <FaChevronLeft /> : <FaChevronRight />}
-        </IconButton>
-    );
-};
-
 const BarraAdmin = ({ onDrawerChange }) => {
+    // Estados para manejo de notificaciones, autenticación, etc.
     const [notificationMessage, setNotificationMessage] = useState('');
     const { isDarkTheme } = useThemeContext();
     const [openNotification, setOpenNotification] = useState(false);
     const [pendingNotifications, setPendingNotifications] = useState(3);
     const [drawerOpen, setDrawerOpen] = useState(true);
+    const [isCollapsed, setIsCollapsed] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const theme = useTheme();
@@ -61,17 +44,18 @@ const BarraAdmin = ({ onDrawerChange }) => {
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const { setUser, user } = useAuth();
 
-    // Estado para manejar los grupos expandidos/colapsados - inicialmente todos cerrados
+    // Estado para grupos expandidos/colapsados
     const [expandedGroups, setExpandedGroups] = useState({
         gestion: false,
         reportes: false,
         configuracion: false
     });
 
+    // Esquema de colores según el tema
     const colors = {
-        background: isDarkTheme ? '#1A1F2C' : '#FFFFFF', // Fondo más oscuro/claro para contraste
-        primary: isDarkTheme ? '#3B82F6' : '#2563EB', // Azul más vibrante
-        secondary: isDarkTheme ? '#4ADE80' : '#10B981', // Verde para acentos
+        background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
+        primary: isDarkTheme ? '#3B82F6' : '#2563EB',
+        secondary: isDarkTheme ? '#4ADE80' : '#10B981',
         text: isDarkTheme ? '#F3F4F6' : '#1F2937',
         secondaryText: isDarkTheme ? '#94A3B8' : '#64748B',
         hover: isDarkTheme ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.08)',
@@ -118,41 +102,50 @@ const BarraAdmin = ({ onDrawerChange }) => {
         }
     ];
 
-    const drawerWidth = drawerOpen ? (isMobile ? '85%' : 280) : 0;
+    // Cálculo del ancho del drawer basado en estado y tamaño de pantalla
+    const drawerWidth = drawerOpen 
+        ? (isMobile ? '85%' : (isCollapsed ? 68 : 280)) 
+        : 0;
 
     // Notificar al componente padre cuando cambia el estado del drawer
     useEffect(() => {
         if (onDrawerChange) {
-            onDrawerChange(drawerOpen);
+            onDrawerChange(drawerOpen, isCollapsed);
         }
-    }, [drawerOpen, onDrawerChange]);
+    }, [drawerOpen, isCollapsed, onDrawerChange]);
 
-    // Manejar expansión/colapso de grupos con comportamiento de acordeón
+    // Manejar expansión/colapso de grupos
     const toggleGroup = (groupId) => {
+        if (isCollapsed) {
+            setIsCollapsed(false);
+            setTimeout(() => {
+                setExpandedGroups(prev => ({
+                    ...Object.keys(prev).reduce((acc, key) => {
+                        acc[key] = false;
+                        return acc;
+                    }, {}),
+                    [groupId]: true
+                }));
+            }, 150);
+            return;
+        }
+
         setExpandedGroups(prev => {
-            // Crear un nuevo objeto con todos los grupos colapsados
-            const newState = Object.keys(prev).reduce((acc, key) => {
-                acc[key] = false;
-                return acc;
-            }, {});
-            
-            // Si el grupo clickeado ya estaba expandido, dejarlo cerrado (toggle)
-            // Si estaba cerrado, expandirlo
+            const newState = { ...prev };
             newState[groupId] = !prev[groupId];
-            
             return newState;
         });
     };
 
+    // Inicializar drawer según tamaño de pantalla
     useEffect(() => {
-        // Si es móvil, inicialmente el drawer estará cerrado
         setDrawerOpen(!isMobile);
-        // Notificar al componente padre sobre el cambio en el estado del drawer
         if (onDrawerChange) {
-            onDrawerChange(!isMobile);
+            onDrawerChange(!isMobile, false);
         }
     }, [isMobile, onDrawerChange]);
 
+    // Verificar autenticación
     useEffect(() => {
         const checkAuthStatus = async () => {
             try {
@@ -184,6 +177,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
         checkAuthStatus();
     }, [setUser]);
 
+    // Manejador de click en ítem de menú
     const handleItemClick = (item) => {
         if (item.text === 'Cerrar Sesión') {
             handleLogout();
@@ -192,12 +186,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
             if (isMobile) {
                 setDrawerOpen(false);
                 if (onDrawerChange) {
-                    onDrawerChange(false);
+                    onDrawerChange(false, false);
                 }
             }
         }
     };
 
+    // Manejo de cierre de sesión
     const handleLogout = async () => {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
@@ -237,6 +232,11 @@ const BarraAdmin = ({ onDrawerChange }) => {
         } finally {
             setIsLoggingOut(false);
         }
+    };
+
+    // Función para alternar entre menú expandido y colapsado
+    const toggleCollapse = () => {
+        setIsCollapsed(!isCollapsed);
     };
 
     // Función para alternar la apertura/cierre del drawer
@@ -298,10 +298,10 @@ const BarraAdmin = ({ onDrawerChange }) => {
                         fontSize: 26,
                         color: colors.primary,
                         flexShrink: 0,
-                        marginRight: drawerOpen ? 12 : 0
+                        marginRight: !isCollapsed ? 12 : 0
                     }} />
 
-                    {drawerOpen && (
+                    {!isCollapsed && (
                         <Typography
                             variant="h6"
                             sx={{
@@ -318,51 +318,65 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 </Box>
 
                 {/* Botón para contraer/expandir el menú */}
-                <MenuToggleButton 
-                    isOpen={drawerOpen} 
-                    onClick={toggleDrawer} 
-                    color={colors.iconColor} 
-                />
+                {!isMobile && (
+                    <IconButton
+                        onClick={toggleCollapse}
+                        sx={{
+                            color: colors.iconColor,
+                            width: 32,
+                            height: 32,
+                            '&:hover': {
+                                backgroundColor: 'rgba(0,0,0,0.04)'
+                            }
+                        }}
+                    >
+                        {isCollapsed ? <FaChevronRight /> : <FaChevronLeft />}
+                    </IconButton>
+                )}
             </Box>
 
             {/* Área de usuario - Perfil de Administrador */}
-            {drawerOpen && (
-                <Box sx={{
-                    py: 2,
-                    px: 2,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    borderBottom: `1px solid ${colors.divider}`
-                }}>
-                    <Avatar
-                        sx={{
-                            bgcolor: colors.primary,
-                            width: 64,
-                            height: 64,
-                            mb: 1.5
-                        }}
-                    >
-                        <FaUserCircle size={32} />
-                    </Avatar>
-                    <Typography variant="subtitle1" fontWeight="bold">
-                        {user?.nombre || 'Admin'}
-                    </Typography>
-                    <Typography 
-                        variant="caption" 
-                        sx={{ 
-                            color: colors.secondaryText,
-                            fontWeight: 'medium', 
-                            mb: 0.5 
-                        }}
-                    >
-                        Administrador
-                    </Typography>
-                    <Typography variant="body2" color={colors.secondaryText}>
-                        {user?.email || 'admin@odontologiacarol.com'}
-                    </Typography>
-                </Box>
-            )}
+            <Box sx={{
+                py: 2,
+                px: 2,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                borderBottom: `1px solid ${colors.divider}`
+            }}>
+                <Avatar
+                    sx={{
+                        bgcolor: colors.primary,
+                        width: isCollapsed ? 40 : 64,
+                        height: isCollapsed ? 40 : 64,
+                        mb: isCollapsed ? 1 : 1.5,
+                        transition: 'all 0.3s'
+                    }}
+                >
+                    <FaUserCircle size={isCollapsed ? 20 : 32} />
+                </Avatar>
+                
+                {!isCollapsed && (
+                    <>
+                        <Typography variant="subtitle1" fontWeight="bold">
+                            {user?.nombre || 'Admin'}
+                        </Typography>
+                        <Typography 
+                            variant="caption" 
+                            sx={{ 
+                                color: colors.secondaryText,
+                                fontWeight: 'medium', 
+                                mb: 0.5 
+                            }}
+                        >
+                            Administrador
+                        </Typography>
+                        <Typography variant="body2" color={colors.secondaryText}>
+                            {user?.email || 'admin@odontologiacarol.com'}
+                        </Typography>
+                    </>
+                )}
+            </Box>
 
             {/* Contenido principal del menú */}
             <Box sx={{
@@ -374,13 +388,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
             }}>
                 {/* Menú de navegación con scroll */}
                 <List sx={{
-                    px: 1.5,
+                    px: isCollapsed ? 0.5 : 1.5,
                     py: 2,
                     flexGrow: 1,
                     overflowY: 'auto',
                     overflowX: 'hidden',
                     '::-webkit-scrollbar': {
-                        width: '6px'
+                        width: '4px'
                     },
                     '::-webkit-scrollbar-thumb': {
                         backgroundColor: colors.divider,
@@ -398,6 +412,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
                             overflow: 'hidden',
                             transition: 'background-color 0.2s ease',
                             mb: 1.5,
+                            mx: isCollapsed ? 0.5 : 0,
                             '&:hover': {
                                 backgroundColor: location.pathname === '/Administrador/principal'
                                     ? colors.activeItem
@@ -411,7 +426,8 @@ const BarraAdmin = ({ onDrawerChange }) => {
                             disableRipple
                             sx={{
                                 py: 1.5,
-                                px: drawerOpen ? 1.5 : 1,
+                                px: isCollapsed ? 1 : 1.5,
+                                justifyContent: isCollapsed ? 'center' : 'flex-start',
                             }}
                         >
                             <ListItemIcon
@@ -419,13 +435,15 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                     color: location.pathname === '/Administrador/principal'
                                         ? colors.primary
                                         : colors.iconColor,
-                                    minWidth: drawerOpen ? 36 : 'auto',
+                                    minWidth: isCollapsed ? 0 : 36,
+                                    mr: isCollapsed ? 0 : 1,
+                                    justifyContent: 'center'
                                 }}
                             >
                                 <FaHome size={18} />
                             </ListItemIcon>
 
-                            {drawerOpen && (
+                            {!isCollapsed && (
                                 <ListItemText
                                     primary="Panel Principal"
                                     primaryTypographyProps={{
@@ -440,13 +458,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
                         </ListItem>
                     </Paper>
 
-                    {drawerOpen && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
+                    {!isCollapsed && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
 
                     {/* Grupos de menú */}
                     {menuGroups.map((group) => (
                         <React.Fragment key={group.id}>
                             {/* Encabezado de Grupo */}
-                            {drawerOpen && (
+                            {!isCollapsed ? (
                                 <ListItem
                                     button
                                     onClick={() => toggleGroup(group.id)}
@@ -473,16 +491,24 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                         transition: 'transform 0.2s',
                                         transform: expandedGroups[group.id] ? 'rotate(0deg)' : 'rotate(-90deg)'
                                     }}>
-                                        {expandedGroups[group.id] ?
-                                            <FaAngleDown size={14} /> :
-                                            <FaAngleDown size={14} />
-                                        }
+                                        <FaAngleDown size={14} />
                                     </Box>
                                 </ListItem>
+                            ) : (
+                                // Versión compacta para menú colapsado - solo muestra un separador
+                                <Divider 
+                                    sx={{ 
+                                        my: 1, 
+                                        borderColor: colors.divider,
+                                        '&::before, &::after': {
+                                            borderColor: colors.divider,
+                                        }
+                                    }} 
+                                />
                             )}
 
                             {/* Items del grupo */}
-                            <Collapse in={expandedGroups[group.id] || !drawerOpen} timeout="auto" unmountOnExit>
+                            <Collapse in={expandedGroups[group.id] || isCollapsed} timeout="auto" unmountOnExit={!isCollapsed}>
                                 <List component="div" disablePadding>
                                     {group.items.map((item, index) => {
                                         const isActive = location.pathname === item.path;
@@ -497,6 +523,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                                     overflow: 'hidden',
                                                     transition: 'background-color 0.2s ease',
                                                     mb: 0.5,
+                                                    mx: isCollapsed ? 0.5 : 0,
                                                     '&:hover': {
                                                         backgroundColor: isActive ? colors.activeItem : colors.hover,
                                                     }
@@ -508,20 +535,23 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                                     disableRipple
                                                     sx={{
                                                         py: 1.2,
-                                                        pl: drawerOpen ? 2 : 1,
+                                                        pl: isCollapsed ? 0 : 2,
                                                         pr: 1,
+                                                        justifyContent: isCollapsed ? 'center' : 'flex-start',
                                                     }}
                                                 >
                                                     <ListItemIcon
                                                         sx={{
                                                             color: isActive ? colors.primary : colors.iconColor,
-                                                            minWidth: drawerOpen ? 36 : 'auto',
+                                                            minWidth: isCollapsed ? 0 : 36,
+                                                            mr: isCollapsed ? 0 : 1,
+                                                            justifyContent: 'center'
                                                         }}
                                                     >
                                                         <item.icon size={16} />
                                                     </ListItemIcon>
 
-                                                    {drawerOpen && (
+                                                    {!isCollapsed && (
                                                         <ListItemText
                                                             primary={item.text}
                                                             primaryTypographyProps={{
@@ -538,50 +568,54 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                 </List>
                             </Collapse>
 
-                            {drawerOpen && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
+                            {!isCollapsed && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
                         </React.Fragment>
                     ))}
 
                     {/* Ayuda */}
-                    {drawerOpen && (
-                        <Paper
-                            elevation={0}
-                            sx={{
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            backgroundColor: location.pathname === '/Administrador/ayuda'
+                                ? colors.activeItem
+                                : 'transparent',
+                            borderRadius: 1.5,
+                            overflow: 'hidden',
+                            transition: 'background-color 0.2s ease',
+                            mb: 0.5,
+                            mt: 1,
+                            mx: isCollapsed ? 0.5 : 0,
+                            '&:hover': {
                                 backgroundColor: location.pathname === '/Administrador/ayuda'
                                     ? colors.activeItem
-                                    : 'transparent',
-                                borderRadius: 1.5,
-                                overflow: 'hidden',
-                                transition: 'background-color 0.2s ease',
-                                mb: 0.5,
-                                mt: 1,
-                                '&:hover': {
-                                    backgroundColor: location.pathname === '/Administrador/ayuda'
-                                        ? colors.activeItem
-                                        : colors.hover,
-                                }
+                                    : colors.hover,
+                            }
+                        }}
+                    >
+                        <ListItem
+                            button
+                            onClick={() => navigate('/Administrador/ayuda')}
+                            disableRipple
+                            sx={{
+                                py: 1.2,
+                                px: isCollapsed ? 0 : 1.5,
+                                justifyContent: isCollapsed ? 'center' : 'flex-start',
                             }}
                         >
-                            <ListItem
-                                button
-                                onClick={() => navigate('/Administrador/ayuda')}
-                                disableRipple
+                            <ListItemIcon
                                 sx={{
-                                    py: 1.2,
-                                    px: 1.5
+                                    color: location.pathname === '/Administrador/ayuda'
+                                        ? colors.primary
+                                        : colors.iconColor,
+                                    minWidth: isCollapsed ? 0 : 36,
+                                    mr: isCollapsed ? 0 : 1,
+                                    justifyContent: 'center'
                                 }}
                             >
-                                <ListItemIcon
-                                    sx={{
-                                        color: location.pathname === '/Administrador/ayuda'
-                                            ? colors.primary
-                                            : colors.iconColor,
-                                        minWidth: 36
-                                    }}
-                                >
-                                    <FaQuestionCircle size={16} />
-                                </ListItemIcon>
+                                <FaQuestionCircle size={16} />
+                            </ListItemIcon>
 
+                            {!isCollapsed && (
                                 <ListItemText
                                     primary="Ayuda"
                                     primaryTypographyProps={{
@@ -592,15 +626,15 @@ const BarraAdmin = ({ onDrawerChange }) => {
                                             : colors.text
                                     }}
                                 />
-                            </ListItem>
-                        </Paper>
-                    )}
+                            )}
+                        </ListItem>
+                    </Paper>
                 </List>
             </Box>
 
             {/* Cerrar Sesión (fijo en la parte inferior) */}
             <Box sx={{
-                p: 1.5,
+                p: isCollapsed ? 1 : 1.5,
                 borderTop: `1px solid ${colors.divider}`,
                 backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.02)',
                 mt: 'auto', // Empuja este componente al fondo
@@ -623,19 +657,22 @@ const BarraAdmin = ({ onDrawerChange }) => {
                         disableRipple
                         sx={{
                             py: 1.2,
-                            px: 1.5
+                            px: isCollapsed ? 0 : 1.5,
+                            justifyContent: isCollapsed ? 'center' : 'flex-start'
                         }}
                     >
                         <ListItemIcon
                             sx={{
                                 color: colors.error,
-                                minWidth: drawerOpen ? 36 : 'auto',
+                                minWidth: isCollapsed ? 0 : 36,
+                                mr: isCollapsed ? 0 : 1,
+                                justifyContent: 'center'
                             }}
                         >
                             <FaSignOutAlt size={16} />
                         </ListItemIcon>
 
-                        {drawerOpen && (
+                        {!isCollapsed && (
                             <ListItemText
                                 primary="Cerrar Sesión"
                                 primaryTypographyProps={{
@@ -804,6 +841,35 @@ const BarraAdmin = ({ onDrawerChange }) => {
                 type="info"
                 handleClose={() => setOpenNotification(false)}
             />
+
+            {/* Botón flotante de apertura/cierre según imagen proporcionada */}
+            {!isMobile && (
+                <IconButton
+                    onClick={toggleDrawer}
+                    aria-label={drawerOpen ? "Cerrar menú" : "Abrir menú"}
+                    sx={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: drawerOpen ? 'auto' : 0,
+                        right: drawerOpen ? 0 : 'auto',
+                        transform: 'translateY(-50%)',
+                        zIndex: theme.zIndex.drawer - 1,
+                        backgroundColor: colors.primary,
+                        color: '#fff',
+                        p: 0.5,
+                        width: 40,
+                        height: 90,
+                        borderRadius: drawerOpen ? '8px 0 0 8px' : '0 8px 8px 0',
+                        boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+                        '&:hover': {
+                            backgroundColor: colors.primary,
+                            opacity: 0.9
+                        }
+                    }}
+                >
+                    {drawerOpen ? <FaChevronLeft size={20} /> : <FaChevronRight size={20} />}
+                </IconButton>
+            )}
         </>
     );
 };

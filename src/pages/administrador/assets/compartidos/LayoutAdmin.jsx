@@ -4,26 +4,37 @@ import FooterAdmin from './FooterAdmin';
 import { Box, useMediaQuery, useTheme, Paper } from '@mui/material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
-const LayoutPaciente = ({ children }) => {
+const LayoutAdmin = ({ children }) => {
   const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerCollapsed, setDrawerCollapsed] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isDarkTheme } = useThemeContext();
   
   // Recibir estado del drawer desde BarraAdmin
-  const handleDrawerChange = (isOpen) => {
+  const handleDrawerChange = (isOpen, isCollapsed = false) => {
     setDrawerOpen(isOpen);
+    setDrawerCollapsed(isCollapsed);
   };
   
   // Inicializar estado del drawer según el tamaño de pantalla
   useEffect(() => {
     setDrawerOpen(!isMobile);
+    setDrawerCollapsed(false);
   }, [isMobile]);
   
   const colors = {
     background: isDarkTheme ? '#0F172A' : '#F8FAFC', // Fondo elegante para el contenido
     boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)',
-    border: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'
+    border: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    contentBg: isDarkTheme ? '#1A1F2C' : '#FFFFFF'
+  };
+
+  // Cálculo del margen izquierdo basado en estado del drawer
+  const getMarginLeft = () => {
+    if (isMobile) return 0;
+    if (!drawerOpen) return 0;
+    return drawerCollapsed ? '68px' : '280px';
   };
   
   return (
@@ -34,7 +45,8 @@ const LayoutPaciente = ({ children }) => {
         minHeight: '100vh',
         backgroundColor: colors.background,
         overflow: 'hidden',
-        position: 'relative'
+        position: 'relative',
+        transition: 'all 0.3s ease'
       }}
     >
       <BarraAdmin onDrawerChange={handleDrawerChange} />
@@ -47,7 +59,7 @@ const LayoutPaciente = ({ children }) => {
           '@media (max-width: 600px)': {
             mt: '56px', // Altura más pequeña en móviles
           },
-          ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
+          ml: getMarginLeft(),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           p: { xs: 2, sm: 3, md: 4 }
         }}
@@ -55,7 +67,7 @@ const LayoutPaciente = ({ children }) => {
         <Paper
           elevation={0}
           sx={{
-            backgroundColor: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
+            backgroundColor: colors.contentBg,
             borderRadius: 2,
             overflow: 'hidden',
             boxShadow: colors.boxShadow,
@@ -72,7 +84,7 @@ const LayoutPaciente = ({ children }) => {
       <Box
         component="footer"
         sx={{
-          ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
+          ml: getMarginLeft(),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
@@ -82,4 +94,4 @@ const LayoutPaciente = ({ children }) => {
   );
 };
 
-export default LayoutPaciente;
+export default LayoutAdmin;
