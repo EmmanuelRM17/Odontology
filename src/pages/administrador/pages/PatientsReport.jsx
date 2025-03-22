@@ -44,15 +44,6 @@ import {
 } from 'react-icons/fa';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-/**
- * Componente de Gestión de Pacientes
- * 
- * Características principales:
- * - Múltiples filtros anidados y dinámicos
- * - Vistas alternativas (tabla, tarjetas, lista detallada)
- * - Diseño responsivo y adaptable al tema oscuro/claro
- * - Experiencia de usuario mejorada con tooltips e información contextual
- */
 const PatientsReport = () => {
   const { isDarkTheme } = useThemeContext();
   

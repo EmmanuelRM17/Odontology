@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Card,
-  CardHeader,
   CardContent,
-  CardActions,
   Button,
   TextField,
   Grid,
@@ -21,10 +19,9 @@ import {
   Alert,
   ToggleButtonGroup,
   ToggleButton,
-  Tabs,
-  Tab,
   Stack,
-  LinearProgress
+  LinearProgress,
+  InputAdornment
 } from '@mui/material';
 import {
   Save,
@@ -47,7 +44,9 @@ import {
   RemoveCircleOutline,
   ExpandMore,
   ExpandLess,
-  Settings
+  Settings,
+  Search,
+  FilterList
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
@@ -76,6 +75,10 @@ const HorariosForm = () => {
   // Estado para la vista del resumen
   const [vistaResumen, setVistaResumen] = useState('compacta');
   
+  // Estado para filtrado y búsqueda (añadido para imitar PatientsReport)
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filtroActivo, setFiltroActivo] = useState('todos');
+  
   // Estado para controlar la edición de cada franja horaria
   const [franjasEnEdicion, setFranjasEnEdicion] = useState({});
   
@@ -103,6 +106,9 @@ const HorariosForm = () => {
   
   // Estado para almacenar información de citas calculadas
   const [infoFranjas, setInfoFranjas] = useState({});
+  
+  // Vista actual para configuración de días (similar a la vista en PatientsReport)
+  const [vistaDias, setVistaDias] = useState('compacta');
   
   const [notification, setNotification] = useState({
     open: false,
@@ -768,6 +774,21 @@ const HorariosForm = () => {
       setVistaResumen(nuevaVista);
     }
   };
+  
+  // Manejar cambio de vista de días
+  const handleCambioVistaDias = (view) => {
+    setVistaDias(view);
+  };
+  
+  // Manejar cambio en búsqueda
+  const handleSearch = (event) => {
+    setSearchTerm(event.target.value);
+  };
+  
+  // Manejar cambio en filtro activo
+  const handleFiltroActivoChange = (event) => {
+    setFiltroActivo(event.target.value);
+  };
 
   // Envío del formulario
   const handleSubmit = async () => {
@@ -860,19 +881,24 @@ const HorariosForm = () => {
 
   // Definición de colores según el tema
   const colors = {
-    background: isDarkTheme ? '#0D1B2A' : '#f5f5f5',
-    paper: isDarkTheme ? '#1A2735' : '#ffffff',
-    primary: isDarkTheme ? '#00BCD4' : '#03427C',
-    text: isDarkTheme ? '#ffffff' : '#1a1a1a',
-    divider: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+    background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
+    paper: isDarkTheme ? '#243447' : '#ffffff',
+    tableBackground: isDarkTheme ? '#1E2A3A' : '#e3f2fd',
+    text: isDarkTheme ? '#FFFFFF' : '#333333',
+    secondaryText: isDarkTheme ? '#E8F1FF' : '#666666',
+    primary: isDarkTheme ? '#4B9FFF' : '#1976d2',
+    hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
+    inputBorder: isDarkTheme ? '#4B9FFF' : '#1976d2',
+    inputLabel: isDarkTheme ? '#E8F1FF' : '#666666',
+    cardBackground: isDarkTheme ? '#1D2B3A' : '#F8FAFC',
+    divider: isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
+    titleColor: isDarkTheme ? '#4B9FFF' : '#0052A3',
     success: isDarkTheme ? '#4caf50' : '#4caf50',
     error: isDarkTheme ? '#f44336' : '#f44336',
     warning: isDarkTheme ? '#ff9800' : '#ff9800',
     info: isDarkTheme ? '#2196f3' : '#2196f3',
     disabled: isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.38)',
     highlightBg: isDarkTheme ? 'rgba(0, 188, 212, 0.15)' : 'rgba(3, 66, 124, 0.08)',
-    cardBg: isDarkTheme ? '#1D2B3A' : '#ffffff',
-    secondary: isDarkTheme ? '#9575cd' : '#673ab7'
   };
   
   // Renderizar vista de calendario (gráfica)
@@ -882,7 +908,7 @@ const HorariosForm = () => {
         elevation={3}
         sx={{
           p: 3,
-          backgroundColor: colors.cardBg,
+          backgroundColor: colors.paper,
           borderRadius: '8px',
           border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}`
         }}
@@ -994,7 +1020,7 @@ const HorariosForm = () => {
                                 right: -5,
                                 height: '20px',
                                 fontSize: '0.6rem',
-                                backgroundColor: colors.secondary,
+                                backgroundColor: colors.info,
                                 color: 'white'
                               }}
                             />
@@ -1019,7 +1045,7 @@ const HorariosForm = () => {
         elevation={3}
         sx={{
           p: 3,
-          backgroundColor: colors.cardBg,
+          backgroundColor: colors.paper,
           borderRadius: '8px',
           border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}`
         }}
@@ -1138,7 +1164,7 @@ const HorariosForm = () => {
               elevation={3}
               sx={{
                 p: 2,
-                backgroundColor: colors.cardBg,
+                backgroundColor: colors.paper,
                 borderRadius: '8px',
                 height: '100%',
                 border: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)'}`
@@ -1185,7 +1211,7 @@ const HorariosForm = () => {
                           <Chip
                             size="small"
                             label={`${franja.duracion} min/cita`}
-                            color="secondary"
+                            color="info"
                             variant="outlined"
                           />
                         </Box>
@@ -1205,7 +1231,7 @@ const HorariosForm = () => {
                                   size="small"
                                   label={`+${infoCitas.minutosSobrantes}min`}
                                   sx={{ height: '20px', fontSize: '0.7rem' }}
-                                  color="info"
+                                  color="secondary"
                                   variant="outlined"
                                 />
                               </Tooltip>
@@ -1232,432 +1258,499 @@ const HorariosForm = () => {
     );
   };
   
-  return (
-    <Box sx={{ p: 3, backgroundColor: colors.background, minHeight: '100vh' }}>
-      <Card sx={{
-        mb: 4,
-        backgroundColor: colors.paper,
-        color: colors.text,
-        boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-        borderRadius: '8px'
-      }}>
-        <CardHeader
-          title={
-            <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AccessTime />
-              Configuración de Horarios
-            </Typography>
-          }
-          sx={{
-            backgroundColor: colors.primary,
-            color: 'white',
-            borderBottom: `1px solid ${colors.divider}`
-          }}
-        />
-
-        <CardContent sx={{ p: 3 }}>
-          <Grid container spacing={3}>
-            {/* Sección de odontólogo */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Person fontSize="small" />
-                Odontólogo
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              {odontologo && (
-                <Paper elevation={2} sx={{ p: 2, backgroundColor: isDarkTheme ? 'rgba(0, 188, 212, 0.1)' : 'rgba(3, 66, 124, 0.05)' }}>
-                  <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                    {odontologo.nombre} {odontologo.aPaterno} {odontologo.aMaterno}
-                  </Typography>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    {odontologo.email}
-                  </Typography>
+  // Función para renderizar el panel de configuración de día según vista seleccionada
+  const renderConfiguracionDia = (dia) => {
+    return (
+      <Paper
+        elevation={3}
+        sx={{
+          p: 0,
+          mb: 2,
+          backgroundColor: colors.paper,
+          borderRadius: '8px',
+          borderLeft: `4px solid ${horariosPorDia[dia].activo ? colors.success : colors.error}`,
+          overflow: 'hidden'
+        }}
+      >
+        {/* Encabezado del día */}
+        <Box sx={{ 
+          p: 2, 
+          backgroundColor: horariosPorDia[dia].activo
+            ? isDarkTheme ? 'rgba(76, 175, 80, 0.1)' : 'rgba(76, 175, 80, 0.05)'
+            : isDarkTheme ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.05)',
+        }}>
+          <Grid container alignItems="center">
+            <Grid item xs={12} sm={4}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={horariosPorDia[dia].activo}
+                      onChange={() => handleDiaActivoChange(dia)}
+                      color="primary"
+                    />
+                  }
+                  label={
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                      {dia}
+                    </Typography>
+                  }
+                />
+                {horariosPorDia[dia].activo ? (
                   <Chip
                     size="small"
-                    label={odontologo.puesto}
-                    color="primary"
-                    sx={{ mt: 1 }}
+                    label="Activo"
+                    color="success"
+                    icon={<EventAvailable />}
+                    sx={{ ml: 1 }}
                   />
-                </Paper>
-              )}
-              {!odontologo && !loading && (
-                <Typography variant="body1" color="error">
-                  No se encontró información del odontólogo.
-                </Typography>
-              )}
-              {loading && (
-                <CircularProgress size={24} sx={{ mt: 1 }} />
-              )}
+                ) : (
+                  <Chip
+                    size="small"
+                    label="Inactivo"
+                    color="error"
+                    icon={<EventBusy />}
+                    sx={{ ml: 1 }}
+                  />
+                )}
+              </Box>
             </Grid>
+            
+            {horariosPorDia[dia].activo && (
+              <Grid item xs={12} sm={8} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button
+                  startIcon={<Add />}
+                  variant="outlined"
+                  size="small"
+                  onClick={() => agregarFranjaHoraria(dia)}
+                  disabled={loading}
+                >
+                  Agregar franja horaria
+                </Button>
+              </Grid>
+            )}
+          </Grid>
+        </Box>
 
-            {/* Sección de configuración de horarios */}
-            <Grid item xs={12}>
-              <Typography variant="subtitle1" sx={{ mb: 1, mt: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-                <AccessTime fontSize="small" />
-                Configuración de Horarios por Día
-              </Typography>
-              <Divider sx={{ mb: 2 }} />
-            </Grid>
-
-            {/* Alerta informativa */}
-            <Grid item xs={12}>
-              <Alert severity="info" icon={<Info />} sx={{ mb: 2 }}>
-                Use el botón <Edit fontSize="small" sx={{ mx: 0.5 }} /> para editar cada franja horaria y <Done fontSize="small" sx={{ mx: 0.5 }} /> para guardar los cambios. 
-                El sistema mostrará recomendaciones para optimizar sus horarios según la duración de las citas.
-              </Alert>
-            </Grid>
-
-            {/* Tarjetas para cada día de la semana */}
-            {diasSemana.map((dia) => (
-              <Grid item xs={12} key={dia}>
-                <Paper
-                  elevation={3}
-                  sx={{
-                    p: 0,
-                    mb: 2,
-                    backgroundColor: colors.cardBg,
+        {/* Contenido del día */}
+        {horariosPorDia[dia].activo && (
+          <Box sx={{ p: 2 }}>
+            {horariosPorDia[dia].franjas.map((franja, index) => {
+              // Obtener la información de citas para esta franja
+              const infoCitas = infoFranjas[dia] && infoFranjas[dia][index];
+              const enEdicion = franjasEnEdicion[dia] && franjasEnEdicion[dia][index];
+              
+              return (
+                <Paper 
+                  key={index} 
+                  elevation={1} 
+                  sx={{ 
+                    mb: 2, 
+                    overflow: 'hidden',
+                    border: enEdicion ? `2px solid ${colors.primary}` : 'none',
                     borderRadius: '8px',
-                    borderLeft: `4px solid ${horariosPorDia[dia].activo ? colors.success : colors.error}`,
-                    overflow: 'hidden'
+                    backgroundColor: enEdicion ? colors.highlightBg : isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)'
                   }}
                 >
-                  {/* Encabezado del día */}
-                  <Box sx={{ 
-                    p: 2, 
-                    backgroundColor: horariosPorDia[dia].activo
-                      ? isDarkTheme ? 'rgba(76, 175, 80, 0.1)' : 'rgba(76, 175, 80, 0.05)'
-                      : isDarkTheme ? 'rgba(244, 67, 54, 0.1)' : 'rgba(244, 67, 54, 0.05)',
-                  }}>
-                    <Grid container alignItems="center">
+                  {/* Barra de progreso visualizando citas */}
+                  {infoCitas && (
+                    <Box sx={{ width: '100%', position: 'relative' }}>
+                      <LinearProgress 
+                        variant="determinate" 
+                        value={(infoCitas.citasCompletas * infoCitas.duracionMinutos / infoCitas.tiempoTotalMinutos) * 100}
+                        sx={{ 
+                          height: 6, 
+                          borderRadius: 0,
+                          backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                          '& .MuiLinearProgress-bar': {
+                            backgroundColor: colors.success
+                          }
+                        }}
+                      />
+                      {infoCitas.minutosSobrantes > 0 && (
+                        <Box 
+                          sx={{ 
+                            position: 'absolute',
+                            top: 0,
+                            right: 0,
+                            width: `${(infoCitas.minutosSobrantes / infoCitas.tiempoTotalMinutos) * 100}%`,
+                            height: 6,
+                            backgroundColor: colors.warning,
+                            opacity: 0.7
+                          }}
+                        />
+                      )}
+                    </Box>
+                  )}
+                  
+                  {/* Contenido de la franja */}
+                  <Box sx={{ p: 2 }}>
+                    <Grid container spacing={2}>
                       <Grid item xs={12} sm={4}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <FormControlLabel
-                            control={
-                              <Switch
-                                checked={horariosPorDia[dia].activo}
-                                onChange={() => handleDiaActivoChange(dia)}
-                                color="primary"
-                              />
+                        <TextField
+                          label="Hora inicio"
+                          type="time"
+                          value={franja.hora_inicio}
+                          onChange={(e) => handleHorarioChange(dia, index, 'hora_inicio', e.target.value)}
+                          fullWidth
+                          InputLabelProps={{ shrink: true }}
+                          disabled={loading || !enEdicion}
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              color: !enEdicion ? colors.disabled : colors.text
                             }
-                            label={
-                              <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                                {dia}
-                              </Typography>
-                            }
-                          />
-                          {horariosPorDia[dia].activo ? (
-                            <Chip
-                              size="small"
-                              label="Activo"
-                              color="success"
-                              icon={<EventAvailable />}
-                              sx={{ ml: 1 }}
-                            />
-                          ) : (
-                            <Chip
-                              size="small"
-                              label="Inactivo"
-                              color="error"
-                              icon={<EventBusy />}
-                              sx={{ ml: 1 }}
-                            />
-                          )}
-                        </Box>
+                          }}
+                        />
                       </Grid>
-                      
-                      {horariosPorDia[dia].activo && (
-                        <Grid item xs={12} sm={8} sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                          <Button
-                            startIcon={<Add />}
-                            variant="outlined"
-                            size="small"
-                            onClick={() => agregarFranjaHoraria(dia)}
+                      <Grid item xs={12} sm={4}>
+                        <TextField
+                          label="Hora fin"
+                          type="time"
+                          value={franja.hora_fin}
+                          onChange={(e) => handleHorarioChange(dia, index, 'hora_fin', e.target.value)}
+                          fullWidth
+                          InputLabelProps={{ shrink: true }}
+                          disabled={loading || !enEdicion}
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              color: !enEdicion ? colors.disabled : colors.text
+                            }
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={8} sm={3}>
+                        <TextField
+                          label="Duración (min)"
+                          type="number"
+                          value={franja.duracion}
+                          onChange={(e) => handleHorarioChange(dia, index, 'duracion', e.target.value)}
+                          fullWidth
+                          inputProps={{ min: "15", step: "5" }}
+                          disabled={loading || !enEdicion}
+                          sx={{
+                            '& .MuiInputBase-input': {
+                              color: !enEdicion ? colors.disabled : colors.text
+                            }
+                          }}
+                        />
+                      </Grid>
+                      <Grid item xs={4} sm={1} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                        {enEdicion ? (
+                          <Tooltip title="Guardar cambios">
+                            <IconButton
+                              color="primary"
+                              onClick={() => guardarCambiosFranja(dia, index)}
+                              disabled={loading}
+                            >
+                              <Done />
+                            </IconButton>
+                          </Tooltip>
+                        ) : (
+                          <Tooltip title="Editar franja">
+                            <IconButton
+                              color="primary"
+                              onClick={() => habilitarEdicion(dia, index)}
+                              disabled={loading}
+                            >
+                              <Edit />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        <Tooltip title="Eliminar franja">
+                          <IconButton
+                            color="error"
+                            onClick={() => eliminarFranjaHoraria(dia, index)}
                             disabled={loading}
                           >
-                            Agregar franja horaria
-                          </Button>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </Box>
-
-                  {/* Contenido del día */}
-                  {horariosPorDia[dia].activo && (
-                    <Box sx={{ p: 2 }}>
-                      {horariosPorDia[dia].franjas.map((franja, index) => {
-                        // Obtener la información de citas para esta franja
-                        const infoCitas = infoFranjas[dia] && infoFranjas[dia][index];
-                        const enEdicion = franjasEnEdicion[dia] && franjasEnEdicion[dia][index];
-                        
-                        return (
-                          <Paper 
-                            key={index} 
-                            elevation={1} 
+                            <Delete />
+                          </IconButton>
+                        </Tooltip>
+                      </Grid>
+                      
+                      {/* Información de citas disponibles */}
+                      {infoCitas && (
+                        <Grid item xs={12}>
+                          <Paper
+                            elevation={0}
                             sx={{ 
-                              mb: 2, 
-                              overflow: 'hidden',
-                              border: enEdicion ? `2px solid ${colors.primary}` : 'none',
-                              borderRadius: '8px',
-                              backgroundColor: enEdicion ? colors.highlightBg : isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)'
+                              p: 1.5, 
+                              backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
+                              borderRadius: '4px',
+                              display: 'flex',
+                              flexDirection: { xs: 'column', sm: 'row' },
+                              alignItems: { xs: 'flex-start', sm: 'center' },
+                              gap: { xs: 1, sm: 2 },
+                              flexWrap: 'wrap'
                             }}
                           >
-                            {/* Barra de progreso visualizando citas */}
-                            {infoCitas && (
-                              <Box sx={{ width: '100%', position: 'relative' }}>
-                                <LinearProgress 
-                                  variant="determinate" 
-                                  value={(infoCitas.citasCompletas * infoCitas.duracionMinutos / infoCitas.tiempoTotalMinutos) * 100}
-                                  sx={{ 
-                                    height: 6, 
-                                    borderRadius: 0,
-                                    backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
-                                    '& .MuiLinearProgress-bar': {
-                                      backgroundColor: colors.success
-                                    }
-                                  }}
-                                />
-                                {infoCitas.minutosSobrantes > 0 && (
-                                  <Box 
-                                    sx={{ 
-                                      position: 'absolute',
-                                      top: 0,
-                                      right: 0,
-                                      width: `${(infoCitas.minutosSobrantes / infoCitas.tiempoTotalMinutos) * 100}%`,
-                                      height: 6,
-                                      backgroundColor: colors.warning,
-                                      opacity: 0.7
-                                    }}
-                                  />
-                                )}
-                              </Box>
-                            )}
-                            
-                            {/* Contenido de la franja */}
-                            <Box sx={{ p: 2 }}>
-                              <Grid container spacing={2}>
-                                <Grid item xs={12} sm={4}>
-                                  <TextField
-                                    label="Hora inicio"
-                                    type="time"
-                                    value={franja.hora_inicio}
-                                    onChange={(e) => handleHorarioChange(dia, index, 'hora_inicio', e.target.value)}
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
-                                    disabled={loading || !enEdicion}
-                                    sx={{
-                                      '& .MuiInputBase-input': {
-                                        color: !enEdicion ? colors.disabled : colors.text
-                                      }
-                                    }}
-                                  />
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                  <TextField
-                                    label="Hora fin"
-                                    type="time"
-                                    value={franja.hora_fin}
-                                    onChange={(e) => handleHorarioChange(dia, index, 'hora_fin', e.target.value)}
-                                    fullWidth
-                                    InputLabelProps={{ shrink: true }}
-                                    disabled={loading || !enEdicion}
-                                    sx={{
-                                      '& .MuiInputBase-input': {
-                                        color: !enEdicion ? colors.disabled : colors.text
-                                      }
-                                    }}
-                                  />
-                                </Grid>
-                                <Grid item xs={8} sm={3}>
-                                  <TextField
-                                    label="Duración (min)"
-                                    type="number"
-                                    value={franja.duracion}
-                                    onChange={(e) => handleHorarioChange(dia, index, 'duracion', e.target.value)}
-                                    fullWidth
-                                    inputProps={{ min: "15", step: "5" }}
-                                    disabled={loading || !enEdicion}
-                                    sx={{
-                                      '& .MuiInputBase-input': {
-                                        color: !enEdicion ? colors.disabled : colors.text
-                                      }
-                                    }}
-                                  />
-                                </Grid>
-                                <Grid item xs={4} sm={1} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                                  {enEdicion ? (
-                                    <Tooltip title="Guardar cambios">
-                                      <IconButton
-                                        color="primary"
-                                        onClick={() => guardarCambiosFranja(dia, index)}
-                                        disabled={loading}
-                                      >
-                                        <Done />
-                                      </IconButton>
-                                    </Tooltip>
-                                  ) : (
-                                    <Tooltip title="Editar franja">
-                                      <IconButton
-                                        color="primary"
-                                        onClick={() => habilitarEdicion(dia, index)}
-                                        disabled={loading}
-                                      >
-                                        <Edit />
-                                      </IconButton>
-                                    </Tooltip>
-                                  )}
-                                  <Tooltip title="Eliminar franja">
-                                    <IconButton
-                                      color="error"
-                                      onClick={() => eliminarFranjaHoraria(dia, index)}
-                                      disabled={loading}
-                                    >
-                                      <Delete />
-                                    </IconButton>
-                                  </Tooltip>
-                                </Grid>
-                                
-                                {/* Información de citas disponibles */}
-                                {infoCitas && (
-                                  <Grid item xs={12}>
-                                    <Paper
-                                      elevation={0}
-                                      sx={{ 
-                                        p: 1.5, 
-                                        backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.03)' : 'rgba(0, 0, 0, 0.02)',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        flexDirection: { xs: 'column', sm: 'row' },
-                                        alignItems: { xs: 'flex-start', sm: 'center' },
-                                        gap: { xs: 1, sm: 2 },
-                                        flexWrap: 'wrap'
-                                      }}
-                                    >
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Schedule fontSize="small" color="primary" />
-                                        <Typography variant="body2">
-                                          Total: <strong>{infoCitas.tiempoTotalMinutos} min.</strong>
-                                        </Typography>
-                                      </Box>
-                                      
-                                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                        <Badge 
-                                          badgeContent={infoCitas.citasCompletas} 
-                                          color="primary" 
-                                          sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem' } }}
-                                        >
-                                          <Person color="action" />
-                                        </Badge>
-                                        <Typography variant="body2">
-                                          <strong>{infoCitas.citasCompletas}</strong> citas de <strong>{infoCitas.duracionMinutos} min.</strong>
-                                        </Typography>
-                                      </Box>
-                                      
-                                      {infoCitas.minutosSobrantes > 0 && (
-                                        <Chip
-                                          size="small"
-                                          icon={<Timer fontSize="small" />}
-                                          label={`${infoCitas.minutosSobrantes} min. sobrantes`}
-                                          color="secondary"
-                                          variant="outlined"
-                                          sx={{ ml: { xs: 0, sm: 'auto' } }}
-                                        />
-                                      )}
-                                    </Paper>
-                                  </Grid>
-                                )}
-                                
-                                {/* Recomendaciones y optimizaciones */}
-                                {renderPanelOptimizacion(dia, index, infoCitas)}
-                              </Grid>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Schedule fontSize="small" color="primary" />
+                              <Typography variant="body2">
+                                Total: <strong>{infoCitas.tiempoTotalMinutos} min.</strong>
+                              </Typography>
                             </Box>
+                            
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Badge 
+                                badgeContent={infoCitas.citasCompletas} 
+                                color="primary" 
+                                sx={{ '& .MuiBadge-badge': { fontSize: '0.7rem' } }}
+                              >
+                                <Person color="action" />
+                              </Badge>
+                              <Typography variant="body2">
+                                <strong>{infoCitas.citasCompletas}</strong> citas de <strong>{infoCitas.duracionMinutos} min.</strong>
+                              </Typography>
+                            </Box>
+                            
+                            {infoCitas.minutosSobrantes > 0 && (
+                              <Chip
+                                size="small"
+                                icon={<Timer fontSize="small" />}
+                                label={`${infoCitas.minutosSobrantes} min. sobrantes`}
+                                color="info"
+                                variant="outlined"
+                                sx={{ ml: { xs: 0, sm: 'auto' } }}
+                              />
+                            )}
                           </Paper>
-                        );
-                      })}
-                    </Box>
-                  )}
-
-                  {!horariosPorDia[dia].activo && (
-                    <Box sx={{ p: 2, textAlign: 'center' }}>
-                      <Typography variant="body2" color="text.secondary">
-                        Este día no está configurado como laborable
-                      </Typography>
-                    </Box>
-                  )}
+                        </Grid>
+                      )}
+                      
+                      {/* Recomendaciones y optimizaciones */}
+                      {renderPanelOptimizacion(dia, index, infoCitas)}
+                    </Grid>
+                  </Box>
                 </Paper>
-              </Grid>
-            ))}
+              );
+            })}
+          </Box>
+        )}
 
-            {/* Resumen de horarios */}
-            <Grid item xs={12}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center',
-                mb: 2,
-                mt: 2
-              }}>
-                <Typography variant="subtitle1" sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                  fontWeight: 'bold'
-                }}>
-                  <AccessTime fontSize="small" />
-                  Resumen de Horarios Configurados
-                </Typography>
-                
-                <ToggleButtonGroup
-                  value={vistaResumen}
-                  exclusive
-                  onChange={handleCambioVistaResumen}
-                  size="small"
-                  aria-label="Tipo de vista"
-                >
-                  <ToggleButton value="compacta" aria-label="Vista compacta">
-                    <Tooltip title="Vista de tarjetas">
-                      <ViewModule fontSize="small" />
-                    </Tooltip>
-                  </ToggleButton>
-                  <ToggleButton value="tabla" aria-label="Vista de tabla">
-                    <Tooltip title="Vista de tabla">
-                      <ViewList fontSize="small" />
-                    </Tooltip>
-                  </ToggleButton>
-                  <ToggleButton value="calendario" aria-label="Vista de calendario">
-                    <Tooltip title="Vista de calendario">
-                      <CalendarViewDay fontSize="small" />
-                    </Tooltip>
-                  </ToggleButton>
-                </ToggleButtonGroup>
-              </Box>
-              
-              {/* Renderizar vista según la selección */}
-              {vistaResumen === 'compacta' && renderVistaCompacta()}
-              {vistaResumen === 'tabla' && renderVistaTabla()}
-              {vistaResumen === 'calendario' && renderVistaCalendario()}
-            </Grid>
-          </Grid>
-        </CardContent>
-
-        <CardActions sx={{
-          p: 3,
-          borderTop: `1px solid ${colors.divider}`,
-          display: 'flex',
-          justifyContent: 'space-between'
+        {!horariosPorDia[dia].activo && (
+          <Box sx={{ p: 2, textAlign: 'center' }}>
+            <Typography variant="body2" color="text.secondary">
+              Este día no está configurado como laborable
+            </Typography>
+          </Box>
+        )}
+      </Paper>
+    );
+  };
+  
+  return (
+    <Card
+      sx={{
+        minHeight: '100vh',
+        backgroundColor: colors.background,
+        borderRadius: '16px',
+        boxShadow: isDarkTheme ?
+          '0 2px 12px rgba(0,0,0,0.3)' :
+          '0 2px 12px rgba(0,0,0,0.08)',
+        transition: 'all 0.3s ease'
+      }}
+    >
+      <Box sx={{ padding: { xs: 2, sm: 3, md: 4 } }}>
+        {/* Cabecera con título y selector de vista */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          flexDirection: { xs: 'column', sm: 'row' },
+          mb: { xs: 2, sm: 3 },
+          gap: { xs: 2, sm: 0 }
         }}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBack />}
-            onClick={() => navigate('/Administrador/horarios')}
+          <Typography
+            variant="h5"
             sx={{
-              borderRadius: '6px'
+              fontWeight: 600,
+              color: colors.titleColor,
+              fontFamily: 'Roboto, sans-serif',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
             }}
           >
-            Volver
-          </Button>
+            <AccessTime />
+            Configuración de Horarios
+          </Typography>
+          
+        </Box>
+
+        {/* Filtros y Búsqueda */}
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {/* Búsqueda */}
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Buscar en horarios"
+              variant="outlined"
+              value={searchTerm}
+              onChange={handleSearch}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search color={colors.primary} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                backgroundColor: colors.paper,
+                borderRadius: '8px',
+                '& .MuiOutlinedInput-root': {
+                  color: colors.text,
+                  borderRadius: '8px',
+                  '& fieldset': {
+                    borderColor: colors.inputBorder,
+                  },
+                  '&:hover fieldset': {
+                    borderColor: colors.primary,
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: colors.primary,
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: colors.inputLabel,
+                },
+              }}
+            />
+          </Grid>
+
+          {/* Filtro Activos/Inactivos */}
+          <Grid item xs={12} md={6}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Button 
+                variant={filtroActivo === 'todos' ? 'contained' : 'outlined'}
+                onClick={() => setFiltroActivo('todos')}
+                sx={{ flex: 1 }}
+              >
+                Todos
+              </Button>
+              <Button 
+                variant={filtroActivo === 'activos' ? 'contained' : 'outlined'}
+                onClick={() => setFiltroActivo('activos')}
+                color="success"
+                sx={{ flex: 1 }}
+              >
+                Activos
+              </Button>
+              <Button 
+                variant={filtroActivo === 'inactivos' ? 'contained' : 'outlined'}
+                onClick={() => setFiltroActivo('inactivos')}
+                color="error"
+                sx={{ flex: 1 }}
+              >
+                Inactivos
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
+        
+        {/* Información del Odontólogo */}
+        {odontologo && (
+          <Paper elevation={2} sx={{ 
+            p: 2, 
+            mb: 3, 
+            backgroundColor: colors.paper,
+            borderRadius: '8px' 
+          }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={6}>
+                <Typography variant="body1" sx={{ fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Person fontSize="small" />
+                  {odontologo.nombre} {odontologo.aPaterno} {odontologo.aMaterno}
+                </Typography>
+                <Typography variant="body2" sx={{ mt: 1 }}>
+                  {odontologo.email}
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+                <Chip
+                  label={odontologo.puesto}
+                  color="primary"
+                  sx={{ mt: { xs: 1, md: 0 } }}
+                />
+              </Grid>
+            </Grid>
+          </Paper>
+        )}
+        
+        {/* Alerta informativa */}
+        <Alert severity="info" icon={<Info />} sx={{ mb: 3 }}>
+          Use el botón <Edit fontSize="small" sx={{ mx: 0.5 }} /> para editar cada franja horaria y <Done fontSize="small" sx={{ mx: 0.5 }} /> para guardar los cambios. 
+          El sistema mostrará recomendaciones para optimizar sus horarios según la duración de las citas.
+        </Alert>
+
+        {/* Tarjetas para cada día de la semana */}
+        {diasSemana
+          .filter(dia => {
+            if (filtroActivo === 'todos') return true;
+            if (filtroActivo === 'activos') return horariosPorDia[dia].activo;
+            if (filtroActivo === 'inactivos') return !horariosPorDia[dia].activo;
+            return true;
+          })
+          .filter(dia => searchTerm === '' || dia.toLowerCase().includes(searchTerm.toLowerCase()))
+          .map((dia) => renderConfiguracionDia(dia))
+        }
+
+        {/* Resumen de horarios */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 2,
+          mt: 4
+        }}>
+          <Typography variant="subtitle1" sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            fontWeight: 'bold',
+            color: colors.titleColor
+          }}>
+            <AccessTime fontSize="small" />
+            Resumen de Horarios Configurados
+          </Typography>
+          
+          <ToggleButtonGroup
+            value={vistaResumen}
+            exclusive
+            onChange={handleCambioVistaResumen}
+            size="small"
+            aria-label="Tipo de vista"
+          >
+            <ToggleButton value="compacta" aria-label="Vista compacta">
+              <Tooltip title="Vista de tarjetas">
+                <ViewModule fontSize="small" />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="tabla" aria-label="Vista de tabla">
+              <Tooltip title="Vista de tabla">
+                <ViewList fontSize="small" />
+              </Tooltip>
+            </ToggleButton>
+            <ToggleButton value="calendario" aria-label="Vista de calendario">
+              <Tooltip title="Vista de calendario">
+                <CalendarViewDay fontSize="small" />
+              </Tooltip>
+            </ToggleButton>
+          </ToggleButtonGroup>
+        </Box>
+        
+        {/* Renderizar vista según la selección */}
+        {vistaResumen === 'compacta' && renderVistaCompacta()}
+        {vistaResumen === 'tabla' && renderVistaTabla()}
+        {vistaResumen === 'calendario' && renderVistaCalendario()}
+        
+        {/* Botones de Acción */}
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          mt: 4, 
+          pt: 3,
+          borderTop: `1px solid ${colors.divider}`
+        }}>
           
           <Button
             onClick={handleSubmit}
@@ -1679,8 +1772,8 @@ const HorariosForm = () => {
           >
             {loading ? 'Guardando...' : 'Guardar Horarios'}
           </Button>
-        </CardActions>
-      </Card>
+        </Box>
+      </Box>
 
       <Notificaciones
         open={notification.open}
@@ -1688,7 +1781,7 @@ const HorariosForm = () => {
         type={notification.type}
         handleClose={() => setNotification({ open: false, message: '', type: '' })}
       />
-    </Box>
+    </Card>
   );
 };
 
