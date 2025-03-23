@@ -721,6 +721,19 @@ const BarraAdmin = ({ onDrawerChange }) => {
             </IconButton>
             <IconButton
               component={Link}
+              to="/Administrador/CalendarioCita"
+              sx={{
+                color:
+                  location.pathname === '/Administrador/CalendarioCita'
+                    ? colors.primary
+                    : colors.iconColor,
+                '&:hover': { color: colors.primary, backgroundColor: colors.hover }
+              }}
+            >
+              <FaCalendarAlt size={18} />
+            </IconButton>
+            <IconButton
+              component={Link}
               to="/Administrador/principal"
               sx={{
                 color:

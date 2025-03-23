@@ -84,6 +84,7 @@ function App() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
+
   const fetchTitleAndLogo = async (retries = 3) => {
     if (!isOnline) {
       console.warn("Sin conexión a Internet. No se realizará la solicitud.");
@@ -146,11 +147,11 @@ function App() {
     }
   };
 
-  // El useEffect permanece igual
   useEffect(() => {
     fetchTitleAndLogo();
     return () => clearInterval(intervalRef.current);
   }, []);
+
   useEffect(() => {
     if (fetchErrors >= 5) {
       console.error("Deteniendo reintentos después de múltiples fallos.");
@@ -226,8 +227,9 @@ function App() {
           <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'imagenes' }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/finanzas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Finanzas' }]} /><FinanzasForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/Estadisticas" element={<LayoutAdmin><Graficas /></LayoutAdmin>} />
-          <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
           <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />
+
+          <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
 
 
           {/* Rutas protegidas del empleado */}
