@@ -11,16 +11,17 @@ import {
   Chip,
   Backdrop,
   CircularProgress,
-  Divider
+  Divider,
+  useMediaQuery
 } from '@mui/material';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  Refresh, 
-  Home, 
-  ReportProblem, 
-  BugReport, 
-  Security, 
+import {
+  Refresh,
+  Home,
+  ReportProblem,
+  BugReport,
+  Security,
   NotInterested,
   WifiOff,
   Help,
@@ -29,31 +30,21 @@ import {
 } from "@mui/icons-material";
 import { useThemeContext } from '../../components/Tools/ThemeContext';
 
-/**
- * Componente ErrorPage - Página de error responsiva y estilizada
- * 
- * Características:
- * - Diferentes estilos y acciones según el código de error
- * - Animaciones de entrada y elementos animados
- * - Compatibilidad con temas claro/oscuro
- * - Manejo automático de estados online/offline
- * - Iconografía contextual según el tipo de error
- */
-
 // Componente de icono dental personalizado
 const ToothIcon = (props) => {
   const { isDarkTheme } = useThemeContext();
-
+  
   return (
     <SvgIcon
       {...props}
       viewBox="0 0 512 512"
       sx={{
-        width: '120px',
-        height: '120px',
-        fill: isDarkTheme ? '#ffffff' : '#000000',
-        transition: 'fill 0.3s ease',
-        filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.15))',
+        width: props.size || '100px',
+        height: props.size || '100px',
+        fill: props.color || (isDarkTheme ? '#ffffff' : '#000000'),
+        opacity: props.opacity || 1,
+        filter: props.shadow ? 'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' : 'none',
+        transition: 'all 0.5s ease',
         ...props.sx
       }}
     >
@@ -62,14 +53,14 @@ const ToothIcon = (props) => {
   );
 };
 
-// Configuración de tipos de error con estilos y acciones personalizadas
+// Configuración de tipos de error con estilos y acciones
 const errorTypes = {
   400: {
     title: 'Bad Request',
     description: 'Lo sentimos, la solicitud no pudo ser procesada correctamente.',
-    color: '#FF9800', // Naranja
-    icon: <ReportProblem fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #FF9800, #FFC107)',
+    color: '#FF9800',
+    icon: <ReportProblem />,
+    gradient: 'linear-gradient(135deg, #FF9800 0%, #FF5722 100%)',
     actions: [
       { label: 'Reintentar', icon: <Refresh />, to: window.location.pathname, primary: true },
       { label: 'Volver', icon: <ArrowBack />, to: '/', primary: false }
@@ -78,9 +69,9 @@ const errorTypes = {
   401: {
     title: 'No Autorizado',
     description: 'No tienes permiso para acceder a esta página. Inicia sesión para continuar.',
-    color: '#E91E63', // Rosa
-    icon: <Security fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #E91E63, #F48FB1)',
+    color: '#E91E63',
+    icon: <Security />,
+    gradient: 'linear-gradient(135deg, #E91E63 0%, #9C27B0 100%)',
     actions: [
       { label: 'Iniciar Sesión', icon: <Security />, to: '/login', primary: true },
       { label: 'Inicio', icon: <Home />, to: '/', primary: false }
@@ -89,9 +80,9 @@ const errorTypes = {
   403: {
     title: 'Acceso Prohibido',
     description: 'No tienes los permisos necesarios para acceder a este recurso.',
-    color: '#F44336', // Rojo
-    icon: <NotInterested fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #F44336, #FF5252)',
+    color: '#F44336',
+    icon: <NotInterested />,
+    gradient: 'linear-gradient(135deg, #F44336 0%, #D32F2F 100%)',
     actions: [
       { label: 'Solicitar Acceso', icon: <ContactSupport />, to: '/Contact', primary: true },
       { label: 'Inicio', icon: <Home />, to: '/', primary: false }
@@ -100,9 +91,9 @@ const errorTypes = {
   404: {
     title: 'Página No Encontrada',
     description: 'La página que buscas no existe o ha sido movida.',
-    color: '#3F51B5', // Índigo
-    icon: <Help fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #3F51B5, #7986CB)',
+    color: '#3F51B5',
+    icon: <Help />,
+    gradient: 'linear-gradient(135deg, #3F51B5 0%, #2196F3 100%)',
     actions: [
       { label: 'Ir a Inicio', icon: <Home />, to: '/', primary: true },
       { label: 'Ayuda', icon: <ContactSupport />, to: '/help', primary: false }
@@ -111,9 +102,9 @@ const errorTypes = {
   500: {
     title: 'Error del Servidor',
     description: 'Ocurrió un error interno en el servidor. Por favor, inténtalo más tarde.',
-    color: '#795548', // Marrón
-    icon: <BugReport fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #795548, #A1887F)',
+    color: '#795548',
+    icon: <BugReport />,
+    gradient: 'linear-gradient(135deg, #795548 0%, #5D4037 100%)',
     actions: [
       { label: 'Reintentar', icon: <Refresh />, to: window.location.pathname, primary: true },
       { label: 'Reportar Error', icon: <BugReport />, to: '/Contact', primary: false },
@@ -123,15 +114,16 @@ const errorTypes = {
   502: {
     title: 'Error de Conexión',
     description: 'No se pudo establecer conexión con el servidor. La página se actualizará automáticamente cuando se restablezca la conexión.',
-    color: '#F44336', // Rojo
-    icon: <WifiOff fontSize="large" />,
-    gradient: 'linear-gradient(45deg, #F44336, #D32F2F)',
+    color: '#F44336',
+    icon: <WifiOff />,
+    gradient: 'linear-gradient(135deg, #F44336 0%, #B71C1C 100%)',
     actions: [
       { label: 'Reintentar', icon: <Refresh />, onClick: () => window.location.reload(), primary: true }
     ]
   }
 };
 
+// Función principal para manejo de errores y estados
 const ErrorPage = () => {
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
@@ -139,8 +131,9 @@ const ErrorPage = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Determinar el código de error y la información relacionada
+  // Determinar el código de error actual
   const errorCode = !isOnline ? 502 : location.state?.errorCode || 404;
   const errorMessage = location.state?.errorMessage || errorTypes[errorCode].description;
   const errorInfo = errorTypes[errorCode] || errorTypes[404];
@@ -166,67 +159,54 @@ const ErrorPage = () => {
     };
   }, []);
 
-  // Variantes de animación principal del contenedor
-  const containerVariants = {
-    initial: { opacity: 0, y: 40 },
-    animate: {
+  // Animación para elementos principales
+  const mainContainerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
       opacity: 1,
-      y: 0,
       transition: { 
-        duration: 0.8,
-        ease: [0.22, 1, 0.36, 1] // CustomEaseOut
+        duration: 0.5,
+        when: "beforeChildren", 
+        staggerChildren: 0.1
       }
     }
   };
 
-  // Variantes de animación para el código de error
-  const numberVariants = {
-    initial: { scale: 0.8, opacity: 0 },
-    animate: {
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { 
+      y: 0, 
+      opacity: 1,
+      transition: { 
+        type: "spring", 
+        damping: 30,
+        stiffness: 400
+      }
+    }
+  };
+
+  const codeVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: { 
+      opacity: 1, 
       scale: 1,
-      opacity: 1,
-      transition: {
-        duration: 0.8,
-        ease: "easeOut",
-        delay: 0.2
+      transition: { 
+        type: "spring", 
+        damping: 20,
+        stiffness: 300,
+        delay: 0.2 
       }
     }
   };
 
-  // Variantes de animación para el icono decorativo
-  const iconVariants = {
-    initial: { rotate: 0 },
-    animate: {
-      rotate: 360,
+  const floatVariants = {
+    initial: { y: 0 },
+    animate: { 
+      y: [0, -10, 0],
       transition: {
-        duration: 40,
+        duration: 3,
         repeat: Infinity,
-        ease: "linear"
-      }
-    }
-  };
-
-  // Variantes para los botones con stagger effect
-  const buttonsVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        delay: 0.6,
-        staggerChildren: 0.1,
-        delayChildren: 0.6
-      }
-    }
-  };
-
-  const buttonVariant = {
-    initial: { opacity: 0, y: 10 },
-    animate: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.4
+        ease: "easeInOut"
       }
     }
   };
@@ -243,266 +223,312 @@ const ErrorPage = () => {
     }
   };
 
-  // Determinar el esquema de colores según el tema
-  const getBackgroundColor = () => {
-    return isDarkTheme 
-      ? 'rgba(30, 30, 40, 0.9)' 
-      : 'rgba(255, 255, 255, 0.9)';
-  };
-
-  const getTextColor = () => {
-    return isDarkTheme 
-      ? '#FFFFFF' 
-      : theme.palette.text.primary;
-  };
-
-  const getSecondaryTextColor = () => {
-    return isDarkTheme 
-      ? 'rgba(255, 255, 255, 0.7)' 
-      : theme.palette.text.secondary;
-  };
-
   return (
-    <Container maxWidth="lg">
-      <Box
-        component={motion.div}
-        variants={containerVariants}
-        initial="initial"
-        animate="animate"
-        sx={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          py: 4,
-          background: theme.palette.background.default
-        }}
-      >
-        <Paper
-          elevation={6}
-          sx={{
-            p: { xs: 4, sm: 6 },
-            borderRadius: 4,
-            textAlign: 'center',
-            backgroundColor: getBackgroundColor(),
-            backdropFilter: 'blur(15px)',
-            position: 'relative',
-            overflow: 'hidden',
-            width: '100%',
-            maxWidth: '700px',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.1)',
-            border: isDarkTheme ? '1px solid rgba(255,255,255,0.1)' : 'none'
-          }}
+    <Box
+      sx={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundImage: isDarkTheme 
+          ? 'radial-gradient(circle at 30% 100%, rgba(30, 144, 255, 0.08), transparent 25%), radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.08), transparent 25%)'
+          : 'radial-gradient(circle at 30% 100%, rgba(30, 144, 255, 0.05), transparent 25%), radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.05), transparent 25%)',
+        background: isDarkTheme ? '#121212' : '#f8f9fa',
+        transition: 'background 0.3s ease'
+      }}
+    >
+      <Container maxWidth="lg">
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={mainContainerVariants}
         >
-          {/* Elementos decorativos de fondo */}
-          <Box
-            component={motion.div}
-            variants={iconVariants}
-            initial="initial"
-            animate="animate"
+          <Paper
+            elevation={isDarkTheme ? 0 : 3}
             sx={{
-              position: 'absolute',
-              top: -60,
-              right: -60,
-              opacity: 0.07,
-              color: errorInfo.color,
-              transform: 'scale(1.2)'
+              overflow: 'hidden',
+              borderRadius: { xs: 3, md: 4 },
+              backgroundColor: isDarkTheme ? 'rgba(30, 30, 34, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+              backdropFilter: 'blur(10px)',
+              border: isDarkTheme ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+              boxShadow: isDarkTheme 
+                ? '0 10px 40px -10px rgba(0, 0, 0, 0.3)' 
+                : '0 10px 40px -10px rgba(0, 0, 0, 0.1)',
+              position: 'relative',
+              py: { xs: 4, md: 6 },
+              px: { xs: 3, md: 5 }
             }}
           >
-            <ToothIcon />
-          </Box>
-          
-          <Box
-            component={motion.div}
-            variants={iconVariants}
-            initial="initial"
-            animate="animate"
-            sx={{
-              position: 'absolute',
-              bottom: -60,
-              left: -60,
-              opacity: 0.07,
-              color: errorInfo.color,
-              transform: 'scale(1.2) rotate(180deg)'
-            }}
-          >
-            <ToothIcon />
-          </Box>
-
-          {/* Indicador de tipo de error */}
-          <Chip 
-            icon={errorInfo.icon} 
-            label={`Error ${errorCode}`}
-            variant="filled"
-            sx={{
-              position: 'absolute',
-              top: 20,
-              right: 20,
-              background: errorInfo.gradient,
-              color: 'white',
-              fontWeight: 'bold',
-              boxShadow: '0 4px 8px rgba(0,0,0,0.15)',
-              '& .MuiChip-icon': {
-                color: 'white'
-              }
-            }}
-          />
-
-          {/* Contenido del error */}
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              <Box sx={{ position: 'relative' }}>
-                <motion.div 
-                  variants={numberVariants}
-                  sx={{
-                    position: 'relative',
-                    zIndex: 2
-                  }}
-                >
-                  <Typography
-                    variant="h1"
-                    sx={{
-                      fontSize: { xs: '6rem', sm: '8rem', md: '8rem' },
-                      fontWeight: 900,
-                      background: errorInfo.gradient,
-                      backgroundClip: 'text',
-                      textFillColor: 'transparent',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      textShadow: '0 10px 20px rgba(0,0,0,0.15)',
-                      lineHeight: 1,
-                      mb: 2,
-                      position: 'relative'
-                    }}
-                  >
-                    {errorCode}
-                  </Typography>
-                </motion.div>
-                <Box
-                  component={motion.div}
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ 
-                    scale: 1, 
-                    opacity: 1,
-                    transition: { delay: 0.3, duration: 0.8 }
-                  }}
-                  sx={{
-                    width: '100px',
-                    height: '100px',
-                    borderRadius: '50%',
-                    background: errorInfo.gradient,
-                    position: 'absolute',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    zIndex: 1,
-                    opacity: 0.2,
-                    filter: 'blur(30px)'
-                  }}
-                />
-              </Box>
-            </Grid>
-            
-            <Grid item xs={12} md={7} sx={{ textAlign: { xs: 'center', md: 'left' } }}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ 
-                  opacity: 1, 
-                  y: 0,
-                  transition: { delay: 0.4, duration: 0.6 }
+            {/* Elementos decorativos */}
+            <Box sx={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, overflow: 'hidden', zIndex: 0 }}>
+              {/* Círculos decorativos */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  width: '300px',
+                  height: '300px',
+                  borderRadius: '50%',
+                  background: errorInfo.gradient,
+                  top: '-200px',
+                  right: '-100px',
+                  opacity: 0.05,
+                  filter: 'blur(40px)'
                 }}
-              >
-                <Typography
-                  variant="h4"
-                  sx={{
-                    mb: 1,
-                    color: getTextColor(),
-                    fontWeight: 700
-                  }}
-                >
-                  {errorInfo.title}
-                </Typography>
-
-                <Typography
-                  variant="h6"
-                  sx={{
-                    mb: 4,
-                    color: getSecondaryTextColor(),
-                    maxWidth: '500px',
-                    mx: { xs: 'auto', md: 0 },
-                    fontWeight: 'normal'
-                  }}
-                >
-                  {errorMessage || errorInfo.description}
-                </Typography>
-              </motion.div>
-
-              <Divider sx={{ 
-                mb: 3, 
-                opacity: 0.2,
-                background: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' 
-              }} />
-
-              <Box 
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  width: '200px',
+                  height: '200px',
+                  borderRadius: '50%',
+                  background: isDarkTheme ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+                  bottom: '-100px',
+                  left: '-50px',
+                  filter: 'blur(40px)'
+                }}
+              />
+              
+              {/* Iconos decorativos */}
+              <Box
                 component={motion.div}
-                variants={buttonsVariants}
+                variants={floatVariants}
                 initial="initial"
                 animate="animate"
-                sx={{ 
-                  display: "flex", 
-                  justifyContent: { xs: "center", md: "flex-start" },
-                  flexWrap: "wrap",
-                  gap: 2
+                sx={{
+                  position: 'absolute',
+                  top: '10%',
+                  right: '5%',
+                  opacity: 0.07
                 }}
               >
-                {errorInfo.actions.map((action, index) => (
-                  <motion.div key={index} variants={buttonVariant}>
-                    <Button
-                      component={action.to ? Link : 'button'}
-                      to={action.to}
-                      onClick={() => handleButtonClick(action)}
-                      variant={action.primary ? "contained" : "outlined"}
-                      startIcon={action.icon}
-                      size="large"
-                      sx={{
-                        bgcolor: action.primary ? errorInfo.color : 'transparent',
-                        color: action.primary ? "white" : errorInfo.color,
-                        borderColor: action.primary ? 'transparent' : errorInfo.color,
-                        px: 3,
-                        py: 1,
-                        borderRadius: 2,
-                        transition: "all 0.3s ease",
-                        "&:hover": { 
-                          bgcolor: action.primary ? errorInfo.color : `${errorInfo.color}22`,
-                          transform: "translateY(-3px)",
-                          boxShadow: action.primary ? '0 5px 15px rgba(0,0,0,0.2)' : 'none'
-                        },
-                      }}
-                    >
-                      {action.label}
-                    </Button>
-                  </motion.div>
-                ))}
+                <ToothIcon size="60px" color={errorInfo.color} />
               </Box>
-            </Grid>
-          </Grid>
-        </Paper>
-      </Box>
+              
+              <Box
+                component={motion.div}
+                variants={floatVariants}
+                initial="initial"
+                animate="animate"
+                sx={{
+                  position: 'absolute',
+                  bottom: '10%',
+                  left: '5%',
+                  opacity: 0.07
+                }}
+              >
+                <ToothIcon size="80px" color={errorInfo.color} />
+              </Box>
+            </Box>
 
-      {/* Backdrop de carga para transiciones */}
+            {/* Contenido principal */}
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Grid container spacing={4} alignItems="center">
+                {/* Código de error */}
+                <Grid item xs={12} md={5} sx={{ 
+                  order: { xs: 1, md: 1 },
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <Box sx={{ position: 'relative', textAlign: 'center' }}>
+                    <motion.div variants={codeVariants}>
+                      {/* Badge de error type */}
+                      <Chip
+                        size="small"
+                        icon={React.cloneElement(errorInfo.icon, { 
+                          style: { fontSize: 16, color: '#fff' } 
+                        })}
+                        label={`Error ${errorCode}`}
+                        sx={{
+                          background: errorInfo.gradient,
+                          color: 'white',
+                          fontWeight: 500,
+                          position: 'absolute',
+                          top: '-20px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          py: 0.5,
+                          boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
+                          border: '2px solid',
+                          borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)',
+                          '& .MuiChip-icon': {
+                            color: 'white'
+                          }
+                        }}
+                      />
+                      
+                      {/* Código de error */}
+                      <Typography
+                        variant="h1"
+                        sx={{
+                          fontSize: { xs: '6rem', sm: '7rem', md: '8rem' },
+                          fontWeight: 700,
+                          lineHeight: 0.8,
+                          background: errorInfo.gradient,
+                          backgroundClip: 'text',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          textShadow: isDarkTheme ? '0 5px 10px rgba(0,0,0,0.5)' : '0 5px 10px rgba(0,0,0,0.1)',
+                          mb: 1,
+                          mt: 2,
+                          letterSpacing: '-0.05em'
+                        }}
+                      >
+                        {errorCode}
+                      </Typography>
+                      
+                      {/* Iluminación bajo el número */}
+                      <Box
+                        sx={{
+                          width: '150px',
+                          height: '25px',
+                          borderRadius: '50%',
+                          background: errorInfo.gradient,
+                          position: 'absolute',
+                          bottom: '-10px',
+                          left: '50%',
+                          transform: 'translateX(-50%)',
+                          filter: 'blur(20px)',
+                          opacity: 0.4
+                        }}
+                      />
+                    </motion.div>
+                  </Box>
+                </Grid>
+
+                {/* Texto y acciones */}
+                <Grid item xs={12} md={7} sx={{ 
+                  order: { xs: 2, md: 2 }, 
+                  textAlign: { xs: 'center', md: 'left' }
+                }}>
+                  <Box>
+                    <motion.div variants={itemVariants}>
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          fontWeight: 700,
+                          mb: 2,
+                          color: isDarkTheme ? '#fff' : theme.palette.text.primary,
+                          letterSpacing: '-0.01em'
+                        }}
+                      >
+                        {errorInfo.title}
+                      </Typography>
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          mb: 4,
+                          color: isDarkTheme ? 'rgba(255,255,255,0.7)' : theme.palette.text.secondary,
+                          fontSize: '1.1rem',
+                          lineHeight: 1.5,
+                          maxWidth: { xs: '100%', md: '450px' },
+                          mx: { xs: 'auto', md: 0 }
+                        }}
+                      >
+                        {errorMessage || errorInfo.description}
+                      </Typography>
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                      <Divider 
+                        sx={{ 
+                          mb: 3, 
+                          opacity: 0.08,
+                          maxWidth: { xs: '100%', md: '450px' }
+                        }} 
+                      />
+                    </motion.div>
+
+                    <motion.div variants={itemVariants}>
+                      <Box 
+                        sx={{ 
+                          display: 'flex', 
+                          flexWrap: 'wrap',
+                          gap: 2,
+                          justifyContent: { xs: 'center', md: 'flex-start' }
+                        }}
+                      >
+                        {errorInfo.actions.map((action, index) => (
+                          <Button
+                            key={index}
+                            component={action.to ? Link : 'button'}
+                            to={action.to}
+                            onClick={() => handleButtonClick(action)}
+                            variant={action.primary ? 'contained' : 'outlined'}
+                            color="primary"
+                            startIcon={action.icon}
+                            size={isMobile ? 'medium' : 'large'}
+                            disableElevation={!action.primary}
+                            sx={{
+                              borderRadius: '10px',
+                              background: action.primary ? errorInfo.gradient : 'transparent',
+                              color: action.primary ? '#fff' : errorInfo.color,
+                              borderColor: action.primary ? 'transparent' : errorInfo.color,
+                              fontWeight: 500,
+                              px: { xs: 2, md: 3 },
+                              py: { xs: 1, md: 1.2 },
+                              boxShadow: action.primary ? '0 4px 15px rgba(0,0,0,0.1)' : 'none',
+                              textTransform: 'none',
+                              transition: 'all 0.3s ease',
+                              '&:hover': {
+                                background: action.primary ? errorInfo.gradient : `${errorInfo.color}15`,
+                                borderColor: action.primary ? 'transparent' : errorInfo.color,
+                                transform: 'translateY(-2px)',
+                                boxShadow: action.primary ? '0 6px 20px rgba(0,0,0,0.15)' : '0 6px 20px rgba(0,0,0,0.05)'
+                              }
+                            }}
+                          >
+                            {action.label}
+                          </Button>
+                        ))}
+                      </Box>
+                    </motion.div>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </Paper>
+        </motion.div>
+      </Container>
+
+      {/* Overlay de carga */}
       <Backdrop
         sx={{ 
           color: '#fff', 
           zIndex: theme.zIndex.drawer + 1,
+          backdropFilter: 'blur(8px)',
           flexDirection: 'column',
           gap: 2
         }}
         open={isLoading}
       >
-        <CircularProgress color="inherit" />
-        <Typography variant="h6">{loadingMessage}</Typography>
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CircularProgress 
+            size={60}
+            thickness={4}
+            sx={{ 
+              color: '#fff',
+              boxShadow: '0 0 20px rgba(255,255,255,0.3)'
+            }} 
+          />
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1 }}
+        >
+          <Typography variant="h6">{loadingMessage}</Typography>
+        </motion.div>
       </Backdrop>
-    </Container>
+    </Box>
   );
 };
 

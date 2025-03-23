@@ -104,6 +104,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
         { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
         { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas' },
         { icon: FaCalendarCheck, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
+        { icon: FaMoneyBillWave, text: 'Finanzas', path: '/Administrador/finanzas' },
         { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
         { icon: FaCloudUploadAlt, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
       ]
@@ -112,9 +113,8 @@ const BarraAdmin = ({ onDrawerChange }) => {
       id: 'reportes',
       title: 'Informes y Análisis',
       items: [
-        { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/estadisticas' },
+        { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
         { icon: FaFileAlt, text: 'Reportes', path: '/Administrador/reportes' },
-        { icon: FaMoneyBillWave, text: 'Finanzas', path: '/Administrador/finanzas' },
         { icon: FaClock, text: 'Historial', path: '/Administrador/historial' }
       ]
     },
