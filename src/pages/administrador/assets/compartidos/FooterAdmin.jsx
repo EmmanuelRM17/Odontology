@@ -3,7 +3,8 @@ import { Box, Container, Typography, useTheme } from '@mui/material';
 import { FaTooth } from 'react-icons/fa';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
-const FooterAdmin = () => {
+const 
+FooterAdmin = () => {
   const { isDarkTheme } = useThemeContext();
 
   const colors = {

@@ -1,19 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import BarraAdmin from './BarraAdmin';
 import FooterAdmin from './FooterAdmin';
 import { Box, useMediaQuery, useTheme, Paper } from '@mui/material';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 const LayoutAdmin = ({ children }) => {
-  // Recibimos el estado del drawer a través de onDrawerChange
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { isDarkTheme } = useThemeContext();
 
+  // Manejar el cambio de estado del drawer
   const handleDrawerChange = (isOpen) => {
     setDrawerOpen(isOpen);
   };
+
+  // Estado inicial basado en el tamaño de pantalla
+  useEffect(() => {
+    setDrawerOpen(!isMobile);
+  }, [isMobile]);
 
   const colors = {
     background: isDarkTheme ? '#0F172A' : '#F8FAFC',
@@ -28,11 +33,14 @@ const LayoutAdmin = ({ children }) => {
         flexDirection: 'column',
         minHeight: '100vh',
         backgroundColor: colors.background,
-        overflow: 'hidden',
+        width: '100%',
         position: 'relative'
       }}
     >
+      {/* Barra de navegación y drawer lateral */}
       <BarraAdmin onDrawerChange={handleDrawerChange} />
+
+      {/* Contenido principal */}
       <Box
         component="main"
         sx={{
@@ -61,11 +69,13 @@ const LayoutAdmin = ({ children }) => {
           {children}
         </Paper>
       </Box>
+
+      {/* Footer con margen ajustable */}
       <Box
         component="footer"
         sx={{
-          ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
-          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+          ml: isMobile ? 0 : (drawerOpen ? '280px' : '68px'),
+          transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         }}
       >
         <FooterAdmin />

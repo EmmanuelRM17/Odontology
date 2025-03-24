@@ -4,17 +4,6 @@ import FooterPaciente from './FooterPaciente';
 import { Box, useMediaQuery, useTheme, Paper } from '@mui/material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-/**
- * Componente LayoutPaciente
- * 
- * Proporciona una estructura de diseño completa para el portal del paciente,
- * con una barra de navegación lateral, área de contenido principal y pie de página.
- * Se adapta automáticamente a diferentes tamaños de pantalla.
- * 
- * @param {Object} props - Propiedades del componente
- * @param {ReactNode} props.children - Contenido que se renderizará en el área principal
- * @returns {JSX.Element} Componente de layout estructurado
- */
 const LayoutPaciente = ({ children }) => {
   // Estado para controlar la apertura/cierre del drawer lateral
   const [drawerOpen, setDrawerOpen] = useState(true);
@@ -49,7 +38,7 @@ const LayoutPaciente = ({ children }) => {
         flexDirection: 'column',
         minHeight: '100vh',
         backgroundColor: colors.background,
-        overflow: 'hidden',
+        width: '100%',
         position: 'relative'
       }}
     >

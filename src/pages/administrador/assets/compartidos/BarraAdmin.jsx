@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -16,7 +16,8 @@ import {
   Divider,
   useTheme,
   useMediaQuery,
-  Paper
+  Paper,
+  SwipeableDrawer // Cambiado a SwipeableDrawer para mejor UX en móvil
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -44,6 +45,7 @@ import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
+// Componente para el botón de alternar menú
 const MenuToggleButton = ({ isOpen, onClick, color }) => (
   <IconButton
     onClick={onClick}
@@ -59,11 +61,12 @@ const MenuToggleButton = ({ isOpen, onClick, color }) => (
 );
 
 const BarraAdmin = ({ onDrawerChange }) => {
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [openNotification, setOpenNotification] = useState(false);
   const [pendingNotifications, setPendingNotifications] = useState(3);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // Estado separado para móvil
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,11 +77,12 @@ const BarraAdmin = ({ onDrawerChange }) => {
 
   // Estados para los submenús tipo acordeón
   const [expandedGroups, setExpandedGroups] = useState({
-    gestion: false,
+    gestion: true, // Abrir por defecto la sección Gestión
     reportes: false,
     configuracion: false
   });
 
+  // Paleta de colores basada en el tema
   const colors = {
     background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
     primary: isDarkTheme ? '#3B82F6' : '#2563EB',
@@ -95,6 +99,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
     boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
   };
 
+  // Estructura de menú organizada por grupos
   const menuGroups = [
     {
       id: 'gestion',
@@ -128,26 +133,25 @@ const BarraAdmin = ({ onDrawerChange }) => {
     }
   ];
 
-  // En móvil inicia el drawer cerrado; en escritorio, abierto
+  // Función para comunicar el cambio de estado del drawer al componente padre
+  const updateDrawerState = useCallback((isOpen) => {
+    setDrawerOpen(isOpen);
+    if (onDrawerChange) {
+      onDrawerChange(isOpen);
+    }
+  }, [onDrawerChange]);
+
+  // Ajustar el estado inicial según el dispositivo
   useEffect(() => {
-    setDrawerOpen(!isMobile);
-    if (onDrawerChange) onDrawerChange(!isMobile);
-  }, [isMobile, onDrawerChange]);
+    if (!isMobile) {
+      updateDrawerState(true); // En escritorio, drawer abierto por defecto
+      setMobileOpen(false);    // Asegurar que el drawer móvil esté cerrado
+    } else {
+      updateDrawerState(false); // En móvil, drawer cerrado por defecto
+    }
+  }, [isMobile, updateDrawerState]);
 
-  // Notifica al padre cada vez que cambia el estado
-  useEffect(() => {
-    if (onDrawerChange) onDrawerChange(drawerOpen);
-  }, [drawerOpen, onDrawerChange]);
-
-  const toggleGroup = (groupId) => {
-    setExpandedGroups((prev) => {
-      const newState = Object.keys(prev).reduce((acc, key) => ({ ...acc, [key]: false }), {});
-      newState[groupId] = !prev[groupId];
-      return newState;
-    });
-  };
-
-  // Verificar autenticación (igual a tu código)
+  // Verificar autenticación
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
@@ -171,15 +175,29 @@ const BarraAdmin = ({ onDrawerChange }) => {
     checkAuthStatus();
   }, [setUser]);
 
+  // Maneja la expansión y colapso de grupos de menú
+  const toggleGroup = (groupId) => {
+    setExpandedGroups((prev) => ({
+      ...prev,
+      [groupId]: !prev[groupId]
+    }));
+  };
+
+  // Maneja la navegación al hacer clic en elementos del menú
   const handleItemClick = (item) => {
     if (item.text === 'Cerrar Sesión') {
       handleLogout();
     } else if (item.path) {
       navigate(item.path);
-      if (isMobile) setDrawerOpen(false);
+      // En móvil, cerrar el drawer después de seleccionar una opción
+      if (isMobile) {
+        setMobileOpen(false);
+        updateDrawerState(false);
+      }
     }
   };
 
+  // Función para manejar el cierre de sesión
   const handleLogout = async () => {
     if (isLoggingOut) return;
     setIsLoggingOut(true);
@@ -209,40 +227,22 @@ const BarraAdmin = ({ onDrawerChange }) => {
     }
   };
 
+  // Función para alternar el estado del drawer
   const toggleDrawer = () => {
-    setDrawerOpen(!drawerOpen);
+    if (isMobile) {
+      setMobileOpen(!mobileOpen);
+    } else {
+      updateDrawerState(!drawerOpen);
+    }
   };
 
-  const drawerWidth = drawerOpen ? (isMobile ? '85%' : 280) : 0;
+  // Ancho del drawer según estado y dispositivo
+  const drawerWidth = drawerOpen ? 280 : 0; // Ancho en desktop
+  const mobileDrawerWidth = '85%'; // Ancho en móvil
 
-  const renderDrawer = () => (
-    <Drawer
-      variant={isMobile ? 'temporary' : 'permanent'}
-      open={drawerOpen}
-      onClose={() => setDrawerOpen(false)}
-      sx={{
-        '& .MuiDrawer-paper': {
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: drawerWidth,
-          height: '100%',
-          boxSizing: 'border-box',
-          backgroundColor: colors.menuBg,
-          color: colors.text,
-          borderRight: `1px solid ${colors.divider}`,
-          boxShadow: colors.boxShadow,
-          transition: 'all 0.3s ease',
-          overflow: 'hidden',
-          zIndex: theme.zIndex.drawer,
-          display: 'flex',
-          flexDirection: 'column',
-          transform: !drawerOpen && !isMobile ? 'translateX(-100%)' : 'translateX(0)',
-          visibility: drawerOpen || isMobile ? 'visible' : 'hidden'
-        }
-      }}
-      elevation={0}
-    >
+  // Contenido común del drawer (utilizado tanto en móvil como en escritorio)
+  const drawerContent = (
+    <>
       {/* Cabecera del Drawer */}
       <Box
         sx={{
@@ -271,66 +271,68 @@ const BarraAdmin = ({ onDrawerChange }) => {
               fontSize: 26,
               color: colors.primary,
               flexShrink: 0,
-              marginRight: drawerOpen ? 12 : 0
+              marginRight: 12
             }}
           />
-          {drawerOpen && (
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 'bold',
-                color: colors.primary,
-                fontSize: '1rem',
-                letterSpacing: 0.5,
-                whiteSpace: 'nowrap'
-              }}
-            >
-              Odontología Carol
-            </Typography>
-          )}
-        </Box>
-        {/* En escritorio se muestra el botón de contraer/expandir */}
-        {!isMobile && (
-          <MenuToggleButton isOpen={drawerOpen} onClick={toggleDrawer} color={colors.iconColor} />
-        )}
-      </Box>
-
-      {/* Área de usuario (solo si el drawer está abierto) */}
-      {drawerOpen && (
-        <Box
-          sx={{
-            py: 2,
-            px: 2,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderBottom: `1px solid ${colors.divider}`
-          }}
-        >
-          <Avatar
+          <Typography
+            variant="h6"
             sx={{
-              bgcolor: colors.primary,
-              width: 64,
-              height: 64,
-              mb: 1.5
+              fontWeight: 'bold',
+              color: colors.primary,
+              fontSize: '1rem',
+              letterSpacing: 0.5,
+              whiteSpace: 'nowrap'
             }}
           >
-            <FaUserCircle size={32} />
-          </Avatar>
-          <Typography variant="subtitle1" fontWeight="bold">
-            {user?.nombre || 'Admin'}
-          </Typography>
-          <Typography
-            variant="caption"
-            sx={{ color: colors.secondaryText, fontWeight: 'medium', mb: 0.5 }}
-          >
-            Administrador
-          </Typography>
-          <Typography variant="body2" color={colors.secondaryText}>
-            {user?.email || 'admin@odontologiacarol.com'}
+            Odontología Carol
           </Typography>
         </Box>
-      )}
+        {/* Botón cerrar en móvil */}
+        <IconButton 
+          onClick={isMobile ? () => setMobileOpen(false) : () => updateDrawerState(false)}
+          sx={{
+            color: colors.iconColor,
+            '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+          }}
+        >
+          <FaChevronLeft />
+        </IconButton>
+      </Box>
+
+      {/* Área de usuario */}
+      <Box
+        sx={{
+          py: 2,
+          px: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          borderBottom: `1px solid ${colors.divider}`
+        }}
+      >
+        <Avatar
+          sx={{
+            bgcolor: colors.primary,
+            width: 64,
+            height: 64,
+            mb: 1.5
+          }}
+        >
+          <FaUserCircle size={32} />
+        </Avatar>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {user?.nombre || 'Admin'}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{ color: colors.secondaryText, fontWeight: 'medium', mb: 0.5 }}
+        >
+          Administrador
+        </Typography>
+        <Typography variant="body2" color={colors.secondaryText}>
+          {user?.email || 'admin@odontologiacarol.com'}
+        </Typography>
+      </Box>
 
       {/* Contenido del menú */}
       <Box
@@ -375,11 +377,11 @@ const BarraAdmin = ({ onDrawerChange }) => {
           >
             <ListItem
               button
-              onClick={() => navigate('/Administrador/principal')}
+              onClick={() => handleItemClick({ path: '/Administrador/principal' })}
               disableRipple
               sx={{
                 py: 1.5,
-                px: drawerOpen ? 1.5 : 1
+                px: 1.5
               }}
             >
               <ListItemIcon
@@ -388,66 +390,62 @@ const BarraAdmin = ({ onDrawerChange }) => {
                     location.pathname === '/Administrador/principal'
                       ? colors.primary
                       : colors.iconColor,
-                  minWidth: drawerOpen ? 36 : 'auto'
+                  minWidth: 36
                 }}
               >
                 <FaHome size={18} />
               </ListItemIcon>
-              {drawerOpen && (
-                <ListItemText
-                  primary="Panel Principal"
-                  primaryTypographyProps={{
-                    fontSize: '0.9rem',
-                    fontWeight:
-                      location.pathname === '/Administrador/principal' ? 600 : 500,
-                    color:
-                      location.pathname === '/Administrador/principal'
-                        ? colors.primary
-                        : colors.text
-                  }}
-                />
-              )}
+              <ListItemText
+                primary="Panel Principal"
+                primaryTypographyProps={{
+                  fontSize: '0.9rem',
+                  fontWeight:
+                    location.pathname === '/Administrador/principal' ? 600 : 500,
+                  color:
+                    location.pathname === '/Administrador/principal'
+                      ? colors.primary
+                      : colors.text
+                }}
+              />
             </ListItem>
           </Paper>
-          {drawerOpen && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
+          <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
           {menuGroups.map((group) => (
             <React.Fragment key={group.id}>
-              {drawerOpen && (
-                <ListItem
-                  button
-                  onClick={() => toggleGroup(group.id)}
-                  disableRipple
+              <ListItem
+                button
+                onClick={() => toggleGroup(group.id)}
+                disableRipple
+                sx={{
+                  borderRadius: 1,
+                  mb: 0.5,
+                  py: 1,
+                  '&:hover': { backgroundColor: 'transparent' }
+                }}
+              >
+                <ListItemText
+                  primary={group.title}
+                  primaryTypographyProps={{
+                    fontWeight: 'bold',
+                    fontSize: '0.75rem',
+                    letterSpacing: 0.5,
+                    textTransform: 'uppercase',
+                    color: colors.secondaryText
+                  }}
+                />
+                <Box
                   sx={{
-                    borderRadius: 1,
-                    mb: 0.5,
-                    py: 1,
-                    '&:hover': { backgroundColor: 'transparent' }
+                    color: colors.secondaryText,
+                    transition: 'transform 0.2s',
+                    transform: expandedGroups[group.id]
+                      ? 'rotate(0deg)'
+                      : 'rotate(-90deg)'
                   }}
                 >
-                  <ListItemText
-                    primary={group.title}
-                    primaryTypographyProps={{
-                      fontWeight: 'bold',
-                      fontSize: '0.75rem',
-                      letterSpacing: 0.5,
-                      textTransform: 'uppercase',
-                      color: colors.secondaryText
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      color: colors.secondaryText,
-                      transition: 'transform 0.2s',
-                      transform: expandedGroups[group.id]
-                        ? 'rotate(0deg)'
-                        : 'rotate(-90deg)'
-                    }}
-                  >
-                    <FaAngleDown size={14} />
-                  </Box>
-                </ListItem>
-              )}
-              <Collapse in={expandedGroups[group.id] || !drawerOpen} timeout="auto" unmountOnExit>
+                  <FaAngleDown size={14} />
+                </Box>
+              </ListItem>
+              <Collapse in={expandedGroups[group.id]} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
                   {group.items.map((item, index) => {
                     const isActive = location.pathname === item.path;
@@ -472,94 +470,88 @@ const BarraAdmin = ({ onDrawerChange }) => {
                           disableRipple
                           sx={{
                             py: 1.2,
-                            pl: drawerOpen ? 2 : 1,
+                            pl: 2,
                             pr: 1
                           }}
                         >
                           <ListItemIcon
                             sx={{
                               color: isActive ? colors.primary : colors.iconColor,
-                              minWidth: drawerOpen ? 36 : 'auto'
+                              minWidth: 36
                             }}
                           >
                             <item.icon size={16} />
                           </ListItemIcon>
-                          {drawerOpen && (
-                            <ListItemText
-                              primary={item.text}
-                              primaryTypographyProps={{
-                                fontSize: '0.875rem',
-                                fontWeight: isActive ? 600 : 400,
-                                color: isActive ? colors.primary : colors.text
-                              }}
-                            />
-                          )}
+                          <ListItemText
+                            primary={item.text}
+                            primaryTypographyProps={{
+                              fontSize: '0.875rem',
+                              fontWeight: isActive ? 600 : 400,
+                              color: isActive ? colors.primary : colors.text
+                            }}
+                          />
                         </ListItem>
                       </Paper>
                     );
                   })}
                 </List>
               </Collapse>
-              {drawerOpen && <Divider sx={{ my: 1.5, borderColor: colors.divider }} />}
+              <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
             </React.Fragment>
           ))}
-          {drawerOpen && (
-            <Paper
-              elevation={0}
-              sx={{
+          <Paper
+            elevation={0}
+            sx={{
+              backgroundColor:
+                location.pathname === '/Administrador/ayuda'
+                  ? colors.activeItem
+                  : 'transparent',
+              borderRadius: 1.5,
+              overflow: 'hidden',
+              transition: 'background-color 0.2s ease',
+              mb: 0.5,
+              mt: 1,
+              '&:hover': {
                 backgroundColor:
                   location.pathname === '/Administrador/ayuda'
                     ? colors.activeItem
-                    : 'transparent',
-                borderRadius: 1.5,
-                overflow: 'hidden',
-                transition: 'background-color 0.2s ease',
-                mb: 0.5,
-                mt: 1,
-                '&:hover': {
-                  backgroundColor:
-                    location.pathname === '/Administrador/ayuda'
-                      ? colors.activeItem
-                      : colors.hover
-                }
+                    : colors.hover
+              }
+            }}
+          >
+            <ListItem
+              button
+              onClick={() => handleItemClick({ path: '/Administrador/ayuda' })}
+              disableRipple
+              sx={{
+                py: 1.2,
+                px: 1.5
               }}
             >
-              <ListItem
-                button
-                onClick={() => navigate('/Administrador/ayuda')}
-                disableRipple
+              <ListItemIcon
                 sx={{
-                  py: 1.2,
-                  px: 1.5
+                  color:
+                    location.pathname === '/Administrador/ayuda'
+                      ? colors.primary
+                      : colors.iconColor,
+                  minWidth: 36
                 }}
               >
-                <ListItemIcon
-                  sx={{
-                    color:
-                      location.pathname === '/Administrador/ayuda'
-                        ? colors.primary
-                        : colors.iconColor,
-                    minWidth: 36
-                  }}
-                >
-                  <FaQuestionCircle size={16} />
-                </ListItemIcon>
-                {drawerOpen && (
-                  <ListItemText
-                    primary="Ayuda"
-                    primaryTypographyProps={{
-                      fontSize: '0.875rem',
-                      fontWeight: location.pathname === '/Administrador/ayuda' ? 600 : 400,
-                      color:
-                        location.pathname === '/Administrador/ayuda'
-                          ? colors.primary
-                          : colors.text
-                    }}
-                  />
-                )}
-              </ListItem>
-            </Paper>
-          )}
+                <FaQuestionCircle size={16} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Ayuda"
+                primaryTypographyProps={{
+                  fontSize: '0.875rem',
+                  fontWeight: location.pathname === '/Administrador/ayuda' ? 600 : 400,
+                  color:
+                    location.pathname === '/Administrador/ayuda'
+                      ? colors.primary
+                      : colors.text
+                }}
+              />
+            </ListItem>
+          </Paper>
         </List>
       </Box>
       {/* Cerrar sesión */}
@@ -594,24 +586,73 @@ const BarraAdmin = ({ onDrawerChange }) => {
             <ListItemIcon
               sx={{
                 color: colors.error,
-                minWidth: drawerOpen ? 36 : 'auto'
+                minWidth: 36
               }}
             >
               <FaSignOutAlt size={16} />
             </ListItemIcon>
-            {drawerOpen && (
-              <ListItemText
-                primary="Cerrar Sesión"
-                primaryTypographyProps={{
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  color: colors.error
-                }}
-              />
-            )}
+            <ListItemText
+              primary="Cerrar Sesión"
+              primaryTypographyProps={{
+                fontSize: '0.875rem',
+                fontWeight: 500,
+                color: colors.error
+              }}
+            />
           </ListItem>
         </Paper>
       </Box>
+    </>
+  );
+
+  // Renderizado específico para móvil con SwipeableDrawer
+  const renderMobileDrawer = () => (
+    <SwipeableDrawer
+      disableBackdropTransition={false}
+      disableDiscovery={false}
+      open={mobileOpen}
+      onOpen={() => setMobileOpen(true)} 
+      onClose={() => setMobileOpen(false)}
+      ModalProps={{
+        keepMounted: true, // Mejor rendimiento en móvil
+      }}
+      sx={{
+        display: { xs: 'block', md: 'none' },
+        '& .MuiDrawer-paper': {
+          boxSizing: 'border-box',
+          width: mobileDrawerWidth,
+          backgroundColor: colors.menuBg,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)'
+        },
+      }}
+    >
+      {drawerContent}
+    </SwipeableDrawer>
+  );
+
+  // Renderizado para escritorio
+  const renderDesktopDrawer = () => (
+    <Drawer
+      variant="persistent"
+      open={drawerOpen}
+      onClose={() => updateDrawerState(false)}
+      sx={{
+        display: { xs: 'none', md: 'block' },
+        '& .MuiDrawer-paper': {
+          position: 'fixed',
+          width: drawerWidth,
+          transition: 'width 0.3s ease',
+          boxSizing: 'border-box',
+          top: 0,
+          height: '100%',
+          backgroundColor: colors.menuBg,
+          borderRight: `1px solid ${colors.divider}`,
+          boxShadow: colors.boxShadow,
+          zIndex: theme.zIndex.drawer
+        },
+      }}
+    >
+      {drawerContent}
     </Drawer>
   );
 
@@ -657,12 +698,12 @@ const BarraAdmin = ({ onDrawerChange }) => {
       >
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {/* Ícono hamburguesa solo en móvil */}
-            {isMobile && (
+            {/* Ícono hamburguesa en móvil o cuando el drawer está cerrado en desktop */}
+            {(isMobile || !drawerOpen) && (
               <IconButton
                 color="inherit"
                 aria-label="open drawer"
-                onClick={() => setDrawerOpen(true)}
+                onClick={toggleDrawer}
                 edge="start"
                 sx={{
                   color: colors.iconColor,
@@ -748,8 +789,12 @@ const BarraAdmin = ({ onDrawerChange }) => {
           </Box>
         </Toolbar>
       </AppBar>
-      {renderDrawer()}
+      
+      {/* Render diferente para móvil y escritorio */}
+      {renderMobileDrawer()}
+      {renderDesktopDrawer()}
       {renderExpandButton()}
+      
       <Notificaciones
         open={openNotification}
         message={notificationMessage}
