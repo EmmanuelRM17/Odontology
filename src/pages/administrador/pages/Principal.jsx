@@ -1,24 +1,25 @@
 import React from 'react';
-import { 
-  Box, 
-  Typography, 
-  Grid, 
-  Card, 
-  CardContent, 
-  CardActions, 
-  Button, 
-  Paper, 
-  Avatar, 
+import {
+  Box,
+  Typography,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Paper,
+  Avatar,
   Divider,
   useMediaQuery,
-  useTheme
+  useTheme,
+  Container
 } from '@mui/material';
-import { 
-  Settings, 
-  Assessment, 
-  Business, 
-  CalendarMonth, 
-  PeopleAlt, 
+import {
+  Settings,
+  Assessment,
+  Business,
+  CalendarMonth,
+  PeopleAlt,
   MedicalServices,
   MonetizationOn,
   History,
@@ -44,11 +45,11 @@ const Principal = () => {
     secondary: isDarkTheme ? '#4ADE80' : '#10B981',
     accent: isDarkTheme ? '#F59E0B' : '#F59E0B',
     divider: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-    boxShadow: isDarkTheme 
-      ? '0 4px 12px rgba(0,0,0,0.3)' 
+    boxShadow: isDarkTheme
+      ? '0 4px 12px rgba(0,0,0,0.3)'
       : '0 2px 6px rgba(0,0,0,0.05)',
-    boxShadowHover: isDarkTheme 
-      ? '0 8px 24px rgba(0,0,0,0.4)' 
+    boxShadowHover: isDarkTheme
+      ? '0 8px 24px rgba(0,0,0,0.4)'
       : '0 4px 12px rgba(0,0,0,0.1)',
     gradientLight: 'linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)',
     gradientDark: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)',
@@ -129,7 +130,7 @@ const Principal = () => {
   ];
 
   return (
-    <Box sx={{ pb: 4 }}>
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
       {/* Encabezado de bienvenida */}
       <Paper
         elevation={0}
@@ -365,9 +366,7 @@ const Principal = () => {
           ))}
         </Grid>
       </Box>
-
-
-    </Box>
+    </Container>
   );
 };
 

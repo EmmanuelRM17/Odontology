@@ -10,7 +10,14 @@ import {
   CircularProgress,
   Fade,
   useTheme,
-  useMediaQuery 
+  useMediaQuery,
+  Button,
+  Stack,
+  Tooltip,
+  Divider,
+  Container,
+  AppBar,
+  Paper
 } from '@mui/material';
 import { 
   FaUserShield, 
@@ -18,7 +25,8 @@ import {
   FaExclamationTriangle, 
   FaFileContract, 
   FaBuilding,
-  FaChevronUp 
+  FaChevronUp,
+  FaArrowLeft
 } from 'react-icons/fa';
 import AvisoDePrivacidad from './politicas/AvisoPriva';
 import DeslindeLegal from './politicas/DeslindeLegal';
@@ -27,13 +35,18 @@ import { Link } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
 const Configuracion = () => {
+  // Estados
   const [selectedTab, setSelectedTab] = useState(-1);
   const [loading, setLoading] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
+  
+  // Theme
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Manejo del scroll
   useEffect(() => {
     const handleScroll = () => {
       setShowScrollTop(window.scrollY > 300);
@@ -48,7 +61,7 @@ const Configuracion = () => {
     setSelectedTab(newValue);
     setTimeout(() => {
       setLoading(false);
-    }, 1000);
+    }, 800);
   };
 
   const scrollToTop = () => {
@@ -58,32 +71,35 @@ const Configuracion = () => {
     });
   };
 
+  // Tema y colores
   const colors = {
     background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
     cardBg: isDarkTheme ? '#243447' : '#FFFFFF',
     primary: '#0052A3',
+    primaryLight: isDarkTheme ? '#1A6BBE' : '#E6F0FA',
     text: isDarkTheme ? '#FFFFFF' : '#333333',
     subtext: isDarkTheme ? '#E0E0E0' : '#666666',
     hover: isDarkTheme ? 'rgba(3,66,124,0.3)' : 'rgba(3,66,124,0.1)',
     tabBg: isDarkTheme ? '#2C3E50' : '#FFFFFF',
     selectedTabBg: isDarkTheme ? '#03427c' : 'rgba(3,66,124,0.1)',
-    border: isDarkTheme ? '#34495E' : '#E0E0E0'
+    border: isDarkTheme ? '#34495E' : '#E0E0E0',
+    headerBg: isDarkTheme ? '#1A2A3C' : '#F0F7FF'
   };
 
   const tabs = [
     { 
       label: 'Política de Privacidad', 
-      icon: <FaFileAlt size={20} />,
+      icon: <FaFileAlt size={18} />,
       component: AvisoDePrivacidad
     },
     { 
       label: 'Deslinde Legal', 
-      icon: <FaExclamationTriangle size={20} />,
+      icon: <FaExclamationTriangle size={18} />,
       component: DeslindeLegal
     },
     { 
       label: 'Términos y Condiciones', 
-      icon: <FaFileContract size={20} />,
+      icon: <FaFileContract size={18} />,
       component: TerminosCondiciones
     }
   ];
@@ -93,13 +109,22 @@ const Configuracion = () => {
       return (
         <Box 
           sx={{ 
-            textAlign: 'center', 
-            py: 8,
-            color: colors.text
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: '400px',
+            color: colors.text,
+            textAlign: 'center',
+            p: 3
           }}
         >
-          <Typography variant="h6">
+          <FaFileContract size={60} style={{ color: colors.primary, opacity: 0.6, marginBottom: 16 }} />
+          <Typography variant="h6" gutterBottom>
             Selecciona una opción para ver su contenido
+          </Typography>
+          <Typography variant="body2" color={colors.subtext} sx={{ maxWidth: 500 }}>
+            Consulta nuestras políticas y términos para obtener información sobre cómo gestionamos tus datos y los servicios que ofrecemos.
           </Typography>
         </Box>
       );
@@ -116,58 +141,101 @@ const Configuracion = () => {
         background: isDarkTheme 
           ? 'linear-gradient(135deg, #1B2A3A 0%, #243447 100%)'
           : 'linear-gradient(135deg, #F9FDFF 0%, #E3F2FD 100%)',
-        p: { xs: 2, sm: 4 },
         transition: 'all 0.3s ease'
       }}
     >
-      <Box
-        sx={{
-          maxWidth: '1200px',
-          mx: 'auto',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4
+      {/* Header con título y botón de perfil empresa */}
+      <AppBar 
+        position="sticky" 
+        elevation={0}
+        sx={{ 
+          bgcolor: colors.headerBg,
+          borderBottom: `1px solid ${colors.border}`,
+          py: 1
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 700,
-            color: isDarkTheme ? '#FFFFFF' : colors.primary,
-            textAlign: 'center',
-            fontSize: { xs: '1.75rem', sm: '2.5rem' },
-            mb: 3,
-            textShadow: isDarkTheme ? '2px 2px 4px rgba(0,0,0,0.3)' : 'none'
-          }}
-        >
-          Configuración de la Empresa
-        </Typography>
+        <Container maxWidth="xl">
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            justifyContent="space-between" 
+            alignItems="center"
+            spacing={{ xs: 2, sm: 1 }}
+            py={1}
+          >
+            <Box>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontWeight: 600,
+                  color: isDarkTheme ? '#FFFFFF' : colors.primary,
+                  textShadow: isDarkTheme ? '1px 1px 3px rgba(0,0,0,0.2)' : 'none'
+                }}
+              >
+                Configuración de la Empresa
+              </Typography>
+            </Box>
+            
+            <Button
+              component={Link}
+              to="/Administrador/PerfilEmpresa"
+              variant="contained"
+              startIcon={<FaBuilding />}
+              sx={{
+                bgcolor: colors.primary,
+                color: '#FFFFFF',
+                px: 3,
+                py: 1,
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,82,163,0.25)',
+                '&:hover': {
+                  bgcolor: '#0046A0',
+                  boxShadow: '0 4px 12px rgba(0,82,163,0.35)',
+                  transform: 'translateY(-2px)'
+                },
+                transition: 'all 0.2s ease'
+              }}
+            >
+              Perfil Empresa
+            </Button>
+          </Stack>
+        </Container>
+      </AppBar>
 
-        <Card
+      <Container 
+        maxWidth="xl" 
+        sx={{ 
+          py: { xs: 3, sm: 4 },
+          px: { xs: 2, sm: 3 }
+        }}
+      >
+        <Paper
           elevation={isDarkTheme ? 4 : 1}
           sx={{
-            borderRadius: '16px',
+            borderRadius: '12px',
             bgcolor: colors.cardBg,
             overflow: 'hidden',
-            border: isDarkTheme ? `1px solid ${colors.border}` : 'none'
+            border: isDarkTheme ? `1px solid ${colors.border}` : 'none',
+            transition: 'all 0.3s ease'
           }}
         >
           <Tabs
             value={selectedTab}
             onChange={handleTabChange}
-            variant={isMobile ? "scrollable" : "standard"}
-            scrollButtons={isMobile ? "auto" : false}
-            centered={!isMobile}
+            variant={isTablet ? "scrollable" : "fullWidth"}
+            scrollButtons={isTablet ? "auto" : false}
+            allowScrollButtonsMobile
             sx={{
               bgcolor: colors.tabBg,
               borderBottom: 1,
               borderColor: colors.border,
               '& .MuiTab-root': {
-                minHeight: 64,
+                minHeight: 60,
                 textTransform: 'none',
-                fontSize: { xs: '0.875rem', sm: '1rem' },
+                fontSize: { xs: '0.875rem', sm: '0.95rem' },
                 fontWeight: 500,
                 color: colors.text,
+                transition: 'all 0.2s ease',
+                py: 2,
                 '&:hover': {
                   backgroundColor: colors.hover,
                 },
@@ -186,16 +254,21 @@ const Configuracion = () => {
             {tabs.map((tab, index) => (
               <Tab
                 key={index}
-                label={tab.label}
+                label={!isMobile ? tab.label : ""}
                 icon={tab.icon}
                 iconPosition="start"
+                sx={{
+                  display: 'flex',
+                  flexDirection: isMobile ? 'column' : 'row',
+                  gap: 1
+                }}
               />
             ))}
           </Tabs>
 
           <CardContent 
             sx={{ 
-              p: { xs: 2, sm: 4 },
+              p: { xs: 2, sm: 3, md: 4 },
               bgcolor: colors.cardBg
             }}
           >
@@ -211,88 +284,44 @@ const Configuracion = () => {
               >
                 <CircularProgress size={30} sx={{ color: colors.primary }} />
                 <Typography sx={{ color: colors.text }}>
-                  Cargando...
+                  Cargando información...
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ minHeight: '400px', color: colors.text }}>
-                {renderTabContent()}
-              </Box>
+              <Fade in={!loading} timeout={300}>
+                <Box sx={{ minHeight: '400px', color: colors.text }}>
+                  {renderTabContent()}
+                </Box>
+              </Fade>
             )}
           </CardContent>
-        </Card>
-      </Box>
+        </Paper>
+      </Container>
 
-      {/* Botones flotantes */}
-      <Box
-        sx={{
-          position: 'fixed',
-          bottom: 32,
-          right: 32,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 2,
-          zIndex: 1000
-        }}
-      >
-        {showScrollTop && (
-          <Fade in={showScrollTop}>
-            <IconButton
-              onClick={scrollToTop}
-              sx={{
-                bgcolor: colors.primary,
-                color: '#FFFFFF',
-                '&:hover': {
-                  bgcolor: colors.primary,
-                  opacity: 0.9,
-                  transform: 'translateY(-4px)'
-                },
-                boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              <FaChevronUp />
-            </IconButton>
-          </Fade>
-        )}
-
-        <IconButton
-          component={Link}
-          to="/Administrador/PerfilEmpresa"
-          sx={{
-            bgcolor: colors.primary,
-            color: '#FFFFFF',
-            p: 2,
-            '&:hover': {
+      {/* Botón flotante */}
+      {showScrollTop && (
+        <Fade in={showScrollTop}>
+          <IconButton
+            onClick={scrollToTop}
+            sx={{
+              position: 'fixed',
+              bottom: 32,
+              right: 32,
               bgcolor: colors.primary,
-              opacity: 0.9,
-              transform: 'translateY(-4px)'
-            },
-            boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-            transition: 'all 0.3s ease'
-          }}
-        >
-          <FaBuilding size={24} />
-        </IconButton>
-        
-        <Typography
-          variant="caption"
-          sx={{
-            color: colors.text,
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            textAlign: 'center',
-            px: 1,
-            py: 0.5,
-            bgcolor: colors.cardBg,
-            borderRadius: '4px',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-          }}
-        >
-          Perfil Empresa
-        </Typography>
-      </Box>
+              color: '#FFFFFF',
+              '&:hover': {
+                bgcolor: '#0046A0',
+                transform: 'translateY(-4px)'
+              },
+              boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+              transition: 'all 0.3s ease',
+              zIndex: 1000
+            }}
+          >
+            <FaChevronUp />
+          </IconButton>
+        </Fade>
+      )}
     </Box>
   );
 };

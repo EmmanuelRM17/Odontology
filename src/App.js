@@ -228,7 +228,6 @@ function App() {
           <Route path="/Administrador/finanzas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Home', path: '/Administrador/principal' }, { name: 'Finanzas' }]} /><FinanzasForm /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/Estadisticas" element={<LayoutAdmin><Graficas /></LayoutAdmin>} />
           <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />
-
           <Route path="/Administrador/Resenyas" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
 
 
