@@ -47,10 +47,8 @@ const LayoutAdmin = ({ children }) => {
           flexGrow: 1,
           mt: '64px',
           '@media (max-width: 600px)': { mt: '56px' },
-          // En escritorio se desplaza el contenido si el drawer está abierto
           ml: isMobile ? 0 : (drawerOpen ? '280px' : '0'),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          p: { xs: 2, sm: 3, md: 4 }
         }}
       >
         <Paper
@@ -61,7 +59,6 @@ const LayoutAdmin = ({ children }) => {
             overflow: 'hidden',
             boxShadow: colors.boxShadow,
             border: `1px solid ${colors.border}`,
-            p: { xs: 2, sm: 3 },
             height: '100%',
             minHeight: 'calc(100vh - 180px)'
           }}

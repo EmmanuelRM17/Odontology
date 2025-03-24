@@ -56,7 +56,6 @@ const LayoutPaciente = ({ children }) => {
           },
           ml: isMobile ? 0 : (drawerOpen ? '280px' : '68px'),
           transition: 'margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-          p: { xs: 2, sm: 3, md: 4 }
         }}
       >
         <Paper
@@ -67,9 +66,8 @@ const LayoutPaciente = ({ children }) => {
             overflow: 'hidden',
             boxShadow: colors.boxShadow,
             border: `1px solid ${colors.border}`,
-            p: { xs: 1, sm: 2 },
             height: '100%',
-            minHeight: 'calc(100vh - 180px)' // Altura ajustada para evitar desbordamiento
+            minHeight: 'calc(100vh - 180px)' 
           }}
         >
           {children}

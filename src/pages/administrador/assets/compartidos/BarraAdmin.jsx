@@ -17,48 +17,45 @@ import {
   useTheme,
   useMediaQuery,
   Paper,
-  SwipeableDrawer // Cambiado a SwipeableDrawer para mejor UX en móvil
+  SwipeableDrawer
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+
+// Importa los iconos de FontAwesome
 import {
   FaHome,
-  FaUsers,
   FaCalendarAlt,
-  FaChartLine,
-  FaMoneyBillWave,
-  FaCalendarCheck,
-  FaClock,
   FaBell,
-  FaCog,
   FaSignOutAlt,
-  FaFileAlt,
   FaTooth,
   FaUserCircle,
   FaAngleDown,
   FaBars,
   FaQuestionCircle,
-  FaCloudUploadAlt,
   FaChevronLeft,
   FaChevronRight
 } from 'react-icons/fa';
+
+// Iconos de Material Design
+import {
+  MdPeople,
+  MdMedicalServices,
+  MdEvent,
+  MdLocalHospital,
+  MdAttachMoney,
+  MdSchedule,
+  MdCloudUpload,
+  MdShowChart,
+  MdDescription,
+  MdHistory,
+  MdNotifications,
+  MdRateReview,
+  MdSettings,
+} from 'react-icons/md';
+
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
-
-// Componente para el botón de alternar menú
-const MenuToggleButton = ({ isOpen, onClick, color }) => (
-  <IconButton
-    onClick={onClick}
-    sx={{
-      color: color,
-      width: 32,
-      height: 32,
-      '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
-    }}
-  >
-    {isOpen ? <FaChevronLeft /> : <FaChevronRight />}
-  </IconButton>
-);
 
 const BarraAdmin = ({ onDrawerChange }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -66,7 +63,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
   const [openNotification, setOpenNotification] = useState(false);
   const [pendingNotifications, setPendingNotifications] = useState(3);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false); // Estado separado para móvil
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,63 +72,71 @@ const BarraAdmin = ({ onDrawerChange }) => {
   const { isDarkTheme } = useThemeContext();
   const { setUser, user } = useAuth();
 
-  // Estados para los submenús tipo acordeón
-  const [expandedGroups, setExpandedGroups] = useState({
-    gestion: true, // Abrir por defecto la sección Gestión
-    reportes: false,
-    configuracion: false
-  });
-
-  // Paleta de colores basada en el tema
-  const colors = {
-    background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
-    primary: isDarkTheme ? '#3B82F6' : '#2563EB',
-    secondary: isDarkTheme ? '#4ADE80' : '#10B981',
-    text: isDarkTheme ? '#F3F4F6' : '#1F2937',
-    secondaryText: isDarkTheme ? '#94A3B8' : '#64748B',
-    hover: isDarkTheme ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.08)',
-    menuBg: isDarkTheme ? '#111827' : '#F9FAFB',
-    sidebarHeader: isDarkTheme ? '#0F172A' : '#EFF6FF',
-    iconColor: isDarkTheme ? '#E5E7EB' : '#4B5563',
-    activeItem: isDarkTheme ? 'rgba(59,130,246,0.2)' : 'rgba(37,99,235,0.1)',
-    divider: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
-    error: isDarkTheme ? '#F87171' : '#EF4444',
-    boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
-  };
-
   // Estructura de menú organizada por grupos
   const menuGroups = [
     {
       id: 'gestion',
       title: 'Gestión',
       items: [
-        { icon: FaUsers, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
-        { icon: FaTooth, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
-        { icon: FaCalendarCheck, text: 'Gestión de Citas', path: '/Administrador/citas' },
-        { icon: FaCalendarCheck, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
-        { icon: FaMoneyBillWave, text: 'Finanzas', path: '/Administrador/finanzas' },
-        { icon: FaCalendarAlt, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
-        { icon: FaCloudUploadAlt, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
+        { icon: MdPeople, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
+        { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
+        { icon: MdEvent, text: 'Gestión de Citas', path: '/Administrador/citas' },
+        { icon: MdLocalHospital, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
+        { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
+        { icon: MdSchedule, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
+        { icon: MdCloudUpload, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
       ]
     },
     {
       id: 'reportes',
       title: 'Informes y Análisis',
       items: [
-        { icon: FaChartLine, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
-        { icon: FaFileAlt, text: 'Reportes', path: '/Administrador/reportes' },
-        { icon: FaClock, text: 'Historial', path: '/Administrador/historial' }
+        { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
+        { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
+        { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Resenyas' },
+        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' }
       ]
     },
     {
-      id: 'configuracion',
+      id: 'sistema',
       title: 'Sistema',
       items: [
-        { icon: FaBell, text: 'Notificaciones', path: '/Administrador/notificaciones' },
-        { icon: FaCog, text: 'Configuración', path: '/Administrador/configuracion' }
+        { icon: MdNotifications, text: 'Notificaciones', path: '/Administrador/notificaciones' },
+        { icon: MdSettings, text: 'Configuración', path: '/Administrador/configuracion' }
       ]
     }
   ];
+
+  // Función para determinar a qué grupo pertenece la ruta actual
+  const getGroupIdFromPath = (path) => {
+    for (const group of menuGroups) {
+      if (group.items.some(item => item.path === path)) {
+        return group.id;
+      }
+    }
+    return null;
+  };
+
+  // Estados para los submenús tipo acordeón - inicializado basado en la ruta actual
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const currentGroupId = getGroupIdFromPath(location.pathname);
+    return {
+      gestion: currentGroupId === 'gestion',
+      reportes: currentGroupId === 'reportes',
+      sistema: currentGroupId === 'sistema'
+    };
+  });
+
+  // Actualizar menús expandidos cuando cambia la ruta
+  useEffect(() => {
+    const currentGroupId = getGroupIdFromPath(location.pathname);
+    if (currentGroupId) {
+      setExpandedGroups(prev => ({
+        ...prev,
+        [currentGroupId]: true
+      }));
+    }
+  }, [location.pathname]);
 
   // Función para comunicar el cambio de estado del drawer al componente padre
   const updateDrawerState = useCallback((isOpen) => {
@@ -174,6 +179,23 @@ const BarraAdmin = ({ onDrawerChange }) => {
     };
     checkAuthStatus();
   }, [setUser]);
+
+  // Paleta de colores basada en el tema
+  const colors = {
+    background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
+    primary: isDarkTheme ? '#3B82F6' : '#2563EB',
+    secondary: isDarkTheme ? '#4ADE80' : '#10B981',
+    text: isDarkTheme ? '#F3F4F6' : '#1F2937',
+    secondaryText: isDarkTheme ? '#94A3B8' : '#64748B',
+    hover: isDarkTheme ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.08)',
+    menuBg: isDarkTheme ? '#111827' : '#F9FAFB',
+    sidebarHeader: isDarkTheme ? '#0F172A' : '#EFF6FF',
+    iconColor: isDarkTheme ? '#E5E7EB' : '#4B5563',
+    activeItem: isDarkTheme ? 'rgba(59,130,246,0.2)' : 'rgba(37,99,235,0.1)',
+    divider: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+    error: isDarkTheme ? '#F87171' : '#EF4444',
+    boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
+  };
 
   // Maneja la expansión y colapso de grupos de menú
   const toggleGroup = (groupId) => {

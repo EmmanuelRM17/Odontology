@@ -229,7 +229,7 @@ function App() {
           <Route path="/Administrador/Estadisticas" element={<LayoutAdmin><Graficas /></LayoutAdmin>} />
           <Route path="/Administrador/CalendarioCita" element={<LayoutAdmin><CalendarioCitas /></LayoutAdmin>} />
 
-          <Route path="/Administrador/ResenyasModerar" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
+          <Route path="/Administrador/Resenyas" element={<LayoutAdmin><ModeracionServicios /></LayoutAdmin>} />
 
 
           {/* Rutas protegidas del empleado */}
