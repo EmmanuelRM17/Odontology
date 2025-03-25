@@ -131,7 +131,11 @@ const ErrorPage = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
+  
+  // Media queries mejorados para diferentes tamaños de pantalla
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isSmallHeight = useMediaQuery('(max-height: 700px)');
   
   // Determinar el código de error actual
   const errorCode = !isOnline ? 502 : location.state?.errorCode || 404;
@@ -234,10 +238,11 @@ const ErrorPage = () => {
           ? 'radial-gradient(circle at 30% 100%, rgba(30, 144, 255, 0.08), transparent 25%), radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.08), transparent 25%)'
           : 'radial-gradient(circle at 30% 100%, rgba(30, 144, 255, 0.05), transparent 25%), radial-gradient(circle at 80% 20%, rgba(138, 43, 226, 0.05), transparent 25%)',
         background: isDarkTheme ? '#121212' : '#f8f9fa',
-        transition: 'background 0.3s ease'
+        transition: 'background 0.3s ease',
+        p: { xs: 2, sm: 3, md: 4 } // Padding responsivo para el contenedor principal
       }}
     >
-      <Container maxWidth="lg">
+      <Container maxWidth="lg" sx={{ width: '100%' }}>
         <motion.div
           initial="hidden"
           animate="visible"
@@ -247,7 +252,7 @@ const ErrorPage = () => {
             elevation={isDarkTheme ? 0 : 3}
             sx={{
               overflow: 'hidden',
-              borderRadius: { xs: 3, md: 4 },
+              borderRadius: { xs: 2, sm: 3, md: 4 },
               backgroundColor: isDarkTheme ? 'rgba(30, 30, 34, 0.7)' : 'rgba(255, 255, 255, 0.8)',
               backdropFilter: 'blur(10px)',
               border: isDarkTheme ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
@@ -255,8 +260,8 @@ const ErrorPage = () => {
                 ? '0 10px 40px -10px rgba(0, 0, 0, 0.3)' 
                 : '0 10px 40px -10px rgba(0, 0, 0, 0.1)',
               position: 'relative',
-              py: { xs: 4, md: 6 },
-              px: { xs: 3, md: 5 }
+              py: { xs: 3, sm: 4, md: 6 },
+              px: { xs: 2, sm: 3, md: 5 }
             }}
           >
             {/* Elementos decorativos */}
@@ -265,8 +270,8 @@ const ErrorPage = () => {
               <Box
                 sx={{
                   position: 'absolute',
-                  width: '300px',
-                  height: '300px',
+                  width: { xs: '200px', md: '300px' },
+                  height: { xs: '200px', md: '300px' },
                   borderRadius: '50%',
                   background: errorInfo.gradient,
                   top: '-200px',
@@ -278,8 +283,8 @@ const ErrorPage = () => {
               <Box
                 sx={{
                   position: 'absolute',
-                  width: '200px',
-                  height: '200px',
+                  width: { xs: '150px', md: '200px' },
+                  height: { xs: '150px', md: '200px' },
                   borderRadius: '50%',
                   background: isDarkTheme ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
                   bottom: '-100px',
@@ -288,41 +293,47 @@ const ErrorPage = () => {
                 }}
               />
               
-              {/* Iconos decorativos */}
-              <Box
-                component={motion.div}
-                variants={floatVariants}
-                initial="initial"
-                animate="animate"
-                sx={{
-                  position: 'absolute',
-                  top: '10%',
-                  right: '5%',
-                  opacity: 0.07
-                }}
-              >
-                <ToothIcon size="60px" color={errorInfo.color} />
-              </Box>
-              
-              <Box
-                component={motion.div}
-                variants={floatVariants}
-                initial="initial"
-                animate="animate"
-                sx={{
-                  position: 'absolute',
-                  bottom: '10%',
-                  left: '5%',
-                  opacity: 0.07
-                }}
-              >
-                <ToothIcon size="80px" color={errorInfo.color} />
-              </Box>
+              {/* Iconos decorativos - Ocultarlos en móviles para mejor rendimiento */}
+              {!isMobile && (
+                <>
+                  <Box
+                    component={motion.div}
+                    variants={floatVariants}
+                    initial="initial"
+                    animate="animate"
+                    sx={{
+                      position: 'absolute',
+                      top: '10%',
+                      right: '5%',
+                      opacity: 0.07,
+                      display: { xs: 'none', sm: 'block' }
+                    }}
+                  >
+                    <ToothIcon size={isMobile ? "40px" : "60px"} color={errorInfo.color} />
+                  </Box>
+                  
+                  <Box
+                    component={motion.div}
+                    variants={floatVariants}
+                    initial="initial"
+                    animate="animate"
+                    sx={{
+                      position: 'absolute',
+                      bottom: '10%',
+                      left: '5%',
+                      opacity: 0.07,
+                      display: { xs: 'none', sm: 'block' }
+                    }}
+                  >
+                    <ToothIcon size={isMobile ? "50px" : "80px"} color={errorInfo.color} />
+                  </Box>
+                </>
+              )}
             </Box>
 
             {/* Contenido principal */}
             <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Grid container spacing={4} alignItems="center">
+              <Grid container spacing={{ xs: 2, sm: 3, md: 4 }} alignItems="center" justifyContent="center">
                 {/* Código de error */}
                 <Grid item xs={12} md={5} sx={{ 
                   order: { xs: 1, md: 1 },
@@ -330,13 +341,18 @@ const ErrorPage = () => {
                   justifyContent: 'center',
                   alignItems: 'center'
                 }}>
-                  <Box sx={{ position: 'relative', textAlign: 'center' }}>
+                  <Box sx={{ 
+                    position: 'relative', 
+                    textAlign: 'center',
+                    width: '100%',
+                    maxWidth: { xs: '200px', sm: '250px', md: '300px' }
+                  }}>
                     <motion.div variants={codeVariants}>
                       {/* Badge de error type */}
                       <Chip
-                        size="small"
+                        size={isMobile ? "small" : "medium"}
                         icon={React.cloneElement(errorInfo.icon, { 
-                          style: { fontSize: 16, color: '#fff' } 
+                          style: { fontSize: isMobile ? 14 : 16, color: '#fff' } 
                         })}
                         label={`Error ${errorCode}`}
                         sx={{
@@ -344,16 +360,18 @@ const ErrorPage = () => {
                           color: 'white',
                           fontWeight: 500,
                           position: 'absolute',
-                          top: '-20px',
+                          top: isMobile ? '-15px' : '-20px',
                           left: '50%',
                           transform: 'translateX(-50%)',
-                          py: 0.5,
+                          py: isMobile ? 0.3 : 0.5,
                           boxShadow: '0 3px 10px rgba(0,0,0,0.1)',
                           border: '2px solid',
                           borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)',
                           '& .MuiChip-icon': {
                             color: 'white'
-                          }
+                          },
+                          fontSize: { xs: '0.7rem', sm: '0.75rem', md: '0.8rem' },
+                          zIndex: 10
                         }}
                       />
                       
@@ -361,16 +379,21 @@ const ErrorPage = () => {
                       <Typography
                         variant="h1"
                         sx={{
-                          fontSize: { xs: '6rem', sm: '7rem', md: '8rem' },
+                          fontSize: { 
+                            xs: isSmallHeight ? '4.5rem' : '5rem', 
+                            sm: '6rem', 
+                            md: '7rem', 
+                            lg: '8rem' 
+                          },
                           fontWeight: 700,
-                          lineHeight: 0.8,
+                          lineHeight: isSmallHeight ? 1 : 0.8,
                           background: errorInfo.gradient,
                           backgroundClip: 'text',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           textShadow: isDarkTheme ? '0 5px 10px rgba(0,0,0,0.5)' : '0 5px 10px rgba(0,0,0,0.1)',
                           mb: 1,
-                          mt: 2,
+                          mt: isMobile ? 1 : 2,
                           letterSpacing: '-0.05em'
                         }}
                       >
@@ -380,12 +403,12 @@ const ErrorPage = () => {
                       {/* Iluminación bajo el número */}
                       <Box
                         sx={{
-                          width: '150px',
-                          height: '25px',
+                          width: { xs: '100px', sm: '120px', md: '150px' },
+                          height: { xs: '15px', sm: '20px', md: '25px' },
                           borderRadius: '50%',
                           background: errorInfo.gradient,
                           position: 'absolute',
-                          bottom: '-10px',
+                          bottom: { xs: '-5px', md: '-10px' },
                           left: '50%',
                           transform: 'translateX(-50%)',
                           filter: 'blur(20px)',
@@ -407,9 +430,14 @@ const ErrorPage = () => {
                         variant="h4"
                         sx={{
                           fontWeight: 700,
-                          mb: 2,
+                          mb: { xs: 1, sm: 1.5, md: 2 },
                           color: isDarkTheme ? '#fff' : theme.palette.text.primary,
-                          letterSpacing: '-0.01em'
+                          letterSpacing: '-0.01em',
+                          fontSize: { 
+                            xs: isSmallHeight ? '1.5rem' : '1.75rem', 
+                            sm: '2rem', 
+                            md: '2.25rem' 
+                          }
                         }}
                       >
                         {errorInfo.title}
@@ -420,9 +448,9 @@ const ErrorPage = () => {
                       <Typography
                         variant="body1"
                         sx={{
-                          mb: 4,
+                          mb: { xs: 2, sm: 3, md: 4 },
                           color: isDarkTheme ? 'rgba(255,255,255,0.7)' : theme.palette.text.secondary,
-                          fontSize: '1.1rem',
+                          fontSize: { xs: '0.9rem', sm: '1rem', md: '1.1rem' },
                           lineHeight: 1.5,
                           maxWidth: { xs: '100%', md: '450px' },
                           mx: { xs: 'auto', md: 0 }
@@ -435,7 +463,7 @@ const ErrorPage = () => {
                     <motion.div variants={itemVariants}>
                       <Divider 
                         sx={{ 
-                          mb: 3, 
+                          mb: { xs: 2, sm: 2.5, md: 3 }, 
                           opacity: 0.08,
                           maxWidth: { xs: '100%', md: '450px' }
                         }} 
@@ -447,7 +475,7 @@ const ErrorPage = () => {
                         sx={{ 
                           display: 'flex', 
                           flexWrap: 'wrap',
-                          gap: 2,
+                          gap: { xs: 1.5, sm: 2 },
                           justifyContent: { xs: 'center', md: 'flex-start' }
                         }}
                       >
@@ -460,19 +488,22 @@ const ErrorPage = () => {
                             variant={action.primary ? 'contained' : 'outlined'}
                             color="primary"
                             startIcon={action.icon}
-                            size={isMobile ? 'medium' : 'large'}
+                            size={isMobile ? 'small' : isTablet ? 'medium' : 'large'}
                             disableElevation={!action.primary}
                             sx={{
-                              borderRadius: '10px',
+                              borderRadius: { xs: '8px', md: '10px' },
                               background: action.primary ? errorInfo.gradient : 'transparent',
                               color: action.primary ? '#fff' : errorInfo.color,
                               borderColor: action.primary ? 'transparent' : errorInfo.color,
                               fontWeight: 500,
-                              px: { xs: 2, md: 3 },
-                              py: { xs: 1, md: 1.2 },
+                              px: { xs: 1.5, sm: 2, md: 3 },
+                              py: { xs: 0.7, sm: 0.8, md: 1 },
                               boxShadow: action.primary ? '0 4px 15px rgba(0,0,0,0.1)' : 'none',
                               textTransform: 'none',
                               transition: 'all 0.3s ease',
+                              fontSize: { xs: '0.8rem', sm: '0.85rem', md: '0.9rem' },
+                              whiteSpace: 'nowrap',
+                              minWidth: { xs: isMobile && errorInfo.actions.length > 2 ? '110px' : 'auto' },
                               '&:hover': {
                                 background: action.primary ? errorInfo.gradient : `${errorInfo.color}15`,
                                 borderColor: action.primary ? 'transparent' : errorInfo.color,
@@ -511,7 +542,7 @@ const ErrorPage = () => {
           transition={{ duration: 0.3 }}
         >
           <CircularProgress 
-            size={60}
+            size={isMobile ? 50 : 60}
             thickness={4}
             sx={{ 
               color: '#fff',
@@ -525,7 +556,12 @@ const ErrorPage = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Typography variant="h6">{loadingMessage}</Typography>
+          <Typography 
+            variant="h6"
+            sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+          >
+            {loadingMessage}
+          </Typography>
         </motion.div>
       </Backdrop>
     </Box>

@@ -79,6 +79,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       title: 'Gestión',
       items: [
         { icon: MdPeople, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
+        { icon: MdPeople, text: 'Gestión de Empleados', path: '/Administrador/empleados' },
         { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
         { icon: MdEvent, text: 'Gestión de Citas', path: '/Administrador/citas' },
         { icon: MdLocalHospital, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
