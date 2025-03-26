@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { 
+import {
   Dialog, DialogTitle, DialogContent, DialogActions,
   Box, Grid, TextField, Button, Typography,
   FormControl, InputLabel, Select, MenuItem,
   IconButton, CircularProgress, Stepper, Step,
   StepLabel, Paper, Avatar, Divider, InputAdornment,
-  Alert, Fade, LinearProgress, Tooltip, Chip
+  Alert, Fade, LinearProgress, Tooltip, Chip,
+  Slide, StepButton, StepContent, useTheme, alpha
 } from '@mui/material';
-import { 
-  FaTimes, FaUser, FaEnvelope, FaLock, 
-  FaBriefcase, FaIdBadge, FaUserMd, 
-  FaPhone, FaIdCard, FaUserCheck, FaEye, 
-  FaEyeSlash, FaArrowRight, FaArrowLeft, 
+import {
+  FaTimes, FaUser, FaEnvelope, FaLock,
+  FaBriefcase, FaIdBadge, FaUserMd,
+  FaPhone, FaIdCard, FaUserCheck, FaEye,
+  FaEyeSlash, FaArrowRight, FaArrowLeft,
   FaCheckCircle, FaTimesCircle, FaExclamationTriangle,
-  FaShieldAlt, FaInfoCircle
+  FaShieldAlt, FaInfoCircle, FaSave, FaUserEdit,
+  FaClipboardCheck
 } from 'react-icons/fa';
 import axios from 'axios';
 import CryptoJS from 'crypto-js';
+
+// Transición para el diálogo
+const Transition = React.forwardRef(function Transition(props, ref) {
+  return <Slide direction="up" ref={ref} {...props} />;
+});
 
 // Formulario de asistente paso a paso para añadir/editar empleados
 const EmpleadoFormWizard = ({
@@ -43,7 +50,7 @@ const EmpleadoFormWizard = ({
     estado: 'activo',
     imagen: ''
   });
-  
+
   // Estados para validación
   const [errors, setErrors] = useState({});
   const [formTouched, setFormTouched] = useState({});
@@ -56,6 +63,7 @@ const EmpleadoFormWizard = ({
   const [isPasswordFiltered, setIsPasswordFiltered] = useState(false);
   const [isLoadingPassword, setIsLoading] = useState(false);
   const [formComplete, setFormComplete] = useState(false);
+  const [completedSteps, setCompletedSteps] = useState({});
 
   // Pasos del formulario
   const steps = [
@@ -84,7 +92,7 @@ const EmpleadoFormWizard = ({
       minHeight: '300px'
     },
     title: {
-      fontSize: '1rem',
+      fontSize: '1.1rem',
       fontWeight: 'bold',
       color: colors.primary,
       marginBottom: 2,
@@ -96,17 +104,17 @@ const EmpleadoFormWizard = ({
     },
     passwordStrength: {
       width: '100%',
-      height: 4,
+      height: 6,
       marginTop: 1,
-      backgroundColor: '#e0e0e0',
-      borderRadius: 2,
+      backgroundColor: alpha('#e0e0e0', 0.3),
+      borderRadius: 3,
       position: 'relative',
       overflow: 'hidden'
     },
     strengthIndicator: {
       height: '100%',
       transition: 'width 0.3s ease, background-color 0.3s ease',
-      borderRadius: 2
+      borderRadius: 3
     },
     fieldHelperText: {
       fontSize: '0.75rem',
@@ -134,6 +142,71 @@ const EmpleadoFormWizard = ({
       height: 100,
       fontSize: '2.5rem',
       backgroundColor: colors.primary
+    },
+    stepper: {
+      backgroundColor: 'transparent',
+      '& .MuiStepConnector-root': {
+        left: 'calc(-50% + 12px)',
+        right: 'calc(50% + 12px)',
+      },
+      '& .MuiStepConnector-line': {
+        borderTopWidth: 3,
+        borderRadius: 1,
+      },
+      '& .MuiStepLabel-iconContainer': {
+        paddingRight: 1,
+      },
+      '& .MuiStepLabel-alternativeLabel': {
+        fontSize: '0.85rem'
+      }
+    },
+    stepIcon: {
+      color: colors.primary,
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: `2px solid ${colors.primary}`,
+      backgroundColor: 'transparent'
+    },
+    completedStepIcon: {
+      backgroundColor: colors.primary,
+      color: 'white',
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    activeStepIcon: {
+      backgroundColor: alpha(colors.primary, 0.1),
+      width: 30,
+      height: 30,
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      border: `2px solid ${colors.primary}`,
+    },
+    input: {
+      '& .MuiOutlinedInput-root': {
+        color: colors.text,
+        '& fieldset': {
+          borderColor: colors.inputBorder,
+        },
+        '&:hover fieldset': {
+          borderColor: colors.primary,
+        },
+        '&.Mui-focused fieldset': {
+          borderColor: colors.primary,
+        }
+      },
+      '& .MuiInputLabel-root': {
+        color: colors.inputLabel,
+      }
     }
   };
 
@@ -145,19 +218,19 @@ const EmpleadoFormWizard = ({
   // Función para manejar cambios en los campos del formulario
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // Actualizar el estado del formulario
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
-    
+
     // Marcar el campo como tocado
     setFormTouched(prev => ({
       ...prev,
       [name]: true
     }));
-    
+
     // Validar el campo
     validateField(name, value);
   };
@@ -165,7 +238,7 @@ const EmpleadoFormWizard = ({
   // Función para validar campos individuales
   const validateField = (field, value) => {
     let error = '';
-    
+
     switch (field) {
       case 'nombre':
         if (!value.trim()) {
@@ -176,7 +249,7 @@ const EmpleadoFormWizard = ({
           error = 'El nombre solo puede contener letras y espacios';
         }
         break;
-        
+
       case 'aPaterno':
         if (!value.trim()) {
           error = 'El apellido paterno es obligatorio';
@@ -184,13 +257,13 @@ const EmpleadoFormWizard = ({
           error = 'El apellido solo puede contener letras y espacios';
         }
         break;
-        
+
       case 'aMaterno':
         if (value && !nameRegex.test(value)) {
           error = 'El apellido solo puede contener letras y espacios';
         }
         break;
-        
+
       case 'email':
         if (!value.trim()) {
           error = 'El email es obligatorio';
@@ -198,19 +271,19 @@ const EmpleadoFormWizard = ({
           error = 'Email inválido. Debe usar gmail, hotmail, outlook, yahoo, live o uthh.edu';
         }
         break;
-        
+
       case 'telefono':
         if (value && !phoneRegex.test(value)) {
           error = 'El teléfono debe contener 10 dígitos';
         }
         break;
-        
+
       case 'puesto':
         if (!value) {
           error = 'Debe seleccionar un puesto';
         }
         break;
-        
+
       case 'password':
         if (!editMode && !value) {
           error = 'La contraseña es obligatoria';
@@ -220,7 +293,7 @@ const EmpleadoFormWizard = ({
           if (pwdErrors.length > 0) {
             error = 'La contraseña no cumple con los requisitos';
           }
-          
+
           // Si hay contraseña de confirmación, validar que coincidan
           if (formData.passwordConfirm && value !== formData.passwordConfirm) {
             setErrors(prev => ({
@@ -235,7 +308,7 @@ const EmpleadoFormWizard = ({
           }
         }
         break;
-        
+
       case 'passwordConfirm':
         if (!editMode && !value) {
           error = 'Debe confirmar la contraseña';
@@ -244,13 +317,13 @@ const EmpleadoFormWizard = ({
         }
         break;
     }
-    
+
     // Actualizar el estado de errores
     setErrors(prev => ({
       ...prev,
       [field]: error
     }));
-    
+
     return !error;
   };
 
@@ -263,14 +336,14 @@ const EmpleadoFormWizard = ({
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
     const hasMinLength = password.length >= 8;
     const noRepeatingChars = !/(.)\1{2}/.test(password);
-    
+
     if (!hasUpperCase) errors.push('Debe tener al menos una letra mayúscula');
     if (!hasLowerCase) errors.push('Debe tener al menos una letra minúscula');
     if (!hasNumber) errors.push('Debe tener al menos un número');
     if (!hasSpecialChar) errors.push('Debe tener al menos un símbolo especial');
     if (!hasMinLength) errors.push('Debe tener al menos 8 caracteres');
     if (!noRepeatingChars) errors.push('No puede tener caracteres repetidos más de 2 veces');
-    
+
     // Calcular la fortaleza de la contraseña (0-100)
     let strength = 0;
     if (hasUpperCase) strength += 20;
@@ -278,30 +351,30 @@ const EmpleadoFormWizard = ({
     if (hasNumber) strength += 20;
     if (hasSpecialChar) strength += 20;
     if (hasMinLength) strength += 20;
-    
+
     setPasswordStrength(strength);
-    
+
     return errors;
   };
 
   // Función para verificar tanto la seguridad como las reglas de la contraseña
   const checkPasswordValidity = async (password) => {
     const customErrors = checkPasswordRules(password);
-    
+
     if (customErrors.length > 0) {
       setIsPasswordSafe(false);
       return false;
     }
-    
+
     setIsLoading(true);
     try {
       const hashedPassword = CryptoJS.SHA1(password).toString(CryptoJS.enc.Hex);
       const prefix = hashedPassword.slice(0, 5);
       const suffix = hashedPassword.slice(5);
-      
+
       const response = await axios.get(`https://api.pwnedpasswords.com/range/${prefix}`);
       const hashes = response.data.split('\n').map(line => line.split(':')[0]);
-      
+
       if (hashes.includes(suffix.toUpperCase())) {
         setErrors(prev => ({
           ...prev,
@@ -334,51 +407,63 @@ const EmpleadoFormWizard = ({
   // Validar el paso actual
   const validateStep = (step) => {
     let isValid = false;
-    
+
     switch (step) {
       case 0: // Información Personal
         isValid = validateField('nombre', formData.nombre) &&
-                 validateField('aPaterno', formData.aPaterno) &&
-                 validateField('aMaterno', formData.aMaterno || '');
+          validateField('aPaterno', formData.aPaterno) &&
+          validateField('aMaterno', formData.aMaterno || '');
         break;
-        
+
       case 1: // Datos de Contacto
         isValid = validateField('email', formData.email) &&
-                 validateField('telefono', formData.telefono || '');
+          validateField('telefono', formData.telefono || '');
         break;
-        
+
       case 2: // Información Laboral
         isValid = validateField('puesto', formData.puesto);
         break;
-        
+
       case 3: // Contraseña
         if (editMode && !formData.password) {
           // En modo edición, la contraseña es opcional
           isValid = true;
         } else {
           isValid = validateField('password', formData.password) &&
-                   validateField('passwordConfirm', formData.passwordConfirm);
+            validateField('passwordConfirm', formData.passwordConfirm);
         }
         break;
-        
+
       case 4: // Confirmación
         // Todos los campos deben ser válidos
         const allFieldsValid = [
           'nombre', 'aPaterno', 'email', 'puesto'
         ].every(field => !errors[field]);
-        
+
         if (editMode && !formData.password) {
           // En modo edición, si no hay contraseña nueva, solo validar otros campos
           isValid = allFieldsValid;
         } else {
           // Validar también contraseña
-          isValid = allFieldsValid && 
-                   !errors.password && 
-                   !errors.passwordConfirm;
+          isValid = allFieldsValid &&
+            !errors.password &&
+            !errors.passwordConfirm;
         }
         break;
     }
-    
+
+    // Actualizar el estado de completed steps
+    if (isValid) {
+      setCompletedSteps(prev => ({
+        ...prev,
+        [step]: true
+      }));
+    } else {
+      const newCompleted = { ...completedSteps };
+      delete newCompleted[step];
+      setCompletedSteps(newCompleted);
+    }
+
     setStepIsValid(isValid);
     return isValid;
   };
@@ -393,14 +478,14 @@ const EmpleadoFormWizard = ({
         return; // No avanzar si la contraseña no es válida
       }
     }
-    
+
     if (activeStep === steps.length - 2) {
       // Antes de ir a la confirmación, verificar que todo el formulario sea válido
       const isFormValid = [0, 1, 2, 3].every(step => {
         setActiveStep(step);
         return validateStep(step);
       });
-      
+
       if (isFormValid) {
         setFormComplete(true);
         setActiveStep(steps.length - 1);
@@ -415,11 +500,16 @@ const EmpleadoFormWizard = ({
     setActiveStep(prevStep => prevStep - 1);
   };
 
+  // Manejar ir a un paso específico
+  const handleStep = (step) => {
+    setActiveStep(step);
+  };
+
   // Manejar el guardado del formulario
   const handleSave = () => {
     // Crear el objeto a guardar (sin passwordConfirm)
     const { passwordConfirm, ...dataToSave } = formData;
-    
+
     // Llamar a la función de guardado del componente padre
     onSave(dataToSave);
   };
@@ -452,20 +542,20 @@ const EmpleadoFormWizard = ({
   const renderPasswordStrength = () => (
     <Box>
       <Box sx={formStyles.passwordStrength}>
-        <Box 
+        <Box
           sx={{
             ...formStyles.strengthIndicator,
             width: `${passwordStrength}%`,
-            backgroundColor: 
+            backgroundColor:
               passwordStrength < 40 ? '#f44336' : // Rojo
-              passwordStrength < 60 ? '#ff9800' : // Naranja
-              passwordStrength < 80 ? '#ffeb3b' : // Amarillo
-              '#4caf50'                          // Verde
+                passwordStrength < 60 ? '#ff9800' : // Naranja
+                  passwordStrength < 80 ? '#ffeb3b' : // Amarillo
+                    '#4caf50'                          // Verde
           }}
         />
       </Box>
-      <Typography variant="caption" sx={{ 
-        display: 'flex', 
+      <Typography variant="caption" sx={{
+        display: 'flex',
         justifyContent: 'space-between',
         color: colors.secondaryText
       }}>
@@ -474,6 +564,29 @@ const EmpleadoFormWizard = ({
       </Typography>
     </Box>
   );
+
+  // Renderizar icono personalizado para el Stepper
+  const customStepIcon = (stepIndex, active, completed) => {
+    if (completed) {
+      return (
+        <Box sx={formStyles.completedStepIcon}>
+          <FaCheckCircle size={18} />
+        </Box>
+      );
+    } else if (active) {
+      return (
+        <Box sx={formStyles.activeStepIcon}>
+          <Typography sx={{ fontWeight: 'bold', color: colors.primary }}>{stepIndex + 1}</Typography>
+        </Box>
+      );
+    } else {
+      return (
+        <Box sx={formStyles.stepIcon}>
+          <Typography sx={{ fontWeight: 'bold', color: colors.primary }}>{stepIndex + 1}</Typography>
+        </Box>
+      );
+    }
+  };
 
   // Renderizar contenido según el paso actual
   const renderStepContent = (step) => {
@@ -484,7 +597,7 @@ const EmpleadoFormWizard = ({
             <Typography sx={formStyles.title}>
               <FaUser style={formStyles.iconSpacing} /> Información Personal
             </Typography>
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12} sm={12}>
                 <TextField
@@ -503,18 +616,12 @@ const EmpleadoFormWizard = ({
                     ),
                   }}
                   sx={{
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.nombre && errors.nombre) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
+                    ...formStyles.input,
+                    mb: 2
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -531,18 +638,10 @@ const EmpleadoFormWizard = ({
                       </InputAdornment>
                     ),
                   }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.aPaterno && errors.aPaterno) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
-                  }}
+                  sx={formStyles.input}
                 />
               </Grid>
-              
+
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
@@ -559,38 +658,30 @@ const EmpleadoFormWizard = ({
                       </InputAdornment>
                     ),
                   }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.aMaterno && errors.aMaterno) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
-                  }}
+                  sx={formStyles.input}
                 />
               </Grid>
             </Grid>
-            
-            <Alert 
-              severity="info" 
+
+            <Alert
+              severity="info"
               icon={<FaInfoCircle />}
-              sx={{ mt: 3 }}
+              sx={{ mt: 3, borderRadius: '8px' }}
             >
               Esta información será utilizada para identificar al empleado en el sistema.
             </Alert>
           </Box>
         );
-        
+
       case 1: // Datos de Contacto
         return (
           <Box sx={formStyles.stepContent}>
             <Typography sx={formStyles.title}>
               <FaEnvelope style={formStyles.iconSpacing} /> Datos de Contacto
             </Typography>
-            
+
             {renderAvatar()}
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -610,18 +701,12 @@ const EmpleadoFormWizard = ({
                     ),
                   }}
                   sx={{
-                    mb: 2,
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.email && errors.email) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
+                    ...formStyles.input,
+                    mb: 2
                   }}
                 />
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -638,46 +723,38 @@ const EmpleadoFormWizard = ({
                       </InputAdornment>
                     ),
                   }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.telefono && errors.telefono) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
-                  }}
+                  sx={formStyles.input}
                 />
               </Grid>
             </Grid>
-            
-            <Alert 
-              severity="info" 
+
+            <Alert
+              severity="info"
               icon={<FaInfoCircle />}
-              sx={{ mt: 3 }}
+              sx={{ mt: 3, borderRadius: '8px' }}
             >
               Estos datos se utilizarán para contactar al empleado. El correo electrónico también será su nombre de usuario.
             </Alert>
           </Box>
         );
-        
+
       case 2: // Información Laboral
         return (
           <Box sx={formStyles.stepContent}>
             <Typography sx={formStyles.title}>
               <FaBriefcase style={formStyles.iconSpacing} /> Información Laboral
             </Typography>
-            
+
             {renderAvatar()}
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <FormControl 
-                  fullWidth 
+                <FormControl
+                  fullWidth
                   error={!!(formTouched.puesto && errors.puesto)}
                   sx={{ mb: 2 }}
                 >
-                  <InputLabel>Puesto</InputLabel>
+                  <InputLabel sx={{ color: colors.inputLabel }}>Puesto</InputLabel>
                   <Select
                     name="puesto"
                     value={formData.puesto}
@@ -688,14 +765,27 @@ const EmpleadoFormWizard = ({
                         <FaUserMd color={colors.primary} />
                       </InputAdornment>
                     }
+                    sx={{
+                      color: colors.text,
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: (formTouched.puesto && errors.puesto)
+                          ? colors.error : colors.inputBorder,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.primary,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.primary,
+                      }
+                    }}
                   >
                     {positionOptions.map((position) => (
                       <MenuItem key={position} value={position}>
                         {position}
                         {position === 'Odontólogo' && (
-                          <Tooltip 
-                            title="Solo puede existir un Odontólogo activo a la vez" 
-                            arrow 
+                          <Tooltip
+                            title="Solo puede existir un Odontólogo activo a la vez"
+                            arrow
                             placement="right"
                           >
                             <IconButton size="small" sx={{ ml: 1 }}>
@@ -713,20 +803,20 @@ const EmpleadoFormWizard = ({
                   )}
                 </FormControl>
               </Grid>
-              
+
               <Grid item xs={12}>
                 <FormControl fullWidth>
-                  <Typography 
-                    variant="body2" 
-                    sx={{ 
-                      mb: 1, 
-                      color: colors.secondaryText 
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mb: 1,
+                      color: colors.secondaryText
                     }}
                   >
                     Estado del empleado
                   </Typography>
-                  <Box sx={{ 
-                    p: 2, 
+                  <Box sx={{
+                    p: 2,
                     backgroundColor: colors.background === '#F9FDFF' ? '#f5f5f5' : '#1D2B3A',
                     border: '1px solid',
                     borderColor: colors.divider,
@@ -736,15 +826,15 @@ const EmpleadoFormWizard = ({
                     justifyContent: 'space-between'
                   }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <FaUserCheck style={{ 
-                        marginRight: '8px', 
-                        color: formData.estado === 'activo' ? '#4caf50' : '#f44336' 
+                      <FaUserCheck style={{
+                        marginRight: '8px',
+                        color: formData.estado === 'activo' ? '#4caf50' : '#f44336'
                       }} />
                       <Typography>
                         {formData.estado === 'activo' ? 'Activo' : 'Inactivo'}
                       </Typography>
                     </Box>
-                    
+
                     <Button
                       variant="outlined"
                       color={formData.estado === 'activo' ? 'error' : 'success'}
@@ -753,6 +843,7 @@ const EmpleadoFormWizard = ({
                         ...prev,
                         estado: prev.estado === 'activo' ? 'inactivo' : 'activo'
                       }))}
+                      sx={{ borderRadius: '8px' }}
                     >
                       {formData.estado === 'activo' ? 'Desactivar' : 'Activar'}
                     </Button>
@@ -760,36 +851,36 @@ const EmpleadoFormWizard = ({
                 </FormControl>
               </Grid>
             </Grid>
-            
+
             {formData.puesto === 'Odontólogo' && (
-              <Alert 
-                severity="warning" 
+              <Alert
+                severity="warning"
                 icon={<FaExclamationTriangle />}
-                sx={{ mt: 3 }}
+                sx={{ mt: 3, borderRadius: '8px' }}
               >
                 Solo puede existir un Odontólogo activo en el sistema. Si ya existe uno, será desactivado automáticamente.
               </Alert>
             )}
           </Box>
         );
-        
+
       case 3: // Contraseña
         return (
           <Box sx={formStyles.stepContent}>
             <Typography sx={formStyles.title}>
               <FaLock style={formStyles.iconSpacing} /> Configuración de Contraseña
             </Typography>
-            
+
             {editMode && (
-              <Alert 
-                severity="info" 
+              <Alert
+                severity="info"
                 icon={<FaInfoCircle />}
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, borderRadius: '8px' }}
               >
                 Si no desea cambiar la contraseña, deje los campos en blanco.
               </Alert>
             )}
-            
+
             <Grid container spacing={2}>
               <Grid item xs={12}>
                 <TextField
@@ -819,23 +910,17 @@ const EmpleadoFormWizard = ({
                     )
                   }}
                   sx={{
-                    mb: 1,
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.password && errors.password) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
+                    ...formStyles.input,
+                    mb: 1
                   }}
                 />
-                
+
                 {isLoadingPassword && (
-                  <LinearProgress sx={{ mb: 1 }} />
+                  <LinearProgress sx={{ mb: 1, borderRadius: '4px' }} />
                 )}
-                
+
                 {formData.password && renderPasswordStrength()}
-                
+
                 {passwordErrors.length > 0 && (
                   <Box sx={{ mt: 2, mb: 2 }}>
                     <Typography variant="caption" color="error" sx={{ fontWeight: 'bold' }}>
@@ -856,7 +941,7 @@ const EmpleadoFormWizard = ({
                   </Box>
                 )}
               </Grid>
-              
+
               <Grid item xs={12}>
                 <TextField
                   fullWidth
@@ -884,75 +969,72 @@ const EmpleadoFormWizard = ({
                       </InputAdornment>
                     )
                   }}
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      color: colors.text,
-                      '& fieldset': {
-                        borderColor: (formTouched.passwordConfirm && errors.passwordConfirm) 
-                          ? colors.error : colors.inputBorder,
-                      }
-                    }
-                  }}
+                  sx={formStyles.input}
                 />
               </Grid>
             </Grid>
-            
-            <Alert 
-              severity="info" 
+
+            <Alert
+              severity="info"
               icon={<FaShieldAlt />}
-              sx={{ mt: 3 }}
+              sx={{ mt: 3, borderRadius: '8px' }}
             >
               Use una contraseña única y segura. No comparta la misma contraseña con otros servicios.
             </Alert>
           </Box>
         );
-        
+
       case 4: // Confirmación
         return (
           <Box sx={formStyles.stepContent}>
             <Typography sx={formStyles.title}>
               <FaCheckCircle style={formStyles.iconSpacing} /> Resumen de información
             </Typography>
-            
+
             {renderAvatar()}
-            
-            <Paper 
+
+            <Paper
               elevation={0}
-              sx={{ 
-                p: 3, 
+              sx={{
+                p: 3,
                 backgroundColor: colors.paper,
                 borderRadius: '12px',
-                mb: 2
+                mb: 2,
+                border: `1px solid ${colors.divider}`
               }}
             >
               <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color={colors.primary}>Información Personal</Typography>
+                  <Typography variant="subtitle2" color={colors.primary} sx={{ fontWeight: 'bold' }}>
+                    Información Personal
+                  </Typography>
                   <Divider sx={{ mb: 1 }} />
-                  
+
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Nombre:</strong> {formData.nombre} {formData.aPaterno} {formData.aMaterno}
                   </Typography>
-                  
+
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Correo:</strong> {formData.email}
                   </Typography>
-                  
+
                   {formData.telefono && (
                     <Typography variant="body2" sx={{ mb: 0.5 }}>
                       <strong>Teléfono:</strong> {formData.telefono}
                     </Typography>
                   )}
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
-                  <Typography variant="subtitle2" color={colors.primary}>Información Laboral</Typography>
+                  <Typography variant="subtitle2" color={colors.primary} sx={{ fontWeight: 'bold' }}>
+                    Información Laboral
+                  </Typography>
                   <Divider sx={{ mb: 1 }} />
-                  
+
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Puesto:</strong> {formData.puesto}
                   </Typography>
-                  
+
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Estado:</strong> {' '}
                     <Chip
@@ -964,23 +1046,24 @@ const EmpleadoFormWizard = ({
                       }}
                     />
                   </Typography>
-                  
+
                   <Typography variant="body2" sx={{ mb: 0.5 }}>
                     <strong>Contraseña:</strong> {editMode && !formData.password ? 'No modificada' : '••••••••'}
                   </Typography>
                 </Grid>
               </Grid>
             </Paper>
-            
-            <Alert 
-              severity="success" 
+
+            <Alert
+              severity="success"
               icon={<FaCheckCircle />}
+              sx={{ borderRadius: '8px' }}
             >
               Por favor verifique que toda la información sea correcta antes de guardar.
             </Alert>
           </Box>
         );
-        
+
       default:
         return <div>Error: Paso desconocido</div>;
     }
@@ -992,66 +1075,104 @@ const EmpleadoFormWizard = ({
       onClose={() => !isProcessing && onClose()}
       maxWidth="md"
       fullWidth
+      TransitionComponent={Transition}
       PaperProps={{
         sx: {
           backgroundColor: colors.background,
           color: colors.text,
-          borderRadius: '12px'
+          borderRadius: '16px',
+          overflow: 'hidden'
         }
       }}
-      TransitionComponent={Fade}
-      transitionDuration={300}
     >
-      <DialogTitle sx={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        color: colors.primary,
-        pb: 1
+      <Box sx={{
+        background: `linear-gradient(45deg, ${colors.primary} 30%, ${colors.primary}90 90%)`,
+        p: 3
       }}>
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          {editMode ? 'Editar Empleado' : 'Añadir Nuevo Empleado'}
-        </Typography>
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          disabled={isProcessing}
-          sx={{ 
-            color: colors.text,
-            '&:hover': {
-              backgroundColor: 'rgba(244, 67, 54, 0.1)',
-              color: '#f44336'
-            }
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'white', display: 'flex', alignItems: 'center' }}>
+            {editMode ? (
+              <>
+                <FaUserEdit style={{ marginRight: '10px' }} /> Editar Empleado
+              </>
+            ) : (
+              <>
+                <FaUserCheck style={{ marginRight: '10px' }} /> Añadir Nuevo Empleado
+              </>
+            )}
+          </Typography>
+          <IconButton
+            aria-label="close"
+            onClick={onClose}
+            disabled={isProcessing}
+            sx={{
+              color: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              '&:hover': {
+                backgroundColor: 'rgba(255, 255, 255, 0.3)'
+              }
+            }}
+          >
+            <FaTimes />
+          </IconButton>
+        </Box>
+      </Box>
+
+      <DialogContent sx={{ p: 3 }}>
+        {/* Stepper para mostrar el progreso */}
+        <Stepper
+          activeStep={activeStep}
+          alternativeLabel
+          nonLinear
+          sx={{
+            ...formStyles.stepper,
+            mb: 3
           }}
         >
-          <FaTimes />
-        </IconButton>
-      </DialogTitle>
-      
-      <DialogContent>
-        {/* Stepper para mostrar el progreso */}
-        <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 3 }}>
           {steps.map((label, index) => (
-            <Step key={label}>
-              <StepLabel>{label}</StepLabel>
+            <Step key={label} completed={Boolean(completedSteps[index])}>
+              <StepButton
+                onClick={() => handleStep(index)}
+                disabled={index === steps.length - 1 && !formComplete}
+                icon={customStepIcon(index, activeStep === index, !!completedSteps[index])}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'block',
+                    color: activeStep === index ? colors.primary : colors.secondaryText,
+                    textAlign: 'center'
+                  }}
+                >
+                  {label}
+                </Typography>
+              </StepButton>
             </Step>
           ))}
         </Stepper>
-        
+
         {/* Contenedor principal del formulario */}
         <Box sx={formStyles.container}>
           {renderStepContent(activeStep)}
         </Box>
       </DialogContent>
-      
-      <DialogActions sx={{ p: 3, pt: 2 }}>
+
+      <DialogActions sx={{
+        p: 3,
+        pt: 2,
+        borderTop: `1px solid ${colors.divider}`
+      }}>
         <Box sx={{ width: '100%', ...formStyles.buttonContainer }}>
           {activeStep === 0 ? (
             <Button
-              variant="text"
+              variant="outlined"
               onClick={onClose}
               disabled={isProcessing}
-              sx={{ color: colors.text }}
+              sx={{
+                color: colors.text,
+                borderColor: colors.divider,
+                borderRadius: '8px'
+              }}
             >
               Cancelar
             </Button>
@@ -1061,19 +1182,27 @@ const EmpleadoFormWizard = ({
               onClick={handleBack}
               disabled={isProcessing}
               startIcon={<FaArrowLeft />}
-              sx={{ color: colors.primary, borderColor: colors.primary }}
+              sx={{
+                color: colors.primary,
+                borderColor: colors.primary,
+                borderRadius: '8px'
+              }}
             >
               Atrás
             </Button>
           )}
-          
+
           {activeStep === steps.length - 1 ? (
             <Button
               variant="contained"
               onClick={handleSave}
               disabled={isProcessing || !formComplete}
-              startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : <FaCheckCircle />}
-              sx={{ backgroundColor: colors.primary }}
+              startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : <FaSave />}
+              sx={{
+                backgroundColor: colors.primary,
+                borderRadius: '8px',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+              }}
             >
               {isProcessing ? 'Guardando...' : (editMode ? 'Actualizar' : 'Guardar')}
             </Button>
@@ -1083,7 +1212,11 @@ const EmpleadoFormWizard = ({
               onClick={handleNext}
               disabled={isProcessing || !stepIsValid}
               endIcon={<FaArrowRight />}
-              sx={{ backgroundColor: colors.primary }}
+              sx={{
+                backgroundColor: colors.primary,
+                borderRadius: '8px',
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)'
+              }}
             >
               Siguiente
             </Button>
