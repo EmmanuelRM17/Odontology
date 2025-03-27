@@ -528,11 +528,11 @@ const Home = () => {
                 </Typography>
               </Box>
 
-              {/* SECCIÓN ACTUALIZADA: Beneficios de visitar al odontólogo */}
+              {/* SECCIÓN ACTUALIZADA: Beneficios de visitar al odontólogo (más compacta) */}
               <Box 
                 sx={{ 
-                  mt: 4,
-                  p: 2.5,
+                  mt: 3,
+                  p: 2,
                   borderRadius: '12px',
                   background: isDarkTheme ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.95)',
                   boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
@@ -543,69 +543,51 @@ const Home = () => {
                   overflow: 'hidden'
                 }}
               >
-                {/* Elemento decorativo de fondo */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    top: -20,
-                    right: -20,
-                    width: '140px',
-                    height: '140px',
-                    borderRadius: '50%',
-                    background: `radial-gradient(circle, ${colors.primary}22 0%, transparent 70%)`,
-                    zIndex: 0
-                  }}
-                />
+                {/* Elementos decorativos de fondo */}
+                <Box sx={{
+                  position: 'absolute',
+                  top: -20, right: -20,
+                  width: '140px', height: '140px',
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${colors.primary}22 0%, transparent 70%)`,
+                  zIndex: 0
+                }}/>
                 
-                {/* Elemento decorativo de fondo */}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: -30,
-                    left: -30,
-                    width: '160px',
-                    height: '160px',
-                    borderRadius: '50%',
-                    background: `radial-gradient(circle, ${colors.primary}15 0%, transparent 70%)`,
-                    zIndex: 0
-                  }}
-                />
+                <Box sx={{
+                  position: 'absolute',
+                  bottom: -30, left: -30,
+                  width: '160px', height: '160px',
+                  borderRadius: '50%',
+                  background: `radial-gradient(circle, ${colors.primary}15 0%, transparent 70%)`,
+                  zIndex: 0
+                }}/>
 
-                <Box 
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    mb: 2,
-                    position: 'relative',
-                    zIndex: 1
-                  }}
-                >
-                  <LocalHospital 
-                    sx={{ 
-                      color: colors.primary,
-                      fontSize: '1.5rem'
-                    }} 
-                  />
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      color: colors.text,
-                      fontWeight: 600,
-                      fontSize: '1.1rem'
-                    }}
-                  >
+                {/* Encabezado */}
+                <Box sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1,
+                  mb: 1.5,
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  <LocalHospital sx={{ color: colors.primary, fontSize: '1.3rem' }}/>
+                  <Typography variant="h6" sx={{
+                    color: colors.text,
+                    fontWeight: 600,
+                    fontSize: '1rem'
+                  }}>
                     Beneficios de la salud dental
                   </Typography>
                 </Box>
 
-                <Divider sx={{ mb: 2, opacity: 0.6 }} />
+                <Divider sx={{ mb: 1.5, opacity: 0.6 }}/>
 
+                {/* Grid de beneficios */}
                 <Box sx={{ 
-                  minHeight: { sm: '220px' },
                   display: 'grid',
                   gridTemplateColumns: { sm: '1fr 1fr' },
-                  gap: 2, 
+                  gap: 1.5, 
                   position: 'relative',
                   zIndex: 1
                 }}>
@@ -621,7 +603,7 @@ const Home = () => {
                         sx={{
                           display: 'flex',
                           alignItems: 'center',
-                          p: 1.5,
+                          p: 1.25,
                           borderRadius: '8px',
                           backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.7)',
                           border: `1px solid ${colors.border}`,
@@ -634,30 +616,28 @@ const Home = () => {
                           }
                         }}
                       >
-                        <Box 
-                          sx={{ 
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            width: 36,
-                            height: 36,
-                            borderRadius: '50%',
-                            backgroundColor: colors.lightBg,
-                            color: colors.primary,
-                            mr: 2,
-                            flexShrink: 0
-                          }}
-                        >
+                        <Box sx={{ 
+                          display: 'flex',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          width: 32,
+                          height: 32,
+                          borderRadius: '50%',
+                          backgroundColor: colors.lightBg,
+                          color: colors.primary,
+                          mr: 1.5,
+                          flexShrink: 0
+                        }}>
                           {benefit.icon}
                         </Box>
                         <Box>
                           <Typography
-                            variant="body1"
+                            variant="body2"
                             sx={{
                               color: colors.text,
                               fontWeight: 600,
-                              fontSize: '0.95rem',
-                              mb: 0.3
+                              fontSize: '0.85rem',
+                              mb: 0.2
                             }}
                           >
                             {benefit.title}
@@ -667,7 +647,8 @@ const Home = () => {
                             sx={{
                               color: colors.subtext,
                               display: 'block',
-                              lineHeight: 1.3
+                              fontSize: '0.75rem',
+                              lineHeight: 1.2
                             }}
                           >
                             {benefit.description}
