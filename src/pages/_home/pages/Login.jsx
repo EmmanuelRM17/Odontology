@@ -59,19 +59,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-/**
- * Componente Login
- * 
- * Sistema de autenticación avanzado con múltiples métodos de ingreso
- * y experiencia de usuario optimizada.
- * 
- * Características:
- * - Login por email o teléfono con campos optimizados
- * - Verificación en dos pasos 
- * - Sistema de seguridad con captcha
- * - Animaciones y transiciones fluidas
- * - Diseño adaptativo con tema claro/oscuro
- */
 const Login = () => {
     // Estados del formulario
     const [loginMethod, setLoginMethod] = useState('email'); // 'email' o 'phone'
