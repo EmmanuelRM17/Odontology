@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -13,8 +13,12 @@ import {
   Badge,
   useMediaQuery,
   useTheme,
-  Divider
+  Divider,
+  Slide,
+  Fade,
+  Zoom
 } from '@mui/material';
+import { Global } from '@emotion/react';
 import {
   ArrowForward,
   ChevronLeft,
@@ -24,12 +28,42 @@ import {
   WhatsApp,
   LocationOn,
   AccessTime,
-  Star
+  Star,
+  MedicalServices,
+  Healing,
+  HealthAndSafety,
+  MonetizationOn,
+  LocalHospital,
+  PersonOutline
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import images from '../../../utils/imageLoader';
 import ContactButtons from './Steps/ContactButtons';
+
+// Lista de beneficios de visitar al odontólogo
+const dentalBenefits = [
+  {
+    title: "Prevención de problemas graves",
+    description: "Detectar y tratar problemas dentales a tiempo evita complicaciones costosas",
+    icon: <HealthAndSafety sx={{ fontSize: '22px' }} />
+  },
+  {
+    title: "Mejora de salud general",
+    description: "La salud bucal está directamente relacionada con tu bienestar general",
+    icon: <Healing sx={{ fontSize: '22px' }} />
+  },
+  {
+    title: "Sonrisa más atractiva",
+    description: "Mejora tu confianza y apariencia con una sonrisa cuidada y saludable",
+    icon: <PersonOutline sx={{ fontSize: '22px' }} />
+  },
+  {
+    title: "Ahorro a largo plazo",
+    description: "La prevención regular es más económica que los tratamientos de emergencia",
+    icon: <MonetizationOn sx={{ fontSize: '22px' }} />
+  }
+];
 
 // Datos de características principales actualizados
 const featuresData = [
@@ -65,6 +99,30 @@ const mainServices = [
   "Urgencias dentales"
 ];
 
+// Hook personalizado para detectar cuando un elemento es visible en la pantalla
+const useIntersectionObserver = (options = {}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(entry.isIntersecting);
+    }, { threshold: 0.1, ...options });
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => {
+      if (ref.current) {
+        observer.unobserve(ref.current);
+      }
+    };
+  }, [options]);
+
+  return [ref, isVisible];
+};
+
 const Home = () => {
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
@@ -72,14 +130,22 @@ const Home = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const isTablet = useMediaQuery(theme.breakpoints.down('lg'));
 
+  // Referencias para observar las secciones
+  const [whyUsRef, whyUsVisible] = useIntersectionObserver();
+  const [testimonialRef, testimonialVisible] = useIntersectionObserver();
+  const [ctaRef, ctaVisible] = useIntersectionObserver();
+
   // Estados
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [nextImageIndex, setNextImageIndex] = useState(1);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isImageTransitioning, setIsImageTransitioning] = useState(false);
+  const [animateServices, setAnimateServices] = useState(false);
+  const [carouselDirection, setCarouselDirection] = useState('next');
 
   // Colores según el tema - Paleta profesional y cálida
   const colors = {
@@ -124,6 +190,15 @@ const Home = () => {
     fetchServices();
   }, []);
 
+  // Efecto para animar servicios después de carga
+  useEffect(() => {
+    if (!loading) {
+      setTimeout(() => {
+        setAnimateServices(true);
+      }, 500);
+    }
+  }, [loading]);
+
   // Auto rotación de servicios
   useEffect(() => {
     if (isPaused || services.length === 0) return;
@@ -135,22 +210,33 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [isPaused, services]);
 
-  // Auto rotación de imágenes del carrusel
+  // Sistema mejorado para el carrusel de imágenes
   useEffect(() => {
-    if (isPaused || images.length === 0) return;
+    if (isPaused || images.length <= 1) return;
 
     const interval = setInterval(() => {
-      setIsImageTransitioning(true);
-      setTimeout(() => {
-        setCurrentImageIndex(prevIndex => (prevIndex + 1) % images.length);
-        setTimeout(() => {
-          setIsImageTransitioning(false);
-        }, 300);
-      }, 300);
+      handleAutoImageTransition();
     }, 6000);
 
     return () => clearInterval(interval);
-  }, [isPaused, images.length]);
+  }, [isPaused, currentImageIndex, images.length]);
+
+  // Función para manejar la transición automática de imágenes
+  const handleAutoImageTransition = useCallback(() => {
+    if (isImageTransitioning) return;
+    
+    setCarouselDirection('next');
+    setIsImageTransitioning(true);
+    setNextImageIndex((currentImageIndex + 1) % images.length);
+    
+    setTimeout(() => {
+      setCurrentImageIndex(nextImageIndex);
+      setIsImageTransitioning(false);
+      
+      // Preparar el siguiente índice para la próxima transición
+      setNextImageIndex((nextImageIndex + 1) % images.length);
+    }, 600);
+  }, [currentImageIndex, nextImageIndex, isImageTransitioning, images.length]);
 
   // Navegación manual entre servicios
   const nextService = useCallback(() => {
@@ -161,50 +247,149 @@ const Home = () => {
     setCurrentServiceIndex(prev => (prev === 0 ? services.length - 1 : prev - 1));
   }, [services.length]);
 
-  // Navegación manual entre imágenes
+  // Navegación manual entre imágenes (mejorada)
   const nextImage = useCallback(() => {
+    if (isImageTransitioning) return;
+    
+    setCarouselDirection('next');
     setIsImageTransitioning(true);
+    const next = (currentImageIndex + 1) % images.length;
+    setNextImageIndex(next);
+    
     setTimeout(() => {
-      setCurrentImageIndex(prev => (prev + 1) % images.length);
-      setTimeout(() => {
-        setIsImageTransitioning(false);
-      }, 300);
-    }, 300);
-  }, [images.length]);
+      setCurrentImageIndex(next);
+      setIsImageTransitioning(false);
+      setNextImageIndex((next + 1) % images.length);
+    }, 600);
+  }, [currentImageIndex, isImageTransitioning, images.length]);
 
   const prevImage = useCallback(() => {
+    if (isImageTransitioning) return;
+    
+    setCarouselDirection('prev');
     setIsImageTransitioning(true);
+    const prev = currentImageIndex === 0 ? images.length - 1 : currentImageIndex - 1;
+    setNextImageIndex(prev);
+    
     setTimeout(() => {
-      setCurrentImageIndex(prev => (prev === 0 ? images.length - 1 : prev - 1));
-      setTimeout(() => {
-        setIsImageTransitioning(false);
-      }, 300);
-    }, 300);
-  }, [images.length]);
+      setCurrentImageIndex(prev);
+      setIsImageTransitioning(false);
+      setNextImageIndex(prev === 0 ? images.length - 1 : prev - 1);
+    }, 600);
+  }, [currentImageIndex, isImageTransitioning, images.length]);
 
   // Navegar a la página de servicios
   const handleExploreServices = useCallback(() => {
     navigate('/servicios');
   }, [navigate]);
 
-  // Formatear número de teléfono como enlace
-  const formatPhoneLink = (phone) => {
-    return `tel:${phone.replace(/\D/g, '')}`;
-  };
-
-  // Formatear número para WhatsApp
-  const formatWhatsAppLink = (phone) => {
-    return `https://wa.me/${phone.replace(/\D/g, '')}`;
-  };
-
   return (
     <Box
       sx={{
         background: colors.background,
         pt: { xs: 3, md: 4 },
-        pb: { xs: 5, md: 6 }
+        pb: { xs: 5, md: 6 },
+        position: 'relative',
+        overflow: 'hidden'
       }}
     >
+      {/* Elementos decorativos de fondo */}
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '10%',
+          right: '5%',
+          width: { xs: '150px', md: '300px' },
+          height: { xs: '150px', md: '300px' },
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${colors.primary}10 0%, transparent 70%)`,
+          zIndex: 0,
+          animation: 'float 8s ease-in-out infinite'
+        }}
+      />
+      
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: '15%',
+          left: '8%',
+          width: { xs: '100px', md: '200px' },
+          height: { xs: '100px', md: '200px' },
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${colors.primary}08 0%, transparent 70%)`,
+          zIndex: 0,
+          animation: 'float 12s ease-in-out infinite reverse'
+        }}
+      />
+      
+      <Box
+        sx={{
+          position: 'absolute',
+          top: '40%',
+          left: '30%',
+          width: { xs: '80px', md: '150px' },
+          height: { xs: '80px', md: '150px' },
+          borderRadius: '50%',
+          background: `radial-gradient(circle, ${colors.primary}05 0%, transparent 70%)`,
+          zIndex: 0,
+          animation: 'float 15s ease-in-out infinite'
+        }}
+      />
+      
+      <Global
+        styles={`
+          @keyframes float {
+            0% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.05); }
+            100% { transform: translateY(0px) scale(1); }
+          }
+          
+          @keyframes fadeInUp {
+            from {
+              opacity: 0;
+              transform: translateY(30px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          @keyframes fadeInLeft {
+            from {
+              opacity: 0;
+              transform: translateX(-30px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          @keyframes fadeInRight {
+            from {
+              opacity: 0;
+              transform: translateX(30px);
+            }
+            to {
+              opacity: 1;
+              transform: translateX(0);
+            }
+          }
+          
+          .animate-fade-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+          }
+          
+          .animate-fade-left {
+            animation: fadeInLeft 0.6s ease-out forwards;
+          }
+          
+          .animate-fade-right {
+            animation: fadeInRight 0.6s ease-out forwards;
+          }
+        `}
+      />
       <Container maxWidth="lg">
         {/* Hero Section - Más profesional y espaciado */}
         <Grid
@@ -282,75 +467,244 @@ const Home = () => {
                 Tu dentista de confianza, con servicios accesibles y atención cálida para toda la familia. Comprometidos con la salud bucal de nuestros vecinos.
               </Typography>
 
-              <ContactButtons colors={colors} isDarkTheme={isDarkTheme} />
-
-
-              {/* Lista de servicios clave mejorada */}
-              <Box sx={{ mt: 4 }}>
+              <Box
+                component="div"
+                className="scroll-reveal-element"
+                sx={{
+                  mt: 4,
+                  py: 2,
+                  display: { xs: 'flex', sm: 'none' }, // Solo visible en móvil
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 1.5,
+                  position: 'relative',
+                  zIndex: 1
+                }}
+              >
+                <Box
+                  sx={{
+                    width: '100%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    mb: 1
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      width: 50,
+                      height: 50,
+                      borderRadius: '50%',
+                      backgroundColor: colors.lightBg,
+                      color: colors.primary,
+                    }}
+                  >
+                    <MedicalServices sx={{ fontSize: '1.8rem' }} />
+                  </Box>
+                </Box>
                 <Typography
-                  variant="h6"
+                  variant="subtitle1"
+                  align="center"
                   sx={{
                     color: colors.text,
                     fontWeight: 600,
-                    mb: 2.5,
-                    fontSize: '1.1rem'
+                    mb: 1
                   }}
                 >
-                  Servicios principales:
+                  Atención dental de calidad
                 </Typography>
+                <Typography
+                  variant="body2"
+                  align="center"
+                  sx={{
+                    color: colors.subtext,
+                    maxWidth: '280px',
+                    mb: 1
+                  }}
+                >
+                  Nos preocupamos por ofrecerle los mejores servicios a precios accesibles
+                </Typography>
+              </Box>
 
-                {mainServices.slice(0, 4).map((service, index) => (
-                  <Box
-                    key={index}
+              {/* SECCIÓN ACTUALIZADA: Beneficios de visitar al odontólogo */}
+              <Box 
+                sx={{ 
+                  mt: 4,
+                  p: 2.5,
+                  borderRadius: '12px',
+                  background: isDarkTheme ? 'rgba(30, 41, 59, 0.8)' : 'rgba(255, 255, 255, 0.95)',
+                  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  border: `1px solid ${colors.border}`,
+                  width: '100%',
+                  display: { xs: 'none', sm: 'block' }, // Oculto en móvil, visible desde tablet
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Elemento decorativo de fondo */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: -20,
+                    right: -20,
+                    width: '140px',
+                    height: '140px',
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${colors.primary}22 0%, transparent 70%)`,
+                    zIndex: 0
+                  }}
+                />
+                
+                {/* Elemento decorativo de fondo */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: -30,
+                    left: -30,
+                    width: '160px',
+                    height: '160px',
+                    borderRadius: '50%',
+                    background: `radial-gradient(circle, ${colors.primary}15 0%, transparent 70%)`,
+                    zIndex: 0
+                  }}
+                />
+
+                <Box 
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 1.5,
+                    mb: 2,
+                    position: 'relative',
+                    zIndex: 1
+                  }}
+                >
+                  <LocalHospital 
+                    sx={{ 
+                      color: colors.primary,
+                      fontSize: '1.5rem'
+                    }} 
+                  />
+                  <Typography
+                    variant="h6"
                     sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      mb: 2
+                      color: colors.text,
+                      fontWeight: 600,
+                      fontSize: '1.1rem'
                     }}
                   >
-                    <CheckCircleOutline
-                      sx={{
-                        fontSize: '1.2rem',
-                        color: colors.primary,
-                        mr: 2
-                      }}
-                    />
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: colors.text,
-                        fontWeight: 500
-                      }}
+                    Beneficios de la salud dental
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ mb: 2, opacity: 0.6 }} />
+
+                <Box sx={{ 
+                  minHeight: { sm: '220px' },
+                  display: 'grid',
+                  gridTemplateColumns: { sm: '1fr 1fr' },
+                  gap: 2, 
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  {dentalBenefits.map((benefit, index) => (
+                    <Slide 
+                      direction="right" 
+                      in={animateServices} 
+                      timeout={300 + (index * 150)}
+                      key={index}
                     >
-                      {service}
-                    </Typography>
-                  </Box>
-                ))}
+                      <Paper
+                        elevation={0}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          p: 1.5,
+                          borderRadius: '8px',
+                          backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.7)',
+                          border: `1px solid ${colors.border}`,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateX(5px)',
+                            backgroundColor: isDarkTheme ? 'rgba(39, 52, 73, 0.8)' : 'rgba(249, 250, 251, 0.9)',
+                            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
+                            borderColor: colors.primary
+                          }
+                        }}
+                      >
+                        <Box 
+                          sx={{ 
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            width: 36,
+                            height: 36,
+                            borderRadius: '50%',
+                            backgroundColor: colors.lightBg,
+                            color: colors.primary,
+                            mr: 2,
+                            flexShrink: 0
+                          }}
+                        >
+                          {benefit.icon}
+                        </Box>
+                        <Box>
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: colors.text,
+                              fontWeight: 600,
+                              fontSize: '0.95rem',
+                              mb: 0.3
+                            }}
+                          >
+                            {benefit.title}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: colors.subtext,
+                              display: 'block',
+                              lineHeight: 1.3
+                            }}
+                          >
+                            {benefit.description}
+                          </Typography>
+                        </Box>
+                      </Paper>
+                    </Slide>
+                  ))}
+                </Box>
               </Box>
             </Box>
           </Grid>
 
-          {/* Lado derecho - Carrusel de imágenes mejorado con animaciones y difuminado */}
+          {/* Lado derecho - Carrusel de imágenes mejorado con efecto de deslizamiento */}
           <Grid item xs={12} md={6}>
             <Box
               sx={{
                 position: 'relative',
-                height: { xs: '280px', sm: '360px', md: '420px' },
+                height: { xs: '280px', sm: '360px', md: '440px' },
+                width: '100%',
                 borderRadius: '16px',
                 overflow: 'hidden',
-                boxShadow: colors.shadow
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
+                border: `1px solid ${colors.border}`
               }}
             >
-              {/* Carrusel de imágenes con animaciones y bordes difuminados */}
+              {/* Carrusel de imágenes con sistema de transición mejorado */}
               <Box
                 sx={{
                   position: 'relative',
                   height: '100%',
                   width: '100%',
-                  backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.05)'
+                  backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.1)' : 'rgba(0,0,0,0.02)',
+                  overflow: 'hidden'
                 }}
               >
-                {/* Imagen actual con efecto de difuminado en los bordes */}
+                {/* Imagen actual */}
                 <Box
                   sx={{
                     position: 'absolute',
@@ -361,25 +715,32 @@ const Home = () => {
                     backgroundImage: `url(${images[currentImageIndex]})`,
                     backgroundSize: 'cover',
                     backgroundPosition: 'center',
-                    transition: 'opacity 0.6s ease, transform 0.6s ease',
-                    opacity: isImageTransitioning ? 0 : 1,
-                    transform: isImageTransitioning ? 'scale(1.08)' : 'scale(1)',
-                    '&::before': {
-                      content: '""',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      background: `
-                        radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 100%),
-                        linear-gradient(to top, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
-                        linear-gradient(to bottom, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
-                        linear-gradient(to left, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%),
-                        linear-gradient(to right, ${isDarkTheme ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.6)'} 0%, rgba(0,0,0,0) 15%)
-                      `,
-                      zIndex: 1
-                    }
+                    transition: 'transform 0.6s ease-out',
+                    transform: isImageTransitioning 
+                      ? carouselDirection === 'next' 
+                        ? 'translateX(-100%)' 
+                        : 'translateX(100%)'
+                      : 'translateX(0)'
+                  }}
+                />
+
+                {/* Imagen siguiente/anterior (para transición) */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundImage: `url(${images[nextImageIndex]})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center',
+                    transition: 'transform 0.6s ease-out',
+                    transform: isImageTransitioning 
+                      ? 'translateX(0)' 
+                      : carouselDirection === 'next' 
+                        ? 'translateX(100%)' 
+                        : 'translateX(-100%)'
                   }}
                 />
 
@@ -405,7 +766,8 @@ const Home = () => {
                       backdropFilter: 'blur(5px)',
                       color: 'white',
                       '&:hover': {
-                        backgroundColor: 'rgba(255,255,255,0.25)'
+                        backgroundColor: 'rgba(255,255,255,0.25)',
+                        transform: 'translateX(-3px)'
                       },
                       transition: 'all 0.3s ease',
                       width: 40,
@@ -422,7 +784,8 @@ const Home = () => {
                       backdropFilter: 'blur(5px)',
                       color: 'white',
                       '&:hover': {
-                        backgroundColor: 'rgba(255,255,255,0.25)'
+                        backgroundColor: 'rgba(255,255,255,0.25)',
+                        transform: 'translateX(3px)'
                       },
                       transition: 'all 0.3s ease',
                       width: 40,
@@ -433,7 +796,7 @@ const Home = () => {
                   </IconButton>
                 </Box>
 
-                {/* Overlay con información sobre la imagen */}
+                {/* Overlay con información sobre la imagen - mantiene visibilidad */}
                 <Box
                   sx={{
                     position: 'absolute',
@@ -445,9 +808,7 @@ const Home = () => {
                     zIndex: 5,
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'flex-end',
-                    transition: 'opacity 0.3s ease',
-                    opacity: isImageTransitioning ? 0 : 1
+                    justifyContent: 'flex-end'
                   }}
                 >
                   <Typography
@@ -467,9 +828,11 @@ const Home = () => {
                       textShadow: '0 1px 3px rgba(0,0,0,0.3)'
                     }}
                   >
-                    Atención dental profesional para toda la comunidad
+                    Nos preocupamos por la salud de su Sonrisa
                   </Typography>
                 </Box>
+
+{/* Se eliminaron los indicadores de puntos */}
               </Box>
             </Box>
           </Grid>
@@ -496,8 +859,11 @@ const Home = () => {
           }}
         />
 
-        {/* Sección "Por qué elegirnos" mejorada */}
-        <Box sx={{ mb: { xs: 6, md: 8 } }}>
+        {/* Sección "Por qué elegirnos" mejorada con animaciones */}
+        <Box 
+          ref={whyUsRef}
+          sx={{ mb: { xs: 6, md: 8 } }}
+        >
           <Typography
             variant="h4"
             align="center"
@@ -528,73 +894,85 @@ const Home = () => {
           <Grid container spacing={4}>
             {featuresData.map((feature, index) => (
               <Grid item xs={12} sm={6} md={3} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 3.5,
-                    height: '100%',
-                    borderRadius: '16px',
-                    backgroundColor: colors.cardBg,
-                    border: `1px solid ${colors.border}`,
-                    transition: 'all 0.4s ease',
-                    '&:hover': {
-                      backgroundColor: colors.cardHover,
-                      transform: 'translateY(-8px)',
-                      boxShadow: colors.shadow
-                    },
-                    display: 'flex',
-                    flexDirection: 'column'
+                <Zoom 
+                  in={whyUsVisible} 
+                  style={{ 
+                    transitionDelay: whyUsVisible ? `${index * 150}ms` : '0ms',
+                    transitionDuration: '500ms' 
                   }}
                 >
-                  <Box
+                  <Paper
+                    elevation={0}
+                    className={whyUsVisible ? 'animate-fade-up' : ''}
                     sx={{
+                      p: 3.5,
+                      height: '100%',
+                      borderRadius: '16px',
+                      backgroundColor: colors.cardBg,
+                      border: `1px solid ${colors.border}`,
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        backgroundColor: colors.cardHover,
+                        transform: 'translateY(-8px)',
+                        boxShadow: colors.shadow
+                      },
                       display: 'flex',
-                      justifyContent: 'center',
-                      mb: 3
+                      flexDirection: 'column',
+                      opacity: 0,
+                      animation: whyUsVisible ? 'fadeInUp 0.6s forwards' : 'none',
+                      animationDelay: `${index * 0.15}s`
                     }}
                   >
                     <Box
                       sx={{
-                        width: 64,
-                        height: 64,
-                        borderRadius: '50%',
-                        background: colors.lightBg,
                         display: 'flex',
-                        alignItems: 'center',
                         justifyContent: 'center',
-                        color: colors.primary,
-                        mb: 1
+                        mb: 3
                       }}
                     >
-                      {feature.icon}
+                      <Box
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: '50%',
+                          background: colors.lightBg,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: colors.primary,
+                          mb: 1
+                        }}
+                      >
+                        {feature.icon}
+                      </Box>
                     </Box>
-                  </Box>
 
-                  <Typography
-                    variant="h6"
-                    align="center"
-                    sx={{
-                      fontWeight: 600,
-                      color: colors.text,
-                      fontSize: '1.1rem',
-                      mb: 2
-                    }}
-                  >
-                    {feature.title}
-                  </Typography>
+                    <Typography
+                      variant="h6"
+                      align="center"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.text,
+                        fontSize: '1.1rem',
+                        mb: 2
+                      }}
+                    >
+                      {feature.title}
+                    </Typography>
 
-                  <Typography
-                    variant="body2"
-                    align="center"
-                    sx={{
-                      color: colors.subtext,
-                      lineHeight: 1.6,
-                      fontSize: '0.95rem'
-                    }}
-                  >
-                    {feature.description}
-                  </Typography>
-                </Paper>
+                    <Typography
+                      variant="body2"
+                      align="center"
+                      sx={{
+                        color: colors.subtext,
+                        lineHeight: 1.6,
+                        fontSize: '0.95rem'
+                      }}
+                    >
+                      {feature.description}
+                    </Typography>
+                  </Paper>
+                </Zoom>
               </Grid>
             ))}
           </Grid>
@@ -708,133 +1086,140 @@ const Home = () => {
 
                 return (
                   <Grid item xs={12} sm={6} md={4} key={index}>
-                    <Card
-                      onClick={() => navigate(`/servicios/detalle/${service.id}`)}
-                      sx={{
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        backgroundColor: colors.cardBg,
-                        transition: 'all 0.4s ease',
-                        boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
-                        border: `1px solid ${colors.border}`,
-                        cursor: 'pointer',
-                        height: '100%',
-                        transform: offset === 0 ? 'scale(1.02)' : 'scale(1)',
-                        opacity: offset === 0 ? 1 : 0.88,
-                        '&:hover': {
-                          transform: 'translateY(-8px) scale(1.02)',
-                          boxShadow: colors.shadow,
-                          opacity: 1,
-                          borderColor: colors.primary
-                        }
-                      }}
-                      onMouseEnter={() => setIsPaused(true)}
-                      onMouseLeave={() => setIsPaused(false)}
+                    <Fade 
+                      in={true} 
+                      timeout={800}
+                      style={{ transitionDelay: `${offset * 150}ms` }}
                     >
-                      {/* Barra superior decorativa */}
-                      <Box
+                      <Card
+                        onClick={() => navigate(`/servicios/detalle/${service.id}`)}
                         sx={{
-                          height: '5px',
-                          width: '100%',
-                          background: colors.accentGradient
+                          borderRadius: '16px',
+                          overflow: 'hidden',
+                          backgroundColor: colors.cardBg,
+                          transition: 'all 0.4s ease',
+                          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+                          border: `1px solid ${colors.border}`,
+                          cursor: 'pointer',
+                          height: '100%',
+                          minHeight: '280px', // Altura mínima fija para evitar movimientos
+                          transform: offset === 0 ? 'scale(1.02)' : 'scale(1)',
+                          opacity: offset === 0 ? 1 : 0.88,
+                          '&:hover': {
+                            transform: 'translateY(-8px) scale(1.02)',
+                            boxShadow: colors.shadow,
+                            opacity: 1,
+                            borderColor: colors.primary
+                          }
                         }}
-                      />
-
-                      <CardContent sx={{ p: 4 }}>
+                        onMouseEnter={() => setIsPaused(true)}
+                        onMouseLeave={() => setIsPaused(false)}
+                      >
+                        {/* Barra superior decorativa */}
                         <Box
                           sx={{
-                            mb: 3,
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
+                            height: '5px',
+                            width: '100%',
+                            background: colors.accentGradient
                           }}
-                        >
-                          <Chip
-                            label="Destacado"
-                            size="small"
+                        />
+
+                        <CardContent sx={{ p: 4 }}>
+                          <Box
                             sx={{
-                              backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
-                              color: colors.primary,
-                              fontWeight: 600,
-                              fontSize: '0.7rem',
-                              py: 0.5,
-                              borderRadius: '6px'
+                              mb: 3,
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
                             }}
-                          />
+                          >
+                            <Chip
+                              label="Destacado"
+                              size="small"
+                              sx={{
+                                backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
+                                color: colors.primary,
+                                fontWeight: 600,
+                                fontSize: '0.7rem',
+                                py: 0.5,
+                                borderRadius: '6px'
+                              }}
+                            />
+
+                            <Box
+                              sx={{
+                                width: '36px',
+                                height: '36px',
+                                borderRadius: '50%',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
+                                color: colors.primary
+                              }}
+                            >
+                              {index + 1}
+                            </Box>
+                          </Box>
+
+                          <Typography
+                            variant="h5"
+                            sx={{
+                              fontWeight: 700,
+                              color: colors.text,
+                              mb: 2.5,
+                              fontSize: '1.3rem',
+                              lineHeight: 1.3
+                            }}
+                          >
+                            {service.title}
+                          </Typography>
+
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              color: colors.subtext,
+                              mb: 4,
+                              lineHeight: 1.7,
+                              fontSize: '0.95rem',
+                              height: '3.4em', // Altura fija para aproximadamente 2 líneas
+                              overflow: 'hidden'
+                            }}
+                          >
+                            {service.description.split('.')[0] + '.'}
+                          </Typography>
 
                           <Box
                             sx={{
-                              width: '36px',
-                              height: '36px',
-                              borderRadius: '50%',
                               display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
-                              color: colors.primary
+                              justifyContent: 'flex-end',
+                              mt: 'auto'
                             }}
                           >
-                            {index + 1}
-                          </Box>
-                        </Box>
-
-                        <Typography
-                          variant="h5"
-                          sx={{
-                            fontWeight: 700,
-                            color: colors.text,
-                            mb: 2.5,
-                            fontSize: '1.3rem',
-                            lineHeight: 1.3
-                          }}
-                        >
-                          {service.title}
-                        </Typography>
-
-                        <Typography
-                          variant="body1"
-                          sx={{
-                            color: colors.subtext,
-                            mb: 4,
-                            lineHeight: 1.7,
-                            fontSize: '0.95rem',
-                            height: '3.4em', // Altura fija para aproximadamente 2 líneas
-                            overflow: 'hidden'
-                          }}
-                        >
-                          {service.description.split('.')[0] + '.'}
-                        </Typography>
-
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'flex-end',
-                            mt: 'auto'
-                          }}
-                        >
-                          <Button
-                            endIcon={<ArrowForward />}
-                            sx={{
-                              color: 'white',
-                              textTransform: 'none',
-                              fontWeight: 600,
-                              background: colors.accentGradient,
-                              px: 2.5,
-                              py: 1,
-                              borderRadius: '8px',
-                              '&:hover': {
+                            <Button
+                              endIcon={<ArrowForward />}
+                              sx={{
+                                color: 'white',
+                                textTransform: 'none',
+                                fontWeight: 600,
                                 background: colors.accentGradient,
-                                transform: 'translateX(4px)',
-                                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
-                              },
-                              transition: 'all 0.3s ease'
-                            }}
-                          >
-                            Ver detalles
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                                px: 2.5,
+                                py: 1,
+                                borderRadius: '8px',
+                                '&:hover': {
+                                  background: colors.accentGradient,
+                                  transform: 'translateX(4px)',
+                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
+                                },
+                                transition: 'all 0.3s ease'
+                              }}
+                            >
+                              Ver detalles
+                            </Button>
+                          </Box>
+                        </CardContent>
+                      </Card>
+                    </Fade>
                   </Grid>
                 );
               })}
@@ -863,8 +1248,11 @@ const Home = () => {
           }}
         />
 
-        {/* Sección de Testimonios */}
-        <Box sx={{ mb: { xs: 6, md: 8 } }}>
+        {/* Sección de Testimonios con animaciones */}
+        <Box 
+          ref={testimonialRef}
+          sx={{ mb: { xs: 6, md: 8 } }}
+        >
           <Typography
             variant="h4"
             align="center"
@@ -911,72 +1299,91 @@ const Home = () => {
               }
             ].map((testimonial, index) => (
               <Grid item xs={12} md={4} key={index}>
-                <Paper
-                  elevation={0}
-                  sx={{
-                    p: 4,
-                    height: '100%',
-                    borderRadius: '16px',
-                    backgroundColor: colors.cardBg,
-                    border: `1px solid ${colors.border}`,
-                    transition: 'all 0.3s ease',
-                    '&:hover': {
-                      backgroundColor: colors.cardHover,
-                      transform: 'translateY(-5px)',
-                      boxShadow: colors.shadow
-                    }
-                  }}
+                <Fade 
+                  in={testimonialVisible} 
+                  timeout={800}
+                  style={{ transitionDelay: `${index * 200}ms` }}
                 >
-                  <Box sx={{ mb: 3 }}>
-                    {[...Array(5)].map((_, i) => (
-                      <Star
-                        key={i}
-                        sx={{
-                          color: i < testimonial.rating ? '#FFD700' : colors.border,
-                          fontSize: '1.2rem',
-                          mr: 0.5
-                        }}
-                      />
-                    ))}
-                  </Box>
-
-                  <Typography
-                    variant="body1"
+                  <Paper
+                    elevation={0}
                     sx={{
-                      color: colors.text,
-                      mb: 3,
-                      lineHeight: 1.7,
-                      fontStyle: 'italic',
-                      fontSize: '1rem'
+                      p: 4,
+                      height: '100%',
+                      borderRadius: '16px',
+                      backgroundColor: colors.cardBg,
+                      border: `1px solid ${colors.border}`,
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        backgroundColor: colors.cardHover,
+                        transform: 'translateY(-5px)',
+                        boxShadow: colors.shadow
+                      },
+                      opacity: 0,
+                      animation: testimonialVisible ? 
+                        index % 2 === 0 ? 'fadeInLeft 0.6s forwards' : 'fadeInRight 0.6s forwards' 
+                        : 'none',
+                      animationDelay: `${index * 0.2}s`
                     }}
                   >
-                    "{testimonial.testimonial}"
-                  </Typography>
+                    <Box sx={{ mb: 3 }}>
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          sx={{
+                            color: i < testimonial.rating ? '#FFD700' : colors.border,
+                            fontSize: '1.2rem',
+                            mr: 0.5
+                          }}
+                        />
+                      ))}
+                    </Box>
 
-                  <Typography
-                    variant="subtitle2"
-                    sx={{
-                      fontWeight: 600,
-                      color: colors.primary
-                    }}
-                  >
-                    {testimonial.name}
-                  </Typography>
-                </Paper>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: colors.text,
+                        mb: 3,
+                        lineHeight: 1.7,
+                        fontStyle: 'italic',
+                        fontSize: '1rem'
+                      }}
+                    >
+                      "{testimonial.testimonial}"
+                    </Typography>
+
+                    <Typography
+                      variant="subtitle2"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.primary
+                      }}
+                    >
+                      {testimonial.name}
+                    </Typography>
+                  </Paper>
+                </Fade>
               </Grid>
             ))}
           </Grid>
         </Box>
 
-        {/* CTA Final mejorado */}
+        {/* CTA Final con animación */}
         <Box
+          ref={ctaRef}
           sx={{
             p: { xs: 4, md: 5 },
             borderRadius: '20px',
             background: colors.accentGradient,
             color: 'white',
             textAlign: 'center',
-            boxShadow: '0 8px 32px rgba(37, 99, 235, 0.2)'
+            boxShadow: '0 8px 32px rgba(37, 99, 235, 0.2)',
+            opacity: 0,
+            transform: 'translateY(30px)',
+            transition: 'opacity 0.8s ease, transform 0.8s ease',
+            ...(ctaVisible && {
+              opacity: 1,
+              transform: 'translateY(0)'
+            })
           }}
         >
           <Typography
@@ -1004,7 +1411,7 @@ const Home = () => {
             Estamos comprometidos con la salud bucal de nuestra comunidad. Ofrecemos tratamientos dentales de calidad con un trato cercano y precios accesibles. ¡Tu sonrisa es nuestra prioridad!
           </Typography>
 
-          {/* Reemplazar los botones estáticos con el componente ContactButtons */}
+          {/* Componente ContactButtons */}
           <ContactButtons
             colors={colors}
             isDarkTheme={isDarkTheme}

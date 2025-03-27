@@ -1,166 +1,228 @@
-import React, { useEffect, useState } from 'react';
-import { Alert, Snackbar } from '@mui/material';
-import { LocalHospital } from '@mui/icons-material';
-import { styled, keyframes } from '@mui/material/styles';
+import React, { useEffect, useCallback, memo } from 'react';
+import { Box, Typography } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { CheckCircle, Error, Info, Warning } from '@mui/icons-material';
+import { useThemeContext } from '../Tools/ThemeContext';
 
-// Animaciones keyframes
-const slideIn = keyframes`
-  0% {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-`;
-
-const slideOut = keyframes`
-  0% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-  100% {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-`;
-
-// Estilos personalizados para el Alert con animaciones
-const StyledAlert = styled(Alert)(({ theme, severity, open }) => ({
+// Contenedor principal con soporte para tema
+const NotificationContainer = styled(Box)(({ isdarkmode }) => ({
+  position: 'fixed',
+  bottom: '30px',
+  left: '50%',
+  transform: 'translateX(-50%)',
+  zIndex: 2000,
+  padding: '16px 20px',
+  borderRadius: '8px',
+  boxShadow: isdarkmode 
+    ? '0 4px 20px rgba(0, 0, 0, 0.25)' 
+    : '0 4px 20px rgba(0, 0, 0, 0.12)',
+  backgroundColor: isdarkmode ? '#333' : '#fff',
+  border: `1px solid ${isdarkmode ? '#444' : '#e0e0e0'}`,
+  minWidth: '350px',
+  maxWidth: '90vw',
+  display: 'flex',
   alignItems: 'center',
-  borderRadius: '10px',
-  boxShadow: theme.shadows[3],
-  padding: '10px 16px',
-  animation: `${open ? slideIn : slideOut} 0.5s ease-in-out`,
-  '& .MuiAlert-icon': {
-    opacity: 0.9,
-    padding: '0px',
-    fontSize: '28px',
-  },
-  '& .MuiAlert-message': {
-    padding: '8px 0',
-    fontSize: '0.95rem',
-  },
-  '& .MuiAlert-action': {
-    padding: '0 0 0 16px',
-  },
-  // Estilos específicos por tipo de alerta
-  ...(severity === 'success' && {
-    background: 'linear-gradient(45deg, #43a047 30%, #4caf50 90%)',
-    color: '#fff',
-  }),
-  ...(severity === 'error' && {
-    background: 'linear-gradient(45deg, #d32f2f 30%, #f44336 90%)',
-    color: '#fff',
-  }),
-  ...(severity === 'info' && {
-    background: 'linear-gradient(45deg, #1976d2 30%, #2196f3 90%)',
-    color: '#fff',
-  }),
-  ...(severity === 'warning' && {
-    background: 'linear-gradient(45deg, #ffa000 30%, #ffb300 90%)',
-    color: '#fff',
-  }),
-  // Añadir un efecto de hover suave
-  '&:hover': {
-    transform: 'scale(1.02)',
-    transition: 'transform 0.2s ease-in-out',
-  },
-}));
-
-// Ícono dental personalizado con animación
-const DentalIcon = styled(LocalHospital)(({ theme }) => ({
-  marginRight: theme.spacing(1),
-  fontSize: '20px',
-  animation: `${slideIn} 0.5s ease-in-out`,
-  '@keyframes pulse': {
+  overflow: 'hidden',
+  
+  // Animación optimizada con CSS
+  '@keyframes slideUp': {
     '0%': {
-      transform: 'scale(1)',
-    },
-    '50%': {
-      transform: 'scale(1.1)',
+      opacity: 0,
+      transform: 'translate(-50%, 20px)',
     },
     '100%': {
-      transform: 'scale(1)',
-    },
+      opacity: 1,
+      transform: 'translate(-50%, 0)',
+    }
   },
-  '&:hover': {
-    animation: 'pulse 1s infinite',
+  
+  '@keyframes slideDown': {
+    '0%': {
+      opacity: 1,
+      transform: 'translate(-50%, 0)',
+    },
+    '100%': {
+      opacity: 0,
+      transform: 'translate(-50%, 20px)',
+    }
+  },
+  
+  // Animación de entrada
+  '&.entering': {
+    animation: 'slideUp 0.3s forwards'
+  },
+  
+  // Animación de salida
+  '&.exiting': {
+    animation: 'slideDown 0.3s forwards'
+  },
+  
+  // Media queries para responsividad
+  '@media (min-width: 600px)': {
+    minWidth: '400px',
+    maxWidth: '500px',
   },
 }));
 
-const Notificaciones = ({ open, message, type, handleClose }) => {
-  // Estado local para manejar la visibilidad de forma segura
-  const [isVisible, setIsVisible] = useState(open);
+// Contenedor del icono
+const IconContainer = styled(Box)({
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: '16px',
   
-  // Sincronizar el estado local con la prop open
-  useEffect(() => {
-    setIsVisible(open);
-  }, [open]);
+  '& .MuiSvgIcon-root': {
+    fontSize: '28px',
+  },
+});
+
+// Botón de cerrar
+const CloseButton = styled('button')(({ isdarkmode }) => ({
+  position: 'absolute',
+  top: '12px',
+  right: '12px',
+  width: '24px',
+  height: '24px',
+  padding: 0,
+  background: 'transparent',
+  border: 'none',
+  cursor: 'pointer',
+  opacity: 0.6,
+  transition: 'opacity 0.2s',
   
-  // Función segura para manejar el cierre
-  const handleSafeClose = (event, reason) => {
-    // Ignorar clics fuera de la notificación para evitar cierres no deseados
-    if (reason === 'clickaway') return;
-    
-    // Primero actualizar el estado local
-    setIsVisible(false);
-    
-    // Dar tiempo para la animación de salida antes de llamar al handleClose del padre
-    setTimeout(() => {
-      if (handleClose) {
-        // Usar un reason personalizado para evitar errores de timeout
-        handleClose(event, 'customClose');
-      }
-    }, 400); // Ligeramente menor que la duración de la animación (500ms)
+  '&:hover': {
+    opacity: 1,
+  },
+  
+  '&::before, &::after': {
+    content: '""',
+    position: 'absolute',
+    width: '16px',
+    height: '2px',
+    backgroundColor: isdarkmode ? '#fff' : '#555',
+    left: '4px',
+    top: '11px',
+  },
+  
+  '&::before': {
+    transform: 'rotate(45deg)',
+  },
+  
+  '&::after': {
+    transform: 'rotate(-45deg)',
+  },
+}));
+
+// Barra de progreso
+const ProgressBar = styled('div')({
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  height: '3px',
+  width: '100%',
+  
+  '@keyframes shrink': {
+    '0%': {
+      width: '100%',
+    },
+    '100%': {
+      width: '0%',
+    }
+  },
+  
+  animation: 'shrink 3s linear forwards',
+});
+
+// Función para obtener colores según tipo y tema
+const getTypeColors = (type, isDarkMode) => {
+  const colors = {
+    success: {
+      main: '#4caf50',
+      dark: '#3d8b40',
+      light: isDarkMode ? '#2e7d32' : '#81c784'
+    },
+    error: {
+      main: '#f44336',
+      dark: '#d32f2f',
+      light: isDarkMode ? '#c62828' : '#e57373'
+    },
+    warning: {
+      main: '#ff9800',
+      dark: '#f57c00',
+      light: isDarkMode ? '#e65100' : '#ffb74d'
+    },
+    info: {
+      main: '#2196f3',
+      dark: '#1976d2',
+      light: isDarkMode ? '#0d47a1' : '#64b5f6'
+    }
   };
   
-  // Manejar el cierre automático después de 3 segundos
+  return colors[type] || colors.info;
+};
+
+// Componente de notificaciones
+const Notificaciones = memo(({ open, message, type = 'info', handleClose, onClose }) => {
+  // Usar el contexto de tema correctamente
+  const { isDarkTheme = false } = useThemeContext() || {};
+  
+  // Usar el callback correcto (handleClose o onClose)
+  const closeNotification = useCallback(() => {
+    if (handleClose) handleClose();
+    if (onClose) onClose();
+  }, [handleClose, onClose]);
+  
+  // Configurar temporizador de cierre
   useEffect(() => {
-    let timer;
-    if (isVisible) {
+    let timer = null;
+    
+    if (open) {
       timer = setTimeout(() => {
-        handleSafeClose(null, 'customTimeout');
-      }, 2500);
+        closeNotification();
+      }, 3000);
     }
     
-    // Limpiar el temporizador si el componente se desmonta o cambia el estado
     return () => {
       if (timer) clearTimeout(timer);
     };
-  }, [isVisible]);
-
+  }, [open, closeNotification]);
+  
+  // Selección de iconos y colores
+  const IconComponent = type === 'success' ? CheckCircle :
+                      type === 'error' ? Error :
+                      type === 'warning' ? Warning : Info;
+  
+  const typeColor = getTypeColors(type, isDarkTheme);
+  
+  // No renderizar nada si está cerrado
+  if (!open) return null;
+  
   return (
-    <Snackbar
-      open={isVisible}
-      onClose={handleSafeClose}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      sx={{
-        '& .MuiSnackbar-root': {
-          maxWidth: { xs: '90%', sm: '400px' },
-        },
-        mb: 2,
-      }}
-      TransitionProps={{
-        timeout: 500,
-      }}
-    >
-      <StyledAlert
-        onClose={handleSafeClose}
-        severity={type}
-        icon={<DentalIcon />}
-        open={isVisible}
-        sx={{
-          minWidth: { xs: '280px', sm: '344px' },
-          maxWidth: { xs: '90vw', sm: '400px' },
-          transform: 'translateZ(0)',
-        }}
-      >
-        {message}
-      </StyledAlert>
-    </Snackbar>
+    <NotificationContainer className={open ? "entering" : "exiting"} isdarkmode={isDarkTheme} role="alert">
+      <IconContainer sx={{ color: typeColor.main }}>
+        <IconComponent />
+      </IconContainer>
+      
+      <Box sx={{ flex: 1, paddingRight: '20px' }}>
+        <Typography 
+          variant="body1" 
+          sx={{ 
+            fontWeight: 500, 
+            fontSize: '16px',
+            color: isDarkTheme ? '#f5f5f5' : '#333' 
+          }}
+        >
+          {message}
+        </Typography>
+      </Box>
+      
+      <CloseButton onClick={closeNotification} isdarkmode={isDarkTheme} aria-label="cerrar" />
+      
+      <ProgressBar style={{ backgroundColor: typeColor.main }}/>
+    </NotificationContainer>
   );
-};
+});
+
+Notificaciones.displayName = 'Notificaciones';
 
 export default Notificaciones;

@@ -39,40 +39,6 @@ import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from "../../../components/Tools/Captcha";
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-// Animaciones personalizadas
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-const slideFromRight = keyframes`
-  from {
-    opacity: 0;
-    transform: translateX(50px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-`;
-
-const pulseAnimation = keyframes`
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.05);
-  }
-  100% {
-    transform: scale(1);
-  }
-`;
 
 const shimmer = keyframes`
   0% {
@@ -372,25 +338,33 @@ const FAQ = () => {
         return;
       }
 
-      // Simular verificación de correo
-      await new Promise(resolve => setTimeout(resolve, 500));
+      const response = await fetch(
+        "https://back-end-4803.onrender.com/api/preguntas/verificar-correo",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: formData.email }),
+        }
+      );
 
-      // Supongamos que el correo test@example.com está registrado
-      const isRegistered = formData.email === 'test@example.com';
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       setFormData(prev => ({
         ...prev,
-        name: isRegistered ? "Paciente Ejemplo" : "",
-        isRegistered: isRegistered,
-        paciente_id: isRegistered ? "12345" : null,
+        name: data.exists ? `${data.name} ${data.apellido_paterno}` : "",
+        isRegistered: data.exists,
+        paciente_id: data.exists ? data.paciente_id : null,
       }));
 
-      if (isRegistered) {
-        showNotification("¡Bienvenido de nuevo! ¿En qué podemos ayudarle hoy?", "success");
+      if (data.exists) {
+        showNotification("¿Qué duda tiene mi paciente?", "success");
       }
 
     } catch (error) {
-      console.error("Error al verificar correo:", error);
       showNotification("Error al verificar el correo electrónico", "error");
     }
   };

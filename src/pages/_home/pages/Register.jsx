@@ -744,6 +744,11 @@ const Register = () => {
     setAllAccepted(event.target.checked);
   };
 
+  const parseFechaLocal = (fechaStr) => {
+    const [year, month, day] = fechaStr.split('-').map(Number)
+    return new Date(year, month - 1, day)
+  }
+  
   const handleOpenPrivacyModal = async (event) => {
     event.stopPropagation();
     if (!privacyPolicy) await fetchPrivacyPolicy();
@@ -2606,7 +2611,7 @@ const Register = () => {
                           }}
                         >
                           {formData.fechaNacimiento
-                            ? (new Date(formData.fechaNacimiento)).toLocaleDateString('es-MX', {
+                            ? parseFechaLocal(formData.fechaNacimiento).toLocaleDateString('es-MX', {
                               day: 'numeric',
                               month: 'long',
                               year: 'numeric'

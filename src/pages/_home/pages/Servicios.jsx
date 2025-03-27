@@ -21,7 +21,8 @@ import {
     Divider,
     Zoom,
     Chip,
-    Skeleton, // Añadido para el esqueleto de carga
+    Skeleton,
+    useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 
@@ -33,14 +34,14 @@ import {
     Info as InfoIcon,
     CheckCircle as CheckCircleIcon,
     ArrowForward as ArrowForwardIcon,
-    ChevronRight as ChevronRightIcon,
-    ChevronLeft as ChevronLeftIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import ServicioDetalleDialog from './ServiciosDetalle';
 
+// Componente principal de Servicios
 const Servicios = () => {
+    // Estados para manejar la data y UI
     const [services, setServices] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
@@ -52,6 +53,7 @@ const Servicios = () => {
     const navigate = useNavigate();
     const [highlightedServiceDialogOpen, setHighlightedServiceDialogOpen] = useState(false);
     const servicosRef = useRef(null);
+    const isMobile = useMediaQuery('(max-width:600px)');
 
     // Efecto para cargar servicios
     useEffect(() => {
@@ -64,7 +66,6 @@ const Servicios = () => {
 
                 // Seleccionar un servicio destacado
                 if (data.length > 0) {
-                    // Elegir un servicio destacado que tenga buena imagen
                     const servicesWithImages = data.filter(service => service.image_url);
                     if (servicesWithImages.length > 0) {
                         setHighlightedService(servicesWithImages[Math.floor(Math.random() * servicesWithImages.length)]);
@@ -85,19 +86,19 @@ const Servicios = () => {
         window.scrollTo(0, 0);
     }, []);
 
-    // Tema personalizado
+    // Tema personalizado con mejoras para modo oscuro
     const theme = createTheme({
         palette: {
             mode: isDarkTheme ? 'dark' : 'light',
             primary: {
-                main: '#03427C',
+                main: isDarkTheme ? '#4A9FDC' : '#03427C',
             },
             secondary: {
                 main: '#4CAF50',
             },
             background: {
-                default: isDarkTheme ? '#1C2A38' : '#ffffff',
-                paper: isDarkTheme ? '#243446' : '#ffffff',
+                default: isDarkTheme ? '#121212' : '#ffffff', // Fondo más oscuro
+                paper: isDarkTheme ? '#1E1E1E' : '#ffffff',  // Tarjetas más oscuras
             },
             text: {
                 primary: isDarkTheme ? '#ffffff' : '#03427C',
@@ -122,6 +123,14 @@ const Servicios = () => {
                     root: {
                         borderRadius: 16,
                         overflow: 'hidden',
+                        boxShadow: isDarkTheme ? '0 4px 20px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)',
+                    },
+                },
+            },
+            MuiPaper: {
+                styleOverrides: {
+                    root: {
+                        backgroundImage: 'none', // Elimina el papel cuadriculado en modo oscuro
                     },
                 },
             },
@@ -164,7 +173,7 @@ const Servicios = () => {
     const handleAgendarCita = (service) => {
         navigate('/agendar-cita', {
             state: {
-                servicioSeleccionado: service  // Use consistent property name
+                servicioSeleccionado: service
             }
         });
     };
@@ -176,192 +185,11 @@ const Servicios = () => {
         }
     };
 
-    const ServicesGrid = ({ filteredServices }) => {
-        const [currentIndex, setCurrentIndex] = useState(0);
-        const [isAnimating, setIsAnimating] = useState(false);
-        const { isDarkTheme } = useThemeContext();
-        const navigate = useNavigate();
-        const theme = useTheme();
-
-        // Determinar el número de tarjetas por página (ahora usamos un grid de 6 tarjetas)
-        const cardsPerPage = 6;
-
-        // Calcular el número de páginas
-        const totalPages = Math.ceil(filteredServices.length / cardsPerPage);
-
-        // Obtener los servicios actuales a mostrar
-        const getCurrentServices = () => {
-            const startIndex = currentIndex * cardsPerPage;
-            return filteredServices.slice(startIndex, startIndex + cardsPerPage);
-        };
-
-        // Navegar a la página anterior
-        const goToPrevious = () => {
-            if (currentIndex > 0 && !isAnimating) {
-                setIsAnimating(true);
-                setCurrentIndex(currentIndex - 1);
-
-                setTimeout(() => {
-                    setIsAnimating(false);
-                }, 400);
-            }
-        };
-
-        // Navegar a la página siguiente
-        const goToNext = () => {
-            if (currentIndex < totalPages - 1 && !isAnimating) {
-                setIsAnimating(true);
-                setCurrentIndex(currentIndex + 1);
-
-                setTimeout(() => {
-                    setIsAnimating(false);
-                }, 400);
-            }
-        };
-
-        // Manejar agenda de cita
-        const handleAgendarCita = (service) => {
-            navigate('/agendar-cita', { state: { servicioSeleccionado: service } });
-        };
-
-        return (
-            <Box
-                sx={{
-                    position: 'relative',
-                    mt: 4,
-                    mb: 2,
-                    px: { xs: 1, md: 6 } // Dar espacio en los lados para los botones
-                }}
-            >
-                {/* Botón Anterior - Ahora en el lado izquierdo */}
-                {totalPages > 1 && (
-                    <IconButton
-                        onClick={goToPrevious}
-                        disabled={isAnimating || currentIndex === 0}
-                        aria-label="anterior página"
-                        sx={{
-                            position: 'absolute',
-                            left: { xs: -5, sm: -15, md: -25 },
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            bgcolor: theme.palette.background.paper,
-                            boxShadow: 3,
-                            '&:hover': {
-                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(3,66,124,0.08)'
-                            },
-                            width: { xs: 40, md: 48 },
-                            height: { xs: 40, md: 48 },
-                            color: theme.palette.primary.main,
-                            opacity: currentIndex === 0 ? 0.5 : 1,
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <ChevronLeftIcon fontSize="medium" />
-                    </IconButton>
-                )}
-
-                {/* Contenedor principal del grid */}
-                <Box
-                    sx={{
-                        position: 'relative',
-                        overflow: 'hidden'
-                    }}
-                >
-                    <Fade in={!isAnimating} timeout={300}>
-                        <Grid
-                            container
-                            spacing={3}
-                        >
-                            {getCurrentServices().map((service, index) => (
-                                <Grid item xs={12} sm={6} md={4} key={service.id}>
-                                    <ServiceCard
-                                        service={service}
-                                        index={index}
-                                        handleAgendarCita={handleAgendarCita}
-                                        isDarkTheme={isDarkTheme}
-                                    />
-                                </Grid>
-                            ))}
-                        </Grid>
-                    </Fade>
-                </Box>
-
-                {/* Botón Siguiente - Ahora en el lado derecho */}
-                {totalPages > 1 && (
-                    <IconButton
-                        onClick={goToNext}
-                        disabled={isAnimating || currentIndex === totalPages - 1}
-                        aria-label="siguiente página"
-                        sx={{
-                            position: 'absolute',
-                            right: { xs: -5, sm: -15, md: -25 },
-                            top: '50%',
-                            transform: 'translateY(-50%)',
-                            zIndex: 10,
-                            bgcolor: theme.palette.background.paper,
-                            boxShadow: 3,
-                            '&:hover': {
-                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(3,66,124,0.08)'
-                            },
-                            width: { xs: 40, md: 48 },
-                            height: { xs: 40, md: 48 },
-                            color: theme.palette.primary.main,
-                            opacity: currentIndex === totalPages - 1 ? 0.5 : 1,
-                            transition: 'all 0.2s ease'
-                        }}
-                    >
-                        <ChevronRightIcon fontSize="medium" />
-                    </IconButton>
-                )}
-
-                {/* Indicadores de página en la parte inferior */}
-                {totalPages > 1 && (
-                    <Box
-                        sx={{
-                            display: 'flex',
-                            justifyContent: 'center',
-                            mt: 3,
-                            gap: 1
-                        }}
-                    >
-                        {[...Array(totalPages)].map((_, index) => (
-                            <Box
-                                key={index}
-                                onClick={() => {
-                                    if (!isAnimating && index !== currentIndex) {
-                                        setIsAnimating(true);
-                                        setCurrentIndex(index);
-                                        setTimeout(() => setIsAnimating(false), 400);
-                                    }
-                                }}
-                                sx={{
-                                    width: 10,
-                                    height: 10,
-                                    borderRadius: '50%',
-                                    bgcolor: currentIndex === index
-                                        ? 'primary.main'
-                                        : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
-                                    cursor: 'pointer',
-                                    transition: 'all 0.3s ease',
-                                    '&:hover': {
-                                        transform: currentIndex !== index ? 'scale(1.2)' : 'none',
-                                        bgcolor: currentIndex !== index
-                                            ? (isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(3,66,124,0.4)')
-                                            : 'primary.main'
-                                    }
-                                }}
-                            />
-                        ))}
-                    </Box>
-                )}
-            </Box>
-        );
-    };
-
+    // Componente de tarjeta de servicio individual
     const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
         const theme = useTheme();
         const [dialogOpen, setDialogOpen] = useState(false);
+        const [isHovered, setIsHovered] = useState(false);
 
         const handleOpenDialog = () => {
             setDialogOpen(true);
@@ -371,34 +199,48 @@ const Servicios = () => {
             setDialogOpen(false);
         };
 
+        // Obtener color según categoría
+        const getCategoryColor = (category) => {
+            switch(category) {
+                case 'Preventivos': return '#4CAF50';
+                case 'Estéticos': return '#2196F3';
+                case 'Restaurativos': return '#FF9800';
+                default: return theme.palette.primary.main;
+            }
+        };
+
+        const categoryColor = getCategoryColor(service.category);
+
         return (
-            <Fade in timeout={500 + index * 100}>
+            <Fade in timeout={300 + index * 50}>
                 <Card
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
                     sx={{
                         height: '100%',
                         display: 'flex',
                         flexDirection: 'column',
                         transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                        '&:hover': {
-                            transform: 'translateY(-8px)',
-                            boxShadow: theme.shadows[8],
-                        },
+                        transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
+                        backgroundColor: isDarkTheme 
+                            ? alpha(theme.palette.background.paper, 0.95)
+                            : theme.palette.background.paper,
                         borderRadius: '16px',
                         overflow: 'hidden',
-                        bgcolor: theme.palette.background.paper,
                         position: 'relative',
-                        boxShadow: theme.shadows[2]
+                        boxShadow: isHovered
+                            ? isDarkTheme
+                                ? `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.2)`
+                                : `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.1)`
+                            : theme.shadows[2],
+                        border: isDarkTheme ? `1px solid ${alpha(theme.palette.divider, 0.05)}` : 'none'
                     }}
                 >
                     <Box sx={{
                         position: 'relative',
                         overflow: 'hidden',
-                        height: 200,  // Altura fija para uniformidad
-                        borderBottom: `3px solid ${service.category === 'Preventivos' ? '#4CAF50' :
-                            service.category === 'Estéticos' ? '#2196F3' :
-                                service.category === 'Restaurativos' ? '#FF9800' :
-                                    '#03427C'
-                            }`
+                        height: 200,
+                        borderBottom: `3px solid ${categoryColor}`
                     }}>
                         <img
                             src={service.image_url
@@ -417,18 +259,19 @@ const Servicios = () => {
                                 width: '100%',
                                 objectFit: 'cover',
                                 display: 'block',
-                                transition: 'transform 0.5s ease'
+                                transition: 'transform 0.5s ease',
+                                transform: isHovered ? 'scale(1.05)' : 'scale(1)'
                             }}
                         />
 
-                        {/* Overlay con categoría */}
+                        {/* Categoría */}
                         <Box
                             sx={{
                                 position: 'absolute',
                                 top: 10,
                                 left: 10,
                                 bgcolor: 'rgba(255,255,255,0.9)',
-                                color: theme.palette.text.primary,
+                                color: categoryColor,
                                 py: 0.5,
                                 px: 1.5,
                                 borderRadius: '30px',
@@ -456,7 +299,6 @@ const Servicios = () => {
                     <CardContent sx={{
                         flexGrow: 1,
                         p: 3,
-                        height: { xs: 'auto', sm: 150 },  // Altura similar para contenido
                         display: 'flex',
                         flexDirection: 'column',
                         justifyContent: 'space-between'
@@ -493,7 +335,7 @@ const Servicios = () => {
                                     WebkitLineClamp: 3,
                                     WebkitBoxOrient: 'vertical',
                                     lineHeight: 1.5,
-                                    minHeight: '4.5rem'  // Espacio fijo para 3 líneas
+                                    minHeight: '4.5rem'
                                 }}
                             >
                                 {service.description && service.description.includes('.')
@@ -501,53 +343,50 @@ const Servicios = () => {
                                     : service.description}
                             </Typography>
                         </Box>
+                        
+                        <Box sx={{ p: 0, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
+                            {/* Botón para ver detalles */}
+                            <Button
+                                variant="outlined"
+                                startIcon={<InfoIcon />}
+                                onClick={handleOpenDialog}
+                                sx={{
+                                    flex: 1,
+                                    borderRadius: '50px',
+                                    py: 1,
+                                    borderColor: categoryColor,
+                                    color: categoryColor,
+                                    '&:hover': {
+                                        borderColor: categoryColor,
+                                        backgroundColor: alpha(categoryColor, 0.05),
+                                    }
+                                }}
+                            >
+                                Detalles
+                            </Button>
+
+                            {/* Botón de agendar cita */}
+                            <Button
+                                variant="contained"
+                                startIcon={<CalendarMonthIcon />}
+                                onClick={() => handleAgendarCita(service)}
+                                sx={{
+                                    flex: 1,
+                                    borderRadius: '50px',
+                                    py: 1,
+                                    background: categoryColor,
+                                    '&:hover': {
+                                        background: theme.palette.mode === 'dark' 
+                                            ? alpha(categoryColor, 0.8)
+                                            : alpha(categoryColor, 0.9),
+                                        boxShadow: `0 4px 8px ${alpha(categoryColor, 0.4)}`
+                                    }
+                                }}
+                            >
+                                Agendar
+                            </Button>
+                        </Box>
                     </CardContent>
-
-                    <Box sx={{ p: 2, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
-                        {/* Botón para ver detalles - NUEVO */}
-                        <Button
-                            variant="outlined"
-                            startIcon={<InfoIcon />}
-                            onClick={handleOpenDialog}
-                            sx={{
-                                flex: 1,
-                                borderRadius: '50px',
-                                py: 1.2,
-                                borderColor: theme.palette.primary.main,
-                                color: theme.palette.primary.main,
-                                '&:hover': {
-                                    borderColor: theme.palette.primary.dark,
-                                    backgroundColor: alpha(theme.palette.primary.main, 0.05),
-                                }
-                            }}
-                        >
-                            Detalles
-                        </Button>
-
-                        {/* Botón de agendar cita */}
-                        <Button
-                            variant="contained"
-                            startIcon={<CalendarMonthIcon />}
-                            onClick={() => handleAgendarCita(service)}
-                            sx={{
-                                flex: 1,
-                                borderRadius: '50px',
-                                py: 1.2,
-                                background: service.category === 'Preventivos' ? '#4CAF50' :
-                                    service.category === 'Estéticos' ? '#2196F3' :
-                                        service.category === 'Restaurativos' ? '#FF9800' :
-                                            theme.palette.primary.main,
-                                '&:hover': {
-                                    background: service.category === 'Preventivos' ? '#3d8b40' :
-                                        service.category === 'Estéticos' ? '#1976d2' :
-                                            service.category === 'Restaurativos' ? '#e68900' :
-                                                theme.palette.primary.dark,
-                                }
-                            }}
-                        >
-                            Agendar
-                        </Button>
-                    </Box>
 
                     <ServicioDetalleDialog
                         open={dialogOpen}
@@ -560,13 +399,12 @@ const Servicios = () => {
         );
     };
 
-    // Componente de esqueleto de carga para mostrar mientras los servicios se están cargando
+    // Componente de esqueleto de carga mejorado para el tema oscuro
     const ServicesLoadingSkeleton = () => {
-        const { isDarkTheme } = useThemeContext();
         const theme = useTheme();
 
         // Array para crear múltiples tarjetas de esqueleto
-        const skeletonCards = Array(6).fill(0);
+        const skeletonCards = Array(9).fill(0);
 
         return (
             <Box sx={{ py: 2 }}>
@@ -582,50 +420,18 @@ const Servicios = () => {
                                     overflow: 'hidden',
                                     bgcolor: theme.palette.background.paper,
                                     boxShadow: theme.shadows[1],
-                                    position: 'relative',
-                                    transition: 'transform 0.3s ease',
-                                    '&:hover': {
-                                        transform: 'translateY(-4px)',
-                                        boxShadow: theme.shadows[3],
-                                    }
+                                    position: 'relative'
                                 }}
                             >
                                 {/* Imagen de esqueleto */}
-                                <Box sx={{
-                                    height: 200,
-                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-                                    position: 'relative',
-                                    overflow: 'hidden'
-                                }}>
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)',
-                                            animation: 'shimmer 1.5s infinite',
-                                            '@keyframes shimmer': {
-                                                '0%': { transform: 'translateX(-100%)' },
-                                                '100%': { transform: 'translateX(100%)' }
-                                            }
-                                        }}
-                                    />
-
-                                    {/* Simulador de categoría */}
-                                    <Box
-                                        sx={{
-                                            position: 'absolute',
-                                            top: 10,
-                                            left: 10,
-                                            width: 80,
-                                            height: 24,
-                                            borderRadius: 30,
-                                            bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.9)',
-                                        }}
-                                    />
-                                </Box>
+                                <Skeleton 
+                                    variant="rectangular" 
+                                    height={200} 
+                                    animation="wave"
+                                    sx={{
+                                        bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
+                                    }}
+                                />
 
                                 {/* Contenido de esqueleto */}
                                 <CardContent sx={{
@@ -633,65 +439,68 @@ const Servicios = () => {
                                     p: 3,
                                     display: 'flex',
                                     flexDirection: 'column',
-                                    justifyContent: 'space-between',
-                                    height: { xs: 'auto', sm: 220 }
+                                    justifyContent: 'space-between'
                                 }}>
-                                    {/* Título de esqueleto */}
+                                    {/* Título y descripción */}
                                     <Box>
-                                        <Box
-                                            sx={{
-                                                height: 24,
-                                                width: '80%',
+                                        <Skeleton 
+                                            variant="text" 
+                                            height={28} 
+                                            width="80%" 
+                                            animation="wave"
+                                            sx={{ 
                                                 mb: 1,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-                                                borderRadius: 1
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Box
-                                            sx={{
-                                                height: 16,
-                                                width: '100%',
+                                        <Skeleton 
+                                            variant="text" 
+                                            animation="wave"
+                                            sx={{ 
                                                 mb: 0.5,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
-                                                borderRadius: 0.5
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Box
-                                            sx={{
-                                                height: 16,
-                                                width: '90%',
+                                        <Skeleton 
+                                            variant="text" 
+                                            width="90%" 
+                                            animation="wave"
+                                            sx={{ 
                                                 mb: 0.5,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
-                                                borderRadius: 0.5
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Box
-                                            sx={{
-                                                height: 16,
-                                                width: '70%',
+                                        <Skeleton 
+                                            variant="text" 
+                                            width="70%" 
+                                            animation="wave"
+                                            sx={{ 
                                                 mb: 2,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
-                                                borderRadius: 0.5
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
                                     </Box>
 
                                     {/* Botones de esqueleto */}
                                     <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                                        <Box
-                                            sx={{
-                                                height: 40,
-                                                flex: 1,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)',
-                                                borderRadius: 25
+                                        <Skeleton 
+                                            variant="rectangular" 
+                                            height={40} 
+                                            width="50%" 
+                                            animation="wave"
+                                            sx={{ 
+                                                borderRadius: 25,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Box
-                                            sx={{
-                                                height: 40,
-                                                flex: 1,
-                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(3,66,124,0.1)',
-                                                borderRadius: 25
+                                        <Skeleton 
+                                            variant="rectangular" 
+                                            height={40} 
+                                            width="50%" 
+                                            animation="wave"
+                                            sx={{ 
+                                                borderRadius: 25,
+                                                bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
                                     </Box>
@@ -710,7 +519,7 @@ const Servicios = () => {
             <Box sx={{
                 minHeight: '100vh',
                 background: isDarkTheme
-                    ? 'linear-gradient(135deg, #1C2A38 0%, #243446 100%)'
+                    ? 'linear-gradient(135deg, #121212 0%, #1a1a1a 100%)'
                     : `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.1)} 100%)`,
                 transition: 'background 0.5s ease'
             }}>
@@ -720,7 +529,7 @@ const Servicios = () => {
                         pt: { xs: 6, md: 10 },
                         pb: { xs: 8, md: 12 },
                         background: isDarkTheme
-                            ? 'linear-gradient(135deg, #1C2A38 0%, #243446 100%)'
+                            ? 'linear-gradient(135deg, #121212 0%, #1a1a1a 100%)'
                             : `linear-gradient(135deg, #ffffff 0%, #E5F3FD 100%)`,
                         position: 'relative',
                         overflow: 'hidden'
@@ -735,7 +544,7 @@ const Servicios = () => {
                             width: '500px',
                             height: '500px',
                             borderRadius: '50%',
-                            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, 0.2)} 100%)`,
+                            background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(theme.palette.primary.main, isDarkTheme ? 0.15 : 0.2)} 100%)`,
                             zIndex: 0
                         }}
                     />
@@ -784,7 +593,8 @@ const Servicios = () => {
                                                 : 'linear-gradient(90deg, #4984B8, #6FA9DB)',
                                             '&:hover': {
                                                 opacity: 0.9,
-                                                transform: 'translateY(-2px)'
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 6px 10px rgba(0,0,0,0.2)'
                                             },
                                             transition: 'all 0.3s ease'
                                         }}
@@ -826,14 +636,15 @@ const Servicios = () => {
                                                 py: 0.7,
                                                 fontWeight: 500,
                                                 '& .MuiChip-icon': {
-                                                    color: theme.palette.primary.main
+                                                    color: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main
                                                 }
                                             }}
                                         />
                                     ))}
                                 </Box>
                             </Grid>
-                            {/* Servicio destacado mejorado */}
+                            
+                            {/* Servicio destacado */}
                             <Grid item xs={12} md={6}>
                                 {highlightedService && (
                                     <Zoom in timeout={1000}>
@@ -844,7 +655,9 @@ const Servicios = () => {
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 position: 'relative',
-                                                boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+                                                boxShadow: isDarkTheme 
+                                                    ? '0 10px 30px rgba(0,0,0,0.3)'
+                                                    : '0 10px 30px rgba(0,0,0,0.1)',
                                                 borderRadius: '16px',
                                                 overflow: 'hidden',
                                                 transform: {
@@ -857,12 +670,29 @@ const Servicios = () => {
                                                         md: 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateY(-10px)'
                                                     }
                                                 },
-                                                transition: 'transform 0.5s ease'
+                                                transition: 'transform 0.5s ease',
+                                                backgroundColor: isDarkTheme 
+                                                    ? alpha('#1E1E1E', 0.95)
+                                                    : theme.palette.background.paper,
+                                                border: isDarkTheme ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none'
                                             }}
                                         >
-                                            {/* El resto del código del Card se mantiene igual */}
+                                            <Box sx={{
+                                                position: 'relative',
+                                                overflow: 'hidden',
+                                                height: { xs: 200, md: 250 }
+                                            }}>
+                                                <img
+                                                    src={highlightedService.image_url || getPlaceholderImage(highlightedService.title)}
+                                                    alt={highlightedService.title}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'cover'
+                                                    }}
+                                                />
+                                            </Box>
 
-                                            {/* Modificar sólo esta parte de los botones */}
                                             <CardContent sx={{ p: 3, flexGrow: 1 }}>
                                                 <Typography
                                                     variant="overline"
@@ -894,16 +724,20 @@ const Servicios = () => {
                                                         : highlightedService.description}
                                                 </Typography>
 
-                                                {/* Aquí está el cambio: ahora podemos usar ServicioDetalleDialog */}
                                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                                     <Button
                                                         variant="contained"
                                                         fullWidth
                                                         onClick={() => {
-                                                            // En lugar de navegar, ahora abrimos el diálogo
                                                             setHighlightedServiceDialogOpen(true);
                                                         }}
                                                         startIcon={<InfoIcon />}
+                                                        sx={{
+                                                            backgroundColor: isDarkTheme ? theme.palette.primary.dark : theme.palette.primary.main,
+                                                            '&:hover': {
+                                                                backgroundColor: isDarkTheme ? theme.palette.primary.main : theme.palette.primary.dark,
+                                                            }
+                                                        }}
                                                     >
                                                         Ver detalles
                                                     </Button>
@@ -913,6 +747,14 @@ const Servicios = () => {
                                                         fullWidth
                                                         onClick={() => handleAgendarCita(highlightedService)}
                                                         startIcon={<CalendarMonthIcon />}
+                                                        sx={{
+                                                            borderColor: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main,
+                                                            color: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main,
+                                                            '&:hover': {
+                                                                borderColor: theme.palette.primary.main,
+                                                                backgroundColor: isDarkTheme ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.05),
+                                                            }
+                                                        }}
                                                     >
                                                         Agendar cita
                                                     </Button>
@@ -922,7 +764,7 @@ const Servicios = () => {
                                     </Zoom>
                                 )}
 
-                                {/* Añadir el diálogo para el servicio destacado */}
+                                {/* Diálogo para el servicio destacado */}
                                 {highlightedService && (
                                     <ServicioDetalleDialog
                                         open={highlightedServiceDialogOpen}
@@ -943,7 +785,12 @@ const Servicios = () => {
                         textAlign: 'center',
                         mb: 5
                     }}>
-                        <Divider sx={{ mb: 6 }}>
+                        <Divider sx={{ 
+                            mb: 6,
+                            '&::before, &::after': {
+                                borderColor: isDarkTheme ? alpha(theme.palette.divider, 0.3) : alpha(theme.palette.divider, 0.5),
+                            }
+                        }}>
                             <Typography
                                 variant="h4"
                                 component="h2"
@@ -974,24 +821,28 @@ const Servicios = () => {
                             mb: 4
                         }}>
                             <Paper
-                                elevation={0}
+                                elevation={isDarkTheme ? 3 : 0}
                                 sx={{
                                     p: '2px 4px',
                                     display: 'flex',
                                     alignItems: 'center',
                                     width: { xs: '100%', sm: '450px' },
-                                    border: `1px solid ${alpha(theme.palette.primary.main, 0.2)}`,
+                                    border: `1px solid ${isDarkTheme ? alpha(theme.palette.divider, 0.2) : alpha(theme.palette.primary.main, 0.2)}`,
                                     borderRadius: '50px',
-                                    bgcolor: theme.palette.background.paper
+                                    bgcolor: isDarkTheme ? alpha(theme.palette.background.paper, 0.8) : theme.palette.background.paper
                                 }}
                             >
                                 <InputBase
-                                    sx={{ ml: 2, flex: 1 }}
+                                    sx={{ 
+                                        ml: 2, 
+                                        flex: 1,
+                                        color: theme.palette.text.primary
+                                    }}
                                     placeholder="Buscar servicios dentales..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                                <IconButton sx={{ p: '10px' }}>
+                                <IconButton sx={{ p: '10px', color: theme.palette.primary.main }}>
                                     <SearchIcon />
                                 </IconButton>
                             </Paper>
@@ -1005,9 +856,11 @@ const Servicios = () => {
                                     sx={{
                                         borderRadius: '50px',
                                         px: 3,
-                                        borderColor: alpha(theme.palette.primary.main, 0.2),
+                                        borderColor: isDarkTheme ? alpha(theme.palette.primary.main, 0.3) : alpha(theme.palette.primary.main, 0.2),
+                                        color: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main,
                                         '&:hover': {
-                                            borderColor: theme.palette.primary.main
+                                            borderColor: theme.palette.primary.main,
+                                            backgroundColor: isDarkTheme ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.05),
                                         }
                                     }}
                                 >
@@ -1024,7 +877,8 @@ const Servicios = () => {
                                         mt: 1,
                                         maxHeight: 300,
                                         width: 200,
-                                        backgroundColor: theme.palette.background.paper
+                                        backgroundColor: isDarkTheme ? '#1E1E1E' : theme.palette.background.paper,
+                                        boxShadow: isDarkTheme ? '0 4px 20px rgba(0,0,0,0.5)' : theme.shadows[4]
                                     }
                                 }}
                             >
@@ -1033,6 +887,18 @@ const Servicios = () => {
                                         key={category}
                                         onClick={() => handleCategoryClose(category)}
                                         selected={category === selectedCategory}
+                                        sx={{
+                                            '&.Mui-selected': {
+                                                backgroundColor: isDarkTheme 
+                                                    ? alpha(theme.palette.primary.main, 0.2) 
+                                                    : alpha(theme.palette.primary.main, 0.1),
+                                            },
+                                            '&:hover': {
+                                                backgroundColor: isDarkTheme 
+                                                    ? alpha(theme.palette.primary.main, 0.15) 
+                                                    : alpha(theme.palette.primary.main, 0.05),
+                                            }
+                                        }}
                                     >
                                         {category}
                                     </MenuItem>
@@ -1046,14 +912,15 @@ const Servicios = () => {
                         <ServicesLoadingSkeleton />
                     ) : error ? (
                         <Paper
-                            elevation={2}
+                            elevation={isDarkTheme ? 3 : 2}
                             sx={{
                                 p: 3,
                                 textAlign: 'center',
                                 borderLeft: '4px solid #f44336',
                                 my: 4,
                                 maxWidth: '600px',
-                                mx: 'auto'
+                                mx: 'auto',
+                                backgroundColor: isDarkTheme ? alpha('#2c2c2c', 0.7) : theme.palette.background.paper
                             }}
                         >
                             <Typography color="error" variant="h6" sx={{ mb: 1 }}>
@@ -1087,9 +954,50 @@ const Servicios = () => {
                             </Button>
                         </Box>
                     ) : (
-                        <Box sx={{ position: 'relative', mb: 6 }}>
-                            {/* Reemplazo del carrusel por el grid con navegación lateral */}
-                            <ServicesGrid filteredServices={filteredServices} />
+                        // Reemplazamos la paginación por un grid con scroll infinito
+                        <Box sx={{ mb: 6 }}>
+                            <Grid container spacing={3}>
+                                {filteredServices.map((service, index) => (
+                                    <Grid item xs={12} sm={6} md={4} key={service.id}>
+                                        <ServiceCard
+                                            service={service}
+                                            index={index}
+                                            handleAgendarCita={handleAgendarCita}
+                                            isDarkTheme={isDarkTheme}
+                                        />
+                                    </Grid>
+                                ))}
+                            </Grid>
+                            
+                            {/* Botón para volver arriba - visible después de scroll */}
+                            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+                                    sx={{
+                                        borderRadius: '50px',
+                                        px: 4,
+                                        py: 1.2,
+                                        background: isDarkTheme
+                                            ? 'linear-gradient(90deg, #4A9FDC, #78C1F5)'
+                                            : 'linear-gradient(90deg, #4984B8, #6FA9DB)',
+                                        boxShadow: isDarkTheme 
+                                            ? '0 4px 15px rgba(74, 159, 220, 0.3)' 
+                                            : '0 4px 15px rgba(73, 132, 184, 0.3)',
+                                        '&:hover': {
+                                            background: isDarkTheme
+                                                ? 'linear-gradient(90deg, #78C1F5, #4A9FDC)'
+                                                : 'linear-gradient(90deg, #6FA9DB, #4984B8)',
+                                            transform: 'translateY(-2px)',
+                                            boxShadow: isDarkTheme 
+                                                ? '0 6px 20px rgba(74, 159, 220, 0.4)' 
+                                                : '0 6px 20px rgba(73, 132, 184, 0.4)',
+                                        }
+                                    }}
+                                >
+                                    Volver arriba
+                                </Button>
+                            </Box>
                         </Box>
                     )}
                 </Container>
