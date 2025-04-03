@@ -9,15 +9,24 @@ import {
   Alert,
   useMediaQuery,
   useTheme,
-  Divider
+  Divider,
+  alpha,
+  Tooltip
 } from '@mui/material';
-import { AccessTime, WbSunny, NightsStay, Info } from '@mui/icons-material';
+import { 
+  AccessTime, 
+  WbSunny, 
+  NightsStay, 
+  Info, 
+  CalendarToday, 
+  EventAvailable,
+  CheckCircleOutline
+} from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
 /**
  * Componente para mostrar los horarios de atención con visualización mejorada
- * Presenta los horarios de forma clara incluso cuando hay múltiples turnos
  */
 const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants }) => {
   const [horarios, setHorarios] = useState([]);
@@ -28,9 +37,9 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Procesar los horarios para separar múltiples turnos
+  // Procesar los horarios para separar múltiples turnos y agregar el estado "Con previa cita"
   const procesarHorarios = (horariosData) => {
-    return horariosData.map(item => {
+    return horariosData.map((item, index) => {
       // Si hay múltiples horarios, separarlos
       if (item.horas && item.horas !== 'Cerrado') {
         const turnos = item.horas.split(', ').map(turno => {
@@ -46,6 +55,7 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
         
         return { ...item, turnos };
       }
+      
       return { ...item, turnos: [] };
     });
   };
@@ -76,14 +86,24 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
-        <CircularProgress size={28} />
+        <CircularProgress size={24} thickness={3} sx={{ color: colors.primaryColor }} />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Alert severity="warning" sx={{ mb: 1.5, fontSize: '0.85rem' }}>
+      <Alert 
+        severity="warning" 
+        sx={{ 
+          mb: 1.5, 
+          fontSize: '0.85rem',
+          borderRadius: '8px',
+          backgroundColor: isDarkTheme ? alpha('#ff9800', 0.15) : alpha('#ff9800', 0.08),
+          color: isDarkTheme ? '#ffb74d' : '#e65100',
+          border: `1px solid ${alpha('#ff9800', 0.2)}`,
+        }}
+      >
         No se pudieron cargar los horarios.
       </Alert>
     );
@@ -110,29 +130,29 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
     <>
       <motion.div variants={titleAnimationVariants}>
         <Typography
-          variant="h5"
+          variant="h6"
           sx={{
-            fontWeight: 700,
+            fontWeight: 600,
             color: colors.primaryText,
-            mb: 2.5,
+            mb: 2,
             textAlign: 'center',
             position: 'relative',
-            fontSize: isMobile ? '1.2rem' : '1.5rem',
+            fontSize: isMobile ? '1.1rem' : '1.25rem',
             '&::after': {
               content: '""',
               position: 'absolute',
               bottom: '-8px',
               left: '50%',
               transform: 'translateX(-50%)',
-              width: '60px',
-              height: '3px',
+              width: '50px',
+              height: '2px',
               background: colors.accentGradient,
               borderRadius: '2px',
             }
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-            <AccessTime sx={{ color: colors.primaryColor, fontSize: isMobile ? '1.2rem' : '1.5rem' }} />
+            <AccessTime sx={{ color: colors.primaryColor, fontSize: isMobile ? '1.1rem' : '1.25rem' }} />
             Horarios de Atención
           </Box>
         </Typography>
@@ -141,81 +161,181 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
       {/* Destacar el horario de hoy para mayor visibilidad */}
       {hoyIndex >= 0 && (
         <Box sx={{ mb: 2, textAlign: 'center' }}>
-          <Chip 
-            label={horarios[hoyIndex].estado === 'abierto' 
-              ? `Hoy ${horarios[hoyIndex].dia}: ${horarios[hoyIndex].horas}` 
-              : `Hoy ${horarios[hoyIndex].dia}: Cerrado`}
-            sx={{
-              fontSize: '0.9rem',
-              py: 0.7,
-              px: 1,
-              backgroundColor: horarios[hoyIndex].estado === 'abierto' 
-                ? (isDarkTheme ? 'rgba(16, 185, 129, 0.2)' : 'rgba(16, 185, 129, 0.1)')
-                : (isDarkTheme ? 'rgba(239, 68, 68, 0.2)' : 'rgba(239, 68, 68, 0.1)'),
-              color: horarios[hoyIndex].estado === 'abierto' ? colors.success : colors.error,
-              fontWeight: 600,
-              border: `1px solid ${horarios[hoyIndex].estado === 'abierto' ? colors.success : colors.error}`
+          <motion.div 
+            initial={{ scale: 0.95 }}
+            animate={{ 
+              scale: 1,
+              transition: {
+                duration: 0.4,
+                ease: "easeOut"
+              }
             }}
-          />
+            whileHover={{ 
+              scale: 1.03,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Chip 
+              label={horarios[hoyIndex].estado === 'abierto' 
+                ? `Hoy ${horarios[hoyIndex].dia}: ${horarios[hoyIndex].horas}` 
+                : `Hoy ${horarios[hoyIndex].dia}: No disponible`}
+              sx={{
+                fontSize: '0.85rem',
+                py: 0.8,
+                px: 1.5,
+                height: 'auto',
+                backgroundColor: horarios[hoyIndex].estado === 'abierto' 
+                  ? (isDarkTheme ? alpha('#10B981', 0.15) : alpha('#10B981', 0.08))
+                  : (isDarkTheme ? alpha('#F43F5E', 0.15) : alpha('#F43F5E', 0.08)),
+                color: horarios[hoyIndex].estado === 'abierto' 
+                  ? colors.success 
+                  : colors.error,
+                fontWeight: 600,
+                border: `1px solid ${
+                  horarios[hoyIndex].estado === 'abierto' 
+                    ? alpha(colors.success, 0.3) 
+                    : alpha(colors.error, 0.3)
+                }`,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+                borderRadius: '6px'
+              }}
+              icon={
+                horarios[hoyIndex].estado === 'abierto' 
+                  ? <CheckCircleOutline fontSize="small" />
+                  : <AccessTime fontSize="small" />
+              }
+            />
+          </motion.div>
         </Box>
       )}
+
+      {/* Leyenda de estados */}
+      <Box 
+        sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          gap: 2,
+          mb: 2.5,
+          flexWrap: 'wrap',
+          fontSize: '0.75rem'
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box 
+            sx={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              backgroundColor: colors.success 
+            }} 
+          />
+          <Typography variant="caption" color={colors.secondaryText}>
+            Abierto
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box 
+            sx={{ 
+              width: 8, 
+              height: 8, 
+              borderRadius: '50%', 
+              backgroundColor: colors.error 
+            }} 
+          />
+          <Typography variant="caption" color={colors.secondaryText}>
+            No disponible
+          </Typography>
+        </Box>
+      </Box>
 
       {/* Vista de horarios mejorada */}
       <motion.div variants={staggerItemVariants}>
         <Box sx={{ maxWidth: '100%', mx: 'auto', mb: 2 }}>
-          <Grid container spacing={isMobile ? 1 : 2} justifyContent="center">
+          <Grid container spacing={isMobile ? 1 : 1.5} justifyContent="center">
             {displayedHorarios.map((item, index) => (
               <Grid item xs={6/columns} sm={12/columns} key={index}>
                 <motion.div
-                  whileHover={{ y: -5, boxShadow: "0 8px 15px rgba(0,0,0,0.1)" }}
+                  whileHover={{ y: -3, boxShadow: "0 6px 12px rgba(0,0,0,0.08)" }}
                   transition={{ duration: 0.2 }}
                 >
                   <Paper
                     elevation={0}
                     sx={{
                       height: '100%',
-                      p: { xs: 1.5, sm: 2 },
-                      borderRadius: '10px',
-                      border: `1px solid ${colors.divider}`,
+                      p: { xs: 1.5, sm: 1.8 },
+                      borderRadius: '8px',
+                      border: `1px solid ${item.estado === 'abierto' 
+                        ? alpha(colors.divider, 0.6)
+                        : alpha(colors.error, 0.3)}`,
                       transition: 'all 0.2s ease',
                       position: 'relative',
                       overflow: 'hidden',
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      boxShadow: isDarkTheme ? '0 4px 10px rgba(0,0,0,0.2)' : '0 4px 10px rgba(37,99,235,0.08)',
+                      boxShadow: isDarkTheme ? '0 3px 8px rgba(0,0,0,0.15)' : '0 3px 8px rgba(37,99,235,0.05)',
                       background: item.estado === 'abierto'
-                        ? (isDarkTheme ? 'linear-gradient(145deg, rgba(16, 185, 129, 0.05) 0%, rgba(5, 150, 105, 0.02) 100%)' : 'linear-gradient(145deg, rgba(16, 185, 129, 0.03) 0%, rgba(5, 150, 105, 0.01) 100%)')
-                        : (isDarkTheme ? 'linear-gradient(145deg, rgba(244, 63, 94, 0.05) 0%, rgba(239, 68, 68, 0.02) 100%)' : 'linear-gradient(145deg, rgba(244, 63, 94, 0.03) 0%, rgba(239, 68, 68, 0.01) 100%)'),
+                        ? (isDarkTheme ? alpha('#10B981', 0.04) : alpha('#10B981', 0.02))
+                        : (isDarkTheme ? alpha('#F43F5E', 0.04) : alpha('#FEE2E2', 0.3)),
                       '&::before': {
                         content: '""',
                         position: 'absolute',
                         top: 0,
                         left: 0,
                         width: '100%',
-                        height: '4px',
+                        height: '3px',
                         background: item.estado === 'abierto'
                           ? (isDarkTheme ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #059669, #10B981)')
                           : (isDarkTheme ? 'linear-gradient(90deg, #F43F5E, #EF4444)' : 'linear-gradient(90deg, #EF4444, #F43F5E)')
                       },
                       // Resaltar el día actual
                       ...(item.esHoy && {
-                        border: `1px solid ${item.estado === 'abierto' ? colors.success : colors.error}`,
+                        border: `1px solid ${
+                          item.estado === 'abierto' 
+                            ? alpha(colors.success, 0.3) 
+                            : alpha(colors.error, 0.3)
+                        }`,
                         boxShadow: isDarkTheme 
-                          ? `0 4px 12px rgba(0,0,0,0.25)` 
-                          : `0 4px 12px rgba(37,99,235,0.1)`,
+                          ? `0 4px 10px rgba(0,0,0,0.2)` 
+                          : `0 4px 10px rgba(37,99,235,0.08)`,
                       })
                     }}
                   >
+                    {/* Indicador pulsante para día actual */}
+                    {item.esHoy && (
+                      <motion.div
+                        style={{
+                          position: 'absolute',
+                          top: 8,
+                          right: 8,
+                          width: 6,
+                          height: 6,
+                          borderRadius: '50%',
+                          background: item.estado === 'abierto' 
+                            ? colors.success
+                            : colors.error
+                        }}
+                        animate={{
+                          scale: [1, 1.4, 1],
+                          opacity: [0.7, 1, 0.7]
+                        }}
+                        transition={{
+                          duration: 2,
+                          repeat: Infinity,
+                          ease: "easeInOut"
+                        }}
+                      />
+                    )}
+
                     {/* Día de la semana y estado */}
-                    <Box sx={{ mb: 1.5, textAlign: 'center', width: '100%' }}>
+                    <Box sx={{ mb: 1, textAlign: 'center', width: '100%' }}>
                       <Typography
                         variant="subtitle1"
                         sx={{
-                          fontWeight: 700,
+                          fontWeight: 600,
                           color: colors.primaryText,
                           mb: 0.5,
-                          fontSize: { xs: '0.9rem', sm: '1rem' },
+                          fontSize: { xs: '0.85rem', sm: '0.9rem' },
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -229,114 +349,81 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
                             size="small" 
                             sx={{ 
                               ml: 0.5, 
-                              height: 16, 
-                              fontSize: '0.6rem', 
+                              height: 14, 
+                              fontSize: '0.55rem', 
                               fontWeight: 600,
-                              px: 0.5,
+                              px: 0.3,
                               backgroundColor: colors.primaryColor,
-                              color: 'white' 
+                              color: 'white',
+                              borderRadius: '3px' 
                             }} 
                           />
                         )}
                       </Typography>
 
-                      <Chip
-                        label={item.estado === 'abierto' ? 'Abierto' : 'Cerrado'}
-                        size="small"
-                        sx={{
-                          fontWeight: 600,
-                          backgroundColor: item.estado === 'abierto'
-                            ? 'rgba(5, 150, 105, 0.15)'
-                            : 'rgba(239, 68, 68, 0.15)',
-                          color: item.estado === 'abierto' ? colors.success : colors.error,
-                          fontSize: '0.65rem',
-                          height: 20,
-                          px: 0.5
-                        }}
-                      />
+                      <Tooltip 
+                        title={
+                          item.estado === 'abierto' 
+                            ? 'Abierto para consultas' 
+                            : 'No disponible este día'
+                        } 
+                        arrow
+                      >
+                        <Chip
+                          label={
+                            item.estado === 'abierto' 
+                              ? 'Abierto' 
+                              : 'No disponible'
+                          }
+                          size="small"
+                          sx={{
+                            fontWeight: 600,
+                            backgroundColor: item.estado === 'abierto'
+                              ? alpha(colors.success, 0.15)
+                              : alpha(colors.error, 0.15),
+                            color: item.estado === 'abierto' 
+                              ? colors.success 
+                              : colors.error,
+                            fontSize: '0.6rem',
+                            height: 18,
+                            px: 0.5
+                          }}
+                        />
+                      </Tooltip>
                     </Box>
 
                     {/* Visualización mejorada de horarios */}
-                    {item.estado === 'cerrado' ? (
+                    {item.estado === 'abierto' ? (
                       <Box
                         sx={{
                           width: '100%',
-                          py: 1.5,
-                          borderRadius: '8px',
-                          background: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.05)',
-                          textAlign: 'center',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 1
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color: colors.error,
-                            fontSize: '0.8rem'
-                          }}
-                        >
-                          Cerrado
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <Box
-                        sx={{
-                          width: '100%',
-                          borderRadius: '8px',
-                          background: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.05)',
-                          padding: 1.5,
+                          borderRadius: '6px',
+                          background: isDarkTheme ? alpha('#ffffff', 0.03) : alpha('#10B981', 0.03),
+                          padding: 1.2,
                           position: 'relative',
                           overflow: 'hidden'
                         }}
                       >
-                        {/* Indicador pulsante para día abierto */}
-                        {item.esHoy && item.estaAbiertoAhora && (
-                          <motion.div
-                            style={{
-                              position: 'absolute',
-                              top: 8,
-                              right: 8,
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              background: colors.success
-                            }}
-                            animate={{
-                              scale: [1, 1.5, 1],
-                              opacity: [0.7, 1, 0.7]
-                            }}
-                            transition={{
-                              duration: 2,
-                              repeat: Infinity,
-                              ease: "easeInOut"
-                            }}
-                          />
-                        )}
-
                         {/* Mostrar cada turno separado claramente */}
                         {item.turnos && item.turnos.map((turno, i) => (
                           <Box 
                             key={i}
                             sx={{ 
-                              mb: i < item.turnos.length - 1 ? 1 : 0,
-                              pb: i < item.turnos.length - 1 ? 1 : 0,
-                              borderBottom: i < item.turnos.length - 1 ? `1px dashed ${colors.divider}` : 'none',
+                              mb: i < item.turnos.length - 1 ? 0.8 : 0,
+                              pb: i < item.turnos.length - 1 ? 0.8 : 0,
+                              borderBottom: i < item.turnos.length - 1 ? `1px dashed ${alpha(colors.divider, 0.6)}` : 'none',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: 1
+                              gap: 0.8
                             }}
                           >
                             {/* Icono según turno (mañana/tarde/noche) */}
                             {turno.esMañana ? (
-                              <WbSunny sx={{ color: '#f59e0b', fontSize: '1rem' }} />
+                              <WbSunny sx={{ color: '#f59e0b', fontSize: '0.85rem' }} />
                             ) : turno.esTarde ? (
-                              <WbSunny sx={{ color: '#d97706', fontSize: '1rem' }} />
+                              <WbSunny sx={{ color: '#d97706', fontSize: '0.85rem' }} />
                             ) : (
-                              <NightsStay sx={{ color: '#4f46e5', fontSize: '1rem' }} />
+                              <NightsStay sx={{ color: '#4f46e5', fontSize: '0.85rem' }} />
                             )}
                             
                             <Typography
@@ -344,13 +431,43 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
                               sx={{
                                 fontWeight: 600,
                                 color: colors.primaryText,
-                                fontSize: '0.85rem'
+                                fontSize: '0.75rem'
                               }}
                             >
                               {turno.horario}
                             </Typography>
                           </Box>
                         ))}
+                      </Box>
+                    ) : (
+                      // Para días no disponibles (Sábado, Domingo u otros cerrados)
+                      <Box
+                        sx={{
+                          width: '100%',
+                          borderRadius: '6px',
+                          background: isDarkTheme ? alpha('#F43F5E', 0.03) : alpha('#EF4444', 0.02),
+                          padding: 1.2,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: 0.8
+                        }}
+                      >
+
+                        {/* Segunda etiqueta: "Con previa cita" */}
+                        <Chip
+                          label="Previa cita"
+                          size="small"
+                          icon={<EventAvailable style={{ fontSize: '0.8rem', color: colors.primaryColor }} />}
+                          sx={{
+                            fontWeight: 600,
+                            backgroundColor: isDarkTheme ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.1),
+                            color: colors.primaryColor,
+                            fontSize: '0.65rem',
+                            height: 20,
+                            px: 0.5,
+                          }}
+                        />
                       </Box>
                     )}
                   </Paper>
@@ -368,7 +485,7 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
             variant="body2" 
             color="primary"
             sx={{ 
-              fontSize: '0.8rem',
+              fontSize: '0.75rem',
               fontWeight: 500,
               cursor: 'pointer',
               textDecoration: 'underline'
@@ -383,27 +500,27 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
       <motion.div variants={staggerItemVariants}>
         <Box
           sx={{
-            p: 2,
-            borderRadius: '10px',
-            background: `linear-gradient(to right, ${isDarkTheme ? 'rgba(59, 130, 246, 0.08)' : 'rgba(37, 99, 235, 0.03)'} 0%, ${isDarkTheme ? 'rgba(59, 130, 246, 0.03)' : 'rgba(37, 99, 235, 0.01)'} 100%)`,
-            border: `1px solid ${isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)'}`,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+            p: 1.8,
+            borderRadius: '8px',
+            background: `linear-gradient(to right, ${isDarkTheme ? alpha('#3B82F6', 0.06) : alpha('#2563EB', 0.02)} 0%, ${isDarkTheme ? alpha('#3B82F6', 0.02) : alpha('#2563EB', 0.01)} 100%)`,
+            border: `1px solid ${isDarkTheme ? alpha('#3B82F6', 0.08) : alpha('#2563EB', 0.05)}`,
+            boxShadow: '0 2px 6px rgba(0, 0, 0, 0.03)',
             display: 'flex',
             alignItems: 'flex-start',
-            gap: 1.5,
+            gap: 1.2,
             maxWidth: '100%',
             mx: 'auto'
           }}
         >
-          <Info color="primary" sx={{ fontSize: isMobile ? 18 : 20, mt: 0.2 }} />
+          <Info color="primary" sx={{ fontSize: isMobile ? 16 : 18, mt: 0.2 }} />
           <Box>
             <Typography
               variant="subtitle2"
               sx={{
                 fontWeight: 600,
                 color: colors.primaryText,
-                mb: 0.5,
-                fontSize: isMobile ? '0.85rem' : '0.9rem'
+                mb: 0.4,
+                fontSize: isMobile ? '0.8rem' : '0.85rem'
               }}
             >
               Información para pacientes
@@ -412,8 +529,8 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
               variant="body2"
               sx={{
                 color: colors.secondaryText,
-                lineHeight: 1.5,
-                fontSize: isMobile ? '0.75rem' : '0.8rem'
+                lineHeight: 1.4,
+                fontSize: isMobile ? '0.7rem' : '0.75rem'
               }}
             >
               Para una mejor atención, recomendamos agendar cita con anticipación. En caso de urgencias, llame directamente al consultorio.

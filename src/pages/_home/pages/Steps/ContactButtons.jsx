@@ -2,15 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Box, Button, CircularProgress, Tooltip } from '@mui/material';
 import { Phone, WhatsApp } from '@mui/icons-material';
 
-/**
- * Componente de botones de contacto dinámicos
- * Puede usarse en diferentes secciones de la página con estilos ajustables
- * @param {Object} props - Propiedades del componente
- * @param {Object} props.colors - Objeto con colores del tema
- * @param {boolean} props.isDarkTheme - Indica si el tema es oscuro
- * @param {boolean} props.isCTA - Estilo especial para Call To Action
- * @param {boolean} props.showLabels - Mostrar etiquetas con los números completos
- */
 const ContactButtons = ({ colors, isDarkTheme, isCTA = false, showLabels = false }) => {
   const [contactInfo, setContactInfo] = useState({
     telefono: '',

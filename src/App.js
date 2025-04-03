@@ -190,7 +190,8 @@ function App() {
                   <FullPageLoader message="Cargando la página principal..." />
                 ) : (
                   <>
-                    <Chatbot /><Home /><Ubicacion /><Preguntas />
+                    <Chatbot /><Home /> 
+                    <Ubicacion /><Preguntas />
                   </>
                 )}
               </LayoutConEncabezado>

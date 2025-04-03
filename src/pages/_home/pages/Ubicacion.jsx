@@ -5,7 +5,6 @@ import {
   Button,
   CircularProgress,
   Grid,
-  Divider,
   Card,
   CardContent,
   Chip,
@@ -13,8 +12,8 @@ import {
   useMediaQuery,
   useTheme,
   IconButton,
-  Paper,
-  Container
+  Container,
+  alpha
 } from '@mui/material';
 import { GoogleMap, Marker, InfoWindow, useJsApiLoader } from '@react-google-maps/api';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -30,14 +29,15 @@ import {
   Satellite,
   ZoomIn,
   ZoomOut,
-  DirectionsWalk,
-  LocationCity,
-  Star,
   WhatsApp,
-  CalendarMonth
+  CalendarMonth,
+  LocationCity,
+  Star
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import HorariosAtencion from './Steps/HorariosAtencion';
+
+// Componente principal para ubicación y horarios
 const UbicacionHorarios = () => {
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
@@ -72,13 +72,6 @@ const UbicacionHorarios = () => {
     reseñas: "4.8/5 basado en 45 reseñas"
   };
 
-  // Información de horarios
-  const horarios = [
-    { dia: "Lunes a Viernes", horas: "9:00 AM - 7:00 PM", estado: "abierto" },
-    { dia: "Sábados", horas: "9:00 AM - 2:00 PM", estado: "abierto" },
-    { dia: "Domingos", horas: "Cerrado", estado: "cerrado" }
-  ];
-
   // Centro del mapa (coordenadas de la clínica)
   const center = {
     lat: 21.081734,
@@ -108,7 +101,7 @@ const UbicacionHorarios = () => {
     accentColor: isDarkTheme ? '#FFA726' : '#FF9800',
     gradientStart: isDarkTheme ? '#1E293B' : '#F8FDFF',
     gradientEnd: isDarkTheme ? '#0F172A' : '#DDF4FF',
-    cardShadow: isDarkTheme ? '0 10px 30px rgba(0, 0, 0, 0.5)' : '0 10px 30px rgba(37, 99, 235, 0.15)',
+    cardShadow: isDarkTheme ? '0 8px 20px rgba(0, 0, 0, 0.3)' : '0 8px 20px rgba(37, 99, 235, 0.08)',
     buttonHover: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
     divider: isDarkTheme ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.08)',
     chipBackground: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
@@ -121,18 +114,18 @@ const UbicacionHorarios = () => {
     tabActive: isDarkTheme ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)',
     tabHover: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)',
     backgroundPattern: isDarkTheme
-      ? "radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.1) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.08) 0%, transparent 10%)"
-      : "radial-gradient(circle at 30% 30%, rgba(37, 99, 235, 0.05) 0%, transparent 12%), radial-gradient(circle at 70% 60%, rgba(37, 99, 235, 0.03) 0%, transparent 10%)"
+      ? "radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 8%), radial-gradient(circle at 70% 60%, rgba(59, 130, 246, 0.04) 0%, transparent 6%)"
+      : "radial-gradient(circle at 30% 30%, rgba(37, 99, 235, 0.03) 0%, transparent 8%), radial-gradient(circle at 70% 60%, rgba(37, 99, 235, 0.02) 0%, transparent 6%)"
   };
 
   // Estilos del mapa
   const mapStyles = {
     height: "450px",
     width: "100%",
-    borderRadius: "16px",
-    marginTop: "20px",
+    borderRadius: "12px",
+    marginTop: "16px",
     boxShadow: colors.cardShadow,
-    border: `2px solid ${colors.mapBorder}`,
+    border: `1px solid ${alpha(colors.mapBorder, 0.3)}`,
   };
 
   // Estilos para el mapa en modo oscuro
@@ -172,7 +165,6 @@ const UbicacionHorarios = () => {
   // Enlaces externos
   const streetViewLink = `https://www.google.com/maps/@21.0816681,-98.5359763,19.64z`;
   const directionsLink = `https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}`;
-  const whatsappLink = `https://wa.me/${clinicInfo.whatsapp.replace(/\D/g, '')}`;
 
   // Callbacks para el mapa
   const onLoad = useCallback((map) => {
@@ -238,33 +230,33 @@ const UbicacionHorarios = () => {
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.8,
+        duration: 0.6,
         when: "beforeChildren",
-        staggerChildren: 0.2
+        staggerChildren: 0.15
       }
     },
     exit: {
       opacity: 0,
-      transition: { duration: 0.4 }
+      transition: { duration: 0.3 }
     }
   };
 
   const titleAnimationVariants = {
-    hidden: { opacity: 0, y: -30 },
+    hidden: { opacity: 0, y: -20 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         type: "spring",
-        stiffness: 100,
-        damping: 12,
-        duration: 0.7
+        stiffness: 80,
+        damping: 10,
+        duration: 0.5
       }
     }
   };
 
   const contentAnimationVariants = {
-    hidden: { opacity: 0, y: 50, scale: 0.95 },
+    hidden: { opacity: 0, y: 30, scale: 0.98 },
     visible: {
       opacity: 1,
       y: 0,
@@ -272,8 +264,8 @@ const UbicacionHorarios = () => {
       transition: {
         type: "spring",
         stiffness: 50,
-        damping: 12,
-        duration: 0.8
+        damping: 10,
+        duration: 0.6
       }
     }
   };
@@ -287,33 +279,33 @@ const UbicacionHorarios = () => {
         type: "spring",
         stiffness: 50,
         damping: 12,
-        duration: 0.8
+        duration: 0.6
       }
     },
     hover: {
-      scale: 1.02,
-      boxShadow: "0px 12px 30px rgba(0,0,0,0.2)",
-      transition: { duration: 0.3 }
+      scale: 1.01,
+      boxShadow: "0px 10px 25px rgba(0,0,0,0.15)",
+      transition: { duration: 0.2 }
     }
   };
 
   const buttonVariants = {
     hover: {
-      scale: 1.05,
+      scale: 1.03,
       transition: { duration: 0.2 }
     },
-    tap: { scale: 0.95 }
+    tap: { scale: 0.97 }
   };
 
   const staggerItemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 15 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
         type: "spring",
-        stiffness: 100,
-        damping: 12
+        stiffness: 80,
+        damping: 10
       }
     }
   };
@@ -321,9 +313,9 @@ const UbicacionHorarios = () => {
   const floatingIconVariants = {
     initial: { y: 0 },
     animate: {
-      y: [-5, 5, -5],
+      y: [-3, 3, -3],
       transition: {
-        duration: 3,
+        duration: 2.5,
         repeat: Infinity,
         ease: "easeInOut"
       }
@@ -341,7 +333,7 @@ const UbicacionHorarios = () => {
     },
     hover: {
       backgroundColor: colors.tabHover,
-      scale: 1.05
+      scale: 1.03
     }
   };
 
@@ -362,7 +354,7 @@ const UbicacionHorarios = () => {
         sx={{
           background: colors.background,
           backgroundSize: "cover",
-          borderRadius: '16px',
+          borderRadius: '12px',
           boxShadow: colors.cardShadow,
           position: 'relative',
           overflow: 'hidden'
@@ -374,45 +366,45 @@ const UbicacionHorarios = () => {
             width: '100%',
             height: '100%',
             background: colors.backgroundPattern,
-            opacity: 0.6,
+            opacity: 0.5,
             zIndex: 0
           }}
         />
 
         <motion.div
-          initial={{ opacity: 0, scale: 0.8 }}
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
           style={{ zIndex: 1, textAlign: 'center' }}
         >
           <motion.div
             animate={{
-              scale: [1, 1.2, 1],
+              scale: [1, 1.1, 1],
               rotate: [0, 0, 0]
             }}
             transition={{
-              duration: 2,
+              duration: 1.8,
               repeat: Infinity,
               ease: "easeInOut"
             }}
           >
             <CircularProgress
-              size={80}
-              thickness={4}
+              size={70}
+              thickness={3.5}
               sx={{
                 color: colors.primaryColor,
-                mb: 4
+                mb: 3
               }}
             />
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.5 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
           >
             <Typography
-              variant="h4"
+              variant="h5"
               sx={{
                 color: colors.primaryText,
                 fontWeight: 600,
@@ -441,11 +433,11 @@ const UbicacionHorarios = () => {
                 opacity: [0.5, 1, 0.5],
               }}
               transition={{
-                duration: 2,
+                duration: 1.8,
                 repeat: Infinity,
                 ease: "easeInOut"
               }}
-              style={{ marginTop: '24px' }}
+              style={{ marginTop: '20px' }}
             >
               <Typography variant="body2" color={colors.primaryColor}>
                 Por favor, espera un momento...
@@ -465,20 +457,20 @@ const UbicacionHorarios = () => {
           p: 4,
           textAlign: 'center',
           background: colors.background,
-          borderRadius: '16px',
+          borderRadius: '12px',
           boxShadow: colors.cardShadow,
         }}
       >
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
+          transition={{ duration: 0.4 }}
         >
           <Typography
             color="error"
-            variant="h4"
+            variant="h5"
             gutterBottom
-            sx={{ fontWeight: 600, mb: 3 }}
+            sx={{ fontWeight: 600, mb: 2.5 }}
           >
             Error al cargar el mapa
           </Typography>
@@ -497,11 +489,11 @@ const UbicacionHorarios = () => {
               size="large"
               onClick={() => window.location.reload()}
               sx={{
-                mt: 3,
+                mt: 2,
                 bgcolor: colors.primaryColor,
-                boxShadow: '0 4px 15px rgba(37, 99, 235, 0.3)',
-                px: 4,
-                py: 1.5,
+                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)',
+                px: 3,
+                py: 1,
                 borderRadius: '8px',
                 '&:hover': {
                   bgcolor: isDarkTheme ? '#60A5FA' : '#1E40AF',
@@ -535,21 +527,21 @@ const UbicacionHorarios = () => {
             overflow: 'hidden'
           }}
         >
-          {/* Fondo con patrón decorativo */}
+          {/* Fondo con patrón decorativo sutil */}
           <Box
             sx={{
               position: 'absolute',
               width: '100%',
               height: '100%',
               background: colors.backgroundPattern,
-              opacity: 0.6,
+              opacity: 0.5,
               top: 0,
               left: 0,
               zIndex: 0
             }}
           />
 
-          <Container maxWidth="lg" sx={{ py: 5, position: 'relative', zIndex: 1 }}>
+          <Container maxWidth="lg" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
             {/* Título principal animado */}
             <motion.div variants={titleAnimationVariants}>
               <Typography
@@ -557,9 +549,9 @@ const UbicacionHorarios = () => {
                 component="h1"
                 align="center"
                 sx={{
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: colors.primaryText,
-                  letterSpacing: '-0.02em',
+                  letterSpacing: '-0.01em',
                   mb: 1,
                   position: 'relative',
                   display: 'inline-block',
@@ -578,7 +570,7 @@ const UbicacionHorarios = () => {
                     verticalAlign: 'middle'
                   }}
                 >
-                  <LocationOn sx={{ color: colors.secondaryColor, fontSize: isMobile ? 32 : 36 }} />
+                  <LocationOn sx={{ color: colors.secondaryColor, fontSize: isMobile ? 30 : 34 }} />
                 </motion.span>
               </Typography>
 
@@ -587,10 +579,10 @@ const UbicacionHorarios = () => {
                 align="center"
                 sx={{
                   color: colors.secondaryText,
-                  maxWidth: '700px',
+                  maxWidth: '600px',
                   mx: 'auto',
-                  mb: 5,
-                  fontSize: '1.1rem'
+                  mb: 4,
+                  fontSize: '1rem'
                 }}
               >
                 Te facilitamos toda la información para que puedas visitarnos y recibir nuestra atención dental de calidad
@@ -604,10 +596,11 @@ const UbicacionHorarios = () => {
                   sx={{
                     display: 'flex',
                     justifyContent: 'center',
-                    mb: 4,
-                    borderRadius: '12px',
-                    backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)',
-                    p: 0.7
+                    mb: 3,
+                    borderRadius: '10px',
+                    backgroundColor: isDarkTheme ? alpha('#ffffff', 0.04) : alpha('#000000', 0.02),
+                    p: 0.6,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.03)'
                   }}
                 >
                   <motion.div
@@ -615,8 +608,8 @@ const UbicacionHorarios = () => {
                     whileHover="hover"
                     variants={tabItemVariants}
                     style={{
-                      borderRadius: '10px',
-                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      padding: '10px 16px',
                       cursor: 'pointer',
                       flex: 1,
                       textAlign: 'center'
@@ -636,8 +629,8 @@ const UbicacionHorarios = () => {
                     whileHover="hover"
                     variants={tabItemVariants}
                     style={{
-                      borderRadius: '10px',
-                      padding: '8px 16px',
+                      borderRadius: '8px',
+                      padding: '10px 16px',
                       cursor: 'pointer',
                       flex: 1,
                       textAlign: 'center'
@@ -657,7 +650,7 @@ const UbicacionHorarios = () => {
 
             {/* PRIMERA SECCIÓN: MAPA E INFO DE CONTACTO */}
             {(!isMobile || activeTab === 'ubicacion') && (
-              <Grid container spacing={4}>
+              <Grid container spacing={3}>
                 {/* Mapa */}
                 <Grid item xs={12} md={8}>
                   <motion.div variants={contentAnimationVariants}>
@@ -665,10 +658,10 @@ const UbicacionHorarios = () => {
                       elevation={0}
                       sx={{
                         backgroundColor: colors.cardBackground,
-                        borderRadius: '16px',
+                        borderRadius: '12px',
                         overflow: 'hidden',
                         boxShadow: colors.cardShadow,
-                        border: `1px solid ${colors.divider}`,
+                        border: `1px solid ${alpha(colors.divider, 0.5)}`,
                         height: '100%',
                         position: 'relative',
                         '&::before': {
@@ -677,37 +670,37 @@ const UbicacionHorarios = () => {
                           top: 0,
                           left: 0,
                           width: '100%',
-                          height: '5px',
+                          height: '3px',
                           background: colors.accentGradient
                         }
                       }}
                     >
-                      <CardContent sx={{ p: 3 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         {/* Título del mapa */}
                         <Box
                           sx={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            mb: 3
+                            mb: 2
                           }}
                         >
                           <Typography
-                            variant="h5"
+                            variant="h6"
                             sx={{
-                              fontWeight: 700,
+                              fontWeight: 600,
                               color: colors.primaryText,
                               display: 'flex',
                               alignItems: 'center',
                               gap: 1
                             }}
                           >
-                            <LocationCity sx={{ color: colors.primaryColor }} />
+                            <LocationCity sx={{ color: colors.primaryColor, fontSize: '1.2rem' }} />
                             Nuestra ubicación
                           </Typography>
 
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <Tooltip title="Acercar">
+                          <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <Tooltip title="Acercar" arrow>
                               <IconButton
                                 size="small"
                                 onClick={zoomIn}
@@ -719,11 +712,11 @@ const UbicacionHorarios = () => {
                                   }
                                 }}
                               >
-                                <ZoomIn />
+                                <ZoomIn fontSize="small" />
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title="Alejar">
+                            <Tooltip title="Alejar" arrow>
                               <IconButton
                                 size="small"
                                 onClick={zoomOut}
@@ -735,23 +728,25 @@ const UbicacionHorarios = () => {
                                   }
                                 }}
                               >
-                                <ZoomOut />
+                                <ZoomOut fontSize="small" />
                               </IconButton>
                             </Tooltip>
 
-                            <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'}>
+                            <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'} arrow>
                               <Button
                                 size="small"
                                 variant="outlined"
                                 onClick={toggleMapView}
                                 startIcon={mapView === 'roadmap' ? <Satellite /> : <Map />}
                                 sx={{
-                                  borderColor: colors.primaryColor,
+                                  borderColor: alpha(colors.primaryColor, 0.6),
                                   color: colors.primaryColor,
                                   textTransform: 'none',
                                   fontWeight: 500,
-                                  borderRadius: '8px',
-                                  ml: 1,
+                                  borderRadius: '6px',
+                                  ml: 0.5,
+                                  fontSize: '0.8rem',
+                                  py: 0.5,
                                   '&:hover': {
                                     backgroundColor: colors.buttonHover,
                                     borderColor: colors.primaryColor,
@@ -768,15 +763,15 @@ const UbicacionHorarios = () => {
                         <motion.div
                           onHoverStart={() => setIsHovering(true)}
                           onHoverEnd={() => setIsHovering(false)}
-                          animate={isHovering ? { scale: 1.01 } : { scale: 1 }}
-                          transition={{ duration: 0.3 }}
-                          whileHover={{ boxShadow: "0 12px 40px rgba(0,0,0,0.15)" }}
+                          animate={isHovering ? { scale: 1.005 } : { scale: 1 }}
+                          transition={{ duration: 0.2 }}
+                          whileHover={{ boxShadow: "0 10px 30px rgba(0,0,0,0.12)" }}
                         >
                           <GoogleMap
                             mapContainerStyle={{
                               ...mapStyles,
                               boxShadow: isHovering ?
-                                `0 15px 35px rgba(${isDarkTheme ? '0,0,0,0.6' : '37,99,235,0.3'})`
+                                `0 12px 30px rgba(${isDarkTheme ? '0,0,0,0.5' : '37,99,235,0.2'})`
                                 : mapStyles.boxShadow
                             }}
                             zoom={mapZoom}
@@ -805,7 +800,7 @@ const UbicacionHorarios = () => {
                                 fillOpacity: 1,
                                 strokeWeight: 1,
                                 strokeColor: '#ffffff',
-                                scale: 2,
+                                scale: 1.8,
                                 anchor: new window.google.maps.Point(12, 22),
                               }}
                             />
@@ -864,7 +859,6 @@ const UbicacionHorarios = () => {
                                   <Typography
                                     variant="body2"
                                     sx={{
-                                      mb: 1,
                                       display: 'flex',
                                       alignItems: 'center',
                                       gap: 1
@@ -884,9 +878,9 @@ const UbicacionHorarios = () => {
                           sx={{
                             display: 'flex',
                             flexWrap: 'wrap',
-                            gap: 2,
+                            gap: 1.5,
                             justifyContent: { xs: 'center', sm: 'flex-start' },
-                            mt: 3
+                            mt: 2.5
                           }}
                         >
                           <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
@@ -896,18 +890,19 @@ const UbicacionHorarios = () => {
                               href={streetViewLink}
                               target="_blank"
                               startIcon={<OpenInNew />}
+                              size="small"
                               sx={{
                                 textTransform: 'none',
-                                borderColor: colors.primaryColor,
+                                borderColor: alpha(colors.primaryColor, 0.6),
                                 color: colors.primaryColor,
-                                borderRadius: '10px',
-                                px: 3,
-                                py: 1.2,
+                                borderRadius: '8px',
+                                px: 2,
+                                py: 0.8,
                                 '&:hover': {
                                   borderColor: colors.primaryColor,
                                   backgroundColor: colors.buttonHover,
                                   transform: 'translateY(-2px)',
-                                  boxShadow: '0 6px 15px rgba(37, 99, 235, 0.15)',
+                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
                                 },
                                 fontWeight: 500
                               }}
@@ -922,18 +917,19 @@ const UbicacionHorarios = () => {
                               color="primary"
                               onClick={handleShare}
                               startIcon={<Share />}
+                              size="small"
                               sx={{
                                 textTransform: 'none',
-                                borderColor: colors.primaryColor,
+                                borderColor: alpha(colors.primaryColor, 0.6),
                                 color: colors.primaryColor,
-                                borderRadius: '10px',
-                                px: 3,
-                                py: 1.2,
+                                borderRadius: '8px',
+                                px: 2,
+                                py: 0.8,
                                 '&:hover': {
                                   borderColor: colors.primaryColor,
                                   backgroundColor: colors.buttonHover,
                                   transform: 'translateY(-2px)',
-                                  boxShadow: '0 6px 15px rgba(37, 99, 235, 0.15)',
+                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)',
                                 },
                                 fontWeight: 500
                               }}
@@ -949,16 +945,17 @@ const UbicacionHorarios = () => {
                               href={directionsLink}
                               target="_blank"
                               startIcon={<Navigation />}
+                              size="small"
                               sx={{
                                 textTransform: 'none',
                                 background: colors.accentGradient,
                                 color: 'white',
-                                borderRadius: '10px',
-                                px: 3,
-                                py: 1.2,
+                                borderRadius: '8px',
+                                px: 2,
+                                py: 0.8,
                                 '&:hover': {
                                   transform: 'translateY(-2px)',
-                                  boxShadow: '0 6px 15px rgba(37, 99, 235, 0.25)',
+                                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)',
                                 },
                                 fontWeight: 500
                               }}
@@ -974,16 +971,16 @@ const UbicacionHorarios = () => {
 
                 {/* Información de contacto */}
                 <Grid item xs={12} md={4}>
-                  <Box sx={{ mb: 4 }}>
+                  <Box sx={{ mb: 3 }}>
                     <motion.div variants={cardVariants} whileHover="hover">
                       <Card
                         elevation={0}
                         sx={{
                           backgroundColor: colors.cardBackground,
-                          borderRadius: '16px',
+                          borderRadius: '12px',
                           overflow: 'hidden',
                           boxShadow: colors.cardShadow,
-                          border: `1px solid ${colors.divider}`,
+                          border: `1px solid ${alpha(colors.divider, 0.5)}`,
                           position: 'relative',
                           '&::before': {
                             content: '""',
@@ -991,76 +988,80 @@ const UbicacionHorarios = () => {
                             top: 0,
                             left: 0,
                             width: '100%',
-                            height: '5px',
+                            height: '3px',
                             background: colors.accentGradient
                           }
                         }}
                       >
-                        <CardContent sx={{ p: 3 }}>
+                        <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                           <motion.div variants={staggerItemVariants}>
                             <Typography
-                              variant="h5"
+                              variant="h6"
                               sx={{
-                                fontWeight: 700,
+                                fontWeight: 600,
                                 color: colors.primaryText,
-                                mb: 3,
-                                pt: 1,
+                                mb: 2.5,
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: 1
                               }}
                             >
-                              <Info sx={{ color: colors.primaryColor }} />
+                              <Info sx={{ color: colors.primaryColor, fontSize: '1.2rem' }} />
                               Información de Contacto
                             </Typography>
                           </motion.div>
 
                           <motion.div variants={staggerItemVariants}>
-                            <Box sx={{ mb: 3 }}>
+                            <Box sx={{ mb: 2.5 }}>
                               <Chip
                                 label="Abierto ahora"
                                 size="small"
                                 sx={{
                                   fontWeight: 600,
                                   mb: 2,
-                                  borderRadius: '6px',
+                                  borderRadius: '4px',
                                   backgroundColor: colors.success,
-                                  color: 'white'
+                                  color: 'white',
+                                  fontSize: '0.7rem',
+                                  height: '24px'
                                 }}
                               />
 
                               <Box
                                 sx={{
-                                  p: 2,
-                                  borderRadius: '12px',
-                                  bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.03)',
-                                  mb: 3,
-                                  transition: 'transform 0.2s ease',
+                                  p: 1.8,
+                                  borderRadius: '10px',
+                                  bgcolor: isDarkTheme ? alpha('#ffffff', 0.04) : alpha('#2563EB', 0.02),
+                                  mb: 2,
+                                  transition: 'all 0.2s ease',
                                   '&:hover': {
-                                    transform: 'translateX(5px)',
-                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(37,99,235,0.05)',
+                                    transform: 'translateX(3px)',
+                                    bgcolor: isDarkTheme ? alpha('#ffffff', 0.06) : alpha('#2563EB', 0.04),
                                   }
                                 }}
                               >
                                 <Typography
-                                  variant="subtitle1"
+                                  variant="subtitle2"
                                   sx={{
                                     fontWeight: 600,
                                     color: colors.primaryText,
                                     mb: 0.5,
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 1
+                                    gap: 1,
+                                    fontSize: '0.85rem'
                                   }}
                                 >
                                   <LocationOn color="primary" fontSize="small" />
                                   Dirección
                                 </Typography>
                                 <Typography
-                                  variant="body1"
+                                  variant="body2"
                                   sx={{
                                     color: colors.secondaryText,
-                                    pl: 3.5
+                                    pl: 3.5,
+                                    fontSize: '0.8rem',
+                                    lineHeight: 1.5
                                   }}
                                 >
                                   {clinicInfo.direccion}
@@ -1069,40 +1070,42 @@ const UbicacionHorarios = () => {
 
                               <Box
                                 sx={{
-                                  p: 2,
-                                  borderRadius: '12px',
-                                  bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(37,99,235,0.03)',
-                                  mb: 3,
-                                  transition: 'transform 0.2s ease',
+                                  p: 1.8,
+                                  borderRadius: '10px',
+                                  bgcolor: isDarkTheme ? alpha('#ffffff', 0.04) : alpha('#2563EB', 0.02),
+                                  mb: 2,
+                                  transition: 'all 0.2s ease',
                                   '&:hover': {
-                                    transform: 'translateX(5px)',
-                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(37,99,235,0.05)',
+                                    transform: 'translateX(3px)',
+                                    bgcolor: isDarkTheme ? alpha('#ffffff', 0.06) : alpha('#2563EB', 0.04),
                                   }
                                 }}
                               >
                                 <Typography
-                                  variant="subtitle1"
+                                  variant="subtitle2"
                                   sx={{
                                     fontWeight: 600,
                                     color: colors.primaryText,
                                     mb: 0.5,
                                     display: 'flex',
                                     alignItems: 'center',
-                                    gap: 1
+                                    gap: 1,
+                                    fontSize: '0.85rem'
                                   }}
                                 >
                                   <Navigation color="primary" fontSize="small" />
                                   Cómo llegar
                                 </Typography>
                                 <Typography
-                                  variant="body1"
+                                  variant="body2"
                                   sx={{
                                     color: colors.secondaryText,
                                     pl: 3.5,
-                                    lineHeight: 1.6
+                                    lineHeight: 1.5,
+                                    fontSize: '0.8rem'
                                   }}
                                 >
-                                  Camino de concreto, casa verde con porche a la derecha. Frente a un arroyo, rodeada de vegetación. Zona rural de fácil acceso.
+                                  Camino de concreto, casa verde con porche a la derecha. Frente a un arroyo, rodeada de vegetación.
                                 </Typography>
                               </Box>
                             </Box>
@@ -1116,7 +1119,7 @@ const UbicacionHorarios = () => {
             )}
 
             {/* SEGUNDA SECCIÓN: SECCIÓN DE HORARIOS SIEMPRE DEBAJO */}
-            <Grid container sx={{ mt: 4 }}>
+            <Grid container sx={{ mt: 3 }}>
               <Grid item xs={12}>
                 {(!isMobile || activeTab === 'horarios') && (
                   <motion.div variants={contentAnimationVariants}>
@@ -1124,10 +1127,10 @@ const UbicacionHorarios = () => {
                       elevation={0}
                       sx={{
                         backgroundColor: colors.cardBackground,
-                        borderRadius: '16px',
+                        borderRadius: '12px',
                         overflow: 'hidden',
                         boxShadow: colors.cardShadow,
-                        border: `1px solid ${colors.divider}`,
+                        border: `1px solid ${alpha(colors.divider, 0.5)}`,
                         position: 'relative',
                         '&::before': {
                           content: '""',
@@ -1135,12 +1138,12 @@ const UbicacionHorarios = () => {
                           top: 0,
                           left: 0,
                           width: '100%',
-                          height: '5px',
+                          height: '3px',
                           background: colors.accentGradient
                         }
                       }}
                     >
-                      <CardContent sx={{ p: 4 }}>
+                      <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
                         {/* Importamos y usamos nuestro componente dinámico */}
                         <HorariosAtencion
                           colors={colors}
