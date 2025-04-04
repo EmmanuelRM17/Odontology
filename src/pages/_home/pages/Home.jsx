@@ -111,10 +111,10 @@ const Home = () => {
     };
 
     fetchInfoData();
-    
+
     // Opcional: refrescar cada cierto tiempo para mantener actualizado el horario
     const intervalId = setInterval(fetchInfoData, 60000); // Cada minuto
-    
+
     return () => clearInterval(intervalId);
   }, []);
 
@@ -238,12 +238,7 @@ const Home = () => {
       {/* Componentes de secciones */}
       <HomeHero colors={colors} isPaused={isPaused} setIsPaused={setIsPaused} />
       <HomeServices colors={colors} setIsPaused={setIsPaused} />
-      
-      {/* Pasamos los datos obtenidos de la API al componente HomeTestimonials */}
       <HomeTestimonials colors={colors} infoData={infoData} />
-
-      {/* Botón de volver arriba */}
-      <ScrollToTopButton colors={colors} />
     </Box>
   );
 };

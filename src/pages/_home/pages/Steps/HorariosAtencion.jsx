@@ -11,7 +11,9 @@ import {
   useTheme,
   Divider,
   alpha,
-  Tooltip
+  Tooltip,
+  List,
+  ListItem
 } from '@mui/material';
 import { 
   AccessTime, 
@@ -25,6 +27,29 @@ import {
 import { motion } from 'framer-motion';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 
+// Función para procesar horarios
+const procesarHorarios = (horariosData) => {
+  return horariosData.map((item) => {
+    // Si hay múltiples horarios, separarlos
+    if (item.horas && item.horas !== 'Cerrado') {
+      const turnos = item.horas.split(', ').map(turno => {
+        const [inicio, fin] = turno.split('-');
+        const horaInicio = parseInt(inicio.trim().split(':')[0]);
+        return {
+          horario: turno.trim(),
+          esMañana: horaInicio < 12,
+          esTarde: horaInicio >= 12 && horaInicio < 18,
+          esNoche: horaInicio >= 18
+        };
+      });
+      
+      return { ...item, turnos };
+    }
+    
+    return { ...item, turnos: [] };
+  });
+};
+
 /**
  * Componente para mostrar los horarios de atención con visualización mejorada
  */
@@ -32,33 +57,11 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
   const [horarios, setHorarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [expandido, setExpandido] = useState(false);
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-
-  // Procesar los horarios para separar múltiples turnos y agregar el estado "Con previa cita"
-  const procesarHorarios = (horariosData) => {
-    return horariosData.map((item, index) => {
-      // Si hay múltiples horarios, separarlos
-      if (item.horas && item.horas !== 'Cerrado') {
-        const turnos = item.horas.split(', ').map(turno => {
-          const [inicio, fin] = turno.split('-');
-          const horaInicio = parseInt(inicio.trim().split(':')[0]);
-          return {
-            horario: turno.trim(),
-            esMañana: horaInicio < 12,
-            esTarde: horaInicio >= 12 && horaInicio < 18,
-            esNoche: horaInicio >= 18
-          };
-        });
-        
-        return { ...item, turnos };
-      }
-      
-      return { ...item, turnos: [] };
-    });
-  };
 
   useEffect(() => {
     const fetchHorarios = async () => {
@@ -109,22 +112,404 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
     );
   }
 
+  // Obtener el día actual
+  const hoyIndex = horarios.findIndex(h => h.esHoy);
+  
+  // Filtrar días para mostrar según el diseño y estado de expansión
+  const displayedHorarios = isMobile && !expandido
+    ? horarios.filter((h, idx) => h.estado === 'abierto' || h.esHoy).slice(0, 4)
+    : horarios;
+
+  // Renderizado de un día en formato de lista para móvil
+  const renderDiaMovil = (item) => {
+    return (
+      <motion.div
+        whileHover={{ x: 3 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            mb: 1.5,
+            borderRadius: '8px',
+            border: `1px solid ${item.estado === 'abierto' 
+              ? alpha(colors.divider, 0.6)
+              : alpha(colors.error, 0.3)}`,
+            background: item.estado === 'abierto'
+              ? (isDarkTheme ? alpha('#10B981', 0.04) : alpha('#10B981', 0.02))
+              : (isDarkTheme ? alpha('#F43F5E', 0.04) : alpha('#FEE2E2', 0.3)),
+            boxShadow: isDarkTheme ? '0 2px 6px rgba(0,0,0,0.1)' : '0 2px 6px rgba(0,0,0,0.03)',
+            // Resaltar el día actual
+            ...(item.esHoy && {
+              border: `1px solid ${
+                item.estado === 'abierto' 
+                  ? alpha(colors.success, 0.3) 
+                  : alpha(colors.error, 0.3)
+              }`,
+              boxShadow: isDarkTheme 
+                ? `0 3px 8px rgba(0,0,0,0.15)` 
+                : `0 3px 8px rgba(37,99,235,0.1)`,
+            })
+          }}
+        >
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 600,
+                  color: colors.primaryText,
+                  fontSize: '0.9rem'
+                }}
+              >
+                {item.dia}
+              </Typography>
+              
+              {item.esHoy && (
+                <Chip 
+                  label="Hoy" 
+                  size="small" 
+                  sx={{ 
+                    ml: 0.8, 
+                    height: 16, 
+                    fontSize: '0.6rem', 
+                    fontWeight: 600,
+                    px: 0.4,
+                    backgroundColor: colors.primaryColor,
+                    color: 'white',
+                    borderRadius: '3px' 
+                  }} 
+                />
+              )}
+            </Box>
+            
+            <Chip
+              label={
+                item.estado === 'abierto' 
+                  ? 'Abierto' 
+                  : 'No disponible'
+              }
+              size="small"
+              sx={{
+                fontWeight: 600,
+                backgroundColor: item.estado === 'abierto'
+                  ? alpha(colors.success, 0.15)
+                  : alpha(colors.error, 0.15),
+                color: item.estado === 'abierto' 
+                  ? colors.success 
+                  : colors.error,
+                fontSize: '0.65rem',
+                height: 20,
+                px: 0.5
+              }}
+            />
+          </Box>
+          
+          {/* Contenido de horarios */}
+          {item.estado === 'abierto' ? (
+            <Box
+              sx={{
+                borderRadius: '6px',
+                background: isDarkTheme ? alpha('#ffffff', 0.03) : alpha('#10B981', 0.03),
+                padding: 1.2
+              }}
+            >
+              {item.turnos && item.turnos.map((turno, i) => (
+                <Box 
+                  key={i}
+                  sx={{ 
+                    mb: i < item.turnos.length - 1 ? 0.8 : 0,
+                    pb: i < item.turnos.length - 1 ? 0.8 : 0,
+                    borderBottom: i < item.turnos.length - 1 ? `1px dashed ${alpha(colors.divider, 0.6)}` : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 0.8
+                  }}
+                >
+                  {turno.esMañana ? (
+                    <WbSunny sx={{ color: '#f59e0b', fontSize: '0.85rem' }} />
+                  ) : turno.esTarde ? (
+                    <WbSunny sx={{ color: '#d97706', fontSize: '0.85rem' }} />
+                  ) : (
+                    <NightsStay sx={{ color: '#4f46e5', fontSize: '0.85rem' }} />
+                  )}
+                  
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 600,
+                      color: colors.primaryText,
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    {turno.horario}
+                  </Typography>
+                </Box>
+              ))}
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                borderRadius: '6px',
+                background: isDarkTheme ? alpha('#F43F5E', 0.03) : alpha('#EF4444', 0.02),
+                padding: 1.2,
+                display: 'flex',
+                justifyContent: 'center'
+              }}
+            >
+              <Chip
+                label="Previa cita"
+                size="small"
+                icon={<EventAvailable style={{ fontSize: '0.8rem', color: colors.primaryColor }} />}
+                sx={{
+                  fontWeight: 600,
+                  backgroundColor: isDarkTheme ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.1),
+                  color: colors.primaryColor,
+                  fontSize: '0.7rem',
+                  height: 22,
+                  px: 0.8,
+                }}
+              />
+            </Box>
+          )}
+        </Paper>
+      </motion.div>
+    );
+  };
+
+  // Renderizado de un día en formato de grid para pantallas grandes
+  const renderDiaGrid = (item, index, columns) => {
+    return (
+      <Grid item xs={6/columns} sm={12/columns} key={index}>
+        <motion.div
+          whileHover={{ y: -3, boxShadow: "0 6px 12px rgba(0,0,0,0.08)" }}
+          transition={{ duration: 0.2 }}
+        >
+          <Paper
+            elevation={0}
+            sx={{
+              height: '100%',
+              p: { xs: 1.5, sm: 1.8 },
+              borderRadius: '8px',
+              border: `1px solid ${item.estado === 'abierto' 
+                ? alpha(colors.divider, 0.6)
+                : alpha(colors.error, 0.3)}`,
+              transition: 'all 0.2s ease',
+              position: 'relative',
+              overflow: 'hidden',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: isDarkTheme ? '0 3px 8px rgba(0,0,0,0.15)' : '0 3px 8px rgba(37,99,235,0.05)',
+              background: item.estado === 'abierto'
+                ? (isDarkTheme ? alpha('#10B981', 0.04) : alpha('#10B981', 0.02))
+                : (isDarkTheme ? alpha('#F43F5E', 0.04) : alpha('#FEE2E2', 0.3)),
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '3px',
+                background: item.estado === 'abierto'
+                  ? (isDarkTheme ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #059669, #10B981)')
+                  : (isDarkTheme ? 'linear-gradient(90deg, #F43F5E, #EF4444)' : 'linear-gradient(90deg, #EF4444, #F43F5E)')
+              },
+              // Resaltar el día actual
+              ...(item.esHoy && {
+                border: `1px solid ${
+                  item.estado === 'abierto' 
+                    ? alpha(colors.success, 0.3) 
+                    : alpha(colors.error, 0.3)
+                }`,
+                boxShadow: isDarkTheme 
+                  ? `0 4px 10px rgba(0,0,0,0.2)` 
+                  : `0 4px 10px rgba(37,99,235,0.08)`,
+              })
+            }}
+          >
+            {/* Indicador pulsante para día actual */}
+            {item.esHoy && (
+              <motion.div
+                style={{
+                  position: 'absolute',
+                  top: 8,
+                  right: 8,
+                  width: 6,
+                  height: 6,
+                  borderRadius: '50%',
+                  background: item.estado === 'abierto' 
+                    ? colors.success
+                    : colors.error
+                }}
+                animate={{
+                  scale: [1, 1.4, 1],
+                  opacity: [0.7, 1, 0.7]
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            )}
+
+            {/* Día de la semana y estado */}
+            <Box sx={{ mb: 1, textAlign: 'center', width: '100%' }}>
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontWeight: 600,
+                  color: colors.primaryText,
+                  mb: 0.5,
+                  fontSize: { xs: '0.85rem', sm: '0.9rem' },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.5
+                }}
+              >
+                {isTablet ? item.dia.substring(0, 3) : item.dia}
+                {item.esHoy && (
+                  <Chip 
+                    label="Hoy" 
+                    size="small" 
+                    sx={{ 
+                      ml: 0.5, 
+                      height: 14, 
+                      fontSize: '0.55rem', 
+                      fontWeight: 600,
+                      px: 0.3,
+                      backgroundColor: colors.primaryColor,
+                      color: 'white',
+                      borderRadius: '3px' 
+                    }} 
+                  />
+                )}
+              </Typography>
+
+              <Tooltip 
+                title={
+                  item.estado === 'abierto' 
+                    ? 'Abierto para consultas' 
+                    : 'No disponible este día'
+                } 
+                arrow
+              >
+                <Chip
+                  label={
+                    item.estado === 'abierto' 
+                      ? 'Abierto' 
+                      : 'No disponible'
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight: 600,
+                    backgroundColor: item.estado === 'abierto'
+                      ? alpha(colors.success, 0.15)
+                      : alpha(colors.error, 0.15),
+                    color: item.estado === 'abierto' 
+                      ? colors.success 
+                      : colors.error,
+                    fontSize: '0.6rem',
+                    height: 18,
+                    px: 0.5
+                  }}
+                />
+              </Tooltip>
+            </Box>
+
+            {/* Visualización mejorada de horarios */}
+            {item.estado === 'abierto' ? (
+              <Box
+                sx={{
+                  width: '100%',
+                  borderRadius: '6px',
+                  background: isDarkTheme ? alpha('#ffffff', 0.03) : alpha('#10B981', 0.03),
+                  padding: 1.2,
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                {/* Mostrar cada turno separado claramente */}
+                {item.turnos && item.turnos.map((turno, i) => (
+                  <Box 
+                    key={i}
+                    sx={{ 
+                      mb: i < item.turnos.length - 1 ? 0.8 : 0,
+                      pb: i < item.turnos.length - 1 ? 0.8 : 0,
+                      borderBottom: i < item.turnos.length - 1 ? `1px dashed ${alpha(colors.divider, 0.6)}` : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.8
+                    }}
+                  >
+                    {/* Icono según turno (mañana/tarde/noche) */}
+                    {turno.esMañana ? (
+                      <WbSunny sx={{ color: '#f59e0b', fontSize: '0.85rem' }} />
+                    ) : turno.esTarde ? (
+                      <WbSunny sx={{ color: '#d97706', fontSize: '0.85rem' }} />
+                    ) : (
+                      <NightsStay sx={{ color: '#4f46e5', fontSize: '0.85rem' }} />
+                    )}
+                    
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.primaryText,
+                        fontSize: '0.75rem'
+                      }}
+                    >
+                      {turno.horario}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              // Para días no disponibles (Sábado, Domingo u otros cerrados)
+              <Box
+                sx={{
+                  width: '100%',
+                  borderRadius: '6px',
+                  background: isDarkTheme ? alpha('#F43F5E', 0.03) : alpha('#EF4444', 0.02),
+                  padding: 1.2,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 0.8
+                }}
+              >
+                {/* Etiqueta: "Con previa cita" */}
+                <Chip
+                  label="Previa cita"
+                  size="small"
+                  icon={<EventAvailable style={{ fontSize: '0.8rem', color: colors.primaryColor }} />}
+                  sx={{
+                    fontWeight: 600,
+                    backgroundColor: isDarkTheme ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.1),
+                    color: colors.primaryColor,
+                    fontSize: '0.65rem',
+                    height: 20,
+                    px: 0.5,
+                  }}
+                />
+              </Box>
+            )}
+          </Paper>
+        </motion.div>
+      </Grid>
+    );
+  };
+
   // Determinar el diseño basado en el dispositivo
   const getGridColumns = () => {
-    if (isMobile) return 2; // En móviles: 2 columnas
     if (isTablet) return 4; // En tablets: 4 columnas
     return 7; // En desktop: 7 columnas (un día por columna)
   };
 
   const columns = getGridColumns();
-  
-  // Filtrar días para mostrar según el diseño
-  const displayedHorarios = isMobile 
-    ? horarios.filter(h => h.estado === 'abierto' || h.esHoy).slice(0, 4) // En móvil solo mostrar días abiertos o el día actual
-    : horarios;
-
-  // Obtener el día actual
-  const hoyIndex = horarios.findIndex(h => h.esHoy);
 
   return (
     <>
@@ -251,248 +636,73 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
       {/* Vista de horarios mejorada */}
       <motion.div variants={staggerItemVariants}>
         <Box sx={{ maxWidth: '100%', mx: 'auto', mb: 2 }}>
-          <Grid container spacing={isMobile ? 1 : 1.5} justifyContent="center">
-            {displayedHorarios.map((item, index) => (
-              <Grid item xs={6/columns} sm={12/columns} key={index}>
-                <motion.div
-                  whileHover={{ y: -3, boxShadow: "0 6px 12px rgba(0,0,0,0.08)" }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <Paper
-                    elevation={0}
-                    sx={{
-                      height: '100%',
-                      p: { xs: 1.5, sm: 1.8 },
-                      borderRadius: '8px',
-                      border: `1px solid ${item.estado === 'abierto' 
-                        ? alpha(colors.divider, 0.6)
-                        : alpha(colors.error, 0.3)}`,
-                      transition: 'all 0.2s ease',
-                      position: 'relative',
-                      overflow: 'hidden',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      boxShadow: isDarkTheme ? '0 3px 8px rgba(0,0,0,0.15)' : '0 3px 8px rgba(37,99,235,0.05)',
-                      background: item.estado === 'abierto'
-                        ? (isDarkTheme ? alpha('#10B981', 0.04) : alpha('#10B981', 0.02))
-                        : (isDarkTheme ? alpha('#F43F5E', 0.04) : alpha('#FEE2E2', 0.3)),
-                      '&::before': {
-                        content: '""',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '3px',
-                        background: item.estado === 'abierto'
-                          ? (isDarkTheme ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #059669, #10B981)')
-                          : (isDarkTheme ? 'linear-gradient(90deg, #F43F5E, #EF4444)' : 'linear-gradient(90deg, #EF4444, #F43F5E)')
-                      },
-                      // Resaltar el día actual
-                      ...(item.esHoy && {
-                        border: `1px solid ${
-                          item.estado === 'abierto' 
-                            ? alpha(colors.success, 0.3) 
-                            : alpha(colors.error, 0.3)
-                        }`,
-                        boxShadow: isDarkTheme 
-                          ? `0 4px 10px rgba(0,0,0,0.2)` 
-                          : `0 4px 10px rgba(37,99,235,0.08)`,
-                      })
-                    }}
-                  >
-                    {/* Indicador pulsante para día actual */}
-                    {item.esHoy && (
-                      <motion.div
-                        style={{
-                          position: 'absolute',
-                          top: 8,
-                          right: 8,
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          background: item.estado === 'abierto' 
-                            ? colors.success
-                            : colors.error
-                        }}
-                        animate={{
-                          scale: [1, 1.4, 1],
-                          opacity: [0.7, 1, 0.7]
-                        }}
-                        transition={{
-                          duration: 2,
-                          repeat: Infinity,
-                          ease: "easeInOut"
-                        }}
-                      />
-                    )}
-
-                    {/* Día de la semana y estado */}
-                    <Box sx={{ mb: 1, textAlign: 'center', width: '100%' }}>
-                      <Typography
-                        variant="subtitle1"
-                        sx={{
-                          fontWeight: 600,
-                          color: colors.primaryText,
-                          mb: 0.5,
-                          fontSize: { xs: '0.85rem', sm: '0.9rem' },
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: 0.5
-                        }}
-                      >
-                        {isMobile ? item.dia.substring(0, 3) : item.dia}
-                        {item.esHoy && (
-                          <Chip 
-                            label="Hoy" 
-                            size="small" 
-                            sx={{ 
-                              ml: 0.5, 
-                              height: 14, 
-                              fontSize: '0.55rem', 
-                              fontWeight: 600,
-                              px: 0.3,
-                              backgroundColor: colors.primaryColor,
-                              color: 'white',
-                              borderRadius: '3px' 
-                            }} 
-                          />
-                        )}
-                      </Typography>
-
-                      <Tooltip 
-                        title={
-                          item.estado === 'abierto' 
-                            ? 'Abierto para consultas' 
-                            : 'No disponible este día'
-                        } 
-                        arrow
-                      >
-                        <Chip
-                          label={
-                            item.estado === 'abierto' 
-                              ? 'Abierto' 
-                              : 'No disponible'
-                          }
-                          size="small"
-                          sx={{
-                            fontWeight: 600,
-                            backgroundColor: item.estado === 'abierto'
-                              ? alpha(colors.success, 0.15)
-                              : alpha(colors.error, 0.15),
-                            color: item.estado === 'abierto' 
-                              ? colors.success 
-                              : colors.error,
-                            fontSize: '0.6rem',
-                            height: 18,
-                            px: 0.5
-                          }}
-                        />
-                      </Tooltip>
-                    </Box>
-
-                    {/* Visualización mejorada de horarios */}
-                    {item.estado === 'abierto' ? (
-                      <Box
-                        sx={{
-                          width: '100%',
-                          borderRadius: '6px',
-                          background: isDarkTheme ? alpha('#ffffff', 0.03) : alpha('#10B981', 0.03),
-                          padding: 1.2,
-                          position: 'relative',
-                          overflow: 'hidden'
-                        }}
-                      >
-                        {/* Mostrar cada turno separado claramente */}
-                        {item.turnos && item.turnos.map((turno, i) => (
-                          <Box 
-                            key={i}
-                            sx={{ 
-                              mb: i < item.turnos.length - 1 ? 0.8 : 0,
-                              pb: i < item.turnos.length - 1 ? 0.8 : 0,
-                              borderBottom: i < item.turnos.length - 1 ? `1px dashed ${alpha(colors.divider, 0.6)}` : 'none',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 0.8
-                            }}
-                          >
-                            {/* Icono según turno (mañana/tarde/noche) */}
-                            {turno.esMañana ? (
-                              <WbSunny sx={{ color: '#f59e0b', fontSize: '0.85rem' }} />
-                            ) : turno.esTarde ? (
-                              <WbSunny sx={{ color: '#d97706', fontSize: '0.85rem' }} />
-                            ) : (
-                              <NightsStay sx={{ color: '#4f46e5', fontSize: '0.85rem' }} />
-                            )}
-                            
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontWeight: 600,
-                                color: colors.primaryText,
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              {turno.horario}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    ) : (
-                      // Para días no disponibles (Sábado, Domingo u otros cerrados)
-                      <Box
-                        sx={{
-                          width: '100%',
-                          borderRadius: '6px',
-                          background: isDarkTheme ? alpha('#F43F5E', 0.03) : alpha('#EF4444', 0.02),
-                          padding: 1.2,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          gap: 0.8
-                        }}
-                      >
-
-                        {/* Segunda etiqueta: "Con previa cita" */}
-                        <Chip
-                          label="Previa cita"
-                          size="small"
-                          icon={<EventAvailable style={{ fontSize: '0.8rem', color: colors.primaryColor }} />}
-                          sx={{
-                            fontWeight: 600,
-                            backgroundColor: isDarkTheme ? alpha('#3B82F6', 0.15) : alpha('#3B82F6', 0.1),
-                            color: colors.primaryColor,
-                            fontSize: '0.65rem',
-                            height: 20,
-                            px: 0.5,
-                          }}
-                        />
-                      </Box>
-                    )}
-                  </Paper>
-                </motion.div>
-              </Grid>
-            ))}
-          </Grid>
+          {isMobile ? (
+            // Vista de lista para móvil 
+            <Box sx={{ px: 0.5 }}>
+              {displayedHorarios.map((item, index) => renderDiaMovil(item))}
+            </Box>
+          ) : (
+            // Vista de grid para tablets y desktop
+            <Grid container spacing={1.5} justifyContent="center">
+              {displayedHorarios.map((item, index) => renderDiaGrid(item, index, columns))}
+            </Grid>
+          )}
         </Box>
       </motion.div>
 
       {/* Ver todos los horarios en móvil, si hay días ocultos */}
-      {isMobile && horarios.length > 4 && (
+      {isMobile && horarios.length > 4 && !expandido && (
         <Box sx={{ textAlign: 'center', mb: 2 }}>
-          <Typography 
-            variant="body2" 
-            color="primary"
-            sx={{ 
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              cursor: 'pointer',
-              textDecoration: 'underline'
-            }}
-          >
-            Ver todos los horarios
-          </Typography>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Typography 
+              variant="body2" 
+              color="primary"
+              onClick={() => setExpandido(true)}
+              sx={{ 
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                display: 'inline-block',
+                px: 2,
+                py: 0.5,
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: alpha(colors.primaryColor, 0.05)
+                }
+              }}
+            >
+              Ver todos los horarios
+            </Typography>
+          </motion.div>
+        </Box>
+      )}
+
+      {/* Ocultar todos los horarios en móvil cuando está expandido */}
+      {isMobile && expandido && (
+        <Box sx={{ textAlign: 'center', mb: 2 }}>
+          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+            <Typography 
+              variant="body2" 
+              color="primary"
+              onClick={() => setExpandido(false)}
+              sx={{ 
+                fontSize: '0.8rem',
+                fontWeight: 500,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                display: 'inline-block',
+                px: 2,
+                py: 0.5,
+                borderRadius: '4px',
+                '&:hover': {
+                  backgroundColor: alpha(colors.primaryColor, 0.05)
+                }
+              }}
+            >
+              Mostrar menos
+            </Typography>
+          </motion.div>
         </Box>
       )}
 

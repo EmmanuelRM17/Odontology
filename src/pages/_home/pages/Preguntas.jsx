@@ -7,7 +7,6 @@ import {
   AccordionDetails,
   Button,
   Dialog,
-  DialogTitle,
   DialogContent,
   DialogActions,
   TextField,
@@ -16,11 +15,10 @@ import {
   IconButton,
   Chip,
   Paper,
-  Grow,
-  Zoom,
-  Divider,
   CircularProgress,
-  alpha, MenuItem
+  alpha, 
+  MenuItem,
+  InputAdornment
 } from "@mui/material";
 import { motion, AnimatePresence } from "framer-motion";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
@@ -34,12 +32,14 @@ import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import ContactSupportIcon from "@mui/icons-material/ContactSupport";
 import InfoIcon from "@mui/icons-material/Info";
 import MarkEmailReadIcon from "@mui/icons-material/MarkEmailRead";
+import ShuffleIcon from "@mui/icons-material/Shuffle";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import { keyframes } from "@emotion/react";
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import CustomRecaptcha from "../../../components/Tools/Captcha";
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-
+// Animación de carga
 const shimmer = keyframes`
   0% {
     background-position: -1000px 0;
@@ -49,6 +49,7 @@ const shimmer = keyframes`
   }
 `;
 
+// Componente principal
 const FAQ = () => {
   // Estados
   const [captchaVerified, setCaptchaVerified] = useState(false);
@@ -69,6 +70,7 @@ const FAQ = () => {
     type: "info"
   });
 
+  // Estado del formulario
   const [formData, setFormData] = useState({
     email: "",
     name: "",
@@ -82,10 +84,10 @@ const FAQ = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.down("md"));
 
-  // Colores principales según el tema - Eliminados tonos morados, solo azules
+  // Colores principales según el tema
   const colors = {
-    primary: isDarkTheme ? "#60A5FA" : "#0A66C2", // Azul más vibrante
-    secondary: isDarkTheme ? "#93C5FD" : "#1E88E5", // Azul secundario
+    primary: isDarkTheme ? "#60A5FA" : "#0A66C2",
+    secondary: isDarkTheme ? "#93C5FD" : "#1E88E5",
     background: isDarkTheme
       ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
       : "linear-gradient(90deg, #ffffff 0%, #E5F3FD 100%)",
@@ -100,7 +102,7 @@ const FAQ = () => {
     placeholder: isDarkTheme ? "#4a5568" : "#cccccc"
   };
 
-  // Helper function para mostrar notificaciones
+  // Función para mostrar notificaciones
   const showNotification = (message, type = "info", duration = 4000) => {
     setNotification({
       open: true,
@@ -113,126 +115,685 @@ const FAQ = () => {
     }, duration);
   };
 
-  // Lista de preguntas estáticas para clínica dental
-  const staticFaqs = [
+  // Lista de 30 preguntas frecuentes simplificadas para una clínica dental básica
+  const allFaqs = [
     {
-      question: "¿Qué opciones de blanqueamiento dental ofrecen?",
+      question: "¿Cómo debo cepillar correctamente mis dientes?",
       answer: (
         <>
-          <p>Ofrecemos tres modalidades de blanqueamiento dental adaptadas a las necesidades específicas de cada paciente:</p>
+          <p>Para un cepillado correcto, sigue estos pasos sencillos:</p>
           <ul>
-            <li><strong>Blanqueamiento en consultorio:</strong> Procedimiento profesional realizado en una sola sesión. Utiliza agentes blanqueadores de alta concentración con activación por luz para resultados inmediatos.</li>
-            <li><strong>Blanqueamiento en casa:</strong> Sistema personalizado con férulas a medida. Incluye gel blanqueador de menor concentración para uso domiciliario durante 1-2 semanas bajo supervisión profesional.</li>
-            <li><strong>Blanqueamiento combinado:</strong> Tratamiento que inicia con una sesión en consultorio seguida de aplicaciones en casa para resultados óptimos y duraderos.</li>
+            <li>Usa un cepillo de cerdas suaves</li>
+            <li>Cepilla durante 2 minutos, dos veces al día</li>
+            <li>Coloca el cepillo en un ángulo de 45 grados hacia la línea de las encías</li>
+            <li>Realiza movimientos suaves y cortos (de adelante hacia atrás)</li>
+            <li>Cepilla todas las superficies: externas, internas y masticatorias</li>
+            <li>No olvides cepillar suavemente la lengua</li>
           </ul>
-          <p>Durante la consulta evaluaremos su caso particular y recomendaremos la mejor opción según sus necesidades y condición dental.</p>
+          <p>Recuerda cambiar tu cepillo dental cada 3 meses o cuando veas que las cerdas están desgastadas.</p>
         </>
       ),
-      categoria: "Estética dental"
+      categoria: "Higiene dental"
     },
     {
-      question: "¿Cuáles son las opciones para reemplazar dientes perdidos?",
+      question: "¿Cuándo debo llevar a mi hijo por primera vez al dentista?",
       answer: (
         <>
-          <p>Contamos con diversas soluciones para restaurar su sonrisa cuando ha perdido piezas dentales:</p>
+          <p>Recomendamos llevar a tu hijo al dentista cuando aparezca su primer diente o, a más tardar, al cumplir un año de edad.</p>
+          <p>Esta primera visita tiene varios objetivos importantes:</p>
           <ul>
-            <li><strong>Implantes dentales:</strong> La solución más avanzada y similar a los dientes naturales. Un tornillo de titanio se integra al hueso maxilar (osteointegración) y sirve como raíz para soportar una corona dental.</li>
-            <li><strong>Puentes fijos:</strong> Restauraciones que se apoyan en los dientes adyacentes para reponer las piezas faltantes. Son fijos y requieren tallado de dientes naturales como soporte.</li>
-            <li><strong>Prótesis removibles:</strong> Pueden ser parciales o completas según la cantidad de dientes a reemplazar. Ofrecen una solución económica con la ventaja de poder extraerse para su limpieza.</li>
-            <li><strong>Soluciones All-on-4/All-on-6:</strong> Técnicas avanzadas que permiten rehabilitar una arcada completa con tan solo 4 o 6 implantes estratégicamente posicionados.</li>
+            <li>Revisar el correcto desarrollo de los dientes y maxilares</li>
+            <li>Identificar posibles problemas tempranos</li>
+            <li>Enseñar a los padres técnicas adecuadas de higiene dental infantil</li>
+            <li>Familiarizar al niño con el ambiente del consultorio dental</li>
           </ul>
-          <p>Cada opción tiene sus indicaciones, ventajas y consideraciones particulares que evaluaremos en su consulta personalizada.</p>
+          <p>Las visitas regulares desde temprana edad ayudan a prevenir problemas y a crear hábitos saludables.</p>
         </>
       ),
-      categoria: "Rehabilitación oral"
+      categoria: "Odontopediatría"
     },
     {
-      question: "¿Qué es la endodoncia y cuándo es necesaria?",
+      question: "¿Con qué frecuencia debo cambiar mi cepillo dental?",
       answer: (
         <>
-          <p>La endodoncia (tratamiento de conductos) es un procedimiento especializado que consiste en:</p>
+          <p>Debes cambiar tu cepillo dental cada 3 meses aproximadamente, o antes si notas que:</p>
           <ul>
-            <li>Eliminación del tejido pulpar (nervios y vasos sanguíneos) inflamado o infectado</li>
-            <li>Limpieza y desinfección de los conductos radiculares</li>
-            <li>Sellado hermético para prevenir reinfecciones</li>
+            <li>Las cerdas están desgastadas, dobladas o aplastadas</li>
+            <li>Has estado enfermo (para evitar reinfección)</li>
           </ul>
-          <p><strong>Este tratamiento es necesario cuando:</strong></p>
-          <ul>
-            <li>Existe dolor dental intenso y persistente</li>
-            <li>Se presenta sensibilidad prolongada al frío o calor</li>
-            <li>Hay inflamación o sensibilidad en las encías adyacentes</li>
-            <li>Se observa oscurecimiento del diente</li>
-            <li>Se detecta presencia de infección o absceso en las radiografías</li>
-          </ul>
-          <p>La endodoncia permite conservar el diente natural, evitando su extracción, y eliminar el dolor causado por la inflamación o infección pulpar.</p>
+          <p>Un cepillo desgastado no limpia eficazmente los dientes y puede dañar las encías. Mantener un cepillo en buen estado es fundamental para una buena higiene bucal.</p>
         </>
       ),
-      categoria: "Tratamientos"
+      categoria: "Higiene dental"
     },
     {
-      question: "¿Qué son los implantes dentales y cuál es su durabilidad?",
+      question: "¿Qué es una limpieza dental profesional?",
       answer: (
         <>
-          <p><strong>Los implantes dentales son:</strong></p>
+          <p>Una limpieza dental profesional (profilaxis) es un procedimiento que realiza el dentista o higienista dental para:</p>
           <ul>
-            <li>Raíces artificiales de titanio biocompatible que se integran al hueso maxilar</li>
-            <li>La base para soportar coronas, puentes o prótesis completas</li>
-            <li>La solución más similar al diente natural en función y estética</li>
+            <li>Eliminar la placa bacteriana y el sarro acumulados</li>
+            <li>Limpiar áreas donde el cepillado común no llega</li>
+            <li>Pulir las superficies dentales para eliminar manchas leves</li>
+            <li>Prevenir enfermedades como la caries y la enfermedad periodontal</li>
           </ul>
-          <p><strong>Respecto a su durabilidad:</strong></p>
-          <ul>
-            <li>Con cuidados adecuados, los implantes pueden durar toda la vida en la mayoría de los casos (tasa de éxito superior al 95% a los 10 años)</li>
-            <li>Las prótesis sobre implantes (coronas, puentes) pueden requerir reemplazos cada 10-15 años, dependiendo de factores individuales</li>
-            <li>Su mantenimiento requiere higiene bucal meticulosa, visitas regulares al dentista y evitar hábitos perjudiciales como el tabaquismo</li>
-          </ul>
-          <p>En nuestra clínica realizamos un estudio completo previo a la intervención para garantizar el mejor pronóstico posible.</p>
-        </>
-      ),
-      categoria: "Implantología"
-    },
-    {
-      question: "¿Cada cuánto tiempo debo acudir a revisión dental?",
-      answer: (
-        <>
-          <p>La frecuencia de las revisiones dentales debe adaptarse a las necesidades individuales de cada paciente:</p>
-          <ul>
-            <li><strong>Pacientes con salud dental estable:</strong> Revisiones cada 6 meses para exámenes completos y limpiezas profesionales</li>
-            <li><strong>Pacientes con enfermedad periodontal:</strong> Controles cada 3-4 meses para mantenimiento periodontal</li>
-            <li><strong>Pacientes con alto riesgo de caries:</strong> Revisiones trimestrales con aplicaciones profesionales de flúor</li>
-            <li><strong>Pacientes con implantes dentales:</strong> Controles semestrales para verificar la salud periimplantaria</li>
-            <li><strong>Niños en etapa de desarrollo:</strong> Revisiones cada 4-6 meses para monitorizar el crecimiento y desarrollo</li>
-          </ul>
-          <p>Durante su primera consulta evaluaremos su condición bucal y estableceremos un programa personalizado de seguimiento según su perfil de riesgo.</p>
+          <p>Este procedimiento es indoloro y suele durar entre 30-45 minutos. Se recomienda realizarlo cada 6 meses como parte del cuidado preventivo.</p>
         </>
       ),
       categoria: "Prevención"
     },
     {
-      question: "¿Cómo puedo financiar mi tratamiento dental?",
+      question: "¿Por qué es importante usar hilo dental?",
       answer: (
         <>
-          <p>En nuestra clínica comprendemos que la inversión en salud bucal es importante, por eso ofrecemos diversas facilidades de pago:</p>
+          <p>El hilo dental es crucial porque:</p>
           <ul>
-            <li><strong>Métodos de pago directo:</strong>
-              <ul>
-                <li>Efectivo</li>
-                <li>Tarjetas de débito y crédito (Visa, Mastercard, American Express)</li>
-                <li>Transferencias bancarias</li>
-              </ul>
-            </li>
-            <li><strong>Planes de financiamiento:</strong>
-              <ul>
-                <li>Pago fraccionado sin intereses para tratamientos específicos</li>
-                <li>Financiación hasta 24 meses para tratamientos extensos</li>
-                <li>Plan Familia con descuentos especiales para grupos familiares</li>
-              </ul>
-            </li>
-            <li><strong>Colaboración con aseguradoras:</strong> Trabajamos con las principales compañías de seguros dentales</li>
+            <li>Elimina la placa bacteriana entre los dientes, donde el cepillo no llega</li>
+            <li>Previene las caries interdentales y la enfermedad de las encías</li>
+            <li>Reduce el mal aliento causado por restos de alimentos</li>
+            <li>Complementa el cepillado para una limpieza bucal completa</li>
           </ul>
-          <p>Nuestro departamento administrativo le ofrecerá un presupuesto detallado y le ayudará a encontrar la opción que mejor se adapte a sus necesidades financieras.</p>
+          <p>Para mejores resultados, usa el hilo dental una vez al día, preferiblemente antes de acostarte.</p>
         </>
       ),
-      categoria: "Administración"
+      categoria: "Higiene dental"
+    },
+    {
+      question: "¿Qué hacer en caso de un dolor de muelas?",
+      answer: (
+        <>
+          <p>Si tienes dolor de muelas, puedes seguir estos pasos temporales mientras consigues atención profesional:</p>
+          <ul>
+            <li>Enjuaga tu boca con agua tibia y sal</li>
+            <li>Toma un analgésico de venta libre según las indicaciones</li>
+            <li>Aplica compresas frías en la mejilla (15 minutos sí, 15 minutos no)</li>
+            <li>Evita alimentos muy calientes, fríos o azucarados</li>
+          </ul>
+          <p><strong>Importante:</strong> Estos son solo remedios temporales. El dolor dental casi siempre indica un problema que requiere atención profesional, por lo que debes agendar una cita lo antes posible.</p>
+        </>
+      ),
+      categoria: "Urgencias"
+    },
+    {
+      question: "¿Qué son las caries y cómo se previenen?",
+      answer: (
+        <>
+          <p>Las caries son lesiones en los dientes causadas por la acción de bacterias que producen ácidos que desmineralizan el esmalte dental.</p>
+          <p>Para prevenirlas:</p>
+          <ul>
+            <li>Cepilla tus dientes dos veces al día con pasta dental con flúor</li>
+            <li>Usa hilo dental diariamente</li>
+            <li>Limita el consumo de alimentos azucarados y bebidas ácidas</li>
+            <li>Visita al dentista regularmente para revisiones</li>
+            <li>Considera selladores dentales (especialmente para niños)</li>
+          </ul>
+          <p>La prevención temprana es la mejor manera de mantener tus dientes sanos toda la vida.</p>
+        </>
+      ),
+      categoria: "Prevención"
+    },
+    {
+      question: "¿Por qué se recomienda visitar al dentista cada 6 meses?",
+      answer: (
+        <>
+          <p>Se recomienda visitar al dentista cada 6 meses porque:</p>
+          <ul>
+            <li>Permite detectar problemas en etapas tempranas cuando son más fáciles de tratar</li>
+            <li>Incluye una limpieza profesional que elimina la placa y el sarro acumulados</li>
+            <li>Ayuda a prevenir enfermedades como caries y problemas de encías</li>
+            <li>Permite monitorear la salud bucal general y detectar cambios</li>
+          </ul>
+          <p>Las visitas regulares son una inversión en tu salud bucal a largo plazo y pueden ahorrarte tratamientos más costosos en el futuro.</p>
+        </>
+      ),
+      categoria: "Prevención"
+    },
+    {
+      question: "¿Qué causa el mal aliento y cómo puedo combatirlo?",
+      answer: (
+        <>
+          <p>El mal aliento (halitosis) puede ser causado por:</p>
+          <ul>
+            <li>Mala higiene bucal y acumulación de bacterias</li>
+            <li>Restos de alimentos entre los dientes</li>
+            <li>Sequedad bucal (xerostomía)</li>
+            <li>Enfermedades de las encías</li>
+            <li>Ciertos alimentos como ajo, cebolla o especias</li>
+            <li>Consumo de tabaco</li>
+            <li>Algunos problemas médicos (sinusitis, reflujo, diabetes)</li>
+          </ul>
+          <p>Para combatirlo:</p>
+          <ul>
+            <li>Mejora tu higiene bucal (cepillado, hilo dental y limpieza de lengua)</li>
+            <li>Mantente hidratado</li>
+            <li>Visita regularmente al dentista</li>
+            <li>Usa enjuague bucal antibacteriano</li>
+            <li>Evita alimentos de fuerte olor</li>
+          </ul>
+          <p>Si el problema persiste a pesar de una buena higiene, consulta a tu dentista ya que podría indicar otro problema de salud.</p>
+        </>
+      ),
+      categoria: "Higiene dental"
+    },
+    {
+      question: "¿Qué es la gingivitis y cómo se trata?",
+      answer: (
+        <>
+          <p>La gingivitis es una inflamación de las encías causada por la acumulación de placa bacteriana. Sus síntomas incluyen:</p>
+          <ul>
+            <li>Encías rojas, inflamadas o sensibles</li>
+            <li>Sangrado al cepillarse o usar hilo dental</li>
+            <li>Mal aliento persistente</li>
+          </ul>
+          <p>Tratamiento:</p>
+          <ul>
+            <li>Mejorar la higiene bucal (cepillado y uso de hilo dental)</li>
+            <li>Limpieza profesional para eliminar placa y sarro</li>
+            <li>Uso de enjuague bucal antiséptico</li>
+            <li>Seguimiento dental para verificar la mejoría</li>
+          </ul>
+          <p>La buena noticia es que la gingivitis es reversible si se trata a tiempo. Sin tratamiento, puede progresar a enfermedad periodontal más seria.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Qué son las muelas del juicio y por qué a veces hay que extraerlas?",
+      answer: (
+        <>
+          <p>Las muelas del juicio son los terceros molares que generalmente aparecen entre los 17 y 25 años. A menudo necesitan extraerse porque:</p>
+          <ul>
+            <li>No hay suficiente espacio en la boca para que erupcionen correctamente</li>
+            <li>Pueden quedar impactadas (atrapadas) bajo las encías</li>
+            <li>Pueden crecer en ángulo incorrecto, presionando otros dientes</li>
+            <li>Son difíciles de limpiar, lo que aumenta el riesgo de caries y enfermedades</li>
+          </ul>
+          <p>No todas las muelas del juicio necesitan extracción. Tu dentista evaluará tu caso específico con radiografías para determinar si es necesario el procedimiento.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Cómo puedo aliviar la sensibilidad dental?",
+      answer: (
+        <>
+          <p>La sensibilidad dental puede aliviarse con estas medidas:</p>
+          <ul>
+            <li>Usa pasta dental específica para dientes sensibles</li>
+            <li>Cepíllate con un cepillo de cerdas suaves</li>
+            <li>Evita alimentos y bebidas muy frías, calientes o ácidas</li>
+            <li>Cepilla suavemente, sin ejercer mucha presión</li>
+            <li>Evita el rechinar de dientes (considera un protector nocturno)</li>
+            <li>Usa enjuague bucal con flúor</li>
+          </ul>
+          <p>Si la sensibilidad persiste o es severa, consulta a tu dentista. Podría ser síntoma de un problema más serio como caries, fracturas o encías retraídas que requieren tratamiento profesional.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Cómo funciona la anestesia dental?",
+      answer: (
+        <>
+          <p>La anestesia dental funciona de la siguiente manera:</p>
+          <ul>
+            <li>Se aplica un gel anestésico tópico para adormecer la superficie</li>
+            <li>Luego se inyecta el anestésico local cerca del nervio que transmite la sensación al área a tratar</li>
+            <li>El anestésico bloquea temporalmente las señales de dolor que viajan por los nervios</li>
+            <li>El efecto comienza en 1-2 minutos y dura entre 1-3 horas según el tipo usado</li>
+          </ul>
+          <p>La anestesia dental moderna es muy segura y eficaz, permitiendo realizar tratamientos sin dolor. La sensación de adormecimiento desaparece gradualmente después del procedimiento.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Es normal el sangrado de encías al cepillarse?",
+      answer: (
+        <>
+          <p>No, el sangrado de encías al cepillarse <strong>no es normal</strong>, aunque es común. Generalmente indica:</p>
+          <ul>
+            <li>Inflamación de las encías (gingivitis)</li>
+            <li>Acumulación de placa bacteriana</li>
+            <li>Técnica de cepillado demasiado agresiva</li>
+            <li>Uso de un cepillo con cerdas muy duras</li>
+          </ul>
+          <p>Solución:</p>
+          <ul>
+            <li>Mejora tu técnica de cepillado (movimientos suaves)</li>
+            <li>Usa un cepillo de cerdas suaves</li>
+            <li>No descuides el uso diario del hilo dental</li>
+            <li>Visita al dentista para una limpieza profesional</li>
+          </ul>
+          <p>Si el sangrado persiste más de dos semanas a pesar de mejorar tu higiene, consulta a tu dentista, ya que podría indicar un problema más serio.</p>
+        </>
+      ),
+      categoria: "Higiene dental"
+    },
+    {
+      question: "¿Qué hace un higienista dental?",
+      answer: (
+        <>
+          <p>Un higienista dental es un profesional especializado que:</p>
+          <ul>
+            <li>Realiza limpiezas dentales profesionales</li>
+            <li>Elimina placa, sarro y manchas superficiales</li>
+            <li>Toma radiografías dentales</li>
+            <li>Aplica fluoruros y selladores</li>
+            <li>Educa sobre técnicas correctas de cepillado y uso de hilo dental</li>
+            <li>Ofrece consejos sobre nutrición para la salud bucal</li>
+            <li>Examina las encías para detectar signos de enfermedad</li>
+          </ul>
+          <p>Los higienistas trabajan junto con los dentistas para proporcionarte una atención preventiva completa y ayudarte a mantener una buena salud bucal.</p>
+        </>
+      ),
+      categoria: "Consultorio"
+    },
+    {
+      question: "¿Por qué es importante reemplazar los dientes perdidos?",
+      answer: (
+        <>
+          <p>Reemplazar los dientes perdidos es importante porque:</p>
+          <ul>
+            <li>Previene el movimiento de dientes adyacentes</li>
+            <li>Mantiene la integridad de la estructura facial</li>
+            <li>Mejora la capacidad para masticar y hablar con normalidad</li>
+            <li>Evita la pérdida ósea que ocurre después de perder dientes</li>
+            <li>Previene problemas en la articulación temporomandibular</li>
+            <li>Mejora la confianza y la apariencia</li>
+          </ul>
+          <p>Existen varias opciones para reemplazar dientes según tu situación específica, incluyendo puentes, prótesis removibles y fijas.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Cómo puedo preparar a mi hijo para su primera visita al dentista?",
+      answer: (
+        <>
+          <p>Para preparar a tu hijo para su primera visita al dentista:</p>
+          <ul>
+            <li>Habla positivamente sobre el dentista, evitando palabras que generen miedo</li>
+            <li>Lee cuentos infantiles sobre visitas al dentista</li>
+            <li>Juega a "ser el dentista" en casa (revisar dientes de muñecos)</li>
+            <li>Explica de manera sencilla lo que sucederá ("el doctor contará tus dientes")</li>
+            <li>Programa la cita en horario en que el niño esté descansado</li>
+            <li>No prometas regalos por "portarse bien" (crea expectativas negativas)</li>
+          </ul>
+          <p>La primera visita suele ser corta y sencilla, orientada a que el niño se familiarice con el ambiente del consultorio dental.</p>
+        </>
+      ),
+      categoria: "Odontopediatría"
+    },
+    {
+      question: "¿Qué es una caries y cómo se trata?",
+      answer: (
+        <>
+          <p>Una caries es un daño en el diente causado por bacterias que forman ácidos que destruyen el esmalte y la dentina. El tratamiento depende de su gravedad:</p>
+          <ul>
+            <li><strong>Caries incipiente:</strong> Aplicación de flúor y mejora de higiene</li>
+            <li><strong>Caries pequeña-mediana:</strong> Eliminación del tejido dañado y restauración con empaste (resina o amalgama)</li>
+            <li><strong>Caries profunda:</strong> Si afecta el nervio, puede requerir endodoncia (tratamiento de conducto) seguida de restauración</li>
+            <li><strong>Caries extensa:</strong> Si el diente está muy dañado, podría necesitar extracción</li>
+          </ul>
+          <p>El diagnóstico temprano es clave para tratamientos menos invasivos, por eso son importantes las revisiones regulares.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Cómo puedo cuidar mis encías?",
+      answer: (
+        <>
+          <p>Para mantener tus encías saludables:</p>
+          <ul>
+            <li>Cepilla tus dientes dos veces al día con técnica adecuada</li>
+            <li>Usa hilo dental diariamente</li>
+            <li>Considera un enjuague bucal antiséptico</li>
+            <li>Visita al dentista cada 6 meses para limpiezas profesionales</li>
+            <li>Mantén una dieta equilibrada rica en vitamina C</li>
+            <li>Evita fumar (el tabaco aumenta el riesgo de enfermedad periodontal)</li>
+            <li>Controla el estrés (puede afectar tu sistema inmunológico y la salud de las encías)</li>
+          </ul>
+          <p>Las encías sanas son de color rosa pálido, firmes y no sangran durante el cepillado o al usar hilo dental.</p>
+        </>
+      ),
+      categoria: "Higiene dental"
+    },
+    {
+      question: "¿Los niños necesitan pasta dental con flúor?",
+      answer: (
+        <>
+          <p>Sí, los niños necesitan pasta dental con flúor, pero en cantidades apropiadas para su edad:</p>
+          <ul>
+            <li><strong>Menores de 3 años:</strong> Cantidad del tamaño de un grano de arroz</li>
+            <li><strong>3-6 años:</strong> Cantidad del tamaño de un guisante</li>
+          </ul>
+          <p>El flúor ayuda a fortalecer el esmalte y prevenir caries. Es importante supervisar el cepillado para asegurar que:</p>
+          <ul>
+            <li>Usen la cantidad correcta de pasta</li>
+            <li>Escupan después del cepillado</li>
+            <li>Eviten tragar la pasta dental</li>
+          </ul>
+          <p>Usa pasta dental con flúor aprobada por asociaciones dentales reconocidas.</p>
+        </>
+      ),
+      categoria: "Odontopediatría"
+    },
+    {
+      question: "¿Qué puedo hacer si se me rompe un diente?",
+      answer: (
+        <>
+          <p>Si se te rompe un diente, sigue estos pasos:</p>
+          <ul>
+            <li>Enjuaga tu boca suavemente con agua tibia</li>
+            <li>Si hay sangrado, aplica una gasa con presión suave</li>
+            <li>Para reducir la hinchazón, aplica una compresa fría en la mejilla</li>
+            <li>Guarda cualquier fragmento del diente (envuélvelo en una gasa húmeda)</li>
+            <li>Toma un analgésico de venta libre si sientes dolor</li>
+            <li>Contacta a tu dentista de inmediato para una cita de urgencia</li>
+          </ul>
+          <p>Este es un caso que requiere atención profesional lo antes posible. Dependiendo de la gravedad de la fractura, el dentista puede repararlo con una restauración de resina, una corona, o en casos más serios, con tratamiento de conducto.</p>
+        </>
+      ),
+      categoria: "Urgencias"
+    },
+    {
+      question: "¿Qué es el bruxismo y cómo se trata?",
+      answer: (
+        <>
+          <p>El bruxismo es el hábito de apretar o rechinar los dientes, generalmente durante el sueño. Puede causar:</p>
+          <ul>
+            <li>Desgaste dental</li>
+            <li>Dolor de mandíbula</li>
+            <li>Dolores de cabeza, especialmente por la mañana</li>
+            <li>Sensibilidad dental</li>
+            <li>Dientes agrietados o rotos</li>
+          </ul>
+          <p>Tratamiento:</p>
+          <ul>
+            <li>Uso de férula dental nocturna (protector bucal)</li>
+            <li>Técnicas de reducción de estrés</li>
+            <li>Ejercicios de relajación muscular</li>
+            <li>Evitar la cafeína y el alcohol</li>
+            <li>Mejorar la higiene del sueño</li>
+          </ul>
+          <p>Si sospechas que tienes bruxismo, consulta a tu dentista. El diagnóstico temprano puede prevenir daños dentales significativos.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Qué edad es buena para la primera revisión de ortodoncia?",
+      answer: (
+        <>
+          <p>Se recomienda la primera evaluación ortodóncica alrededor de los 7 años de edad. En este momento:</p>
+          <ul>
+            <li>Ya han erupcionado algunos dientes permanentes</li>
+            <li>Se puede detectar problemas de desarrollo mandibular</li>
+            <li>Es posible identificar problemas de mordida tempranamente</li>
+            <li>Hay mayor capacidad de respuesta a tratamientos interceptivos</li>
+          </ul>
+          <p>Esto no significa que el niño necesitará aparatos a esta edad. Muchas veces la evaluación temprana permite:</p>
+          <ul>
+            <li>Planificar el momento óptimo para el tratamiento</li>
+            <li>Implementar medidas preventivas</li>
+            <li>Reducir la necesidad de tratamientos extensos más adelante</li>
+          </ul>
+          <p>Cada caso es único, por lo que el ortodoncista determinará el plan adecuado según las necesidades específicas.</p>
+        </>
+      ),
+      categoria: "Odontopediatría"
+    },
+    {
+      question: "¿Cómo afecta la alimentación a la salud dental?",
+      answer: (
+        <>
+          <p>La alimentación afecta significativamente la salud dental:</p>
+          <ul>
+            <li><strong>Alimentos perjudiciales:</strong>
+              <ul>
+                <li>Azúcares (dulces, refrescos, jugos procesados)</li>
+                <li>Alimentos pegajosos (caramelos, frutas secas)</li>
+                <li>Bebidas ácidas (refrescos, bebidas energéticas)</li>
+                <li>Almidones refinados (pan blanco, papas fritas)</li>
+              </ul>
+            </li>
+            <li><strong>Alimentos beneficiosos:</strong>
+              <ul>
+                <li>Frutas y verduras crujientes (manzanas, zanahorias)</li>
+                <li>Lácteos (queso, yogur sin azúcar)</li>
+                <li>Proteínas (pescado, huevos, carnes magras)</li>
+                <li>Alimentos ricos en flúor y calcio</li>
+                <li>Agua (ayuda a limpiar la boca y diluir ácidos)</li>
+              </ul>
+            </li>
+          </ul>
+          <p>No solo importa qué comes, sino también cuándo y con qué frecuencia. Los refrigerios frecuentes aumentan el riesgo de caries. Si comes algo dulce, es mejor hacerlo durante las comidas principales y no entre ellas.</p>
+        </>
+      ),
+      categoria: "Prevención"
+    },
+    {
+      question: "¿Cómo puedo manejar el miedo al dentista?",
+      answer: (
+        <>
+          <p>Para manejar el miedo al dentista:</p>
+          <ul>
+            <li><strong>Comunícate abiertamente:</strong> Habla con tu dentista sobre tus temores</li>
+            <li><strong>Empieza gradualmente:</strong> Comienza con procedimientos simples</li>
+            <li><strong>Establece señales:</strong> Acuerda un gesto para indicar si necesitas un descanso</li>
+            <li><strong>Técnicas de relajación:</strong> Practica respiración profunda o meditación</li>
+            <li><strong>Distracción:</strong> Usa audífonos para escuchar música o podcasts</li>
+            <li><strong>Elige el momento adecuado:</strong> Programa citas cuando estés menos estresado</li>
+            <li><strong>Lleva apoyo:</strong> Pide a un amigo o familiar que te acompañe</li>
+          </ul>
+          <p>Recuerda que los dentistas modernos utilizan técnicas y equipos avanzados para minimizar las molestias. Compartir tus preocupaciones ayudará a tu dentista a adaptar el tratamiento a tus necesidades.</p>
+        </>
+      ),
+      categoria: "Consultorio"
+    },
+    {
+      question: "¿Qué es una endodoncia y cuándo se necesita?",
+      answer: (
+        <>
+          <p>Una endodoncia (tratamiento de conducto) es un procedimiento para tratar el interior del diente cuando la pulpa (nervios y vasos sanguíneos) está infectada o inflamada.</p>
+          <p>Se necesita cuando:</p>
+          <ul>
+            <li>Hay dolor intenso al masticar o aplicar presión</li>
+            <li>Existe sensibilidad prolongada al calor o frío</li>
+            <li>Hay oscurecimiento del diente</li>
+            <li>Aparece hinchazón o sensibilidad en las encías cercanas</li>
+            <li>Se presenta una lesión dental profunda o fractura</li>
+          </ul>
+          <p>El procedimiento consiste en eliminar la pulpa dañada, limpiar el conducto, desinfectarlo y sellarlo. Contrario a la creencia popular, con anestesia moderna este tratamiento no debe ser doloroso.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Cuánto tiempo dura un empaste dental?",
+      answer: (
+        <>
+          <p>La duración de un empaste dental varía según estos factores:</p>
+          <ul>
+            <li><strong>Material utilizado:</strong>
+              <ul>
+                <li>Composite (resina): 5-10 años</li>
+                <li>Amalgama (plateado): 10-15 años</li>
+              </ul>
+            </li>
+            <li><strong>Factores que influyen en su duración:</strong>
+              <ul>
+                <li>Tamaño y ubicación del empaste</li>
+                <li>Hábitos de higiene bucal</li>
+                <li>Hábitos como rechinar los dientes</li>
+                <li>Dieta y consumo de bebidas ácidas</li>
+                <li>Visitas regulares al dentista</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Con buenos cuidados, los empastes pueden durar muchos años. En tus revisiones dentales, el profesional verificará el estado de tus restauraciones para determinar si necesitan reemplazo.</p>
+        </>
+      ),
+      categoria: "Tratamientos"
+    },
+    {
+      question: "¿Por qué se hacen radiografías dentales?",
+      answer: (
+        <>
+          <p>Las radiografías dentales son importantes porque permiten:</p>
+          <ul>
+            <li>Ver áreas no visibles durante el examen clínico</li>
+            <li>Detectar caries entre los dientes</li>
+            <li>Identificar problemas bajo las encías o dentro del hueso</li>
+            <li>Evaluar el desarrollo dental en niños</li>
+            <li>Verificar la salud de la raíz dental y hueso circundante</li>
+            <li>Diagnosticar lesiones, quistes o tumores</li>
+            <li>Planificar tratamientos como endodoncias o extracciones</li>
+          </ul>
+          <p>Las radiografías modernas usan niveles muy bajos de radiación y proporcionan información crucial para un diagnóstico completo. La frecuencia con que se toman depende de tu historial dental, edad y riesgo de enfermedad.</p>
+        </>
+      ),
+      categoria: "Consultorio"
+    },
+    {
+      question: "¿Qué puedo hacer si se me cae un diente permanente?",
+      answer: (
+        <>
+          <p>Si se te cae un diente permanente por un golpe o accidente, actúa rápidamente:</p>
+          <ol>
+            <li>Recoge el diente tomándolo por la corona (parte visible), no por la raíz</li>
+            <li>Enjuágalo suavemente con agua si está sucio (sin frotar)</li>
+            <li>Si es posible, intenta recolocarlo en su lugar (orientado correctamente)</li>
+            <li>Si no puedes reinsertarlo, conserva el diente en:
+              <ul>
+                <li>Leche fría</li>
+                <li>Solución salina</li>
+                <li>Saliva (mantenlo en tu mejilla)</li>
+              </ul>
+            </li>
+            <li>Acude al dentista INMEDIATAMENTE (idealmente en los primeros 30 minutos)</li>
+          </ol>
+          <p>El tiempo es crucial - cuanto más rápido recibas atención, mayores posibilidades de salvar el diente. Este es un caso de emergencia dental.</p>
+        </>
+      ),
+      categoria: "Urgencias"
+    },
+    {
+      question: "¿Qué causa las manchas en los dientes?",
+      answer: (
+        <>
+          <p>Las manchas dentales pueden ser causadas por diversos factores:</p>
+          <ul>
+            <li><strong>Manchas extrínsecas</strong> (superficiales):
+              <ul>
+                <li>Consumo de café, té, vino tinto o refresco de cola</li>
+                <li>Tabaco (fumar o mascar)</li>
+                <li>Alimentos con colorantes intensos</li>
+                <li>Acumulación de placa y sarro</li>
+              </ul>
+            </li>
+            <li><strong>Manchas intrínsecas</strong> (dentro del diente):
+              <ul>
+                <li>Uso excesivo de flúor durante el desarrollo dental</li>
+                <li>Ciertos medicamentos (tetraciclina)</li>
+                <li>Traumatismos dentales</li>
+                <li>Envejecimiento natural</li>
+                <li>Tratamientos dentales como endodoncias</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Las manchas extrínsecas generalmente se pueden eliminar con limpieza profesional. Para las manchas intrínsecas, existen opciones como blanqueamiento dental o carillas.</p>
+        </>
+      ),
+      categoria: "Estética dental"
+    },
+    {
+      question: "¿Qué información debo proporcionar en mi primera consulta dental?",
+      answer: (
+        <>
+          <p>En tu primera consulta dental, es importante proporcionar:</p>
+          <ul>
+            <li><strong>Historial médico completo:</strong>
+              <ul>
+                <li>Enfermedades crónicas o condiciones (diabetes, problemas cardíacos)</li>
+                <li>Medicamentos que tomas regularmente</li>
+                <li>Alergias (especialmente a medicamentos o látex)</li>
+                <li>Cirugías recientes</li>
+              </ul>
+            </li>
+            <li><strong>Historial dental:</strong>
+              <ul>
+                <li>Problemas dentales actuales o recurrentes</li>
+                <li>Tratamientos dentales previos</li>
+                <li>Experiencias negativas en consultas dentales</li>
+                <li>Hábitos de higiene bucal</li>
+              </ul>
+            </li>
+            <li><strong>Otros datos relevantes:</strong>
+              <ul>
+                <li>Si fumas o consumes tabaco</li>
+                <li>Embarazo (en caso de mujeres)</li>
+                <li>Ansiedad dental si la experimentas</li>
+              </ul>
+            </li>
+          </ul>
+          <p>Esta información ayuda al dentista a proporcionarte un tratamiento seguro y personalizado según tus necesidades específicas.</p>
+        </>
+      ),
+      categoria: "Consultorio"
+    },
+    {
+      question: "¿Qué son las carillas dentales?",
+      answer: (
+        <>
+          <p>Las carillas dentales son láminas delgadas, generalmente de porcelana o composite, que se adhieren a la superficie frontal de los dientes para mejorar su apariencia.</p>
+          <p>Se utilizan para corregir:</p>
+          <ul>
+            <li>Decoloración o manchas resistentes a blanqueamiento</li>
+            <li>Dientes astillados o con pequeñas fracturas</li>
+            <li>Dientes ligeramente desalineados</li>
+            <li>Dientes con formas irregulares</li>
+            <li>Espacios pequeños entre dientes</li>
+            <li>Dientes desgastados</li>
+          </ul>
+          <p>El procedimiento generalmente requiere:
+            <ul>
+              <li>Diagnóstico y planificación</li>
+              <li>Preparación mínima del diente</li>
+              <li>Fabricación de la carilla</li>
+              <li>Cementación permanente</li>
+            </ul>
+          </p>
+          <p>Con buenos cuidados, las carillas pueden durar entre 10-15 años. Son una solución estética muy popular por su aspecto natural y resistencia.</p>
+        </>
+      ),
+      categoria: "Estética dental"
+    },
+    {
+      question: "¿Cómo identificar una emergencia dental?",
+      answer: (
+        <>
+          <p>Las siguientes situaciones generalmente se consideran emergencias dentales y requieren atención inmediata:</p>
+          <ul>
+            <li>Dolor dental severo y persistente</li>
+            <li>Hinchazón significativa en cara, encías o cuello</li>
+            <li>Sangrado que no se detiene</li>
+            <li>Traumatismo o golpe que resulta en dientes rotos o caídos</li>
+            <li>Infección con síntomas como mal sabor, fiebre o dificultad para tragar/respirar</li>
+            <li>Restauración perdida (corona o empaste) que causa dolor agudo</li>
+          </ul>
+          <p>Si experimentas cualquiera de estas situaciones:</p>
+          <ul>
+            <li>Contacta inmediatamente a tu dentista</li>
+            <li>Si es fuera de horario, busca servicios de emergencia dental</li>
+            <li>Si hay hinchazón severa o dificultad para respirar, acude a urgencias hospitalarias</li>
+          </ul>
+          <p>Recuerda: el tratamiento rápido puede evitar complicaciones y, en algunos casos como dientes avulsionados (caídos), es crucial para salvar la pieza dental.</p>
+        </>
+      ),
+      categoria: "Urgencias"
     }
   ];
 
@@ -245,11 +806,14 @@ const FAQ = () => {
       await new Promise(resolve => setTimeout(resolve, 800));
 
       // Usamos las preguntas estáticas
-      setFaqs(staticFaqs);
-      setFilteredFaqs(staticFaqs);
+      setFaqs(allFaqs);
 
-      // Extraemos categorías únicas
-      const uniqueCategories = ['Todas', ...new Set(staticFaqs.map(faq => faq.categoria))];
+      // Seleccionar 6 preguntas aleatorias para mostrar inicialmente
+      const shuffledFaqs = [...allFaqs].sort(() => 0.5 - Math.random());
+      setFilteredFaqs(shuffledFaqs.slice(0, 6));
+
+      // Extraemos categorías únicas (solo las que existen en las preguntas)
+      const uniqueCategories = ['Todas', ...new Set(allFaqs.map(faq => faq.categoria))].sort();
       setCategories(uniqueCategories);
 
     } catch (error) {
@@ -262,36 +826,45 @@ const FAQ = () => {
     }
   }, []);
 
+
+
+  // Función para obtener nuevas preguntas aleatorias
+  const getRandomFaqs = () => {
+    let pool = activeCategory !== "Todas" 
+      ? faqs.filter(faq => faq.categoria === activeCategory)
+      : [...faqs];
+      
+    const randomFaqs = pool.sort(() => 0.5 - Math.random()).slice(0, 6);
+    setFilteredFaqs(randomFaqs);
+    
+    // Mostrar notificación de actualización
+    showNotification("Se han cargado nuevas preguntas aleatorias", "info", 1500);
+  };
+
   // Filtrar preguntas por búsqueda y categoría
   useEffect(() => {
-    let result = [...faqs];
-
-    // Filtrar por categoría
-    if (activeCategory !== "Todas") {
-      result = result.filter(faq => faq.categoria === activeCategory);
-    }
-
-    // Filtrar por búsqueda
+    if (faqs.length === 0 || searchQuery === undefined) return;
+    
+    // Si hay búsqueda, filtrar por búsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      result = result.filter(
-        faq =>
-          faq.question.toLowerCase().includes(query) ||
-          // Verificamos si el answer es un string o un componente JSX
-          (typeof faq.answer === 'string'
-            ? faq.answer.toLowerCase().includes(query)
-            : React.isValidElement(faq.answer)
-              // Para elementos JSX, convertimos a string para búsqueda
-              ? faq.answer.props.children
-                .flatMap(child => typeof child === 'string' ? child : '')
-                .join(' ')
-                .toLowerCase()
-                .includes(query)
-              : false)
+      let result = faqs.filter(
+        faq => faq.question.toLowerCase().includes(query)
       );
+      
+      // Filtrar por categoría también si no es "Todas"
+      if (activeCategory !== "Todas") {
+        result = result.filter(faq => faq.categoria === activeCategory);
+      }
+      
+      setFilteredFaqs(result);
+    } 
+    // Si no hay búsqueda pero hay categoría
+    else if (activeCategory !== "Todas") {
+      const categoryFaqs = faqs.filter(faq => faq.categoria === activeCategory);
+      setFilteredFaqs(categoryFaqs);
     }
-
-    setFilteredFaqs(result);
+    // Si no hay búsqueda y categoría es "Todas", mantenemos las preguntas aleatorias iniciales
   }, [faqs, searchQuery, activeCategory]);
 
   // Cargar preguntas al montar el componente
@@ -416,12 +989,35 @@ const FAQ = () => {
     }
   };
 
+  // Función para manejar la búsqueda
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    const value = e.target.value;
+    setSearchQuery(value);
   };
 
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
+    
+    // Si hay búsqueda, aplicar el filtro de categoría sobre los resultados de búsqueda
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      let searchResults = faqs.filter(
+        faq => faq.question.toLowerCase().includes(query)
+      );
+      
+      if (category !== "Todas") {
+        setFilteredFaqs(searchResults.filter(faq => faq.categoria === category));
+      } else {
+        setFilteredFaqs(searchResults);
+      }
+    } 
+    // Si no hay búsqueda, mostrar todas las preguntas de esa categoría
+    else {
+      if (category !== "Todas") {
+        setFilteredFaqs(faqs.filter(faq => faq.categoria === category));
+      }
+      // Si volvemos a "Todas", mantener las mismas preguntas aleatorias iniciales
+    }
   };
 
   // Componente de esqueleto para la carga
@@ -495,7 +1091,7 @@ const FAQ = () => {
     }
   };
 
-  // Estilos con animaciones mejoradas
+  // Estilos
   const styles = {
     container: {
       background: colors.background,
@@ -662,7 +1258,6 @@ const FAQ = () => {
       transition: "all 0.3s ease",
     },
     askButton: {
-      // Botón menos prominente
       background: 'transparent',
       color: colors.primary,
       border: `1px solid ${colors.primary}`,
@@ -680,6 +1275,14 @@ const FAQ = () => {
         boxShadow: "0 4px 8px rgba(0,0,0,0.1)",
         transform: "translateY(-2px)"
       }
+    },
+    controlsContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      width: '100%',
+      mb: 2,
+      mt: 3
     },
     modal: {
       "& .MuiDialog-paper": {
@@ -784,7 +1387,7 @@ const FAQ = () => {
     }
   };
 
-  // Componente SearchAndCategories rediseñado
+  // Componente SearchAndCategories simplificado
   const SearchAndCategories = () => {
     return (
       <Box sx={{
@@ -806,20 +1409,22 @@ const FAQ = () => {
             variant="outlined"
             value={searchQuery}
             onChange={handleSearchChange}
-            inputRef={searchInputRef}
             InputProps={{
               startAdornment: (
-                <Box component={HelpOutlineIcon} sx={{ mr: 1.5, color: colors.primary }} />
+                <InputAdornment position="start">
+                  <HelpOutlineIcon sx={{ color: colors.primary }} />
+                </InputAdornment>
               ),
-              endAdornment: searchQuery && (
-                <IconButton
-                  size="small"
-                  onClick={() => setSearchQuery("")}
-                  sx={{ color: colors.secondaryText }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              )
+              endAdornment: searchQuery ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    onClick={() => setSearchQuery("")}
+                  >
+                    <CloseIcon fontSize="small" sx={{ color: colors.secondaryText }} />
+                  </IconButton>
+                </InputAdornment>
+              ) : null
             }}
             sx={styles.searchField}
           />
@@ -856,7 +1461,9 @@ const FAQ = () => {
             }}
             InputProps={{
               startAdornment: (
-                <Box component={QuestionAnswerIcon} sx={{ mr: 1.5, color: colors.primary }} />
+                <InputAdornment position="start">
+                  <QuestionAnswerIcon sx={{ color: colors.primary }} />
+                </InputAdornment>
               ),
             }}
           >
@@ -879,6 +1486,7 @@ const FAQ = () => {
       </Box>
     );
   };
+
   return (
     <motion.div
       initial="hidden"
@@ -939,6 +1547,8 @@ const FAQ = () => {
         </Box>
       </motion.div>
 
+      {/* Eliminamos el botón de "Mostrar otras preguntas" */}
+
       {/* FAQs Section */}
       <Box sx={styles.faqContainer}>
         {loadingFaqs ? (
@@ -972,13 +1582,14 @@ const FAQ = () => {
                     }
                     sx={styles.accordionSummary}
                   >
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
                       {faq.categoria && (
                         <Chip
                           label={faq.categoria}
                           size="small"
                           sx={{
                             mr: 2,
+                            mb: isMobile ? 1 : 0,
                             backgroundColor: `${colors.primary}30`,
                             color: colors.primary,
                             fontWeight: 500,
@@ -1040,7 +1651,7 @@ const FAQ = () => {
                     No hay preguntas disponibles
                   </Typography>
                   <Typography variant="body2">
-                    Actualmente no hay preguntas frecuentes disponibles. Sé el primero en hacer una pregunta.
+                    Actualmente no hay preguntas frecuentes disponibles en esta categoría.
                   </Typography>
                 </>
               )}
@@ -1058,7 +1669,7 @@ const FAQ = () => {
         )}
       </Box>
 
-      {/* Ask Question Button - Menos visible */}
+      {/* Ask Question Button */}
       {filteredFaqs.length > 0 && (
         <motion.div
           variants={itemVariants}
@@ -1181,7 +1792,7 @@ const FAQ = () => {
                   startIcon={<SendIcon />}
                   sx={{
                     background: `linear-gradient(45deg, ${colors.primary}, ${colors.secondary})`,
-                    color: isDarkTheme ? "#000000" : "white",
+                    color: "#ffffff",
                     fontFamily: "Montserrat, sans-serif",
                     transition: 'all 0.3s ease',
                     borderRadius: '8px',
