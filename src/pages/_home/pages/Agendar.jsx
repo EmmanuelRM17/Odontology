@@ -13,20 +13,13 @@ import {
     Paper,
     Tooltip,
     Zoom,
-    CircularProgress,
-    Snackbar
-} from '@mui/material';
+    CircularProgress} from '@mui/material';
 import {
     ArrowBack,
     AccountCircle as AccountCircleIcon,
     PersonSearch as PersonSearchIcon,
     EventAvailable as EventAvailableIcon,
-    CheckCircle as CheckCircleIcon,
-    Info as InfoIcon,
-    CalendarMonth as CalendarIcon,
-    AccessTime as TimeIcon,
-    Email as EmailIcon,
-    Phone as PhoneIcon
+    CheckCircle as CheckCircleIcon
 } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';

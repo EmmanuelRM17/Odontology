@@ -43,6 +43,8 @@ import {
     ArrowBack as ArrowBackIcon,
     VerifiedUser as VerifiedUserIcon,
     ArrowForward as ArrowForwardIcon,
+    EventAvailable as EventAvailableIcon,
+    CalendarToday as CalendarTodayIcon,
 } from '@mui/icons-material';
 import { alpha } from '@mui/material/styles';
 import axios from 'axios';
@@ -79,6 +81,7 @@ const StepOne = ({
     const [email, setEmail] = useState('');
     const [emailError, setEmailError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -431,69 +434,120 @@ const StepOne = ({
                     : '0 6px 24px rgba(0,0,0,0.1)'
             }}
         >
-            <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <Box sx={{ mb: 4, textAlign: 'center' }}>
                 <Typography
                     variant="h5"
                     sx={{
-                        mb: 1,
+                        mb: 1.5,
                         color: colors.primary,
-                        fontWeight: 600,
+                        fontWeight: 700,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 1
+                        gap: 1.5,
+                        letterSpacing: '0.02em',
+                        textTransform: 'uppercase'
                     }}
                 >
-                    <MedicalIcon /> Identificación del Paciente
+                    <MedicalIcon sx={{ fontSize: 28 }} /> Identificación del Paciente
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Complete el formulario con sus datos personales para agendar una cita médica
+                <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    sx={{ mb: 3, maxWidth: '600px', mx: 'auto', lineHeight: 1.6 }}
+                >
+                    Por favor, complete el formulario con sus datos personales para reservar su cita médica de manera rápida y segura.
                 </Typography>
 
-                {/* Sección de pacientes registrados con pregunta y diálogo */}
                 <Paper
                     elevation={0}
                     sx={{
                         p: 2,
-                        bgcolor: 'primary.light',
-                        color: 'primary.contrastText',
-                        borderRadius: 2,
+                        bgcolor: 'grey.50',
+                        borderRadius: 3,
                         mb: 3,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                        borderLeft: '4px solid',
-                        borderColor: 'primary.main'
+                        boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+                        borderLeft: '5px solid',
+                        borderColor: 'primary.main',
+                        transition: 'transform 0.2s ease-in-out',
+                        '&:hover': { transform: 'translateY(-2px)' }
                     }}
                 >
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <HelpOutlineIcon color="inherit" sx={{ fontSize: 20 }} />
-                        <Typography variant="body1" fontWeight="500">
-                            ¿Ya eres paciente registrado?
-                        </Typography>
-                    </Box>
-
-                    <Button
-                        variant="contained"
-                        color="secondary"
-                        onClick={() => setOpenLoginDialog(true)}
-                        startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 20 }} />} // Icono más pequeño
+                    <Box
                         sx={{
-                            fontWeight: 'bold',
-                            borderRadius: 4, // Bordes más pequeños
-                            px: 2, // Padding lateral reducido
-                            py: 0.5, // Padding vertical reducido
-                            fontSize: '0.875rem', // Texto más pequeño
-                            textTransform: 'none',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)' // Sombra más sutil
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: { xs: 'stretch', sm: 'center' },
+                            justifyContent: 'space-between',
+                            gap: 2
                         }}
                     >
-                        Sí, ya soy paciente
-                    </Button>
-
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <HelpOutlineIcon color="primary" sx={{ fontSize: 24 }} />
+                                <Typography
+                                    variant="body1"
+                                    fontWeight={600}
+                                    color="text.primary"
+                                    sx={{ letterSpacing: '0.01em' }}
+                                >
+                                    ¿Paciente registrado o con cita?
+                                </Typography>
+                            </Box>
+                        </Box>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                gap: 2,
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                alignItems: 'center'
+                            }}
+                        >
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                onClick={() => setOpenLoginDialog(true)}
+                                startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 20 }} />}
+                                sx={{
+                                    fontWeight: 600,
+                                    borderRadius: 6,
+                                    px: 2.5,
+                                    py: 0.75,
+                                    fontSize: '0.85rem',
+                                    textTransform: 'none',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': { boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }
+                                }}
+                            >
+                                Soy paciente
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => setOpenAppointmentDialog(true)}
+                                startIcon={<CalendarTodayIcon sx={{ fontSize: 20 }} />}
+                                sx={{
+                                    fontWeight: 600,
+                                    borderRadius: 6,
+                                    px: 2.5,
+                                    py: 0.75,
+                                    fontSize: '0.85rem',
+                                    textTransform: 'none',
+                                    borderWidth: 2,
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        borderWidth: 2,
+                                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                                    }
+                                }}
+                            >
+                                Ver cita
+                            </Button>
+                        </Box>
+                    </Box>
                 </Paper>
-
                 {/* Diálogo para verificación de pacientes registrados */}
                 <Dialog
                     open={openLoginDialog}
@@ -611,6 +665,119 @@ const StepOne = ({
                         </Button>
 
 
+                    </DialogActions>
+                </Dialog>
+
+                {/* Diálogo para verificación de citas */}
+                <Dialog
+                    open={openAppointmentDialog}
+                    onClose={() => setOpenAppointmentDialog(false)}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 3,
+                            p: 1
+                        }
+                    }}
+                >
+                    <DialogTitle
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            pb: 1,
+                            borderBottom: '1px solid',
+                            borderColor: 'divider'
+                        }}
+                    >
+                        <CalendarTodayIcon color="primary" />
+                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                            Verificar Cita
+                        </Typography>
+                    </DialogTitle>
+
+                    <DialogContent sx={{ mt: 2, px: 3 }}>
+                        <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+                            Por favor, ingrese el correo electrónico asociado a su cita.
+                        </Typography>
+
+                        <TextField
+                            label="Correo Electrónico"
+                            placeholder="email@ejemplo.com"
+                            variant="outlined"
+                            fullWidth
+                            autoFocus
+                            value={email}
+                            onChange={(e) => {
+                                setEmail(e.target.value);
+                                validateEmail(e.target.value);
+                            }}
+                            error={!!emailError}
+                            helperText={emailError}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <EmailIcon color="action" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                            sx={{
+                                mb: 2,
+                                '& .MuiOutlinedInput-root': {
+                                    borderRadius: 2
+                                }
+                            }}
+                        />
+
+                        <Alert
+                            severity="info"
+                            icon={<InfoIcon />}
+                            sx={{
+                                borderRadius: 2,
+                                mb: 2
+                            }}
+                        >
+                            Al verificar su correo, podremos localizar sus citas existentes.
+                        </Alert>
+                    </DialogContent>
+
+                    <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+                        <Button
+                            variant="outlined"
+                            onClick={() => setOpenAppointmentDialog(false)}
+                            startIcon={<ArrowBackIcon />}
+                            sx={{
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 2
+                            }}
+                        >
+                            Atrás
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            startIcon={!loading && <VerifiedUserIcon />}
+                            onClick={() => {
+                                // Aquí deberías implementar la lógica para buscar citas
+                                if (validateEmail(email)) {
+                                    setLoading(true);
+                                    // Llamar a función para verificar cita
+                                }
+                            }}
+                            disabled={!email || !!emailError || loading}
+                            sx={{
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 3,
+                                fontWeight: 'bold',
+                                boxShadow: '0 3px 10px rgba(0,0,0,0.2)'
+                            }}
+                        >
+                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Buscar Cita'}
+                        </Button>
                     </DialogActions>
                 </Dialog>
             </Box>
