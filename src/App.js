@@ -113,14 +113,17 @@ function App() {
         setTituloPagina(nombre_pagina);
       }
       if (logo) {
-        const link = document.querySelector("link[rel*='icon']") || document.createElement("link");
-        link.type = "image/x-icon";
-        link.rel = "shortcut icon";
-        link.href = `data:image/png;base64,${logo}`;
-        document.head.appendChild(link);
-        setLogo(`data:image/png;base64,${logo}`);
+        const linkElement = document.querySelector("link[rel~='icon']");
+        if (linkElement) {
+          linkElement.href = `data:image/png;base64,${logo}`; // Actualiza el href existente
+        } else {
+          const link = document.createElement("link");
+          link.rel = "icon";
+          link.type = "image/png";
+          link.href = `data:image/png;base64,${logo}`;
+          document.head.appendChild(link);
+        }
       }
-
       setFetchErrors(0);
       setLoading(false);
 
@@ -190,7 +193,7 @@ function App() {
                   <FullPageLoader message="Cargando la página principal..." />
                 ) : (
                   <>
-                    <Chatbot /><Home /> 
+                    <Chatbot /><Home />
                     <Ubicacion /><Preguntas />
                   </>
                 )}

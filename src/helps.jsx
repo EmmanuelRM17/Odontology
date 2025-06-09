@@ -319,7 +319,6 @@ const DentalChat = () => {
             inputRef.current?.focus();
         }, 100);
 
-        // Simular "está escribiendo..."
         setIsTyping(true);
 
         // Procesar la respuesta

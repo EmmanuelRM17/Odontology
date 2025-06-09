@@ -259,7 +259,7 @@ const StepThree = ({
                     : '0 8px 32px rgba(0,0,0,0.15)',
                 border: `1px solid ${colors.primary}20`,
                 width: '100%',
-                maxWidth: '1200px',
+          //      maxWidth: '1200px',
                 margin: '0 auto',
             }}
         >

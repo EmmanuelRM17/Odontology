@@ -1,83 +1,85 @@
-/**
- * Carga automática optimizada de imágenes con ordenamiento consistente
- */
+// imageLoader.js - Implementación mejorada y más robusta
 
-// Importar automáticamente todas las imágenes de la carpeta 'imagenes'
-const importAllImages = (requireContext) => {
-  try {
-    // Obtenemos los keys (rutas) de todas las imágenes
-    const keys = requireContext.keys();
-    
-    // Creamos un objeto con clave: ruta, valor: imagen
-    const images = {};
-    keys.forEach(key => {
-      images[key] = requireContext(key);
-    });
-    
-    // Ordenamos las keys alfabéticamente para tener un orden consistente
-    const sortedKeys = keys.sort();
-    
-    // Creamos un array de imágenes ordenado según las keys ordenadas
-    return sortedKeys.map(key => images[key]);
-  } catch (error) {
-    console.error('Error cargando imágenes:', error);
-    return []; // Devolvemos array vacío en caso de error
-  }
-};
+// Importación manual de imágenes (más confiable)
+import img1 from '../assets/imagenes/img_1.jpg';
+import img2 from '../assets/imagenes/img_2.jpg';
+import img3 from '../assets/imagenes/img_3.jpg';
+import img4 from '../assets/imagenes/img_4.jpg';
+// Agregar más imágenes según necesites
 
-// Detectamos si estamos en entorno de servidor (SSR) para evitar errores
-const isServer = typeof window === 'undefined';
+// Array de imágenes con orden garantizado
+const imageArray = [
+  img1,
+  img2, 
+  img3,
+  img4
+  // Agregar más imágenes aquí
+].filter(Boolean); // Filtra valores undefined/null
 
-// Wrapper para require.context que funciona tanto en desarrollo como en producción
-const safeRequireContext = () => {
-  if (isServer) return { keys: () => [] }; // Si estamos en servidor, devuelve objeto vacío
-  
-  try {
-    return require.context('../assets/imagenes', false, /\.(jpg|jpeg|png|gif)$/);
-  } catch (error) {
-    console.warn('Error en require.context:', error);
-    return { keys: () => [] };
-  }
-};
-
-// Cargar todas las imágenes con extensiones jpg, png, jpeg, ordenadas por nombre
-const images = importAllImages(safeRequireContext());
-
-// Función para precargar imágenes (mejora el rendimiento del carrusel)
+// Función de precarga optimizada
 const preloadImages = () => {
-  if (isServer) return; // No precargar en el servidor
+  if (typeof window === 'undefined') return;
   
-  // Utilizar requestIdleCallback para no bloquear el hilo principal si está disponible
   const preload = () => {
-    images.forEach((src) => {
-      if (typeof src === 'string') {
+    imageArray.forEach((src, index) => {
+      if (src) {
         const img = new Image();
         img.src = src;
+        img.loading = 'eager';
+        // Solo log en desarrollo
+        if (process.env.NODE_ENV === 'development') {
+          img.onload = () => console.log(`✅ Imagen ${index + 1} cargada`);
+          img.onerror = () => console.error(`❌ Error en imagen ${index + 1}`);
+        }
       }
     });
   };
   
-  if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+  // Usar requestIdleCallback si está disponible
+  if ('requestIdleCallback' in window) {
     window.requestIdleCallback(preload, { timeout: 2000 });
   } else {
-    // Fallback a setTimeout para navegadores que no soportan requestIdleCallback
-    setTimeout(preload, 300);
+    setTimeout(preload, 100);
   }
 };
 
-// Precargamos imágenes cuando se importa este módulo (solo en cliente)
-if (!isServer) {
+// Función para obtener imagen por índice de forma segura
+const getImageByIndex = (index) => {
+  if (!imageArray.length) return '';
+  const safeIndex = ((index % imageArray.length) + imageArray.length) % imageArray.length;
+  return imageArray[safeIndex];
+};
+
+// Función para obtener imagen aleatoria
+const getRandomImage = () => {
+  if (!imageArray.length) return '';
+  const randomIndex = Math.floor(Math.random() * imageArray.length);
+  return imageArray[randomIndex];
+};
+
+// Hook personalizado para manejo de imágenes
+export const useImages = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  
+  useEffect(() => {
+    preloadImages();
+    const timer = setTimeout(() => setIsLoaded(true), 500);
+    return () => clearTimeout(timer);
+  }, []);
+  
+  return {
+    images: imageArray,
+    isLoaded,
+    getImageByIndex,
+    getRandomImage,
+    totalImages: imageArray.length
+  };
+};
+
+// Solo precargar en cliente
+if (typeof window !== 'undefined') {
   preloadImages();
 }
 
-// Exportamos las imágenes y también una función para obtener una imagen específica por índice de manera segura
-const getImageByIndex = (index) => {
-  if (!images.length) return ''; // Si no hay imágenes, devolver string vacío
-  
-  // Asegurarse de que el índice sea válido (modulo length)
-  const safeIndex = ((index % images.length) + images.length) % images.length;
-  return images[safeIndex];
-};
-
-export { getImageByIndex };
-export default images;
+export { getImageByIndex, getRandomImage };
+export default imageArray;

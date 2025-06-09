@@ -562,8 +562,8 @@ const HorariosAtencion = ({ colors, titleAnimationVariants, staggerItemVariants 
           >
             <Chip 
               label={horarios[hoyIndex].estado === 'abierto' 
-                ? `Hoy ${horarios[hoyIndex].dia}: ${horarios[hoyIndex].horas}` 
-                : `Hoy ${horarios[hoyIndex].dia}: No disponible`}
+                ? `${horarios[hoyIndex].dia}: ${horarios[hoyIndex].horas}` 
+                : `${horarios[hoyIndex].dia}: No disponible`}
               sx={{
                 fontSize: '0.85rem',
                 py: 0.8,

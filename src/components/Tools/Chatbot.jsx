@@ -1,893 +1,1491 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import axios from 'axios';
 import {
-    Box,
-    IconButton,
-    TextField,
-    Typography,
-    Tooltip,
-    Paper,
-    Avatar,
-    Zoom,
-    Fade,
-    Grow,
-    Badge,
-    CircularProgress,
-    useMediaQuery,
-    useTheme
+  Box,
+  IconButton,
+  TextField,
+  Typography,
+  Paper,
+  Avatar,
+  Badge,
+  CircularProgress,
+  useMediaQuery,
+  useTheme,
+  Tooltip,
+  Zoom,
+  Fade,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
 import {
-    Close as CloseIcon,
-    Send as SendIcon,
-    Settings as SettingsIcon,
-    Lightbulb as LightbulbIcon,
-    Chat as ChatIcon,
-    InsertEmoticon as EmojiIcon,
-    PersonOutline as PersonIcon,
-    SmartToy as BotIcon,
-    SupportAgent as SupportIcon
+  Close as CloseIcon,
+  Send as SendIcon,
+  Chat as ChatIcon,
+  PersonOutline as PersonIcon,
+  SmartToy as BotIcon,
+  Info as InfoIcon,
+  SwapHoriz as SwapPositionIcon,
+  ArrowDownward as ArrowIcon,
+  MedicalServices as TreatmentIcon,
+  EventAvailable as AppointmentIcon,
+  Lightbulb as TipIcon,
+  Help as HelpIcon,
+  RestartAlt as RestartIcon,
+  KeyboardDoubleArrowDown as DoubleArrowIcon
 } from '@mui/icons-material';
 import { keyframes } from '@mui/system';
-import { useThemeContext } from '../Tools/ThemeContext'; 
 import { createPortal } from 'react-dom';
 
-/**
- * Componente profesional de chat para asistencia dental
- * Proporciona una interfaz intuitiva para consultas y asistencia al paciente
- * Corregido para solucionar problemas de visualización y posicionamiento
- */
+// URL base para API
+const API_BASE_URL = 'https://back-end-4803.onrender.com/api';
+
+// Componente de mensaje optimizado
+const ChatMessage = memo(({ message, avatar, messageStyles }) => {
+  const { id, text, isUser, tipo } = message;
+  
+  return (
+    <Box
+      key={id}
+      sx={messageStyles.container(isUser)}
+    >
+      {!isUser && avatar.bot}
+      <Box sx={messageStyles.bubble(isUser, tipo)}>
+        <Typography variant="body1" sx={{
+          whiteSpace: 'pre-line',
+          fontSize: '0.95rem',
+          fontFamily: '"Inter", "Roboto", "Arial", sans-serif'
+        }}>
+          {text}
+        </Typography>
+      </Box>
+      {isUser && avatar.user}
+    </Box>
+  );
+});
+
+// Panel de información
+const InfoPanel = memo(({ onClose, styles, colors }) => (
+  <Fade in={true}>
+    <Box sx={styles.infoPanel}>
+      <Box sx={styles.infoTitle}>
+        Acerca del Asistente Dental
+        <IconButton
+          onClick={onClose}
+          size="small"
+          sx={{ color: colors.primary.main }}
+        >
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+      <Box sx={styles.infoContent}>
+        <Typography component="p" variant="body1" gutterBottom>
+          Bienvenido al asistente virtual de <strong>Odontología Carol</strong>. Este chatbot está diseñado para ayudarte con información y consultas sobre nuestros servicios dentales.
+        </Typography>
+
+        <Typography component="p" variant="body1" sx={{ fontWeight: 'bold', mt: 2 }}>
+          Funcionalidades principales:
+        </Typography>
+
+        <List dense sx={{ pl: 1 }}>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <TreatmentIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Información sobre nuestros servicios dentales" />
+          </ListItem>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <TipIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Consejos para una mejor salud bucal" />
+          </ListItem>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <AppointmentIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Orientación para agendar citas" />
+          </ListItem>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <HelpIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Respuestas a dudas frecuentes" />
+          </ListItem>
+        </List>
+
+        <Typography component="p" variant="body1" gutterBottom sx={{ mt: 1 }}>
+          Este asistente funciona 24/7 y está optimizado para brindarte la mejor atención. Para consultas específicas sobre tu historial dental o diagnósticos, te recomendamos contactar directamente con nuestra clínica.
+        </Typography>
+
+        <Typography component="p" variant="body1" sx={{ fontWeight: 'bold', mt: 2 }}>
+          Consejos de uso:
+        </Typography>
+
+        <List dense sx={{ pl: 1 }}>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <ArrowIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Sé claro y específico en tus preguntas" />
+          </ListItem>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <ArrowIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="Puedes cambiar la posición del chat con el botón de intercambio" />
+          </ListItem>
+          <ListItem sx={{ py: 0.5 }}>
+            <ListItemIcon sx={{ minWidth: 36 }}>
+              <ArrowIcon fontSize="small" color="primary" />
+            </ListItemIcon>
+            <ListItemText primary="El chat mantendrá un historial de tu conversación actual" />
+          </ListItem>
+        </List>
+
+        <Typography component="p" variant="body1" sx={{ mt: 2, fontWeight: 500, color: colors.primary.main }}>
+          ¡Estamos aquí para ayudarte a mantener una sonrisa saludable!
+        </Typography>
+      </Box>
+    </Box>
+  </Fade>
+));
+
+// Componente principal de chat dental
 const DentalChat = () => {
-    // Definimos las animaciones
-    const fadeIn = keyframes`
+  // Referencias
+  const messagesEndRef = useRef(null);
+  const inputRef = useRef(null);
+  const messageAreaRef = useRef(null);
+  const scrollTimeoutRef = useRef(null);
+  const intersectionObserverRef = useRef(null);
+  const lastUserInteractionRef = useRef(Date.now());
+  const typingTimeoutRef = useRef(null);
+
+  // Estado de UI
+  const [uiState, setUiState] = useState({
+    isOpen: false,
+    showInfo: false,
+    position: 'right',
+    unreadCount: 0
+  });
+
+  // Estado de chat
+  const [chatState, setChatState] = useState({
+    messages: [],
+    isTyping: false,
+    message: '',
+    connectionError: false,
+    conversationContext: {},
+    isInitialized: false
+  });
+
+  // Estado de scroll
+  const [scrollState, setScrollState] = useState({
+    isAtBottom: true,
+    needsScrollToBottom: false,
+    userScrolledUp: false
+  });
+
+  // Estado para portal
+  const [portalContainer, setPortalContainer] = useState(null);
+
+  // Tema y responsive
+  const theme = useTheme();
+  const isDarkTheme = theme.palette.mode === 'dark';
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+
+  // Actualizadores de estado
+  const updateUIState = useCallback((updates) => {
+    setUiState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateChatState = useCallback((updates) => {
+    setChatState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  const updateScrollState = useCallback((updates) => {
+    setScrollState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  // Animaciones
+  const animations = useMemo(() => ({
+    fadeIn: keyframes`
       from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(8px);
       }
       to {
         opacity: 1;
         transform: translateY(0);
       }
-    `;
-
-    const fadeOut = keyframes`
-      from {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-    `;
-
-    const pulse = keyframes`
+    `,
+    pulse: keyframes`
       0% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(3, 66, 124, 0.7);
+        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0.7);
       }
       70% {
         transform: scale(1.05);
-        box-shadow: 0 0 0 10px rgba(3, 66, 124, 0);
+        box-shadow: 0 0 0 10px rgba(25, 118, 210, 0);
       }
       100% {
         transform: scale(1);
-        box-shadow: 0 0 0 0 rgba(3, 66, 124, 0);
+        box-shadow: 0 0 0 0 rgba(25, 118, 210, 0);
       }
-    `;
-
-    const typing = keyframes`
+    `,
+    typing: keyframes`
       0% { opacity: 0.3; }
       50% { opacity: 1; }
       100% { opacity: 0.3; }
-    `;
+    `
+  }), []);
 
-    // Mensajes de bienvenida e instrucciones
-    const WELCOME_MESSAGE = [
-        "👋 ¡Hola! Soy el asistente virtual de Odontología Carol. Estoy aquí para ayudarte con tus consultas dentales.",
-        "Puedo asistirte con:\n• Información sobre tratamientos\n• Consejos de salud dental\n• Agendar citas\n• Resolver dudas generales",
-        "¿En qué puedo ayudarte hoy?"
-    ];
+  // Paleta de colores moderna
+  const colors = useMemo(() => ({
+    primary: {
+      main: '#1976D2',
+      light: '#42A5F5',
+      dark: '#0D47A1',
+      lighter: '#E3F2FD',
+      contrastText: '#ffffff'
+    },
+    secondary: {
+      main: '#651FFF',
+      light: '#834BFF',
+      dark: '#4615B2',
+      contrastText: '#ffffff'
+    },
+    error: {
+      light: '#FFEBEE',
+      main: '#F44336',
+      dark: '#C62828'
+    },
+    success: {
+      light: '#E8F5E9',
+      main: '#4CAF50',
+      dark: '#2E7D32'
+    },
+    background: {
+      light: '#ffffff',
+      dark: '#121212',
+      lightGradient: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+      darkGradient: 'linear-gradient(145deg, #1e1e1e 0%, #121212 100%)'
+    },
+    text: {
+      light: '#37474F',
+      dark: '#ECEFF1',
+      lightSecondary: '#546E7A',
+      darkSecondary: '#B0BEC5'
+    },
+    border: {
+      light: 'rgba(207, 216, 220, 0.5)',
+      dark: 'rgba(66, 66, 66, 0.5)'
+    },
+    accent: {
+      blue: '#2196F3',
+      teal: '#00BCD4',
+      purple: '#7C4DFF',
+      coral: '#FF5252'
+    }
+  }), []);
 
-    // Preguntas frecuentes sugeridas
-    const FAQ_QUESTIONS = [
-        "¿Cuánto cuesta una limpieza dental?",
-        "¿Cada cuánto debo visitar al dentista?",
-        "¿Qué hacer en caso de dolor dental?",
-        "¿Cuánto dura un blanqueamiento?",
-        "¿Aceptan todas las aseguradoras?"
-    ];
+  // Estilos principales
+  const styles = useMemo(() => ({
+    container: {
+      position: 'fixed',
+      bottom: isMobile ? '16px' : '32px',
+      left: uiState.position === 'left' ? (isMobile ? '16px' : '32px') : 'auto',
+      right: uiState.position === 'right' ? (isMobile ? '16px' : '32px') : 'auto',
+      zIndex: 1500,
+      maxWidth: '100vw',
+      maxHeight: '100vh',
+      pointerEvents: 'auto',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      willChange: 'transform, opacity',
+    },
+    
+    chatWindow: {
+      width: isMobile ? '100vw' : isTablet ? '460px' : '420px',
+      height: isMobile ? '85vh' : '600px',
+      maxWidth: isMobile ? 'calc(100vw - 32px)' : isTablet ? '460px' : '420px',
+      display: 'flex',
+      flexDirection: 'column',
+      borderRadius: isMobile ? '16px' : '24px',
+      overflow: 'hidden',
+      boxShadow: isDarkTheme ? 
+        '0 10px 30px rgba(0, 0, 0, 0.3)' : 
+        '0 10px 40px rgba(0, 0, 0, 0.15)',
+      background: isDarkTheme
+        ? colors.background.darkGradient
+        : colors.background.lightGradient,
+      border: `1px solid ${isDarkTheme ? colors.border.dark : colors.border.light}`,
+      margin: isMobile ? '0 auto' : '5px',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      willChange: 'transform, opacity',
+      backdropFilter: 'blur(10px)',
+      WebkitBackdropFilter: 'blur(10px)',
+    },
 
-    // Mensajes emergentes para el botón de chat
-    const TOOLTIP_MESSAGES = [
-        "¿Tienes una consulta dental? ¡Pregúntame!",
-        "¡Hola! ¿Necesitas ayuda con tu salud dental?",
-        "¿Dudas sobre tratamientos? Consulta conmigo",
-        "Asistente dental a tu servicio 🦷",
-        "¿En qué puedo ayudarte hoy? 😊"
-    ];
+    header: {
+      py: 2,
+      px: 2.5,
+      background: isDarkTheme
+        ? `linear-gradient(to right, ${colors.primary.dark}, ${colors.primary.main})`
+        : `linear-gradient(to right, ${colors.primary.main}, ${colors.primary.light})`,
+      color: '#ffffff',
+      borderTopLeftRadius: isMobile ? 16 : 24,
+      borderTopRightRadius: isMobile ? 16 : 24,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      position: 'relative',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      borderBottom: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'}`,
+    },
 
-    // Sistema simple de respuestas predefinidas
-    const PREDEFINED_RESPONSES = {
-        greeting: [
-            "¡Hola! ¿En qué puedo ayudarte hoy?",
-            "¡Hola! Soy el asistente virtual dental. ¿Cómo puedo asistirte?",
-            "¡Saludos! Estoy aquí para resolver tus dudas dentales. ¿En qué te puedo ayudar?"
-        ],
-        thanks: [
-            "¡De nada! Estoy aquí para ayudarte. ¿Hay algo más en lo que pueda asistirte?",
-            "Es un placer poder ayudarte. ¿Necesitas algo más?",
-            "No hay de qué. Si tienes más preguntas, no dudes en consultarme."
-        ],
-        notUnderstood: [
-            "Lo siento, no he comprendido tu consulta. ¿Podrías reformularla de otra manera?",
-            "Disculpa, no he entendido lo que necesitas. ¿Podrías ser más específico?",
-            "Parece que no puedo entender tu mensaje. ¿Podrías intentar expresarlo de otra forma?"
-        ],
-        pricing: [
-            "Los precios varían según el tratamiento específico y las necesidades individuales. Una limpieza dental básica oscila entre $600-$1,200 MXN. Para un presupuesto personalizado, te recomendaría agendar una evaluación inicial sin costo."
-        ],
-        visitFrequency: [
-            "Se recomienda visitar al dentista cada 6 meses para revisiones y limpiezas regulares. Sin embargo, si tienes tratamientos en curso o condiciones especiales, tu dentista podría recomendarte visitas más frecuentes."
-        ],
-        toothache: [
-            "Para un dolor dental repentino:\n• Toma un analgésico como paracetamol o ibuprofeno siguiendo las indicaciones\n• Enjuaga con agua tibia con sal\n• Evita alimentos muy fríos, calientes o dulces\n• Contacta con nuestra clínica para una cita de emergencia al 55-1234-5678"
-        ],
-        whitening: [
-            "Un tratamiento de blanqueamiento dental profesional en nuestra clínica dura aproximadamente una hora. Los resultados son inmediatos, y con buenos cuidados, pueden durar entre 1-3 años dependiendo de tus hábitos alimenticios y de higiene dental."
-        ],
-        insurance: [
-            "Trabajamos con las principales aseguradoras como Axa, GNP, Metlife, Allianz y MAPFRE. También ofrecemos planes de financiamiento y descuentos para pacientes sin seguro. ¿Te gustaría más información sobre algún plan específico?"
-        ],
-        appointmentScheduling: [
-            "Para agendar una cita, necesitaría algunos datos básicos. ¿Prefieres que te contacte un asistente para programarla, o deseas hacerlo por teléfono? Nuestro número es 55-1234-5678 y atendemos de lunes a viernes de 9am a 7pm."
-        ],
+    messageArea: {
+      flexGrow: 1,
+      overflowY: 'auto',
+      p: 2.5,
+      bgcolor: isDarkTheme ? colors.background.dark : colors.background.light,
+      overscrollBehavior: 'contain',
+      WebkitOverflowScrolling: 'touch',
+      scrollbarWidth: 'thin',
+      msOverflowStyle: 'none',
+      '&::-webkit-scrollbar': {
+        width: '6px',
+        borderRadius: '3px'
+      },
+      '&::-webkit-scrollbar-track': {
+        background: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.03)',
+        borderRadius: '3px',
+      },
+      '&::-webkit-scrollbar-thumb': {
+        background: isDarkTheme ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.15)',
+        borderRadius: '3px',
+        '&:hover': {
+          background: isDarkTheme ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)',
+        }
+      },
+      backgroundImage: isDarkTheme
+        ? `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232196F3' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
+        : `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232196F3' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+      backgroundAttachment: 'fixed',
+    },
+
+    // Estilos para mensajes
+    messageStyles: {
+      container: (isUser) => ({
+        display: 'flex',
+        justifyContent: isUser ? 'flex-end' : 'flex-start',
+        alignItems: 'flex-end',
+        mb: 2.5,
+        gap: 1.5,
+        animation: `${animations.fadeIn} 0.25s ease-out`,
+        position: 'relative',
+        px: 0.5,
+        transform: 'translateZ(0)',
+        willChange: 'transform, opacity',
+      }),
+      
+      bubble: (isUser, tipo) => ({
+        maxWidth: '85%',
+        p: '14px 18px',
+        borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        bgcolor: isUser
+          ? isDarkTheme ? colors.primary.main : colors.primary.main
+          : tipo === 'error'
+            ? isDarkTheme ? colors.error.dark : colors.error.light
+            : isDarkTheme ? '#363636' : '#F5F5F5',
+        color: isUser
+          ? '#ffffff'
+          : tipo === 'error'
+            ? isDarkTheme ? '#ffb4ab' : colors.error.dark
+            : isDarkTheme ? colors.text.dark : colors.text.light,
+        boxShadow: isUser
+          ? '0 2px 10px rgba(33, 150, 243, 0.2)'
+          : '0 2px 8px rgba(0, 0, 0, 0.05)',
+        '& .MuiTypography-root': {
+          lineHeight: 1.5,
+          fontSize: '0.95rem',
+          fontWeight: tipo === 'error' ? 500 : 400,
+          letterSpacing: '0.015em'
+        },
+        border: isUser ? 'none' : `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'}`,
+        transition: 'all 0.2s ease',
+        '&:hover': {
+          boxShadow: isUser
+            ? '0 4px 12px rgba(33, 150, 243, 0.3)'
+            : '0 4px 12px rgba(0, 0, 0, 0.08)',
+        },
+        transform: 'translateZ(0)',
+        willChange: 'transform, opacity',
+      }),
+    },
+
+    avatar: (isUser) => ({
+      width: 36,
+      height: 36,
+      bgcolor: isUser
+        ? isDarkTheme ? colors.primary.light : colors.primary.dark
+        : isDarkTheme ? '#424242' : '#E0E0E0',
+      color: isUser 
+        ? '#fff' 
+        : isDarkTheme ? '#fff' : colors.primary.dark,
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+      transition: 'all 0.2s ease',
+      '&:hover': {
+        transform: 'scale(1.05)'
+      },
+      border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'}`,
+    }),
+
+    typingIndicator: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 0.7,
+      p: '14px 20px',
+      borderRadius: '18px 18px 18px 4px',
+      bgcolor: isDarkTheme ? '#363636' : '#F5F5F5',
+      width: 'fit-content',
+      mb: 2,
+      maxWidth: '80%',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+      border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.03)'}`,
+    },
+
+    typingDot: {
+      width: 8,
+      height: 8,
+      borderRadius: '50%',
+      backgroundColor: isDarkTheme ? '#B0BEC5' : colors.primary.main,
+      animationName: `${animations.typing}`,
+      animationDuration: '1.4s',
+      animationIterationCount: 'infinite',
+      '&:nth-of-type(2)': {
+        animationDelay: '0.2s',
+      },
+      '&:nth-of-type(3)': {
+        animationDelay: '0.4s',
+      }
+    },
+
+    inputArea: {
+      p: 2.5,
+      pt: 1.5,
+      pb: 2,
+      bgcolor: isDarkTheme ? colors.background.dark : colors.background.light,
+      display: 'flex',
+      gap: 1.5,
+      alignItems: 'center',
+      borderTop: `1px solid ${isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.04)'}`,
+      position: 'relative',
+    },
+
+    textField: {
+      '& .MuiOutlinedInput-root': {
+        borderRadius: 30,
+        bgcolor: isDarkTheme ? '#1e1e1e' : '#ffffff',
+        color: isDarkTheme ? colors.text.dark : colors.text.light,
+        boxShadow: isDarkTheme ? 'none' : '0 2px 10px rgba(0, 0, 0, 0.05)',
+        '& fieldset': {
+          borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+          borderWidth: '1px',
+        },
+        '&:hover fieldset': {
+          borderColor: isDarkTheme ? 'rgba(255, 255, 255, 0.2)' : colors.primary.light,
+        },
+        '&.Mui-focused fieldset': {
+          borderColor: colors.primary.main,
+          borderWidth: '1px'
+        }
+      },
+      '& input': {
+        fontSize: '0.95rem',
+        padding: '16px 18px',
+      },
+      '& input::placeholder': {
+        color: isDarkTheme ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)',
+        opacity: 0.8,
+        fontSize: '0.92rem',
+      }
+    },
+
+    chatButtonContainer: {
+      position: 'fixed',
+      bottom: isMobile ? '16px' : '32px',
+      left: uiState.position === 'left' ? (isMobile ? '16px' : '32px') : 'auto',
+      right: uiState.position === 'right' ? (isMobile ? '16px' : '32px') : 'auto',
+      zIndex: 1500,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      willChange: 'transform',
+    },
+
+    chatButton: {
+      width: '60px',
+      height: '60px',
+      background: isDarkTheme
+        ? `linear-gradient(135deg, ${colors.primary.dark} 10%, ${colors.primary.main} 90%)`
+        : `linear-gradient(135deg, ${colors.primary.main} 10%, ${colors.primary.light} 90%)`,
+      color: '#ffffff',
+      boxShadow: '0 4px 20px rgba(33, 150, 243, 0.4)',
+      borderRadius: '50%',
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      pointerEvents: 'auto',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      '&:hover': {
+        transform: 'scale(1.05) translateY(-2px)',
+        boxShadow: '0 6px 30px rgba(33, 150, 243, 0.5)',
+      },
+      border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'}`,
+    },
+
+    sendButton: {
+      backgroundColor: colors.primary.main,
+      color: 'white',
+      '&:hover': {
+        backgroundColor: colors.primary.dark,
+        transform: 'scale(1.05)',
+      },
+      '&.Mui-disabled': {
+        backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.08)',
+        color: isDarkTheme ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.25)',
+      },
+      width: 44,
+      height: 44,
+      borderRadius: '50%',
+      boxShadow: '0 2px 10px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
+    },
+
+    headerButton: {
+      color: 'white',
+      background: 'rgba(255, 255, 255, 0.1)',
+      '&:hover': {
+        background: 'rgba(255, 255, 255, 0.2)',
+        transform: 'scale(1.05)',
+      },
+      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+      marginLeft: 1
+    },
+
+    infoPanel: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: isDarkTheme ? 'rgba(18, 18, 18, 0.97)' : 'rgba(255, 255, 255, 0.97)',
+      zIndex: 10,
+      p: 3,
+      display: 'flex',
+      flexDirection: 'column',
+      color: isDarkTheme ? colors.text.dark : colors.text.light,
+      backdropFilter: 'blur(8px)',
+      WebkitBackdropFilter: 'blur(8px)',
+      borderRadius: isMobile ? '16px' : '24px',
+      animation: `${animations.fadeIn} 0.3s ease-out`,
+      boxShadow: 'inset 0 0 20px rgba(0, 0, 0, 0.05)'
+    },
+
+    infoTitle: {
+      fontSize: '1.25rem',
+      fontWeight: 600,
+      mb: 2,
+      color: colors.primary.main,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between'
+    },
+
+    infoContent: {
+      mb: 2,
+      fontSize: '0.95rem',
+      lineHeight: 1.6,
+      overflow: 'auto',
+      flexGrow: 1,
+      '& p': {
+        mb: 1.5
+      }
+    },
+
+    customTooltip: {
+      backgroundColor: colors.primary.dark,
+      color: '#fff',
+      fontSize: '0.85rem',
+      padding: '8px 12px',
+      borderRadius: '8px',
+      boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+      maxWidth: '200px',
+      opacity: '1 !important',
+      zIndex: 9999
+    },
+
+    chatTooltip: {
+      position: 'absolute',
+      pointerEvents: 'none',
+      backgroundColor: colors.primary.dark,
+      color: '#fff',
+      fontSize: '0.75rem',
+      fontWeight: 500,
+      padding: '8px 12px',
+      borderRadius: '8px',
+      boxShadow: '0 2px 6px rgba(0, 0, 0, 0.2)',
+      whiteSpace: 'nowrap',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      [uiState.position === 'right' ? 'left' : 'right']: 'calc(100% + 12px)',
+      opacity: 0,
+      transition: 'opacity 0.2s ease',
+      zIndex: 1490,
+      '&::before': {
+        content: '""',
+        position: 'absolute',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        [uiState.position === 'right' ? 'right' : 'left']: '-6px',
+        borderWidth: '6px',
+        borderStyle: 'solid',
+        borderColor: 'transparent',
+        [`border${uiState.position === 'right' ? 'Left' : 'Right'}Color`]: colors.primary.dark,
+      }
+    },
+    
+    scrollIndicator: {
+      position: 'absolute',
+      bottom: '75px',
+      right: '15px',
+      backgroundColor: isDarkTheme ? 'rgba(18, 18, 18, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+      color: isDarkTheme ? colors.text.dark : colors.primary.main,
+      width: '32px',
+      height: '32px',
+      borderRadius: '50%',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      cursor: 'pointer',
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+      opacity: scrollState.isAtBottom ? 0 : 1,
+      transition: 'all 0.2s ease',
+      transform: scrollState.isAtBottom ? 'scale(0.8)' : 'scale(1)',
+      pointerEvents: scrollState.isAtBottom ? 'none' : 'auto',
+      zIndex: 5,
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+      '&:hover': {
+        transform: 'scale(1.1)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+      }
+    }
+  }), [animations, colors, isDarkTheme, isMobile, isTablet, uiState.position, scrollState.isAtBottom]);
+
+  // Avatares memoizados
+  const avatars = useMemo(() => ({
+    user: <Avatar sx={styles.avatar(true)}><PersonIcon fontSize="small" /></Avatar>,
+    bot: <Avatar sx={styles.avatar(false)}><BotIcon fontSize="small" /></Avatar>
+  }), [styles]);
+
+  // Crear contenedor del portal
+  useEffect(() => {
+    const portalDiv = document.createElement('div');
+    portalDiv.id = 'dental-chat-portal';
+    portalDiv.style.position = 'fixed';
+    portalDiv.style.zIndex = '9999';
+    portalDiv.style.top = '0';
+    portalDiv.style.left = '0';
+    portalDiv.style.width = '100%';
+    portalDiv.style.height = '0';
+    portalDiv.style.overflow = 'visible';
+    document.body.appendChild(portalDiv);
+
+    setPortalContainer(portalDiv);
+
+    return () => {
+      document.body.removeChild(portalDiv);
     };
+  }, []);
 
-    // Estados principales
-    const [isOpen, setIsOpen] = useState(false);
-    const [position, setPosition] = useState('right');
-    const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([]);
-    const [showTooltip, setShowTooltip] = useState(false);
-    const [showQuickQuestions, setShowQuickQuestions] = useState(false);
-    const [isTyping, setIsTyping] = useState(false);
-    const [unreadCount, setUnreadCount] = useState(0);
-    const [currentTooltipIndex, setCurrentTooltipIndex] = useState(0);
-    const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-    const [isClosing, setIsClosing] = useState(false);
-    const [portalContainer, setPortalContainer] = useState(null);
-
-    // Referencias
-    const messagesEndRef = useRef(null);
-    const tooltipTimeoutRef = useRef(null);
-    const inputRef = useRef(null);
-    const chatWindowRef = useRef(null);
-
-    // Contexto y temas
-    const { isDarkTheme } = useThemeContext();
-    const theme = useTheme();
-    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-
-    // Crear contenedor del portal al montar el componente
-    useEffect(() => {
-        // Crear un div para el portal
-        const portalDiv = document.createElement('div');
-        portalDiv.id = 'dental-chat-portal';
-        portalDiv.style.position = 'fixed';
-        portalDiv.style.zIndex = '9999';
-        portalDiv.style.top = '0';
-        portalDiv.style.left = '0';
-        portalDiv.style.width = '100%';
-        portalDiv.style.height = '0';
-        portalDiv.style.overflow = 'visible';
-        document.body.appendChild(portalDiv);
-        
-        setPortalContainer(portalDiv);
-        
-        // Limpiar al desmontar
-        return () => {
-            document.body.removeChild(portalDiv);
-        };
-    }, []);
-
-    // Inicializar mensajes de bienvenida
-    useEffect(() => {
-        if (messages.length === 0 && isOpen) {
-            // Añadir los mensajes de bienvenida con un pequeño retraso entre ellos
-            WELCOME_MESSAGE.forEach((msg, index) => {
-                setTimeout(() => {
-                    setIsTyping(true);
-
-                    setTimeout(() => {
-                        setIsTyping(false);
-                        setMessages(prevMessages => [
-                            ...prevMessages,
-                            { text: msg, isUser: false }
-                        ]);
-                    }, 1000 + (index * 300)); // Tiempo de escritura simulado
-
-                }, index * 1500); // Retraso entre mensajes
-            });
-        }
-    }, [isOpen, messages.length]);
-
-    // Cambiar mensaje de tooltip cada cierto tiempo
-    useEffect(() => {
-        if (showTooltip && !isOpen) {
-            const intervalId = setInterval(() => {
-                setCurrentTooltipIndex(prev =>
-                    prev === TOOLTIP_MESSAGES.length - 1 ? 0 : prev + 1
-                );
-            }, 9000);
-
-            return () => clearInterval(intervalId);
-        }
-    }, [showTooltip, isOpen]);
-
-    // Auto-scroll al último mensaje
-    useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
-    }, [messages, isTyping]);
-
-    // Manejar notificaciones
-    useEffect(() => {
-        if (!isOpen && messages.some(msg => msg.isUser)) {
-            setUnreadCount(1);
+  // Manejo de scroll con Intersection Observer
+  useEffect(() => {
+    if (!uiState.isOpen || !messageAreaRef.current || !messagesEndRef.current) return;
+    
+    const options = {
+      root: messageAreaRef.current,
+      threshold: 0.1
+    };
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          updateScrollState({ isAtBottom: true });
         } else {
-            setUnreadCount(0);
+          const timeSinceLastInteraction = Date.now() - lastUserInteractionRef.current;
+          if (timeSinceLastInteraction > 100) {
+            updateScrollState({ isAtBottom: false });
+          }
         }
-    }, [isOpen, messages]);
-
-    // Evento al pasar el mouse sobre el botón de chat
-    const handleMouseEnter = () => {
-        tooltipTimeoutRef.current = setTimeout(() => {
-            setShowTooltip(true);
-        }, 1000);
+      });
+    }, options);
+    
+    observer.observe(messagesEndRef.current);
+    intersectionObserverRef.current = observer;
+    
+    const handleUserScroll = () => {
+      lastUserInteractionRef.current = Date.now();
     };
-
-    // Evento al quitar el mouse del botón de chat
-    const handleMouseLeave = () => {
-        clearTimeout(tooltipTimeoutRef.current);
-        setShowTooltip(false);
+    
+    messageAreaRef.current.addEventListener('scroll', handleUserScroll, { passive: true });
+    
+    return () => {
+      if (intersectionObserverRef.current) {
+        intersectionObserverRef.current.disconnect();
+      }
+      if (messageAreaRef.current) {
+        messageAreaRef.current.removeEventListener('scroll', handleUserScroll);
+      }
     };
+  }, [uiState.isOpen, updateScrollState]);
 
-    // Cambiar posición del chat (izquierda/derecha)
-    const togglePosition = () => {
-        setPosition(prev => prev === 'right' ? 'left' : 'right');
+  // Limpieza de timeouts
+  useEffect(() => {
+    return () => {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
     };
+  }, []);
 
-    // Procesar patrones comunes en texto
-    const identifyMessageIntent = (text) => {
-        const lowerText = text.toLowerCase();
-
-        // Saludos
-        if (/^(hola|buenos días|buenas tardes|buenas noches|hey|saludos|qué tal|como estas)/i.test(lowerText)) {
-            return 'greeting';
+  // Efecto de auto-scroll
+  useEffect(() => {
+    if (!messageAreaRef.current || !messagesEndRef.current) return;
+    
+    const shouldScroll = 
+      chatState.isTyping || 
+      scrollState.needsScrollToBottom || 
+      (chatState.messages.length > 0 && 
+       chatState.messages[chatState.messages.length - 1].isUser) ||
+      scrollState.isAtBottom;
+    
+    if (shouldScroll) {
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current);
+      }
+      
+      scrollTimeoutRef.current = setTimeout(() => {
+        try {
+          messagesEndRef.current.scrollIntoView({
+            behavior: 'auto',
+            block: 'end'
+          });
+          
+          if (scrollState.needsScrollToBottom) {
+            updateScrollState({ needsScrollToBottom: false });
+          }
+        } catch (err) {
+          console.error("Error en scroll automático:", err);
         }
+        
+        scrollTimeoutRef.current = null;
+      }, 50);
+    }
+  }, [
+    chatState.messages, 
+    chatState.isTyping, 
+    scrollState.isAtBottom, 
+    scrollState.needsScrollToBottom, 
+    updateScrollState
+  ]);
 
-        // Agradecimientos
-        if (/^(gracias|muchas gracias|te lo agradezco|thanks)/i.test(lowerText)) {
-            return 'thanks';
-        }
-
-        // Precios
-        if (/precio|costo|cuánto cuesta|cuanto vale|tarifa|valor/i.test(lowerText) && /limpie[sz]a|blanqueamiento|consulta|tratamiento/i.test(lowerText)) {
-            if (/limpie[sz]a/i.test(lowerText)) {
-                return 'pricing';
-            } else if (/blanqueamiento/i.test(lowerText)) {
-                return 'whitening';
-            }
-        }
-
-        // Frecuencia de visitas
-        if (/(cada cuánto|con qué frecuencia|cada cuanto tiempo|regularmente|cada cuando) (debo|tengo que|hay que|se debe|debería) (ir|visitar|acudir|venir)/i.test(lowerText)) {
-            return 'visitFrequency';
-        }
-
-        // Dolor dental
-        if (/(dolor|duele|molestia|sensibilidad) (dental|de muelas|diente)/i.test(lowerText) || /que hago si me duele/i.test(lowerText)) {
-            return 'toothache';
-        }
-
-        // Blanqueamiento
-        if (/blanqueamiento|blanquear dientes|teeth whitening|aclarar dientes/i.test(lowerText) && /tiempo|dura|duración|cuánto tarda/i.test(lowerText)) {
-            return 'whitening';
-        }
-
-        // Seguros
-        if (/seguro|aseguradora|cobertura|insurance|plan dental/i.test(lowerText)) {
-            return 'insurance';
-        }
-
-        // Citas
-        if (/(agendar|programar|hacer|reservar|sacar) (una )?(cita|consulta|visita|appointment)/i.test(lowerText)) {
-            return 'appointmentScheduling';
-        }
-
-        // No se reconoció la intención
-        return null;
+  // Inicialización del chat
+  const initializeChat = useCallback(() => {
+    updateChatState({
+      messages: [],
+      isTyping: true,
+    });
+    
+    updateScrollState({
+      needsScrollToBottom: true,
+      isAtBottom: true
+    });
+    
+    const showFirstMessage = () => {
+      updateChatState({
+        isTyping: false,
+        messages: [{
+          text: "¡Hola! Soy el asistente virtual de Odontología Carol. Estoy aquí para ayudarte con tus consultas dentales.",
+          isUser: false,
+          id: Date.now(),
+          tipo: 'General',
+          subtipo: 'bienvenida'
+        }]
+      });
+      
+      setTimeout(() => {
+        updateChatState({ isTyping: true });
+        setTimeout(showSecondMessage, 800);
+      }, 600);
     };
-
-    // Obtener respuesta basada en la intención detectada
-    const getResponseForIntent = (intent) => {
-        if (!intent || !PREDEFINED_RESPONSES[intent]) {
-            return getRandomResponse('notUnderstood');
-        }
-
-        return getRandomResponse(intent);
+    
+    const showSecondMessage = () => {
+      updateChatState(prevState => ({
+        isTyping: false,
+        messages: [...prevState.messages, {
+          text: "Puedo asistirte con:\n• Información sobre tratamientos\n• Consejos de salud dental\n• Agendar citas\n• Resolver dudas generales",
+          isUser: false,
+          id: Date.now() + 1,
+          tipo: 'General',
+          subtipo: 'servicios'
+        }]
+      }));
+      
+      setTimeout(() => {
+        updateChatState({ isTyping: true });
+        setTimeout(showThirdMessage, 800);
+      }, 600);
     };
-
-    // Obtener respuesta aleatoria de un conjunto
-    const getRandomResponse = (type) => {
-        const responses = PREDEFINED_RESPONSES[type];
-        if (!responses || responses.length === 0) {
-            return "Lo siento, no puedo responder a eso en este momento.";
-        }
-
-        return responses[Math.floor(Math.random() * responses.length)];
+    
+    const showThirdMessage = () => {
+      updateChatState(prevState => ({
+        isTyping: false,
+        messages: [...prevState.messages, {
+          text: "¿En qué puedo ayudarte hoy?",
+          isUser: false,
+          id: Date.now() + 2,
+          tipo: 'General',
+          subtipo: 'pregunta'
+        }]
+      }));
     };
+    
+    setTimeout(showFirstMessage, 800);
+  }, [updateChatState, updateScrollState]);
 
-    // Enviar mensaje
-    const handleSendMessage = (e) => {
-        e?.preventDefault();
-        if (!message.trim()) return;
-
-        // Añadir mensaje del usuario
-        const userMessage = message.trim();
-        setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
-        setMessage('');
-
-        // Enfocar el input nuevamente
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100);
-
-        // Simular "está escribiendo..."
-        setIsTyping(true);
-
-        // Procesar la respuesta
-        setTimeout(() => {
-            setIsTyping(false);
-
-            // Detectar la intención del mensaje
-            const intent = identifyMessageIntent(userMessage);
-            const response = getResponseForIntent(intent);
-
-            // Añadir respuesta del bot
-            setMessages(prev => [...prev, { text: response, isUser: false }]);
-        }, 1500 + Math.random() * 1000); // Tiempo variable para que parezca más natural
-    };
-
-    // Cerrar el chat
-    const handleClose = () => {
-        setIsClosing(true);
-        setTimeout(() => {
-            setIsOpen(false);
-            setIsClosing(false);
-            setShowQuickQuestions(false);
+  // Inicializar chat al abrirse
+  useEffect(() => {
+    if (uiState.isOpen) {
+      if (chatState.messages.length === 0 && !chatState.isInitialized) {
+        updateChatState({ isInitialized: true });
+        initializeChat();
+      }
+      
+      if (!chatState.isTyping && !chatState.connectionError && inputRef.current) {
+        const focusTimeout = setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.focus();
+          }
         }, 300);
+        
+        return () => clearTimeout(focusTimeout);
+      }
+    }
+  }, [
+    uiState.isOpen, 
+    chatState.messages.length, 
+    chatState.isInitialized,
+    chatState.isTyping,
+    chatState.connectionError,
+    initializeChat,
+    updateChatState
+  ]);
+
+  // Gestión de notificaciones
+  useEffect(() => {
+    if (!uiState.isOpen && chatState.messages.some(msg => msg.isUser)) {
+      updateUIState({ unreadCount: 1 });
+    } else {
+      updateUIState({ unreadCount: 0 });
+    }
+  }, [uiState.isOpen, chatState.messages, updateUIState]);
+
+  // Reiniciar conversación
+  const resetConversation = useCallback(() => {
+    updateChatState({
+      isTyping: true,
+      messages: [],
+      conversationContext: {},
+      isInitialized: false
+    });
+    
+    updateScrollState({
+      isAtBottom: true,
+      needsScrollToBottom: true
+    });
+
+    setTimeout(() => {
+      initializeChat();
+    }, 300);
+  }, [initializeChat, updateChatState, updateScrollState]);
+
+  // Cambiar posición del chat
+  const togglePosition = useCallback(() => {
+    updateUIState({ position: uiState.position === 'right' ? 'left' : 'right' });
+  }, [uiState.position, updateUIState]);
+
+  // Reintentar conexión
+  const retryConnection = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    
+    updateChatState({
+      messages: [{
+        text: "Intentando reconectar con el servidor...",
+        isUser: false,
+        id: Date.now(),
+        tipo: 'sistema'
+      }],
+      isTyping: true,
+      connectionError: false,
+      isInitialized: false
+    });
+    
+    updateScrollState({
+      isAtBottom: true,
+      needsScrollToBottom: true
+    });
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      updateChatState(prevState => {
+        if (!prevState.isTyping) return prevState;
+        
+        return {
+          ...prevState,
+          isTyping: false,
+          connectionError: true,
+          messages: [
+            ...prevState.messages,
+            {
+              text: "No se pudo reconectar con el servidor. Verifica tu conexión a internet e intenta nuevamente.",
+              isUser: false,
+              id: Date.now() + 1,
+              tipo: 'error',
+              subtipo: 'reconnection_timeout'
+            }
+          ]
+        };
+      });
+      
+      typingTimeoutRef.current = null;
+    }, 10000);
+    
+    initializeChat();
+  }, [initializeChat, updateChatState, updateScrollState]);
+
+  // Actualizar mensaje
+  const handleMessageChange = useCallback((e) => {
+    updateChatState({ message: e.target.value });
+  }, [updateChatState]);
+
+  // Enviar mensaje
+  const handleSendMessage = useCallback(async (e) => {
+    e?.preventDefault();
+    
+    const trimmedMessage = chatState.message.trim();
+    if (!trimmedMessage) return;
+
+    const userMessage = {
+      text: trimmedMessage,
+      isUser: true,
+      id: Date.now()
     };
+    
+    updateChatState(prevState => ({
+      messages: [...prevState.messages, userMessage],
+      message: '',
+      isTyping: true
+    }));
+    
+    updateScrollState({
+      isAtBottom: true,
+      needsScrollToBottom: true
+    });
 
-    // Seleccionar una pregunta frecuente
-    const handleSelectQuestion = (question) => {
-        setMessage(question);
-        setShowQuickQuestions(false);
-        setTimeout(() => {
-            inputRef.current?.focus();
-        }, 100);
-    };
-
-    // Definición de estilos según el tema y dispositivo
-    const styles = {
-        // Contenedor principal del chat
-        container: {
-            position: 'fixed',
-            bottom: isMobile ? '16px' : '32px',
-            [position]: isMobile ? '16px' : '32px',
-            zIndex: 1500,
-            maxWidth: '100vw',
-            maxHeight: '100vh',
-            pointerEvents: 'auto',
-        },
-
-        // Ventana de chat
-        chatWindow: {
-            width: isMobile ? '100vw' : isTablet ? '350px' : '380px',
-            height: isMobile ? '92vh' : '520px',
-            maxWidth: isMobile ? 'calc(100vw - 32px)' : '380px',
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: isMobile ? '16px' : '20px',
-            overflow: 'hidden',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
-            background: isDarkTheme
-                ? 'linear-gradient(135deg, #1C2A38 0%, #1C2A38 100%)'
-                : 'linear-gradient(90deg, #ffffff 0%, #F9FDFF 100%)',
-            border: `1px solid ${isDarkTheme ? '#2C5282' : '#BEE3F8'}`,
-            margin: isMobile ? '0 auto' : '5px'
-        },
-
-        // Cabecera del chat
-        header: {
-            py: 1.5,
-            px: 2,
-            background: isDarkTheme
-                ? 'linear-gradient(135deg, #1A365D 0%, #2C5282 100%)'
-                : 'linear-gradient(90deg, #3182CE 0%, #4299E1 100%)',
-            color: '#ffffff',
-            borderTopLeftRadius: isMobile ? 16 : 20,
-            borderTopRightRadius: isMobile ? 16 : 20,
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            position: 'relative',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        },
-
-        // Título del chat
-        headerTitle: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-        },
-
-        // Área de mensajes
-        messageArea: {
-            flexGrow: 1,
-            overflowY: 'auto',
-            p: 2,
-            bgcolor: isDarkTheme ? '#1A202C' : '#F7FAFC',
-            backgroundImage: isDarkTheme
-                ? 'radial-gradient(circle at 25px 25px, rgba(255, 255, 255, 0.03) 2%, transparent 0%), radial-gradient(circle at 75px 75px, rgba(255, 255, 255, 0.02) 2%, transparent 0%)'
-                : 'radial-gradient(circle at 25px 25px, rgba(0, 0, 0, 0.01) 2%, transparent 0%), radial-gradient(circle at 75px 75px, rgba(0, 0, 0, 0.01) 2%, transparent 0%)',
-            backgroundSize: '100px 100px',
-            '&::-webkit-scrollbar': {
-                width: '6px',
-            },
-            '&::-webkit-scrollbar-track': {
-                background: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-                borderRadius: '3px',
-            },
-            '&::-webkit-scrollbar-thumb': {
-                background: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.2)',
-                borderRadius: '3px',
-                '&:hover': {
-                    background: isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.3)',
-                }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    typingTimeoutRef.current = setTimeout(() => {
+      updateChatState(prevState => {
+        if (!prevState.isTyping) return prevState;
+        
+        return {
+          ...prevState,
+          isTyping: false,
+          connectionError: true,
+          messages: [
+            ...prevState.messages,
+            {
+              text: "Lo siento, no recibí respuesta del servidor. Por favor, intenta nuevamente o verifica tu conexión.",
+              isUser: false,
+              id: Date.now() + 1,
+              tipo: 'error',
+              subtipo: 'timeout_error'
             }
-        },
+          ]
+        };
+      });
+      
+      updateScrollState({ needsScrollToBottom: true });
+      typingTimeoutRef.current = null;
+    }, 15000);
 
-        // Burbuja de mensaje
-        message: (isUser) => ({
-            maxWidth: '80%',
-            p: '12px 16px',
-            borderRadius: isUser ? '18px 18px 0 18px' : '18px 18px 18px 0',
-            bgcolor: isUser
-                ? isDarkTheme ? '#2B6CB0' : '#3182CE'
-                : isDarkTheme ? '#2D3748' : '#EBF8FF',
-            color: isUser
-                ? '#ffffff'
-                : isDarkTheme ? '#E2E8F0' : '#2D3748',
-            boxShadow: isUser
-                ? isDarkTheme ? '0 2px 5px rgba(0,0,0,0.2)' : '0 2px 5px rgba(0,0,0,0.1)'
-                : isDarkTheme ? '0 2px 5px rgba(0,0,0,0.2)' : '0 2px 5px rgba(0,0,0,0.05)',
-            '& .MuiTypography-root': {
-                lineHeight: 1.6,
-                fontSize: '0.95rem'
-            }
-        }),
+    try {
+      const response = await axios.post(`${API_BASE_URL}/chatbot/mensaje`, {
+        mensaje: trimmedMessage,
+        contexto: chatState.conversationContext
+      });
 
-        // Contenedor del mensaje con avatar
-        messageContainer: (isUser) => ({
-            display: 'flex',
-            justifyContent: isUser ? 'flex-end' : 'flex-start',
-            alignItems: 'flex-end',
-            mb: 2,
-            gap: 1,
-        }),
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
 
-        // Avatar en mensajes
-        avatar: (isUser) => ({
-            width: 32,
-            height: 32,
-            bgcolor: isUser
-                ? isDarkTheme ? '#4299E1' : '#2B6CB0'
-                : isDarkTheme ? '#4A5568' : '#90CDF4',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)'
-        }),
-
-        // Indicador de "está escribiendo..."
-        typingIndicator: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: 0.5,
-            p: '8px 16px',
-            borderRadius: '18px 18px 18px 0',
-            bgcolor: isDarkTheme ? '#2D3748' : '#EBF8FF',
-            width: 'fit-content',
-            mb: 2,
-            maxWidth: '80%',
-            boxShadow: isDarkTheme ? '0 2px 5px rgba(0,0,0,0.2)' : '0 2px 5px rgba(0,0,0,0.05)',
-        },
-
-        // Puntos animados del indicador de "está escribiendo..."
-        typingDot: {
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            backgroundColor: isDarkTheme ? '#CBD5E0' : '#4A5568',
-            animationName: `${typing}`,
-            animationDuration: '1.4s',
-            animationIterationCount: 'infinite',
-            '&:nth-of-type(2)': {
-                animationDelay: '0.2s',
-            },
-            '&:nth-of-type(3)': {
-                animationDelay: '0.4s',
-            }
-        },
-
-        // Área de entrada de texto
-        inputArea: {
-            p: 2,
-            bgcolor: isDarkTheme ? '#1A202C' : '#F7FAFC',
-            display: 'flex',
-            gap: 1,
-            alignItems: 'center',
-            borderTop: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-        },
-
-        // Campo de texto
-        textField: {
-            '& .MuiOutlinedInput-root': {
-                borderRadius: 20,
-                bgcolor: isDarkTheme ? '#2D3748' : '#ffffff',
-                color: isDarkTheme ? '#E2E8F0' : '#2D3748',
-                boxShadow: isDarkTheme ? 'none' : '0 2px 4px rgba(0,0,0,0.05)',
-                '& fieldset': {
-                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
-                    borderWidth: '1px',
-                },
-                '&:hover fieldset': {
-                    borderColor: isDarkTheme ? 'rgba(255,255,255,0.2)' : '#90CDF4',
-                },
-                '&.Mui-focused fieldset': {
-                    borderColor: '#3182CE',
-                }
-            },
-            '& input::placeholder': {
-                color: isDarkTheme ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.4)',
-                opacity: 0.7,
-            }
-        },
-
-        // Preguntas rápidas
-        quickQuestions: {
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            bgcolor: isDarkTheme ? '#2D3748' : '#ffffff',
-            borderRadius: '10px',
-            p: 1.5,
-            mt: 1,
-            minWidth: '250px',
-            maxWidth: isMobile ? '300px' : '320px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-            zIndex: 100,
-        },
-
-        // Botón de chat flotante
-        chatButton: {
-            position: 'fixed',
-            bottom: isMobile ? '16px' : '32px',
-            [position]: isMobile ? '16px' : '32px',
-            zIndex: 1500,
-            width: '60px',
-            height: '60px',
-            background: isDarkTheme
-                ? 'linear-gradient(135deg, #2B6CB0 0%, #4299E1 100%)'
-                : 'linear-gradient(45deg, #2B6CB0 0%, #4299E1 100%)',
-            color: '#ffffff',
-            boxShadow: '0 4px 10px rgba(49, 130, 206, 0.4)',
-            borderRadius: '50%',
-            transition: 'all 0.3s ease',
-            pointerEvents: 'auto',
-            '&:hover': {
-                transform: 'scale(1.05) translateY(-2px)',
-                boxShadow: '0 6px 20px rgba(49, 130, 206, 0.6)',
-            },
-        },
-
-        // Texto emergente del botón
-        tooltipBox: {
-            position: 'absolute',
-            [position === 'right' ? 'right' : 'left']: '70px',
-            bottom: '8px',
-            backgroundColor: isDarkTheme ? '#2D3748' : '#ffffff',
-            color: isDarkTheme ? '#E2E8F0' : '#2D3748',
-            padding: '10px 16px',
-            borderRadius: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            whiteSpace: 'normal',
-            zIndex: 1501,
-            border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
-            maxWidth: isMobile ? '200px' : '250px',
-            fontSize: '0.9rem',
-            lineHeight: 1.5,
-            '&::after': {
-                content: '""',
-                position: 'absolute',
-                [position === 'right' ? 'right' : 'left']: '-6px',
-                bottom: '50%',
-                transform: 'translateY(50%)',
-                width: 0,
-                height: 0,
-                borderTop: '6px solid transparent',
-                borderBottom: '6px solid transparent',
-                [position === 'right' ? 'borderLeft' : 'borderRight']: `6px solid ${isDarkTheme ? '#2D3748' : '#ffffff'}`
-            }
-        },
-
-        // Botón de envío
-        sendButton: {
-            backgroundColor: '#3182CE',
-            color: 'white',
-            '&:hover': {
-                backgroundColor: '#2B6CB0',
-            },
-            '&.Mui-disabled': {
-                backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
-                color: isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
-            },
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
-            marginRight: '10px',
+      setTimeout(() => {
+        updateChatState(prevState => {
+          if (!prevState.isTyping) {
+            return prevState;
+          }
+          
+          const newState = { isTyping: false };
+          
+          if (response.data?.contexto) {
+            newState.conversationContext = response.data.contexto;
+          }
+          
+          if (response.data?.respuesta) {
+            newState.messages = [
+              ...prevState.messages,
+              {
+                text: response.data.respuesta,
+                isUser: false,
+                id: Date.now() + 1,
+                tipo: response.data.tipo || 'General',
+                subtipo: response.data.subtipo || null
+              }
+            ];
+          } else {
+            newState.messages = [
+              ...prevState.messages,
+              {
+                text: "Lo siento, no pude procesar tu consulta. ¿Podrías intentar con otra pregunta?",
+                isUser: false,
+                id: Date.now() + 1,
+                tipo: 'error'
+              }
+            ];
+          }
+          
+          return newState;
+        });
+        
+        updateScrollState({ needsScrollToBottom: true });
+        
+        if (inputRef.current) {
+          setTimeout(() => {
+            inputRef.current.focus();
+          }, 100);
         }
-    };
+      }, 800);
 
-    // Contenido a renderizar en el portal
-    const chatPortal = portalContainer && createPortal(
-        <>
-            {/* Ventana de chat */}
-            {isOpen && (
-                <Fade in={!isClosing} timeout={300}>
-                    <Box sx={styles.container}>
-                        <Paper sx={styles.chatWindow} elevation={6} ref={chatWindowRef}>
-                            {/* Cabecera */}
-                            <Box sx={styles.header}>
-                                <Box sx={styles.headerTitle}>
-                                    <Avatar sx={{ bgcolor: '#3182CE', width: 38, height: 38 }}>
-                                        <SupportIcon />
-                                    </Avatar>
-                                    <Box>
-                                        <Typography variant="subtitle1" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
-                                            Asistente Dental
-                                        </Typography>
-                                        <Typography variant="caption" sx={{ opacity: 0.8, fontSize: '0.75rem' }}>
-                                            En línea | Tiempo de respuesta: &lt;1 min
-                                        </Typography>
-                                    </Box>
-                                </Box>
+    } catch (error) {
+      console.error("Error al enviar mensaje:", error);
+      
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
 
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    <Tooltip title="Preguntas frecuentes" arrow>
-                                        <IconButton
-                                            size="small"
-                                            onClick={() => setShowQuickQuestions(prev => !prev)}
-                                            sx={{ color: 'inherit', mr: 1 }}
-                                        >
-                                            <LightbulbIcon />
-                                        </IconButton>
-                                    </Tooltip>
+      setTimeout(() => {
+        let errorMessage = "Lo siento, ha ocurrido un error al procesar tu consulta.";
 
-                                    <Tooltip title="Configuración" arrow>
-                                        <IconButton
-                                            size="small"
-                                            onClick={togglePosition}
-                                            sx={{ color: 'inherit', mr: 1 }}
-                                        >
-                                            <SettingsIcon />
-                                        </IconButton>
-                                    </Tooltip>
+        if (error.response?.data?.error) {
+          errorMessage = `Error: ${error.response.data.error}`;
+        } else if (error.message.includes("Network Error")) {
+          errorMessage = "No puedo conectarme al servidor. Por favor, verifica tu conexión a internet.";
+          updateChatState({ connectionError: true });
+        }
 
-                                    <Tooltip title="Cerrar chat" arrow>
-                                        <IconButton
-                                            size="small"
-                                            onClick={handleClose}
-                                            sx={{ color: 'inherit' }}
-                                        >
-                                            <CloseIcon />
-                                        </IconButton>
-                                    </Tooltip>
-                                </Box>
+        updateChatState(prevState => {
+          if (!prevState.isTyping) {
+            return prevState;
+          }
+          
+          return {
+            ...prevState,
+            isTyping: false,
+            messages: [
+              ...prevState.messages,
+              {
+                text: errorMessage,
+                isUser: false,
+                id: Date.now() + 1,
+                tipo: 'error'
+              }
+            ]
+          };
+        });
 
-                                {/* Menú de preguntas frecuentes */}
-                                {showQuickQuestions && (
-                                    <Grow in={showQuickQuestions}>
-                                        <Paper sx={styles.quickQuestions} elevation={3}>
-                                            <Typography
-                                                variant="subtitle2"
-                                                sx={{ mb: 1, fontWeight: 600, color: isDarkTheme ? '#E2E8F0' : '#2D3748' }}
-                                            >
-                                                Preguntas frecuentes
-                                            </Typography>
+        updateScrollState({ needsScrollToBottom: true });
+        
+        if (inputRef.current && !chatState.connectionError) {
+          setTimeout(() => {
+            inputRef.current.focus();
+          }, 100);
+        }
+      }, 800);
+    }
+  }, [chatState.message, chatState.conversationContext, chatState.connectionError, updateChatState, updateScrollState]);
 
-                                            {FAQ_QUESTIONS.map((question, index) => (
-                                                <Box
-                                                    key={index}
-                                                    onClick={() => handleSelectQuestion(question)}
-                                                    sx={{
-                                                        p: 1.5,
-                                                        cursor: 'pointer',
-                                                        borderRadius: '8px',
-                                                        mb: 1,
-                                                        color: isDarkTheme ? '#E2E8F0' : '#2D3748',
-                                                        bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(235,248,255,0.7)',
-                                                        transition: 'all 0.2s ease',
-                                                        border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(144,205,244,0.3)'}`,
-                                                        '&:hover': {
-                                                            bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : '#EBF8FF',
-                                                            transform: 'translateY(-2px)',
-                                                            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                                                        },
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        '&::before': {
-                                                            content: '"Q:"',
-                                                            color: '#3182CE',
-                                                            fontWeight: 'bold',
-                                                            marginRight: '8px',
-                                                            fontSize: '0.9rem',
-                                                        }
-                                                    }}
-                                                >
-                                                    <Typography variant="body2" sx={{ fontSize: '0.9rem', lineHeight: 1.4 }}>
-                                                        {question}
-                                                    </Typography>
-                                                </Box>
-                                            ))}
-                                        </Paper>
-                                    </Grow>
-                                )}
-                            </Box>
+  // Renderizar mensajes
+  const renderMessages = useMemo(() => (
+    chatState.messages.map((msg) => (
+      <ChatMessage 
+        key={msg.id || Math.random()} 
+        message={msg} 
+        avatar={avatars} 
+        messageStyles={styles.messageStyles} 
+      />
+    ))
+  ), [chatState.messages, avatars, styles.messageStyles]);
 
-                            {/* Área de mensajes */}
-                            <Box sx={styles.messageArea}>
-                                {messages.map((msg, index) => (
-                                    <Box
-                                        key={index}
-                                        sx={styles.messageContainer(msg.isUser)}
-                                    >
-                                        {!msg.isUser && (
-                                            <Avatar sx={styles.avatar(msg.isUser)}>
-                                                <BotIcon fontSize="small" />
-                                            </Avatar>
-                                        )}
+  // Indicador de typing
+  const renderTypingIndicator = useMemo(() => (
+    chatState.isTyping && (
+      <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 2.5, gap: 1.5, animation: `${animations.fadeIn} 0.3s ease-out` }}>
+        {avatars.bot}
+        <Box sx={styles.typingIndicator}>
+          <Box sx={styles.typingDot} />
+          <Box sx={styles.typingDot} />
+          <Box sx={styles.typingDot} />
+        </Box>
+      </Box>
+    )
+  ), [chatState.isTyping, avatars.bot, styles.typingIndicator, styles.typingDot, animations.fadeIn]);
 
-                                        <Box sx={styles.message(msg.isUser)}>
-                                            <Typography variant="body2" style={{ whiteSpace: 'pre-line' }}>
-                                                {msg.text}
-                                            </Typography>
-                                        </Box>
+  // Renderizado del portal
+  const chatPortal = portalContainer && createPortal(
+    <>
+      {/* Ventana de chat */}
+      {uiState.isOpen && (
+        <Box sx={styles.container}>
+          <Paper sx={styles.chatWindow} elevation={3}>
+            {/* Cabecera */}
+            <Box sx={styles.header}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Avatar sx={{
+                  bgcolor: chatState.connectionError ? colors.error.main : colors.primary.main,
+                  width: 38,
+                  height: 38,
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)'
+                }}>
+                  <BotIcon fontSize="small" />
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle1" sx={{
+                    fontWeight: 600,
+                    lineHeight: 1.2,
+                    fontSize: '1rem',
+                    letterSpacing: '0.01em'
+                  }}>
+                    Asistente Dental
+                  </Typography>
+                  <Typography variant="caption" sx={{
+                    opacity: 0.9,
+                    fontSize: '0.75rem',
+                    fontWeight: 400
+                  }}>
+                    {chatState.connectionError ? 'Problema de conexión' : 'En línea | Odontología Carol'}
+                  </Typography>
+                </Box>
+              </Box>
 
-                                        {msg.isUser && (
-                                            <Avatar sx={styles.avatar(msg.isUser)}>
-                                                <PersonIcon fontSize="small" />
-                                            </Avatar>
-                                        )}
-                                    </Box>
-                                ))}
-
-                                {/* Indicador de "está escribiendo..." */}
-                                {isTyping && (
-                                    <Box sx={{ display: 'flex', alignItems: 'flex-end', mb: 2, gap: 1 }}>
-                                        <Avatar sx={styles.avatar(false)}>
-                                            <BotIcon fontSize="small" />
-                                        </Avatar>
-
-                                        <Box sx={styles.typingIndicator}>
-                                            <Box sx={styles.typingDot} />
-                                            <Box sx={styles.typingDot} />
-                                            <Box sx={styles.typingDot} />
-                                        </Box>
-                                    </Box>
-                                )}
-
-                                {/* Referencia para auto-scroll */}
-                                <div ref={messagesEndRef} />
-                            </Box>
-
-                            {/* Área de entrada de mensaje */}
-                            <Box
-                                component="form"
-                                onSubmit={handleSendMessage}
-                                sx={styles.inputArea}
-                            >
-                                <TextField
-                                    fullWidth
-                                    size="small"
-                                    value={message}
-                                    onChange={(e) => setMessage(e.target.value)}
-                                    placeholder="Escribe tu consulta dental..."
-                                    variant="outlined"
-                                    sx={styles.textField}
-                                    inputRef={inputRef}
-                                />
-
-                                {/* Botón de enviar */}
-                                <IconButton
-                                    type="submit"
-                                    disabled={!message.trim()}
-                                    sx={styles.sendButton}
-                                >
-                                    <SendIcon fontSize="small" />
-                                </IconButton>
-                            </Box>
-                        </Paper>
-                    </Box>
-                </Fade>
-            )}
-
-            {/* Botón flotante de chat */}
-            {!isOpen && (
-                <Badge
-                    badgeContent={unreadCount}
-                    color="error"
-                    overlap="circular"
-                    sx={{
-                        '& .MuiBadge-badge': {
-                            fontSize: '0.8rem',
-                            height: 22,
-                            minWidth: 22,
-                            top: 8,
-                            right: 8,
-                        }
-                    }}
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                {/* Botón para reiniciar conversación */}
+                <Tooltip
+                  title="Reiniciar conversación"
+                  arrow
+                  placement="bottom"
+                  TransitionComponent={Zoom}
+                  classes={{ tooltip: styles.customTooltip }}
                 >
-                    <Box
-                        sx={{
-                            ...styles.chatButton,
-                            animation: unreadCount > 0 ? `${pulse} 2s infinite` : 'none'
-                        }}
-                        onMouseEnter={handleMouseEnter}
-                        onMouseLeave={handleMouseLeave}
-                        data-chat-button="true"
+                  <IconButton
+                    size="small"
+                    onClick={resetConversation}
+                    sx={styles.headerButton}
+                  >
+                    <RestartIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                
+                {/* Cancelar estado de typing */}
+                {chatState.isTyping && (
+                  <Tooltip
+                    title="Cancelar espera"
+                    arrow
+                    placement="bottom"
+                    TransitionComponent={Zoom}
+                    classes={{ tooltip: styles.customTooltip }}
+                  >
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        if (typingTimeoutRef.current) {
+                          clearTimeout(typingTimeoutRef.current);
+                          typingTimeoutRef.current = null;
+                        }
+                        
+                        updateChatState(prevState => ({
+                          ...prevState,
+                          isTyping: false,
+                          messages: [
+                            ...prevState.messages,
+                            {
+                              text: "Espera cancelada. Por favor, intenta enviar tu mensaje nuevamente.",
+                              isUser: false,
+                              id: Date.now(),
+                              tipo: 'sistema',
+                              subtipo: 'cancel_typing'
+                            }
+                          ]
+                        }));
+                      }}
+                      sx={{
+                        ...styles.headerButton,
+                        backgroundColor: 'rgba(244, 67, 54, 0.2)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(244, 67, 54, 0.3)',
+                        }
+                      }}
                     >
-                        {showTooltip && !isOpen && (
-                            <Box
-                                sx={styles.tooltipBox}
-                                key={currentTooltipIndex}
-                            >
-                                {TOOLTIP_MESSAGES[currentTooltipIndex]}
-                            </Box>
-                        )}
-                        <IconButton
-                            onClick={() => setIsOpen(true)}
-                            sx={{
-                                width: '100%',
-                                height: '100%',
-                                color: '#ffffff',
-                                '&:hover': {
-                                    bgcolor: 'transparent'
-                                }
-                            }}
-                            data-chat-button="true"
-                        >
-                            <ChatIcon sx={{ fontSize: 28 }} />
-                        </IconButton>
-                    </Box>
-                </Badge>
-            )}
-        </>,
-        portalContainer
-    );
+                      <CloseIcon fontSize="small" />
+                    </IconButton>
+                  </Tooltip>
+                )}
 
-    return chatPortal || null;
+                {/* Cambiar posición */}
+                <Tooltip
+                  title="Cambiar posición del chat"
+                  arrow
+                  placement="bottom"
+                  TransitionComponent={Zoom}
+                  classes={{ tooltip: styles.customTooltip }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={togglePosition}
+                    sx={styles.headerButton}
+                  >
+                    <SwapPositionIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Botón de información */}
+                <Tooltip
+                  title="Información sobre el chat"
+                  arrow
+                  placement="bottom"
+                  TransitionComponent={Zoom}
+                  classes={{ tooltip: styles.customTooltip }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => updateUIState({ showInfo: true })}
+                    sx={styles.headerButton}
+                  >
+                    <InfoIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+
+                {/* Cerrar chat */}
+                <Tooltip
+                  title="Cerrar chat"
+                  arrow
+                  placement="bottom"
+                  TransitionComponent={Zoom}
+                  classes={{ tooltip: styles.customTooltip }}
+                >
+                  <IconButton
+                    size="small"
+                    onClick={() => updateUIState({ isOpen: false })}
+                    sx={styles.headerButton}
+                  >
+                    <CloseIcon fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
+
+            {/* Panel de información */}
+            {uiState.showInfo && (
+              <InfoPanel 
+                onClose={() => updateUIState({ showInfo: false })} 
+                styles={styles}
+                colors={colors}
+              />
+            )}
+
+            {/* Área de mensajes */}
+            <Box 
+              sx={styles.messageArea} 
+              ref={messageAreaRef}
+            >
+              {renderMessages}
+              {renderTypingIndicator}
+
+              {/* Referencia para auto-scroll */}
+              <div ref={messagesEndRef} />
+              
+              {/* Indicador de scroll */}
+              {chatState.messages.length > 0 && !scrollState.isAtBottom && (
+                <Tooltip
+                  title="Ir al final de la conversación"
+                  arrow
+                  placement="left"
+                  TransitionComponent={Zoom}
+                >
+                  <Box 
+                    sx={styles.scrollIndicator}
+                    onClick={() => {
+                      updateScrollState({ 
+                        isAtBottom: true,
+                        needsScrollToBottom: true 
+                      });
+                    }}
+                  >
+                    <DoubleArrowIcon sx={{ fontSize: 16 }} />
+                  </Box>
+                </Tooltip>
+              )}
+            </Box>
+
+            {/* Área de entrada */}
+            <Box
+              component="form"
+              onSubmit={handleSendMessage}
+              sx={styles.inputArea}
+            >
+              <TextField
+                fullWidth
+                size="small"
+                value={chatState.message}
+                onChange={handleMessageChange}
+                placeholder={chatState.connectionError ? "Reconectar primero..." : "Escribe tu mensaje..."}
+                variant="outlined"
+                sx={styles.textField}
+                inputRef={inputRef}
+                disabled={chatState.isTyping || chatState.connectionError}
+                autoFocus
+                inputProps={{
+                  'aria-label': 'Mensaje',
+                  maxLength: 500,
+                }}
+              />
+
+              {/* Botón de enviar */}
+              <Tooltip
+                title="Enviar mensaje"
+                arrow
+                placement="top"
+                TransitionComponent={Zoom}
+                classes={{ tooltip: styles.customTooltip }}
+              >
+                <span>
+                  <IconButton
+                    type="submit"
+                    disabled={!chatState.message.trim() || chatState.isTyping || chatState.connectionError}
+                    sx={styles.sendButton}
+                    aria-label="Enviar mensaje"
+                  >
+                    {chatState.isTyping ? (
+                      <CircularProgress size={24} color="inherit" />
+                    ) : (
+                      <SendIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+          </Paper>
+        </Box>
+      )}
+
+      {/* Botón flotante */}
+      {!uiState.isOpen && (
+        <Box sx={styles.chatButtonContainer} className="chat-button-container">
+          <Badge
+            badgeContent={uiState.unreadCount}
+            color="error"
+            overlap="circular"
+            sx={{
+              '& .MuiBadge-badge': {
+                fontSize: '0.75rem',
+                height: 22,
+                minWidth: 22,
+                top: 6,
+                right: 6,
+                padding: '0 6px',
+                boxShadow: '0 2px 5px rgba(0, 0, 0, 0.2)'
+              }
+            }}
+          >
+            <Box
+              sx={styles.chatButton}
+              onClick={() => {
+                updateUIState({ isOpen: true });
+                if (chatState.connectionError) {
+                  retryConnection();
+                }
+              }}
+              onMouseEnter={(e) => {
+                const tooltip = e.currentTarget.parentNode.querySelector('.chat-tooltip');
+                if (tooltip) {
+                  tooltip.style.opacity = '1';
+                }
+              }}
+              onMouseLeave={(e) => {
+                const tooltip = e.currentTarget.parentNode.querySelector('.chat-tooltip');
+                if (tooltip) {
+                  tooltip.style.opacity = '0';
+                }
+              }}
+              style={{
+                animation: uiState.unreadCount > 0 ? `${animations.pulse} 2s infinite` : 'none',
+                backgroundColor: chatState.connectionError ? colors.error.main : undefined
+              }}
+              aria-label="Abrir chat de asistencia"
+              role="button"
+              tabIndex={0}
+            >
+              <ChatIcon sx={{ fontSize: 30, color: '#ffffff' }} />
+            </Box>
+
+            {/* Tooltip */}
+            <Box
+              className="chat-tooltip"
+              sx={{
+                ...styles.chatTooltip,
+                left: uiState.position === 'right' ? 'auto' : 'calc(100% + 12px)',
+                right: uiState.position === 'left' ? 'auto' : 'calc(100% + 12px)',
+              }}
+            >
+              Abrir chat de asistencia
+            </Box>
+          </Badge>
+        </Box>
+      )}
+    </>,
+    portalContainer
+  );
+
+  return chatPortal || null;
 };
 
 export default DentalChat;

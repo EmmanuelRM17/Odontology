@@ -1,18 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Box } from '@mui/material';
 import BarraNav from './barraNav';
 import PieDePagina from './Footer';
-import { useThemeContext } from '../Tools/ThemeContext'; // Asegúrate de usar la ruta correcta
+import { useThemeContext } from '../Tools/ThemeContext';
 
-const LayoutConEncabezado = ({ children }) => {
-  const { isDarkTheme  } = useThemeContext();
+const LayoutConEncabezado = ({ children, noPadding = false }) => {
+  const { isDarkTheme } = useThemeContext();
 
   return (
     <Box
       sx={{
         display: 'flex',
         flexDirection: 'column',
-        minHeight: '100vh', // Asegura que ocupe toda la altura de la pantalla
+        minHeight: '100vh',
       }}
     >
       <Box component="header">
@@ -22,9 +22,16 @@ const LayoutConEncabezado = ({ children }) => {
       <Box
         component="main"
         sx={{
-          flex: 1, // Hace que el main ocupe todo el espacio disponible
-          p: .5, // Espaciado alrededor del contenido
-          backgroundColor: isDarkTheme ? '#1d2a38' : '#ffffff', // Cambia el color del padding según el tema
+          flex: 1,
+          p: 0, 
+          backgroundColor: isDarkTheme ? '#1d2a38' : '#ffffff',
+          position: 'relative',
+          overflow: 'visible', 
+          border: 'none',
+          boxShadow: 'none',
+          margin: 0,
+          width: '100%',
+          maxWidth: 'none'
         }}
       >
         {children}
@@ -35,7 +42,7 @@ const LayoutConEncabezado = ({ children }) => {
         sx={{
           backgroundColor: isDarkTheme ? '#0D1B2A' : '#03427C',
           color: '#ffffff',
-          p: 2, // Padding para el footer
+          p: 2,
           textAlign: 'center',
         }}
       >
