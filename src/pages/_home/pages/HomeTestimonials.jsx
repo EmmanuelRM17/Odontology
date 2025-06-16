@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,20 +10,43 @@ import {
   useTheme,
   Avatar,
   Rating,
-  Button,
-  IconButton
+  IconButton,
+  Skeleton,
+  Alert
 } from '@mui/material';
-import { Star, Phone, WhatsApp, LocationOn, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { Star, ChevronLeft, ChevronRight } from '@mui/icons-material';
 
 // Hooks y utilidades
-import { useIntersectionObserver, TESTIMONIALS } from '../constants';
+import { useIntersectionObserver } from '../constants';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import ContactButtons from './Steps/ContactButtons';
+
+// Componente para skeleton loading
+const TestimonialSkeleton = ({ colors }) => (
+  <Paper
+    elevation={0}
+    sx={{
+      p: { xs: 3, md: 4 },
+      height: '280px',
+      borderRadius: { xs: '12px', md: '16px' },
+      backgroundColor: colors.cardBg,
+      border: `1px solid ${colors.border}`,
+    }}
+  >
+    <Skeleton variant="rectangular" width="60%" height={24} sx={{ mb: 2 }} />
+    <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
+    <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
+    <Skeleton variant="text" width="80%" height={20} sx={{ mb: 3 }} />
+    <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
+      <Skeleton variant="circular" width={42} height={42} sx={{ mr: 2 }} />
+      <Skeleton variant="text" width="40%" height={20} />
+    </Box>
+  </Paper>
+);
 
 // Componente para testimonios optimizado
 const TestimonialCard = ({ testimonial, index, isVisible, colors }) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Generar iniciales para el avatar
   const getInitials = (name) => {
@@ -31,7 +54,17 @@ const TestimonialCard = ({ testimonial, index, isVisible, colors }) => {
       .split(' ')
       .map(part => part[0])
       .join('')
-      .toUpperCase();
+      .toUpperCase()
+      .slice(0, 2);
+  };
+  
+  // Formatear fecha
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
   
   return (
@@ -108,38 +141,52 @@ const TestimonialCard = ({ testimonial, index, isVisible, colors }) => {
         <Box sx={{ 
           display: 'flex',
           alignItems: 'center',
+          justifyContent: 'space-between',
           mt: 'auto'
         }}>
-          <Avatar
-            sx={{
-              bgcolor: `${colors.primary}30`,
-              color: colors.primary,
-              width: { xs: 36, md: 42 },
-              height: { xs: 36, md: 42 },
-              mr: 2,
-              fontSize: { xs: '0.9rem', md: '1rem' },
-              fontWeight: 600
-            }}
-          >
-            {getInitials(testimonial.name)}
-          </Avatar>
-          <Typography
-            variant="subtitle2"
-            sx={{
-              fontWeight: 600,
-              color: colors.primary,
-              fontSize: { xs: '0.85rem', md: '0.95rem' }
-            }}
-          >
-            {testimonial.name}
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Avatar
+              sx={{
+                bgcolor: `${colors.primary}30`,
+                color: colors.primary,
+                width: { xs: 36, md: 42 },
+                height: { xs: 36, md: 42 },
+                mr: 2,
+                fontSize: { xs: '0.9rem', md: '1rem' },
+                fontWeight: 600
+              }}
+            >
+              {getInitials(testimonial.name)}
+            </Avatar>
+            <Box>
+              <Typography
+                variant="subtitle2"
+                sx={{
+                  fontWeight: 600,
+                  color: colors.primary,
+                  fontSize: { xs: '0.85rem', md: '0.95rem' }
+                }}
+              >
+                {testimonial.name}
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: colors.subtext,
+                  fontSize: { xs: '0.7rem', md: '0.75rem' }
+                }}
+              >
+                {formatDate(testimonial.date)}
+              </Typography>
+            </Box>
+          </Box>
         </Box>
       </Paper>
     </Fade>
   );
 };
 
-// Componente para móvil simplificado sin swipe
+// Componente para móvil simplificado
 const MobileTestimonialSlider = ({ testimonials, testimonialVisible, colors, isDarkTheme }) => {
   const [index, setIndex] = React.useState(0);
 
@@ -151,9 +198,10 @@ const MobileTestimonialSlider = ({ testimonials, testimonialVisible, colors, isD
     setIndex((current) => (current === 0 ? testimonials.length - 1 : current - 1));
   };
 
+  if (testimonials.length === 0) return null;
+
   return (
     <Box sx={{ width: '100%', mb: 3, position: 'relative' }}>
-      {/* Testimonio actual */}
       <Box sx={{ padding: '8px', minHeight: '280px' }}>
         <TestimonialCard
           testimonial={testimonials[index]}
@@ -163,85 +211,131 @@ const MobileTestimonialSlider = ({ testimonials, testimonialVisible, colors, isD
         />
       </Box>
 
-      {/* Botones de navegación */}
-      <Box sx={{ 
-        position: 'absolute', 
-        left: 0, 
-        right: 0, 
-        top: '50%', 
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        justifyContent: 'space-between',
-        px: 1,
-        zIndex: 10 
-      }}>
-        <IconButton
-          onClick={prevTestimonial}
-          sx={{ 
-            backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-            boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
-            color: colors.primary,
-            width: 36, 
-            height: 36
-          }}
-        >
-          <ChevronLeft fontSize="small" />
-        </IconButton>
-        <IconButton
-          onClick={nextTestimonial}
-          sx={{ 
-            backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-            boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
-            color: colors.primary,
-            width: 36, 
-            height: 36
-          }}
-        >
-          <ChevronRight fontSize="small" />
-        </IconButton>
-      </Box>
+      {testimonials.length > 1 && (
+        <>
+          <Box sx={{ 
+            position: 'absolute', 
+            left: 0, 
+            right: 0, 
+            top: '50%', 
+            transform: 'translateY(-50%)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            px: 1,
+            zIndex: 10 
+          }}>
+            <IconButton
+              onClick={prevTestimonial}
+              sx={{ 
+                backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+                color: colors.primary,
+                width: 36, 
+                height: 36
+              }}
+            >
+              <ChevronLeft fontSize="small" />
+            </IconButton>
+            <IconButton
+              onClick={nextTestimonial}
+              sx={{ 
+                backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
+                boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+                color: colors.primary,
+                width: 36, 
+                height: 36
+              }}
+            >
+              <ChevronRight fontSize="small" />
+            </IconButton>
+          </Box>
 
-      {/* Indicadores */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          mt: 2,
-          gap: 1
-        }}
-      >
-        {testimonials.map((_, idx) => (
           <Box
-            key={`indicator-${idx}`}
-            onClick={() => setIndex(idx)}
             sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: idx === index
-                ? colors.primary
-                : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              '&:hover': {
-                transform: 'scale(1.3)',
-                bgcolor: colors.primary
-              }
+              display: 'flex',
+              justifyContent: 'center',
+              mt: 2,
+              gap: 1
             }}
-          />
-        ))}
-      </Box>
+          >
+            {testimonials.map((_, idx) => (
+              <Box
+                key={`indicator-${idx}`}
+                onClick={() => setIndex(idx)}
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  bgcolor: idx === index
+                    ? colors.primary
+                    : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    transform: 'scale(1.3)',
+                    bgcolor: colors.primary
+                  }
+                }}
+              />
+            ))}
+          </Box>
+        </>
+      )}
     </Box>
   );
 };
 
-// Componente principal HomeTestimonials optimizado
+// Componente principal HomeTestimonials
 const HomeTestimonials = ({ colors }) => {
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [testimonialRef, testimonialVisible] = useIntersectionObserver();
   const [ctaRef, ctaVisible] = useIntersectionObserver();
+  
+  // Estados para manejar datos del backend
+  const [testimonials, setTestimonials] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Función para cargar testimonios desde el backend
+  const fetchTestimonials = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('https://back-end-4803.onrender.com/api/resenya/get');
+      
+      if (!response.ok) {
+        throw new Error('Error al cargar testimoniales');
+      }
+      
+      const data = await response.json();
+      
+      // Filtrar solo reseñas habilitadas y mapear a formato requerido
+      const activeTestimonials = data
+        .filter(item => item.estado === 'Habilitado')
+        .map(item => ({
+          id: item.reseñaId,
+          name: `${item.nombre} ${item.aPaterno || ''} ${item.aMaterno || ''}`.trim(),
+          rating: item.calificacion,
+          testimonial: item.comentario,
+          date: item.fecha_creacion
+        }))
+        .slice(0, 6); // Mostrar máximo 6 testimonios
+      
+      setTestimonials(activeTestimonials);
+      setError(null);
+    } catch (err) {
+      setError('No se pudieron cargar los testimonios');
+      console.error('Error al cargar testimoniales:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Cargar testimonios al montar el componente
+  useEffect(() => {
+    fetchTestimonials();
+  }, []);
 
   return (
     <Container 
@@ -282,28 +376,69 @@ const HomeTestimonials = ({ colors }) => {
           La satisfacción de nuestros pacientes es nuestra mejor carta de presentación
         </Typography>
 
-        {isMobile ? (
-          // Versión móvil simplificada
-          <MobileTestimonialSlider
-            testimonials={TESTIMONIALS}
-            testimonialVisible={testimonialVisible}
-            colors={colors}
-            isDarkTheme={isDarkTheme}
-          />
+        {/* Contenido de testimonios */}
+        {loading ? (
+          // Estado de carga
+          isMobile ? (
+            <TestimonialSkeleton colors={colors} />
+          ) : (
+            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+              {[1, 2, 3].map((index) => (
+                <Grid item xs={12} md={4} key={index}>
+                  <TestimonialSkeleton colors={colors} />
+                </Grid>
+              ))}
+            </Grid>
+          )
+        ) : error ? (
+          // Estado de error
+          <Alert 
+            severity="info" 
+            sx={{ 
+              maxWidth: '600px', 
+              mx: 'auto',
+              backgroundColor: colors.cardBg,
+              color: colors.text
+            }}
+          >
+            {error}
+          </Alert>
+        ) : testimonials.length === 0 ? (
+          // Sin testimonios
+          <Alert 
+            severity="info" 
+            sx={{ 
+              maxWidth: '600px', 
+              mx: 'auto',
+              backgroundColor: colors.cardBg,
+              color: colors.text
+            }}
+          >
+            Aún no hay testimonios disponibles.
+          </Alert>
         ) : (
-          // Versión desktop
-          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-            {TESTIMONIALS.map((testimonial, index) => (
-              <Grid item xs={12} md={4} key={index}>
-                <TestimonialCard
-                  testimonial={testimonial}
-                  index={index}
-                  isVisible={testimonialVisible}
-                  colors={colors}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          // Mostrar testimonios
+          isMobile ? (
+            <MobileTestimonialSlider
+              testimonials={testimonials}
+              testimonialVisible={testimonialVisible}
+              colors={colors}
+              isDarkTheme={isDarkTheme}
+            />
+          ) : (
+            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+              {testimonials.map((testimonial, index) => (
+                <Grid item xs={12} md={4} key={testimonial.id}>
+                  <TestimonialCard
+                    testimonial={testimonial}
+                    index={index}
+                    isVisible={testimonialVisible}
+                    colors={colors}
+                  />
+                </Grid>
+              ))}
+            </Grid>
+          )
         )}
       </Box>
 
@@ -352,13 +487,12 @@ const HomeTestimonials = ({ colors }) => {
           Estamos comprometidos con la salud bucal de nuestra comunidad. Ofrecemos tratamientos dentales de calidad con un trato cercano y precios accesibles. ¡Tu sonrisa es nuestra prioridad!
         </Typography>
 
-        {/* Botones de contacto */}
         <ContactButtons
-  colors={colors}
-  isDarkTheme={isDarkTheme}
-  isCTA={true}
-  showLabels={true}
-/>
+          colors={colors}
+          isDarkTheme={isDarkTheme}
+          isCTA={true}
+          showLabels={true}
+        />
       </Box>
     </Container>
   );

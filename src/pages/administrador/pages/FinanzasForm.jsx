@@ -1,531 +1,821 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  Box, 
-  TextField, 
-  Button, 
-  Grid, 
-  MenuItem, 
-  FormControl, 
-  InputLabel, 
-  Select,
-  Typography, 
-  Paper, 
-  Divider, 
-  InputAdornment, 
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Box,
+  TextField,
+  Button,
+  Grid,
+  Typography,
+  Paper,
+  Divider,
+  InputAdornment,
   CircularProgress,
-  Alert,
   Autocomplete,
   Chip,
   Card,
   CardContent,
-  Stack,
-  Tabs,
-  Tab,
-  Badge,
   IconButton,
-  Tooltip,
-  Collapse,
-  Switch,
-  FormControlLabel,
   useTheme,
   useMediaQuery,
-  Avatar
+  Avatar,
+  Alert,
+  Badge,
+  Tab,
+  Tabs,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Collapse,
+  Stack,
+  Fade,
+  Tooltip,
+  Menu,
+  ListItemIcon,
+  ListItemText
 } from '@mui/material';
-import { 
-  Receipt, 
-  Person, 
-  CalendarMonth, 
-  Payment, 
-  SaveAlt, 
-  Cancel, 
-  Event, 
+import {
+  Receipt,
+  Person,
+  Payment,
+  SaveAlt,
+  Cancel,
   CheckCircle,
-  PendingActions,
-  PointOfSale,
-  Healing,
   PaymentsTwoTone,
-  ReceiptLong,
-  Info,
-  ArrowDropDown,
-  ArrowDropUp,
-  History,
-  MoreVert,
-  AttachMoney,
   Search,
+  AccountBalance,
+  MonetizationOn,
+  CreditCard,
+  AccountBalanceWallet,
+  Warning,
+  PersonSearch,
+  ArrowBack,
+  Email,
+  ConfirmationNumber,
+  Phone,
+  CalendarToday,
+  MedicalServices,
+  AccountCircle,
   FilterList,
-  Add
+  CheckCircleOutline,
+  PrintOutlined,
+  Refresh,
+  PaidOutlined,
+  MoreVert,
+  GetApp,
+  FileCopy,
+  Info,
+  Close
 } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
 import axios from 'axios';
 import { useAuth } from '../../../components/Tools/AuthContext';
+import Notificaciones from '../../../components/Layout/Notificaciones';
 
-// Función para generar colores de estado
-const getStatusColor = (estado) => {
-  const statusColors = {
-    'Pendiente': '#ffa726',
-    'Confirmada': '#42a5f5',
-    'Completada': '#66bb6a',
-    'Pagada': '#26a69a',
-    'Cancelada': '#ef5350',
-    'Pagado': '#26a69a', 
-    'Parcial': '#ab47bc'
-  };
-  return statusColors[estado] || '#757575';
-};
-
-// Componente de gestión de pagos con UX mejorada
 const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const { user } = useAuth();
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  // Estados del componente
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [success, setSuccess] = useState(null);
-  const [tabValue, setTabValue] = useState(0);
-  const [pacientes, setPacientes] = useState([]);
-  const [citas, setCitas] = useState([]);
-  const [historialPagos, setHistorialPagos] = useState([]);
-  const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
-  const [citaSeleccionada, setCitaSeleccionada] = useState(null);
-  const [showDetails, setShowDetails] = useState(true);
-  const [showHistory, setShowHistory] = useState(false);
-  const [filtroEstadoCitas, setFiltroEstadoCitas] = useState([]);
-  const [isPagoParcial, setIsPagoParcial] = useState(false);
-  const [serviciosPendientes, setServiciosPendientes] = useState([]);
-  const [saldoTotal, setSaldoTotal] = useState(0);
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Estado del formulario
-  const [formValues, setFormValues] = useState({
-    paciente_id: '',
-    cita_id: '',
-    factura_id: '',
-    monto: 0,
-    subtotal: 0,
-    total: 0,
-    concepto: '',
+  // Estados principales
+  const [currentStep, setCurrentStep] = useState('selection');
+  const [activeTab, setActiveTab] = useState(1); // 0: Buscar, 1: Deudas, 2: Pagados
+  const [loading, setLoading] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [showPaymentDetails, setShowPaymentDetails] = useState(false);
+  const [selectedPaymentDetails, setSelectedPaymentDetails] = useState(null);
+
+  // Estados de datos
+  const [pacientes, setPacientes] = useState([]);
+  const [pacientesConDeudas, setPacientesConDeudas] = useState([]);
+  const [pacientesPagados, setPacientesPagados] = useState([]);
+  const [selectedPaciente, setSelectedPaciente] = useState(null);
+  const [selectedCita, setSelectedCita] = useState(null);
+  const [pacienteCompleto, setPacienteCompleto] = useState(null);
+
+  // Estados para menú contextual
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [selectedPago, setSelectedPago] = useState(null);
+
+  // Estados para filtros
+  const [showFilters, setShowFilters] = useState(false);
+  const [filtros, setFiltros] = useState({
+    montoMin: '',
+    montoMax: '',
+    fechaDesde: null,
+    fechaHasta: null,
+    ordenarPor: 'deuda_desc'
+  });
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState('info');
+  const [formErrors, setFormErrors] = useState({});
+
+  // Estado del formulario de pago
+  const [paymentData, setPaymentData] = useState({
     metodo_pago: 'Efectivo',
     fecha_pago: new Date(),
-    estado: 'Pagado',
-    comprobante: '',
+    email_pagador: '',
+    referencia: '',
     notas: ''
   });
 
-  // Estado para errores de validación
-  const [formErrors, setFormErrors] = useState({});
+  // Función para mostrar notificaciones
+  const showNotif = useCallback((message, type = 'info') => {
+    setNotificationMessage(message);
+    setNotificationType(type);
+    setShowNotification(true);
+  }, []);
 
-  // Efecto para cargar pacientes
+  const handleCloseNotification = useCallback(() => {
+    setShowNotification(false);
+  }, []);
+
+  // Cargar pacientes con deudas
+  const fetchPacientesConDeudas = useCallback(async () => {
+    try {
+      setLoading(true);
+
+      const [citasResponse, pagosResponse] = await Promise.all([
+        axios.get('https://back-end-4803.onrender.com/api/citas/all'),
+        axios.get('https://back-end-4803.onrender.com/api/Finanzas/Pagos/')
+      ]);
+
+      const todasCitas = citasResponse.data;
+      const todosPagos = pagosResponse.data;
+
+      // Filtrar citas completadas
+      const citasCompletadas = todasCitas.filter(cita =>
+        cita.estado === 'Completada' &&
+        cita.precio_servicio &&
+        parseFloat(cita.precio_servicio) > 0 &&
+        cita.paciente_id
+      );
+
+      const deudasPorPaciente = {};
+      const pagadosPorPaciente = {};
+
+      citasCompletadas.forEach(cita => {
+        const pagoRelacionado = todosPagos.find(pago =>
+          pago.cita_id === cita.consulta_id && ['Pagado', 'Parcial'].includes(pago.estado)
+        );
+
+        const pacienteId = cita.paciente_id;
+        const precioServicio = parseFloat(cita.precio_servicio) || 0;
+
+        const datosBasicos = {
+          paciente_id: pacienteId,
+          nombre: cita.paciente_nombre || '',
+          apellido_paterno: cita.paciente_apellido_paterno || '',
+          apellido_materno: cita.paciente_apellido_materno || '',
+          telefono: cita.paciente_telefono || '',
+          correo: cita.paciente_correo || '',
+          genero: cita.paciente_genero || '',
+          fecha_nacimiento: cita.paciente_fecha_nacimiento || ''
+        };
+
+        const citaData = {
+          id: cita.consulta_id,
+          consulta_id: cita.consulta_id,
+          servicio_id: cita.servicio_id,
+          servicio_nombre: cita.servicio_nombre || 'Servicio no especificado',
+          categoria_servicio: cita.categoria_servicio || 'General',
+          precio_servicio: precioServicio,
+          fecha_consulta: cita.fecha_consulta,
+          odontologo_id: cita.odontologo_id,
+          odontologo_nombre: cita.odontologo_nombre || 'No especificado',
+          notas: cita.notas || '',
+          pago: pagoRelacionado || null
+        };
+
+        if (pagoRelacionado) {
+          // Paciente con pago
+          if (!pagadosPorPaciente[pacienteId]) {
+            pagadosPorPaciente[pacienteId] = {
+              ...datosBasicos,
+              citasPagadas: [],
+              totalPagado: 0,
+              ultimoPago: null
+            };
+          }
+          pagadosPorPaciente[pacienteId].citasPagadas.push(citaData);
+          pagadosPorPaciente[pacienteId].totalPagado += precioServicio;
+          
+          const fechaPago = new Date(pagoRelacionado.fecha_pago);
+          if (!pagadosPorPaciente[pacienteId].ultimoPago || fechaPago > new Date(pagadosPorPaciente[pacienteId].ultimoPago)) {
+            pagadosPorPaciente[pacienteId].ultimoPago = pagoRelacionado.fecha_pago;
+          }
+        } else {
+          // Paciente con deuda
+          if (!deudasPorPaciente[pacienteId]) {
+            deudasPorPaciente[pacienteId] = {
+              ...datosBasicos,
+              citasPendientes: [],
+              totalDeuda: 0,
+              ultimaCita: null
+            };
+          }
+          deudasPorPaciente[pacienteId].citasPendientes.push(citaData);
+          deudasPorPaciente[pacienteId].totalDeuda += precioServicio;
+          
+          const fechaCita = new Date(cita.fecha_consulta);
+          if (!deudasPorPaciente[pacienteId].ultimaCita || fechaCita > new Date(deudasPorPaciente[pacienteId].ultimaCita)) {
+            deudasPorPaciente[pacienteId].ultimaCita = cita.fecha_consulta;
+          }
+        }
+      });
+
+      const pacientesConDeudas = Object.values(deudasPorPaciente)
+        .filter(p => p.citasPendientes.length > 0)
+        .sort((a, b) => b.totalDeuda - a.totalDeuda);
+
+      const pacientesPagados = Object.values(pagadosPorPaciente)
+        .filter(p => p.citasPagadas.length > 0)
+        .sort((a, b) => new Date(b.ultimoPago) - new Date(a.ultimoPago));
+
+      setPacientesConDeudas(pacientesConDeudas);
+      setPacientesPagados(pacientesPagados);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      showNotif('Error al cargar información', 'error');
+      setLoading(false);
+    }
+  }, [showNotif]);
+
+  // Cargar información completa del paciente
+  const fetchPacienteCompleto = async (pacienteId) => {
+    try {
+      const response = await axios.get(`https://back-end-4803.onrender.com/api/reportes/pacientes`);
+      const paciente = response.data.find(p => p.id === pacienteId);
+      if (paciente) {
+        setPacienteCompleto(paciente);
+      }
+    } catch (err) {
+      console.warn('No se pudo cargar información adicional del paciente:', err);
+    }
+  };
+
+  // Cargar pacientes para búsqueda
   useEffect(() => {
     const fetchPacientes = async () => {
       try {
-        setLoading(true);
         const response = await axios.get('https://back-end-4803.onrender.com/api/reportes/pacientes');
         setPacientes(response.data);
-        setLoading(false);
+        await fetchPacientesConDeudas();
       } catch (err) {
         console.error('Error al cargar pacientes:', err);
-        setError('No se pudieron cargar los pacientes. Intenta de nuevo más tarde.');
-        setLoading(false);
+        showNotif('Error al cargar pacientes', 'error');
       }
     };
-
     fetchPacientes();
-  }, []);
+  }, [fetchPacientesConDeudas, showNotif]);
 
-  // Cargar datos del pago si existe
-  useEffect(() => {
-    const fetchPago = async () => {
-      if (!idPago) return;
-      
-      setLoading(true);
-      try {
-        const response = await axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/${idPago}`);
-        
-        setFormValues({
-          ...response.data,
-          fecha_pago: new Date(response.data.fecha_pago)
-        });
-        
-        // Buscar el paciente
-        const paciente = pacientes.find(p => p.id === response.data.paciente_id);
-        if (paciente) {
-          setPacienteSeleccionado(paciente);
-          await fetchPacienteData(paciente.id);
-        }
-        
-        // Si tiene cita asociada, buscarla
-        if (response.data.cita_id) {
-          const citaResponse = await axios.get(`https://back-end-4803.onrender.com/api/citas/${response.data.cita_id}`);
-          setCitaSeleccionada(citaResponse.data);
-        }
-        
-        setLoading(false);
-      } catch (err) {
-        console.error(`Error al cargar el pago #${idPago}:`, err);
-        setError('Error al cargar los datos del pago');
-        setLoading(false);
-      }
-    };
+  // Funciones para manejar menu de pagos completados
+  const handleMenuClick = (event, pago, paciente) => {
+    event.stopPropagation();
+    setAnchorEl(event.currentTarget);
+    setSelectedPago({ ...pago, paciente });
+  };
 
-    fetchPago();
-  }, [idPago, pacientes]);
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+    setSelectedPago(null);
+  };
 
-  // Función para cargar los datos completos del paciente (citas y pagos)
-  const fetchPacienteData = async (pacienteId) => {
+  // Ver detalles del pago
+  const handleVerDetalles = async (pago, paciente) => {
     try {
       setLoading(true);
-      
-      // Cargar citas - IMPORTANTE: ahora cargamos TODAS las citas, no solo las pendientes
-      const citasResponse = await axios.get(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteId}`);
-      setCitas(citasResponse.data);
-      
-      // Extraer servicios pendientes de pago
-      const pendientes = citasResponse.data
-        .filter(cita => cita.estado !== 'Pagada' && cita.estado !== 'Cancelada')
-        .map(cita => ({
-          id: cita.id,
-          servicio: cita.servicio_nombre,
-          precio: cita.precio_servicio,
-          fecha: new Date(cita.fecha_consulta),
-          estado: cita.estado
-        }));
-      
-      setServiciosPendientes(pendientes);
-      
-      // Calcular saldo total de servicios pendientes
-      const total = pendientes.reduce((sum, item) => sum + parseFloat(item.precio || 0), 0);
-      setSaldoTotal(total);
-      
-      // Cargar historial de pagos
-      const pagosResponse = await axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/?paciente_id=${pacienteId}`);
-      setHistorialPagos(pagosResponse.data || []);
-      
+      // Buscar información completa del pago
+      const response = await axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/${pago.pago.id}`);
+      setSelectedPaymentDetails({
+        pago: response.data,
+        cita: pago,
+        paciente: paciente
+      });
+      setShowPaymentDetails(true);
       setLoading(false);
     } catch (err) {
-      console.error(`Error al cargar datos del paciente #${pacienteId}:`, err);
+      console.error('Error al cargar detalles del pago:', err);
+      showNotif('Error al cargar detalles del pago', 'error');
       setLoading(false);
-      setCitas([]);
-      setHistorialPagos([]);
-      setServiciosPendientes([]);
-      setSaldoTotal(0);
     }
   };
 
-  // Agrupar citas por estado para mejor visualización
-  const citasAgrupadas = useMemo(() => {
-    if (!citas.length) return {};
-    
-    const grupos = citas.reduce((acc, cita) => {
-      const estado = cita.estado || 'Otro';
-      if (!acc[estado]) acc[estado] = [];
-      acc[estado].push(cita);
-      return acc;
-    }, {});
-    
-    // Ordenar por fecha dentro de cada grupo
-    Object.keys(grupos).forEach(key => {
-      grupos[key].sort((a, b) => new Date(b.fecha_consulta) - new Date(a.fecha_consulta));
-    });
-    
-    return grupos;
-  }, [citas]);
-
-  // Filtrar citas según los filtros aplicados
-  const citasFiltradas = useMemo(() => {
-    if (!citas.length) return [];
-    
-    let filtered = [...citas];
-    
-    // Aplicar filtros de estado si existen
-    if (filtroEstadoCitas.length > 0) {
-      filtered = filtered.filter(cita => filtroEstadoCitas.includes(cita.estado));
+  // Función para acciones del menú contextual
+  const handleMenuAction = (action) => {
+    switch (action) {
+      case 'print':
+        showNotif('Función de impresión en desarrollo', 'info');
+        break;
+      case 'download':
+        showNotif('Función de descarga en desarrollo', 'info');
+        break;
+      case 'copy':
+        if (selectedPago?.pago?.comprobante) {
+          navigator.clipboard.writeText(selectedPago.pago.comprobante);
+          showNotif('Número de comprobante copiado', 'success');
+        } else {
+          showNotif('No hay comprobante para copiar', 'warning');
+        }
+        break;
+      default:
+        break;
     }
-    
-    // Ordenar por fecha (más recientes primero)
-    filtered.sort((a, b) => new Date(b.fecha_consulta) - new Date(a.fecha_consulta));
-    
-    return filtered;
-  }, [citas, filtroEstadoCitas]);
-
-  // Manejadores de eventos para tabs
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+    handleMenuClose();
   };
 
-  // Manejador de cambios en campos del formulario
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    
-    // Lógica especial para monto en caso de pago parcial
-    if (name === 'monto' && isPagoParcial) {
-      const numValue = parseFloat(value);
-      const numTotal = parseFloat(formValues.total);
-      
-      // Validar que el monto parcial no exceda el total
-      if (numValue > numTotal) {
-        setFormErrors(prev => ({ 
-          ...prev, 
-          monto: 'El monto no puede exceder el total a pagar' 
-        }));
+  // Seleccionar paciente desde lista de deudas
+  const handleSelectPacienteConDeuda = async (pacienteData, cita) => {
+    setLoading(true);
+
+    try {
+      setSelectedPaciente({
+        id: pacienteData.paciente_id,
+        nombre: pacienteData.nombre,
+        aPaterno: pacienteData.apellido_paterno,
+        aMaterno: pacienteData.apellido_materno,
+        telefono: pacienteData.telefono,
+        email: pacienteData.correo,
+        genero: pacienteData.genero,
+        fecha_nacimiento: pacienteData.fecha_nacimiento
+      });
+
+      setSelectedCita(cita);
+
+      setPaymentData(prev => ({
+        ...prev,
+        email_pagador: pacienteData.correo || ''
+      }));
+
+      setCurrentStep('payment');
+
+      try {
+        await fetchPacienteCompleto(pacienteData.paciente_id);
+      } catch (err) {
+        console.warn('Error cargando información completa del paciente:', err);
+      }
+
+    } catch (error) {
+      console.error('Error al seleccionar paciente:', error);
+      showNotif('Error al procesar la selección', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Seleccionar paciente desde búsqueda
+  const handleSelectPacienteBusqueda = async (paciente) => {
+    try {
+      setLoading(true);
+
+      const response = await axios.get(`https://back-end-4803.onrender.com/api/citas/paciente/${paciente.id}`);
+      const citasPendientes = response.data.filter(c =>
+        c.estado === 'Completada' &&
+        c.precio_servicio &&
+        parseFloat(c.precio_servicio) > 0
+      );
+
+      if (citasPendientes.length === 0) {
+        showNotif('Este paciente no tiene servicios pendientes de pago', 'info');
+        setLoading(false);
         return;
       }
-      
-      setFormValues(prev => ({ 
-        ...prev, 
-        [name]: value,
-        estado: numValue < numTotal ? 'Parcial' : 'Pagado'
-      }));
-    } else {
-      setFormValues(prev => ({ ...prev, [name]: value }));
-    }
-    
-    // Limpiar errores
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: null }));
+
+      setSelectedPaciente(paciente);
+      setPacienteCompleto(paciente);
+
+      if (citasPendientes.length === 1) {
+        const cita = citasPendientes[0];
+        setSelectedCita({
+          ...cita,
+          id: cita.consulta_id,
+          precio_servicio: parseFloat(cita.precio_servicio) || 0
+        });
+        setPaymentData(prev => ({
+          ...prev,
+          email_pagador: paciente.email || ''
+        }));
+        setCurrentStep('payment');
+      } else {
+        showNotif('Este paciente tiene múltiples servicios pendientes. Seleccione uno específico desde la lista de deudas.', 'info');
+      }
+
+      setLoading(false);
+    } catch (err) {
+      console.error('Error:', err);
+      showNotif('Error al cargar información del paciente', 'error');
+      setLoading(false);
     }
   };
 
-  // Manejador para cambio de fecha
-  const handleDateChange = (date) => {
-    setFormValues(prev => ({ ...prev, fecha_pago: date }));
-    
-    if (formErrors.fecha_pago) {
-      setFormErrors(prev => ({ ...prev, fecha_pago: null }));
-    }
+  // Calcular totales
+  const calcularTotales = () => {
+    if (!selectedCita) return { subtotal: 0, total: 0 };
+
+    const precio = selectedCita.precio_servicio || selectedCita.precio || selectedCita.monto || 0;
+    const subtotal = parseFloat(precio) || 0;
+    const total = subtotal;
+
+    return { subtotal, total };
   };
 
-  // Manejador para cambio de paciente
-  const handlePacienteChange = async (event, value) => {
-    // Limpiar estado anterior
-    setCitaSeleccionada(null);
-    setHistorialPagos([]);
-    setServiciosPendientes([]);
-    setSaldoTotal(0);
-    
-    if (!value) {
-      setPacienteSeleccionado(null);
-      setFormValues(prev => ({ 
-        ...prev, 
-        paciente_id: '',
-        cita_id: '',
-        concepto: ''
-      }));
-      setCitas([]);
+  // Validar y procesar pago
+  const handleProcesarPago = async () => {
+    if (!selectedCita) {
+      showNotif('Error: No se ha seleccionado ningún servicio', 'error');
       return;
     }
-    
-    setPacienteSeleccionado(value);
-    setFormValues(prev => ({ 
-      ...prev, 
-      paciente_id: value.id,
-      cita_id: '',
-      concepto: ''
-    }));
-    
-    // Cargar datos completos del paciente
-    await fetchPacienteData(value.id);
-  };
 
-  // Manejador para cambio de cita
-  const handleCitaChange = (cita) => {
-    setCitaSeleccionada(cita);
-    
-    if (!cita) {
-      setFormValues(prev => ({
-        ...prev,
-        cita_id: '',
-        concepto: '',
-        subtotal: 0,
-        total: 0,
-        monto: 0
-      }));
+    if (!selectedPaciente) {
+      showNotif('Error: No se ha seleccionado ningún paciente', 'error');
       return;
     }
-    
-    // Actualizar formulario con datos de la cita
-    setFormValues(prev => ({
-      ...prev,
-      cita_id: cita.id,
-      subtotal: cita.precio_servicio || 0,
-      total: cita.precio_servicio || 0,
-      monto: cita.precio_servicio || 0,
-      concepto: `Pago por servicio: ${cita.servicio_nombre || 'No especificado'}`
-    }));
-    
-    // Desactivar pago parcial al elegir una cita
-    setIsPagoParcial(false);
-  };
 
-  // Manejador para cambio de tipo de pago (parcial o total)
-  const handlePagoParcialChange = (event) => {
-    const isParcial = event.target.checked;
-    setIsPagoParcial(isParcial);
-    
-    if (isParcial) {
-      // Al activar pago parcial, reiniciar el monto a 0
-      setFormValues(prev => ({
-        ...prev,
-        monto: 0,
-        estado: 'Parcial'
-      }));
-    } else {
-      // Al desactivar, igualar monto al total
-      setFormValues(prev => ({
-        ...prev,
-        monto: prev.total,
-        estado: 'Pagado'
-      }));
+    if (!selectedCita.servicio_nombre) {
+      showNotif('Error: Información del servicio incompleta', 'error');
+      return;
     }
-  };
 
-  // Manejador para tipo de pago (cita o concepto libre)
-  const handleTipoPago = (esPorCita) => {
-    if (!esPorCita) {
-      // Si es concepto libre, limpiar cita seleccionada
-      setCitaSeleccionada(null);
-      setFormValues(prev => ({
-        ...prev,
-        cita_id: '',
-        concepto: '',
-        subtotal: 0,
-        total: 0,
-        monto: 0
-      }));
-      setTabValue(0); // Volver a la pestaña principal
-    }
-  };
-
-  // Validar formulario
-  const validateForm = () => {
     const errors = {};
-    
-    if (!formValues.paciente_id) errors.paciente_id = 'Seleccione un paciente';
-    if (!formValues.concepto) errors.concepto = 'Ingrese un concepto';
-    if (isPagoParcial && (!formValues.monto || parseFloat(formValues.monto) <= 0)) {
-      errors.monto = 'Ingrese un monto válido';
-    } else if (!isPagoParcial && (!formValues.total || parseFloat(formValues.total) <= 0)) {
-      errors.total = 'Ingrese un monto total válido';
-    }
-    if (!formValues.metodo_pago) errors.metodo_pago = 'Seleccione un método de pago';
-    if (!formValues.fecha_pago) errors.fecha_pago = 'Seleccione una fecha';
-    
-    return errors;
-  };
 
-  // Manejador de envío del formulario
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validar formulario
-    const errors = validateForm();
+    if (paymentData.metodo_pago === 'MercadoPago' && !paymentData.email_pagador.trim()) {
+      errors.email_pagador = 'Email requerido para MercadoPago';
+    }
+
+    if (paymentData.metodo_pago === 'PayPal' && !paymentData.email_pagador.trim()) {
+      errors.email_pagador = 'Email requerido para PayPal';
+    }
+
+    if ((paymentData.metodo_pago === 'MercadoPago' || paymentData.metodo_pago === 'PayPal') && !paymentData.referencia.trim()) {
+      errors.referencia = 'Referencia/ID de transacción requerida';
+    }
+
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
+      showNotif('Complete todos los campos requeridos', 'warning');
       return;
     }
-    
+
+    setFormErrors({});
+    setShowConfirmDialog(true);
+  };
+
+  // Procesar pago después de confirmación
+  const procesarPagoConfirmado = async () => {
     setLoading(true);
-    setError(null);
-    setSuccess(null);
-    
+    setShowConfirmDialog(false);
+
     try {
-      let response;
-      
-      if (idPago) {
-        // Actualizar pago existente
-        response = await axios.put(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/${idPago}`, formValues);
-        setSuccess('Pago actualizado correctamente');
-      } else {
-        // Crear nuevo pago
-        response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos', formValues);
-        setSuccess('Pago registrado correctamente');
+      if (!selectedCita || !selectedPaciente) {
+        throw new Error('Información incompleta del paciente o servicio');
       }
-      
-      setLoading(false);
-      
-      // Esperar un momento antes de llamar a onSave para mostrar el mensaje de éxito
+
+      const citaId = selectedCita.id;
+
+      if (!citaId) {
+        throw new Error('La cita seleccionada no tiene un ID válido');
+      }
+
+      const totales = calcularTotales();
+
+      const pagoCompleto = {
+        paciente_id: selectedPaciente.id,
+        cita_id: citaId,
+        monto: totales.total,
+        subtotal: totales.subtotal,
+        total: totales.total,
+        concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
+        metodo_pago: paymentData.metodo_pago,
+        fecha_pago: paymentData.fecha_pago,
+        estado: 'Pagado',
+        comprobante: paymentData.referencia || `${paymentData.metodo_pago.substring(0, 3).toUpperCase()}-${Date.now()}`,
+        notas: paymentData.notas || `Pago procesado vía ${paymentData.metodo_pago}`
+      };
+
+      const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos', pagoCompleto);
+
+      showNotif('¡Pago procesado exitosamente!', 'success');
+      setCurrentStep('success');
+
+      // ACTUALIZAR LISTAS DESPUÉS DEL PAGO EXITOSO
+      await fetchPacientesConDeudas();
+
       setTimeout(() => {
-        if (onSave) {
-          onSave(response.data);
-        }
-      }, 1500);
-      
+        if (onSave) onSave(response.data);
+      }, 4000);
+
     } catch (err) {
-      console.error('Error al guardar el pago:', err);
-      setError(err.response?.data?.error || 'Error al procesar la solicitud');
+      console.error('Error al procesar pago:', err);
+      const errorMessage = err.response?.data?.message || err.response?.data?.error || err.message || 'Error al procesar el pago. Intente nuevamente.';
+      showNotif(errorMessage, 'error');
+    } finally {
       setLoading(false);
     }
   };
 
-  // Renderizar tarjeta de cita
-  const renderCitaCard = (cita) => {
-    const isSelected = citaSeleccionada && citaSeleccionada.id === cita.id;
-    const fecha = new Date(cita.fecha_consulta);
-    
+  // Cancelar y resetear
+  const handleCancelar = () => {
+    if (currentStep === 'selection') {
+      if (onCancel) onCancel();
+    } else {
+      setShowCancelDialog(true);
+    }
+  };
+
+  const confirmCancel = () => {
+    setShowCancelDialog(false);
+    resetForm();
+  };
+
+  const resetForm = () => {
+    setCurrentStep('selection');
+    setSelectedPaciente(null);
+    setSelectedCita(null);
+    setPacienteCompleto(null);
+    setPaymentData({
+      metodo_pago: 'Efectivo',
+      fecha_pago: new Date(),
+      email_pagador: '',
+      referencia: '',
+      notas: ''
+    });
+    setFormErrors({});
+    setActiveTab(1);
+    setFiltros({
+      montoMin: '',
+      montoMax: '',
+      fechaDesde: null,
+      fechaHasta: null,
+      ordenarPor: 'deuda_desc'
+    });
+  };
+
+  // Aplicar filtros
+  const aplicarFiltros = (lista, tipo = 'deudas') => {
+    return lista.filter(paciente => {
+      const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
+      const fecha = tipo === 'deudas' ? paciente.ultimaCita : paciente.ultimoPago;
+
+      if (filtros.montoMin && monto < parseFloat(filtros.montoMin)) return false;
+      if (filtros.montoMax && monto > parseFloat(filtros.montoMax)) return false;
+
+      if (filtros.fechaDesde || filtros.fechaHasta) {
+        const fechaReferencia = new Date(fecha);
+        if (filtros.fechaDesde && fechaReferencia < filtros.fechaDesde) return false;
+        if (filtros.fechaHasta && fechaReferencia > filtros.fechaHasta) return false;
+      }
+
+      return true;
+    }).sort((a, b) => {
+      const montoA = tipo === 'deudas' ? a.totalDeuda : a.totalPagado;
+      const montoB = tipo === 'deudas' ? b.totalDeuda : b.totalPagado;
+      const fechaA = tipo === 'deudas' ? a.ultimaCita : a.ultimoPago;
+      const fechaB = tipo === 'deudas' ? b.ultimaCita : b.ultimoPago;
+
+      switch (filtros.ordenarPor) {
+        case 'deuda_asc': return montoA - montoB;
+        case 'deuda_desc': return montoB - montoA;
+        case 'fecha_desc': return new Date(fechaB) - new Date(fechaA);
+        case 'fecha_asc': return new Date(fechaA) - new Date(fechaB);
+        case 'nombre': return `${a.nombre} ${a.apellido_paterno}`.localeCompare(`${b.nombre} ${b.apellido_paterno}`);
+        default: return montoB - montoA;
+      }
+    });
+  };
+
+  // Renderizar filtros compactos
+  const renderFiltrosCompactos = () => (
+    <Paper elevation={0} sx={{ mb: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+      <Box sx={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between', 
+        p: 1,
+        cursor: 'pointer' 
+      }} onClick={() => setShowFilters(!showFilters)}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <FilterList sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
+          <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>
+            Filtros
+          </Typography>
+          {(filtros.montoMin || filtros.montoMax || filtros.fechaDesde || filtros.fechaHasta) && (
+            <Chip label="Activos" size="small" color="primary" sx={{ ml: 1, height: 18, fontSize: '0.7rem' }} />
+          )}
+        </Box>
+        <Tooltip title="Actualizar datos">
+          <IconButton size="small" onClick={(e) => { e.stopPropagation(); fetchPacientesConDeudas(); }} disabled={loading}>
+            <Refresh sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+      </Box>
+      
+      <Collapse in={showFilters}>
+        <Divider />
+        <Box sx={{ p: 1.5 }}>
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={6} sm={2}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Min $"
+                type="number"
+                value={filtros.montoMin}
+                onChange={(e) => setFiltros(prev => ({ ...prev, montoMin: e.target.value }))}
+                sx={{ '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
+              />
+            </Grid>
+            <Grid item xs={6} sm={2}>
+              <TextField
+                size="small"
+                fullWidth
+                label="Max $"
+                type="number"
+                value={filtros.montoMax}
+                onChange={(e) => setFiltros(prev => ({ ...prev, montoMax: e.target.value }))}
+                sx={{ '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
+              />
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <FormControl size="small" fullWidth>
+                <InputLabel sx={{ fontSize: '0.875rem' }}>Ordenar por</InputLabel>
+                <Select
+                  value={filtros.ordenarPor}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, ordenarPor: e.target.value }))}
+                  label="Ordenar por"
+                  sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
+                >
+                  <MenuItem value="deuda_desc">Mayor monto</MenuItem>
+                  <MenuItem value="deuda_asc">Menor monto</MenuItem>
+                  <MenuItem value="fecha_desc">Más reciente</MenuItem>
+                  <MenuItem value="fecha_asc">Más antiguo</MenuItem>
+                  <MenuItem value="nombre">Nombre A-Z</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} sm={3}>
+              <Button
+                size="small"
+                variant="outlined"
+                fullWidth
+                onClick={() => setFiltros({
+                  montoMin: '',
+                  montoMax: '',
+                  fechaDesde: null,
+                  fechaHasta: null,
+                  ordenarPor: 'deuda_desc'
+                })}
+                sx={{ fontSize: '0.75rem' }}
+              >
+                Limpiar
+              </Button>
+            </Grid>
+          </Grid>
+        </Box>
+      </Collapse>
+    </Paper>
+  );
+
+  // Renderizar tarjeta de paciente compacta
+  const renderPacienteCard = (paciente, tipo = 'deudas') => {
+    const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
+    const servicios = tipo === 'deudas' ? paciente.citasPendientes : paciente.citasPagadas;
+    const fecha = tipo === 'deudas' ? paciente.ultimaCita : paciente.ultimoPago;
+    const color = tipo === 'deudas' ? 'error' : 'success';
+
     return (
-      <Card 
-        key={cita.id} 
-        variant={isSelected ? "elevation" : "outlined"} 
-        elevation={isSelected ? 4 : 0}
-        sx={{ 
-          mb: 2,
-          border: isSelected ? `2px solid ${theme.palette.primary.main}` : '1px solid rgba(0, 0, 0, 0.12)',
-          transition: 'all 0.3s ease',
+      <Card
+        key={paciente.paciente_id}
+        elevation={0}
+        sx={{
+          mb: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1.5,
           cursor: 'pointer',
+          transition: 'all 0.2s ease-in-out',
           '&:hover': {
-            borderColor: theme.palette.primary.light,
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+            borderColor: 'primary.main',
+            boxShadow: 1,
+            transform: 'translateY(-1px)'
+          },
+          opacity: loading ? 0.7 : 1,
+          pointerEvents: loading ? 'none' : 'auto'
+        }}
+        onClick={async () => {
+          if (tipo === 'deudas') {
+            if (servicios.length === 1) {
+              await handleSelectPacienteConDeuda(paciente, servicios[0]);
+            } else {
+              showNotif(`${paciente.nombre} tiene ${servicios.length} servicios pendientes. Seleccione uno específico.`, 'info');
+            }
+          } else if (tipo === 'pagados') {
+            // Mostrar detalles directamente al hacer click
+            if (servicios.length > 0) {
+              await handleVerDetalles(servicios[0], paciente);
+            }
           }
         }}
-        onClick={() => handleCitaChange(cita)}
       >
-        <CardContent>
-          <Grid container spacing={1} alignItems="center">
-            <Grid item xs={9}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                <Tooltip title={`Estado: ${cita.estado}`}>
-                  <Box 
-                    sx={{ 
-                      width: 12, 
-                      height: 12, 
-                      borderRadius: '50%', 
-                      bgcolor: getStatusColor(cita.estado),
-                      mr: 1.5
-                    }} 
-                  />
+        <CardContent sx={{ p: 1.5 }}>
+          <Grid container spacing={1.5} alignItems="center">
+            <Grid item xs={12} md={7}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Tooltip title={`${paciente.nombre} ${paciente.apellido_paterno} - ${tipo === 'deudas' ? 'Click para cobrar' : 'Click para ver detalles'}`}>
+                  <Avatar
+                    sx={{
+                      bgcolor: `${color}.main`,
+                      mr: 1.5,
+                      width: 36,
+                      height: 36,
+                      fontSize: '0.9rem',
+                      fontWeight: 600
+                    }}
+                  >
+                    {(paciente.nombre || 'P').charAt(0)}
+                  </Avatar>
                 </Tooltip>
-                <Typography variant="subtitle1" fontWeight="medium">
-                  {cita.servicio_nombre || 'Servicio no especificado'}
-                </Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ fontSize: '0.875rem', mb: 0.25 }} noWrap>
+                    {`${paciente.nombre} ${paciente.apellido_paterno} ${paciente.apellido_materno || ''}`.trim()}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                    {paciente.telefono && (
+                      <Tooltip title="Teléfono">
+                        <span>{paciente.telefono}</span>
+                      </Tooltip>
+                    )}
+                    {fecha && (
+                      <Tooltip title={tipo === 'deudas' ? 'Última cita' : 'Último pago'}>
+                        <span>
+                          {paciente.telefono && ' • '}
+                          {new Date(fecha).toLocaleDateString('es-ES')}
+                        </span>
+                      </Tooltip>
+                    )}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right', ml: 1 }}>
+                  <Typography variant="h6" color={`${color}.main`} fontWeight="700" sx={{ fontSize: '1rem' }}>
+                    ${monto.toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
+                    {servicios.length} servicio(s)
+                  </Typography>
+                </Box>
               </Box>
-              
-              <Typography variant="body2" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                <CalendarMonth fontSize="small" sx={{ mr: 0.5, color: 'text.disabled', fontSize: 16 }} />
-                {fecha.toLocaleDateString('es-ES', { 
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </Typography>
             </Grid>
-            <Grid item xs={3} sx={{ textAlign: 'right' }}>
-              <Typography variant="h6" color="primary" fontWeight="bold">
-                ${parseFloat(cita.precio_servicio || 0).toFixed(2)}
-              </Typography>
-              <Chip 
-                size="small" 
-                label={cita.estado} 
-                sx={{ 
-                  bgcolor: getStatusColor(cita.estado) + '20',
-                  color: getStatusColor(cita.estado),
-                  fontWeight: 'medium',
-                  mt: 0.5
-                }}
-              />
+
+            <Grid item xs={12} md={5}>
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1 }}>
+                  {servicios.slice(0, 2).map((servicio, index) => (
+                    <Tooltip key={index} title={`${servicio.servicio_nombre} - $${servicio.precio_servicio.toFixed(2)}`}>
+                      <Chip
+                        label={`${servicio.servicio_nombre.slice(0, 10)}${servicio.servicio_nombre.length > 10 ? '...' : ''} • $${servicio.precio_servicio.toFixed(2)}`}
+                        size="small"
+                        variant="outlined"
+                        color={color}
+                        sx={{ fontSize: '0.7rem', height: 20 }}
+                        onClick={tipo === 'deudas' ? (e) => {
+                          e.stopPropagation();
+                          handleSelectPacienteConDeuda(paciente, servicio);
+                        } : undefined}
+                      />
+                    </Tooltip>
+                  ))}
+                  {servicios.length > 2 && (
+                    <Tooltip title={`Ver ${servicios.length - 2} servicios más`}>
+                      <Chip
+                        label={`+${servicios.length - 2}`}
+                        size="small"
+                        variant="outlined"
+                        color="default"
+                        sx={{ fontSize: '0.7rem', height: 20 }}
+                      />
+                    </Tooltip>
+                  )}
+                </Box>
+                
+                {tipo === 'pagados' && (
+                  <Tooltip title="Más opciones">
+                    <IconButton 
+                      size="small" 
+                      sx={{ ml: 1 }}
+                      onClick={(e) => handleMenuClick(e, servicios[0], paciente)}
+                    >
+                      <MoreVert sx={{ fontSize: 16 }} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
             </Grid>
           </Grid>
         </CardContent>
@@ -533,725 +823,1019 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     );
   };
 
-  // Renderizar tarjeta de resumen financiero
-  const renderResumenFinanciero = () => {
-    if (!pacienteSeleccionado) return null;
-    
+  // Renderizar selección de pacientes
+  const renderSeleccionPacientes = () => {
+    const pacientesFiltradosDeudas = aplicarFiltros(pacientesConDeudas, 'deudas');
+    const pacientesFiltradosPagados = aplicarFiltros(pacientesPagados, 'pagados');
+
     return (
-      <Card variant="outlined" sx={{ mb: 3, bgcolor: 'background.paper' }}>
-        <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="subtitle1" fontWeight="bold" color="primary">
-              Resumen financiero del paciente
-            </Typography>
-            <IconButton 
-              size="small" 
-              onClick={() => setShowDetails(!showDetails)}
-              aria-label={showDetails ? "Ocultar detalles" : "Mostrar detalles"}
-            >
-              {showDetails ? <ArrowDropUp /> : <ArrowDropDown />}
-            </IconButton>
-          </Box>
-          
-          <Collapse in={showDetails}>
-            <Grid container spacing={2} sx={{ pt: 1 }}>
-              <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Saldo pendiente
-                    </Typography>
-                    <Tooltip title="Total de servicios sin pagar">
-                      <Info fontSize="small" color="action" />
-                    </Tooltip>
-                  </Box>
-                  <Typography variant="h5" color="error" fontWeight="bold">
-                    ${saldoTotal.toFixed(2)}
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    {serviciosPendientes.length} servicio(s) pendiente(s)
-                  </Typography>
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Último pago
-                    </Typography>
-                  </Box>
-                  {historialPagos.length > 0 ? (
-                    <>
-                      <Typography variant="h5" color="primary" fontWeight="bold">
-                        ${parseFloat(historialPagos[0].monto || 0).toFixed(2)}
-                      </Typography>
-                      <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                        {new Date(historialPagos[0].fecha_pago).toLocaleDateString('es-ES')}
-                      </Typography>
-                    </>
-                  ) : (
-                    <Typography variant="body2" color="text.secondary">
-                      Sin pagos registrados
-                    </Typography>
+      <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
+        {/* Header compacto */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="h5" fontWeight="600" gutterBottom sx={{ color: 'text.primary', fontSize: '1.5rem' }}>
+            Gestión de Pagos
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+            Administre los pagos de servicios completados
+          </Typography>
+        </Box>
+
+        {/* Tabs compactos */}
+        <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
+          <Tabs
+            value={activeTab}
+            onChange={(e, v) => setActiveTab(v)}
+            sx={{
+              borderBottom: '1px solid',
+              borderColor: 'divider',
+              '& .MuiTab-root': {
+                fontSize: '0.85rem',
+                fontWeight: 500,
+                textTransform: 'none',
+                minHeight: 44,
+                px: 2
+              }
+            }}
+          >
+            <Tab 
+              icon={<PersonSearch sx={{ fontSize: 18 }} />} 
+              label="Buscar" 
+              iconPosition="start" 
+            />
+            <Tab
+              icon={
+                <Badge badgeContent={pacientesConDeudas.length} color="error" max={99}>
+                  <Warning sx={{ fontSize: 18 }} />
+                </Badge>
+              }
+              label={`Deudas (${pacientesFiltradosDeudas.length})`}
+              iconPosition="start"
+            />
+            <Tab
+              icon={
+                <Badge badgeContent={pacientesPagados.length} color="success" max={99}>
+                  <CheckCircleOutline sx={{ fontSize: 18 }} />
+                </Badge>
+              }
+              label={`Pagados (${pacientesFiltradosPagados.length})`}
+              iconPosition="start"
+            />
+          </Tabs>
+
+          <Box sx={{ p: 2 }}>
+            {activeTab === 0 ? (
+              <Box>
+                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 500, mb: 1.5, fontSize: '1rem' }}>
+                  Buscar Paciente
+                </Typography>
+                <Autocomplete
+                  options={pacientes}
+                  getOptionLabel={(option) => `${option.nombre} ${option.aPaterno} ${option.aMaterno || ''}`.trim()}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Escriba el nombre del paciente"
+                      size="small"
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                      InputProps={{
+                        ...params.InputProps,
+                        startAdornment: (
+                          <>
+                            <Search sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                            {params.InputProps.startAdornment}
+                          </>
+                        )
+                      }}
+                    />
                   )}
-                </Paper>
-              </Grid>
-              
-              <Grid item xs={12} md={4}>
-                <Paper variant="outlined" sx={{ p: 2, bgcolor: '#f5f5f5' }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Total pagado
-                    </Typography>
-                  </Box>
-                  <Typography variant="h5" color="success.dark" fontWeight="bold">
-                    ${historialPagos.reduce((sum, p) => sum + parseFloat(p.monto || 0), 0).toFixed(2)}
-                  </Typography>
-                  <Typography variant="caption" display="block" sx={{ mt: 1 }}>
-                    {historialPagos.length} pago(s) en total
-                  </Typography>
-                </Paper>
-              </Grid>
-              
-              {/* Lista de servicios pendientes */}
-              {serviciosPendientes.length > 0 && (
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 1 }} />
-                  <Typography variant="subtitle2" sx={{ mt: 1, mb: 1 }}>
-                    Servicios pendientes de pago:
-                  </Typography>
-                  <Grid container spacing={1}>
-                    {serviciosPendientes.map((servicio) => (
-                      <Grid item xs={12} sm={6} md={4} key={servicio.id}>
-                        <Chip 
-                          icon={<PointOfSale fontSize="small" />}
-                          label={`${servicio.servicio} - $${parseFloat(servicio.precio).toFixed(2)}`}
-                          variant="outlined"
-                          sx={{ 
-                            mb: 1, 
-                            width: '100%', 
-                            justifyContent: 'flex-start',
-                            borderColor: getStatusColor(servicio.estado),
-                            '& .MuiChip-icon': {
-                              color: getStatusColor(servicio.estado)
-                            }
-                          }}
-                          onClick={() => {
-                            const cita = citas.find(c => c.id === servicio.id);
-                            if (cita) handleCitaChange(cita);
-                          }}
-                        />
-                      </Grid>
-                    ))}
+                  renderOption={(props, option) => (
+                    <li {...props}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', py: 0.75 }}>
+                        <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 30, height: 30, fontSize: '0.8rem' }}>
+                          {option.nombre.charAt(0)}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>
+                            {`${option.nombre} ${option.aPaterno} ${option.aMaterno || ''}`.trim()}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {option.telefono && `Tel: ${option.telefono}`}
+                            {option.email && ` • ${option.email}`}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </li>
+                  )}
+                  onChange={(e, value) => {
+                    if (value) handleSelectPacienteBusqueda(value);
+                  }}
+                  loading={loading}
+                />
+              </Box>
+            ) : (
+              <Box>
+                {renderFiltrosCompactos()}
+
+                {/* Estadísticas compactas */}
+                <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                  <Grid item xs={6} sm={3}>
+                    <Tooltip title="Pacientes con deudas pendientes">
+                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'error.50', borderRadius: 1.5 }}>
+                        <Typography variant="h6" fontWeight="700" color="error.main" sx={{ fontSize: '1.25rem' }}>
+                          {pacientesFiltradosDeudas.length}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Con deudas
+                        </Typography>
+                      </Paper>
+                    </Tooltip>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Tooltip title="Pacientes al día con sus pagos">
+                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'success.50', borderRadius: 1.5 }}>
+                        <Typography variant="h6" fontWeight="700" color="success.main" sx={{ fontSize: '1.25rem' }}>
+                          {pacientesFiltradosPagados.length}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Al día
+                        </Typography>
+                      </Paper>
+                    </Tooltip>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Tooltip title={`Total ${activeTab === 1 ? 'adeudado' : 'pagado'}`}>
+                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'warning.50', borderRadius: 1.5 }}>
+                        <Typography variant="h6" fontWeight="700" color="warning.main" sx={{ fontSize: '1.25rem' }}>
+                          ${(activeTab === 1 ? pacientesFiltradosDeudas : pacientesFiltradosPagados)
+                            .reduce((sum, p) => sum + (activeTab === 1 ? p.totalDeuda : p.totalPagado), 0)
+                            .toFixed(0)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Total {activeTab === 1 ? 'adeudado' : 'pagado'}
+                        </Typography>
+                      </Paper>
+                    </Tooltip>
+                  </Grid>
+                  <Grid item xs={6} sm={3}>
+                    <Tooltip title="Total de servicios">
+                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'primary.50', borderRadius: 1.5 }}>
+                        <Typography variant="h6" fontWeight="700" color="primary.main" sx={{ fontSize: '1.25rem' }}>
+                          {(activeTab === 1 ? pacientesFiltradosDeudas : pacientesFiltradosPagados)
+                            .reduce((sum, p) => sum + (activeTab === 1 ? p.citasPendientes.length : p.citasPagadas.length), 0)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          Servicios
+                        </Typography>
+                      </Paper>
+                    </Tooltip>
                   </Grid>
                 </Grid>
-              )}
-              
-              {/* Botón para ver historial de pagos */}
-              {historialPagos.length > 0 && (
-                <Grid item xs={12}>
-                  <Button
-                    variant="text"
-                    size="small"
-                    startIcon={<History />}
-                    onClick={() => setShowHistory(!showHistory)}
-                    sx={{ mt: 1 }}
-                  >
-                    {showHistory ? 'Ocultar historial de pagos' : 'Ver historial de pagos'}
-                  </Button>
-                  
-                  <Collapse in={showHistory}>
-                    <Paper variant="outlined" sx={{ mt: 2, p: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Historial de pagos
-                      </Typography>
-                      {historialPagos.slice(0, 5).map((pago, index) => (
-                        <Box key={pago.id} sx={{ 
-                          py: 1, 
-                          borderBottom: index < historialPagos.length - 1 ? '1px solid #f0f0f0' : 'none'
-                        }}>
-                          <Grid container spacing={1} alignItems="center">
-                            <Grid item xs={7}>
-                              <Typography variant="body2">
-                                {pago.concepto?.length > 30 
-                                  ? pago.concepto.substring(0, 30) + '...' 
-                                  : pago.concepto || 'Sin concepto'}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {new Date(pago.fecha_pago).toLocaleDateString('es-ES')}
-                                {pago.metodo_pago && ` · ${pago.metodo_pago}`}
-                              </Typography>
-                            </Grid>
-                            <Grid item xs={3}>
-                              <Chip 
-                                size="small" 
-                                label={pago.estado} 
-                                sx={{ 
-                                  bgcolor: getStatusColor(pago.estado) + '20',
-                                  color: getStatusColor(pago.estado),
-                                  fontWeight: 'medium'
-                                }}
-                              />
-                            </Grid>
-                            <Grid item xs={2} sx={{ textAlign: 'right' }}>
-                              <Typography variant="body2" fontWeight="medium">
-                                ${parseFloat(pago.monto || 0).toFixed(2)}
-                              </Typography>
-                            </Grid>
-                          </Grid>
+
+                {/* Lista de pacientes */}
+                {loading ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                    <CircularProgress size={32} />
+                  </Box>
+                ) : (
+                  <Box>
+                    {activeTab === 1 ? (
+                      pacientesFiltradosDeudas.length === 0 ? (
+                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.50', borderRadius: 1.5 }}>
+                          <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1.5 }} />
+                          <Typography variant="h6" gutterBottom color="success.main" fontWeight="600" sx={{ fontSize: '1.1rem' }}>
+                            ¡Excelente!
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            No hay pacientes con deudas pendientes.
+                          </Typography>
+                        </Paper>
+                      ) : (
+                        <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
+                          {pacientesFiltradosDeudas.map((paciente) => renderPacienteCard(paciente, 'deudas'))}
                         </Box>
-                      ))}
-                      
-                      {historialPagos.length > 5 && (
-                        <Button
-                          variant="text"
-                          size="small"
-                          fullWidth
-                          sx={{ mt: 1 }}
-                        >
-                          Ver todos los pagos ({historialPagos.length})
-                        </Button>
-                      )}
-                    </Paper>
-                  </Collapse>
-                </Grid>
-              )}
-            </Grid>
-          </Collapse>
-        </CardContent>
-      </Card>
+                      )
+                    ) : (
+                      pacientesFiltradosPagados.length === 0 ? (
+                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1.5 }}>
+                          <PaidOutlined sx={{ fontSize: 40, color: 'text.secondary', mb: 1.5 }} />
+                          <Typography variant="h6" gutterBottom color="text.secondary" fontWeight="600" sx={{ fontSize: '1.1rem' }}>
+                            Sin pagos registrados
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Aún no hay pacientes con pagos completados.
+                          </Typography>
+                        </Paper>
+                      ) : (
+                        <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
+                          {pacientesFiltradosPagados.map((paciente) => renderPacienteCard(paciente, 'pagados'))}
+                        </Box>
+                      )
+                    )}
+                  </Box>
+                )}
+              </Box>
+            )}
+          </Box>
+        </Paper>
+
+        {/* Menu contextual para pagos - SIMPLIFICADO */}
+        <Menu
+          anchorEl={anchorEl}
+          open={Boolean(anchorEl)}
+          onClose={handleMenuClose}
+          PaperProps={{
+            sx: { minWidth: 160 }
+          }}
+        >
+          <MenuItem onClick={() => handleMenuAction('print')}>
+            <ListItemIcon><PrintOutlined sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Imprimir recibo" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+          </MenuItem>
+          <MenuItem onClick={() => handleMenuAction('download')}>
+            <ListItemIcon><GetApp sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Descargar PDF" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+          </MenuItem>
+          <MenuItem onClick={() => handleMenuAction('copy')}>
+            <ListItemIcon><FileCopy sx={{ fontSize: 18 }} /></ListItemIcon>
+            <ListItemText primary="Copiar comprobante" primaryTypographyProps={{ fontSize: '0.875rem' }} />
+          </MenuItem>
+        </Menu>
+      </Box>
     );
   };
 
-  // Contenido de las pestañas
-  const renderTabContent = () => {
-    switch (tabValue) {
-      case 0: // Pestaña general
-        return (
-          <Box>
-            {pacienteSeleccionado && renderResumenFinanciero()}
-            
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-                Tipo de pago
+  // Renderizar procesamiento de pago (más compacto)
+  const renderProcesarPago = () => {
+    const totales = calcularTotales();
+
+    return (
+      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Tooltip title="Volver a la lista">
+            <IconButton
+              onClick={() => setCurrentStep('selection')}
+              sx={{ mr: 1.5, bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}
+              size="small"
+            >
+              <ArrowBack sx={{ fontSize: 20 }} />
+            </IconButton>
+          </Tooltip>
+          <Typography variant="h5" fontWeight="600" color="primary.main" sx={{ fontSize: '1.5rem' }}>
+            Procesar Pago
+          </Typography>
+        </Box>
+
+        <Grid container spacing={2}>
+          {/* Información del Paciente y Servicio */}
+          <Grid item xs={12}>
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '1rem' }}>
+                    <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
+                    Paciente
+                  </Typography>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                    <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 40, height: 40, fontSize: '1rem' }}>
+                      {(selectedPaciente?.nombre || 'P').charAt(0)}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
+                        {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                        ID: {selectedPaciente?.id}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {selectedPaciente?.telefono && (
+                    <Typography variant="body2" color="text.secondary" display="block" sx={{ fontSize: '0.85rem' }}>
+                      Teléfono: {selectedPaciente.telefono}
+                    </Typography>
+                  )}
+                  {selectedPaciente?.email && (
+                    <Typography variant="body2" color="text.secondary" display="block" sx={{ fontSize: '0.85rem' }}>
+                      Email: {selectedPaciente.email}
+                    </Typography>
+                  )}
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '1rem' }}>
+                    <MedicalServices sx={{ mr: 1, fontSize: 18 }} />
+                    Servicio
+                  </Typography>
+
+                  <Typography variant="subtitle1" fontWeight="600" color="primary.main" sx={{ mb: 1, fontSize: '1rem' }}>
+                    {selectedCita?.servicio_nombre || 'Servicio no especificado'}
+                  </Typography>
+
+                  <Box sx={{ mb: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                      Fecha: {selectedCita?.fecha_consulta ?
+                        new Date(selectedCita.fecha_consulta).toLocaleDateString('es-ES') : 'No disponible'
+                      }
+                    </Typography>
+                    {selectedCita?.odontologo_nombre && (
+                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
+                        Doctor: {selectedCita.odontologo_nombre}
+                      </Typography>
+                    )}
+                  </Box>
+
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="h4" color="primary.main" fontWeight="700" sx={{ fontSize: '2rem' }}>
+                      ${(parseFloat(selectedCita?.precio_servicio) || 0).toFixed(2)}
+                    </Typography>
+                    <Chip label="Completada" color="success" size="small" />
+                  </Box>
+                </Grid>
+              </Grid>
+            </Paper>
+          </Grid>
+
+          {/* Formulario de Pago */}
+          <Grid item xs={12}>
+            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
+              <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, mb: 2, fontSize: '1rem' }}>
+                <Payment sx={{ mr: 1, fontSize: 18 }} />
+                Detalles del Pago
               </Typography>
-              
-              <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
-                <Button 
-                  variant={citaSeleccionada ? "contained" : "outlined"} 
-                  color="primary"
-                  startIcon={<Event />}
-                  onClick={() => handleTipoPago(true)}
-                  disabled={citas.length === 0}
-                >
-                  Pago de cita
-                </Button>
-                <Button 
-                  variant={!citaSeleccionada && formValues.paciente_id ? "contained" : "outlined"} 
-                  color="primary"
-                  startIcon={<ReceiptLong />}
-                  onClick={() => handleTipoPago(false)}
-                  disabled={!formValues.paciente_id}
-                >
-                  Otro concepto
-                </Button>
-              </Stack>
-              
-              {!citaSeleccionada && (
-                <>
+
+              {/* Método de Pago */}
+              <Typography variant="body2" gutterBottom fontWeight="500" sx={{ mb: 1.5, fontSize: '0.875rem' }}>
+                Método de Pago
+              </Typography>
+
+              <Grid container spacing={1.5} sx={{ mb: 2 }}>
+                {[
+                  { key: 'Efectivo', icon: <AccountBalanceWallet />, color: '#4caf50' },
+                  { key: 'MercadoPago', icon: <CreditCard />, color: '#00b0ff' },
+                  { key: 'PayPal', icon: <AccountBalance />, color: '#0070ba' }
+                ].map((metodo) => (
+                  <Grid item xs={4} key={metodo.key}>
+                    <Tooltip title={`Pagar con ${metodo.key}`}>
+                      <Card
+                        variant={paymentData.metodo_pago === metodo.key ? "outlined" : "elevation"}
+                        sx={{
+                          cursor: 'pointer',
+                          borderColor: paymentData.metodo_pago === metodo.key ? metodo.color : 'transparent',
+                          borderWidth: paymentData.metodo_pago === metodo.key ? 2 : 1,
+                          bgcolor: paymentData.metodo_pago === metodo.key ? `${metodo.color}15` : 'background.paper',
+                          '&:hover': { boxShadow: 2 },
+                          borderRadius: 1.5
+                        }}
+                        onClick={() => setPaymentData(prev => ({ ...prev, metodo_pago: metodo.key }))}
+                      >
+                        <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
+                          <Box sx={{ color: metodo.color, mb: 0.5, fontSize: 20 }}>
+                            {metodo.icon}
+                          </Box>
+                          <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.75rem' }}>
+                            {metodo.key}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    </Tooltip>
+                  </Grid>
+                ))}
+              </Grid>
+
+              {/* Campos específicos del método de pago */}
+              <Grid container spacing={2}>
+                {(paymentData.metodo_pago === 'MercadoPago' || paymentData.metodo_pago === 'PayPal') && (
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      label="Email del Pagador *"
+                      type="email"
+                      value={paymentData.email_pagador}
+                      onChange={(e) => setPaymentData(prev => ({ ...prev, email_pagador: e.target.value }))}
+                      error={Boolean(formErrors.email_pagador)}
+                      helperText={formErrors.email_pagador}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start"><Email sx={{ fontSize: 18 }} /></InputAdornment>
+                      }}
+                    />
+                  </Grid>
+                )}
+
+                <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    id="concepto"
-                    name="concepto"
-                    label="Concepto de pago"
-                    variant="outlined"
-                    value={formValues.concepto}
-                    onChange={handleChange}
-                    error={Boolean(formErrors.concepto)}
-                    helperText={formErrors.concepto}
-                    required
-                    sx={{ mb: 2 }}
-                    placeholder="Ej. Consulta general, Radiografía, Producto, etc."
-                    disabled={!formValues.paciente_id}
+                    size="small"
+                    label={
+                      paymentData.metodo_pago === 'Efectivo' ?
+                        'Número de Recibo (Opcional)' :
+                        'Referencia/ID de Transacción *'
+                    }
+                    value={paymentData.referencia}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, referencia: e.target.value }))}
+                    error={Boolean(formErrors.referencia)}
+                    helperText={formErrors.referencia}
+                    placeholder={
+                      paymentData.metodo_pago === 'Efectivo' ? 'REC-001' :
+                        paymentData.metodo_pago === 'MercadoPago' ? 'MP-123456789' : 'TXN-ABC123DEF'
+                    }
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                     InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <Info />
-                        </InputAdornment>
-                      ),
+                      startAdornment: <InputAdornment position="start"><ConfirmationNumber sx={{ fontSize: 18 }} /></InputAdornment>
                     }}
                   />
-                  
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6}>
-                      <TextField
-                        fullWidth
-                        id="subtotal"
-                        name="subtotal"
-                        label="Monto total"
-                        variant="outlined"
-                        type="number"
-                        InputProps={{
-                          startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                        }}
-                        value={formValues.subtotal}
-                        onChange={(e) => {
-                          const value = e.target.value;
-                          handleChange(e);
-                          // Actualizar total y monto también
-                          setFormValues(prev => ({
-                            ...prev,
-                            total: value,
-                            monto: isPagoParcial ? prev.monto : value
-                          }));
-                        }}
-                        error={Boolean(formErrors.subtotal)}
-                        helperText={formErrors.subtotal}
-                        required
-                        disabled={!formValues.paciente_id || citaSeleccionada !== null}
-                      />
-                    </Grid>
-                    
-                    {/* Si es pago parcial, mostrar campo para monto a pagar */}
-                    {isPagoParcial && (
-                      <Grid item xs={12} sm={6}>
-                        <TextField
-                          fullWidth
-                          id="monto"
-                          name="monto"
-                          label="Monto a pagar ahora"
-                          variant="outlined"
-                          type="number"
-                          InputProps={{
-                            startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                          }}
-                          value={formValues.monto}
-                          onChange={handleChange}
-                          error={Boolean(formErrors.monto)}
-                          helperText={formErrors.monto || 'Ingrese el monto parcial'}
-                          required
-                        />
-                      </Grid>
-                    )}
-                  </Grid>
-                  
-                  {!citaSeleccionada && formValues.paciente_id && formValues.subtotal > 0 && (
-                    <FormControlLabel
-                      control={
-                        <Switch 
-                          checked={isPagoParcial}
-                          onChange={handlePagoParcialChange}
-                          color="primary"
-                        />
-                      }
-                      label="Pago parcial"
-                      sx={{ mt: 2 }}
-                    />
-                  )}
-                </>
-              )}
-              
-              {citaSeleccionada && (
-                <Card variant="outlined" sx={{ mt: 2, p: 2 }}>
-                  <Stack direction="row" justifyContent="space-between" alignItems="center">
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="medium">
-                        {citaSeleccionada.servicio_nombre}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {new Date(citaSeleccionada.fecha_consulta).toLocaleString('es-ES')}
-                      </Typography>
-                    </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Typography variant="h5" color="primary" fontWeight="bold">
-                        ${parseFloat(citaSeleccionada.precio_servicio || 0).toFixed(2)}
-                      </Typography>
-                      <Chip 
-                        size="small" 
-                        label={citaSeleccionada.estado} 
-                        sx={{ 
-                          bgcolor: getStatusColor(citaSeleccionada.estado) + '20',
-                          color: getStatusColor(citaSeleccionada.estado),
-                          fontWeight: 'medium',
-                          mt: 0.5
-                        }}
-                      />
-                    </Box>
-                  </Stack>
-                </Card>
-              )}
-              
-              <Divider sx={{ my: 3 }} />
-              
-              <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-                Detalles del pago
-              </Typography>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <FormControl fullWidth variant="outlined" sx={{ mb: 2 }}>
-                    <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
-                    <Select
-                      labelId="metodo-pago-label"
-                      id="metodo_pago"
-                      name="metodo_pago"
-                      value={formValues.metodo_pago}
-                      onChange={handleChange}
-                      label="Método de Pago"
-                      error={Boolean(formErrors.metodo_pago)}
-                      required
-                      disabled={!formValues.paciente_id}
-                      startAdornment={
-                        <InputAdornment position="start">
-                          <Payment fontSize="small" />
-                        </InputAdornment>
-                      }
-                    >
-                      <MenuItem value="Efectivo">Efectivo</MenuItem>
-                      <MenuItem value="Tarjeta">Tarjeta de Crédito/Débito</MenuItem>
-                      <MenuItem value="Transferencia">Transferencia Bancaria</MenuItem>
-                    </Select>
-                    {formErrors.metodo_pago && (
-                      <Typography color="error" variant="caption">
-                        {formErrors.metodo_pago}
-                      </Typography>
-                    )}
-                  </FormControl>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                     <DateTimePicker
-                      label="Fecha de Pago"
-                      value={formValues.fecha_pago}
-                      onChange={handleDateChange}
-                      disabled={!formValues.paciente_id}
-                      renderInput={(params) => (
-                        <TextField 
-                          {...params} 
-                          fullWidth 
-                          required
-                          error={Boolean(formErrors.fecha_pago)}
-                          helperText={formErrors.fecha_pago}
-                          sx={{ mb: 2 }}
-                        />
-                      )}
+                      label="Fecha y Hora del Pago"
+                      value={paymentData.fecha_pago}
+                      onChange={(date) => setPaymentData(prev => ({ ...prev, fecha_pago: date }))}
+                      renderInput={(params) => <TextField {...params} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }} />}
                     />
                   </LocalizationProvider>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
                   <TextField
                     fullWidth
-                    id="comprobante"
-                    name="comprobante"
-                    label="Número de Comprobante"
-                    placeholder="Ej. Folio, referencia, autorización"
-                    variant="outlined"
-                    value={formValues.comprobante}
-                    onChange={handleChange}
-                    disabled={!formValues.paciente_id}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <ReceiptLong fontSize="small" />
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </Grid>
-                
-                <Grid item xs={12}>
-                  <TextField
-                    fullWidth
-                    id="notas"
-                    name="notas"
-                    label="Notas adicionales"
-                    variant="outlined"
-                    multiline
-                    rows={2}
-                    value={formValues.notas}
-                    onChange={handleChange}
-                    disabled={!formValues.paciente_id}
-                    sx={{ mb: 1 }}
-                    placeholder="Información adicional sobre el pago"
+                    size="small"
+                    label="Notas (opcional)"
+                    value={paymentData.notas}
+                    onChange={(e) => setPaymentData(prev => ({ ...prev, notas: e.target.value }))}
+                    placeholder="Observaciones adicionales..."
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
                   />
                 </Grid>
               </Grid>
-            </Box>
-          </Box>
-        );
-        
-      case 1: // Pestaña de citas
-        return (
-          <Box>
-            {/* Filtros de citas */}
-            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography variant="subtitle1" fontWeight="medium">
-                Seleccionar cita para pago
-              </Typography>
-              
-              <Box>
-                <Tooltip title="Filtrar por estado">
-                  <IconButton 
-                    color="primary" 
-                    size="small"
-                    onClick={() => {/* Implementar filtro */}}
+
+              {/* Resumen de Totales */}
+              <Paper sx={{ mt: 2, p: 1.5, bgcolor: 'primary.50', borderRadius: 1.5 }}>
+                <Typography variant="subtitle2" gutterBottom fontWeight="600" sx={{ fontSize: '0.9rem' }}>Resumen del Pago</Typography>
+                <Grid container spacing={1} alignItems="center">
+                  <Grid item xs={8}>
+                    <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>Total a Pagar:</Typography>
+                  </Grid>
+                  <Grid item xs={4} sx={{ textAlign: 'right' }}>
+                    <Typography variant="h5" color="primary.main" fontWeight="700" sx={{ fontSize: '1.75rem' }}>
+                      ${totales.total.toFixed(2)}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Botones de Acción */}
+              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', mt: 2 }}>
+                <Tooltip title="Cancelar proceso">
+                  <Button
+                    variant="outlined"
+                    size="medium"
+                    onClick={handleCancelar}
+                    startIcon={<Cancel />}
+                    disabled={loading}
+                    sx={{ minWidth: 120, borderRadius: 1.5, fontSize: '0.875rem' }}
                   >
-                    <FilterList />
-                  </IconButton>
+                    Cancelar
+                  </Button>
+                </Tooltip>
+
+                <Tooltip title="Confirmar y procesar el pago">
+                  <Button
+                    variant="contained"
+                    size="medium"
+                    onClick={handleProcesarPago}
+                    disabled={loading}
+                    startIcon={loading ? <CircularProgress size={16} /> : <SaveAlt />}
+                    sx={{ minWidth: 140, borderRadius: 1.5, fontSize: '0.875rem' }}
+                  >
+                    {loading ? 'Procesando...' : 'Procesar Pago'}
+                  </Button>
                 </Tooltip>
               </Box>
-            </Box>
-            
-            {/* Filtros rápidos */}
-            <Box sx={{ mb: 2, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-              {['Pendiente', 'Confirmada', 'Completada', 'Cancelada', 'Pagada'].map(estado => (
-                <Chip 
-                  key={estado}
-                  label={estado}
-                  onClick={() => {
-                    if (filtroEstadoCitas.includes(estado)) {
-                      setFiltroEstadoCitas(prev => prev.filter(e => e !== estado));
-                    } else {
-                      setFiltroEstadoCitas(prev => [...prev, estado]);
-                    }
-                  }}
-                  sx={{ 
-                    bgcolor: filtroEstadoCitas.includes(estado) 
-                      ? getStatusColor(estado) + '20' 
-                      : 'transparent',
-                    borderColor: getStatusColor(estado),
-                    color: filtroEstadoCitas.includes(estado) 
-                      ? getStatusColor(estado)
-                      : 'text.primary',
-                    '&:hover': {
-                      bgcolor: getStatusColor(estado) + '30',
-                    }
-                  }}
-                  variant={filtroEstadoCitas.includes(estado) ? "filled" : "outlined"}
-                  size="small"
-                />
-              ))}
-            </Box>
-            
-            {/* Lista de citas */}
-            {citasFiltradas.length > 0 ? (
-              <Box>
-                {citasFiltradas.map(cita => renderCitaCard(cita))}
-              </Box>
-            ) : (
-              <Alert 
-                severity="info" 
-                sx={{ mt: 2 }}
-                action={
-                  <Button 
-                    color="inherit" 
-                    size="small"
-                    onClick={() => setFiltroEstadoCitas([])}
-                  >
-                    Limpiar filtros
-                  </Button>
-                }
-              >
-                {citas.length > 0 
-                  ? 'No hay citas que coincidan con los filtros seleccionados.' 
-                  : 'El paciente no tiene citas registradas.'
-                }
-              </Alert>
-            )}
-          </Box>
-        );
-        
-      default:
-        return null;
-    }
+            </Paper>
+          </Grid>
+        </Grid>
+      </Box>
+    );
   };
 
-  return (
-    <Paper 
-      elevation={3} 
-      sx={{ 
-        p: { xs: 2, sm: 3 }, 
-        borderRadius: 2,
-        bgcolor: 'background.paper',
-        maxWidth: '100%',
-        overflow: 'hidden'
-      }}
-    >
-      <Typography 
-        variant="h5" 
-        component="h2" 
-        gutterBottom 
-        sx={{ 
-          color: theme.palette.primary.main, 
-          fontWeight: 'bold',
-          display: 'flex',
-          alignItems: 'center'
-        }}
-      >
-        <PaymentsTwoTone sx={{ mr: 1 }} />
-        {idPago ? 'Editar Pago' : 'Nuevo Pago'}
+  // Renderizar confirmación de éxito (más compacto)
+  const renderExito = () => (
+    <Box sx={{ textAlign: 'center', maxWidth: 500, mx: 'auto', py: 3 }}>
+      <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+      <Typography variant="h4" gutterBottom fontWeight="600" color="success.main" sx={{ fontSize: '1.75rem' }}>
+        ¡Pago Procesado Exitosamente!
       </Typography>
-      
-      <Divider sx={{ my: 2 }} />
 
-      {/* Mensajes de error/éxito */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-      
-      {success && (
-        <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
+      <Typography variant="body1" gutterBottom color="text.secondary" sx={{ mb: 2.5, fontSize: '1rem' }}>
+        El pago ha sido registrado correctamente en el sistema
+      </Typography>
 
-      <form onSubmit={handleSubmit}>
-        {/* Selección de paciente */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 'medium' }}>
-            Seleccionar paciente
-          </Typography>
-          
-          <Autocomplete
-            id="paciente-select"
-            options={pacientes}
-            getOptionLabel={(option) => `${option.nombre} ${option.aPaterno} ${option.aMaterno || ''}`}
-            value={pacienteSeleccionado}
-            onChange={handlePacienteChange}
-            loading={loading && !pacienteSeleccionado}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Buscar paciente"
-                variant="outlined"
-                error={Boolean(formErrors.paciente_id)}
-                helperText={formErrors.paciente_id}
-                fullWidth
-                required
-                InputProps={{
-                  ...params.InputProps,
-                  startAdornment: (
-                    <>
-                      <InputAdornment position="start">
-                        <Person color="primary" />
-                      </InputAdornment>
-                      {params.InputProps.startAdornment}
-                    </>
-                  ),
-                }}
-              />
-            )}
-            renderOption={(props, option) => (
-              <li {...props}>
-                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
-                  <Avatar 
-                    sx={{ 
-                      width: 32, 
-                      height: 32, 
-                      mr: 1.5,
-                      bgcolor: theme.palette.primary.light
-                    }}
-                  >
-                    {option.nombre.charAt(0)}
-                  </Avatar>
-                  <Box>
-                    <Typography variant="body1">
-                      {option.nombre} {option.aPaterno} {option.aMaterno || ''}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      Tel: {option.telefono || 'No disponible'} 
-                      {option.email && ` • ${option.email}`}
-                    </Typography>
-                  </Box>
-                </Box>
-              </li>
-            )}
-          />
-        </Box>
-        
-        {pacienteSeleccionado && (
-          <>
-            {/* Tabs para navegación */}
-            <Box sx={{ mb: 2 }}>
-              <Tabs 
-                value={tabValue} 
-                onChange={handleTabChange} 
-                variant="fullWidth"
-                TabIndicatorProps={{
-                  style: {
-                    height: '3px',
-                    borderRadius: '3px'
-                  }
-                }}
-              >
-                <Tab 
-                  icon={<ReceiptLong />} 
-                  label="General" 
-                  id="tab-0"
-                  aria-controls="tabpanel-0"
-                />
-                <Tab 
-                  icon={<Event />} 
-                  label={
-                    <Badge 
-                      badgeContent={citas.length} 
-                      color="primary"
-                      sx={{ 
-                        '& .MuiBadge-badge': {
-                          fontSize: '10px',
-                          height: '16px',
-                          minWidth: '16px'
-                        }
-                      }}
-                    >
-                      Citas
-                    </Badge>
-                  } 
-                  id="tab-1"
-                  aria-controls="tabpanel-1"
-                  disabled={!pacienteSeleccionado}
-                />
-              </Tabs>
+      <Paper elevation={0} sx={{ p: 2.5, textAlign: 'left', borderRadius: 1.5, border: '1px solid', borderColor: 'success.200', bgcolor: 'success.50' }}>
+        <Typography variant="subtitle1" gutterBottom fontWeight="600" color="success.main" sx={{ fontSize: '1.1rem' }}>
+          Resumen de la Transacción
+        </Typography>
+        <Divider sx={{ mb: 1.5 }} />
+
+        <Grid container spacing={1.5}>
+          <Grid item xs={6}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Paciente:</Typography>
+            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
+              {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
+            </Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Servicio:</Typography>
+            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>{selectedCita?.servicio_nombre}</Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Método de Pago:</Typography>
+            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>{paymentData.metodo_pago}</Typography>
+          </Grid>
+          <Grid item xs={6}>
+            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Fecha:</Typography>
+            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
+              {paymentData.fecha_pago.toLocaleDateString('es-ES')}
+            </Typography>
+          </Grid>
+          <Grid item xs={12}>
+            <Box sx={{ textAlign: 'center', mt: 1.5, p: 1.5, bgcolor: 'white', borderRadius: 1, border: '2px solid', borderColor: 'success.main' }}>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Monto Total Pagado</Typography>
+              <Typography variant="h3" color="success.main" fontWeight="700" sx={{ fontSize: '2rem' }}>
+                ${calcularTotales().total.toFixed(2)}
+              </Typography>
             </Box>
-            
-            {/* Contenido del tab seleccionado */}
-            <Box role="tabpanel" id={`tabpanel-${tabValue}`} aria-labelledby={`tab-${tabValue}`}>
-              {renderTabContent()}
-            </Box>
-          </>
-        )}
-        
-        {/* Botones de acción */}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 4, pt: 2, borderTop: '1px solid #f0f0f0' }}>
-          <Button 
-            variant="outlined" 
-            color="inherit" 
-            onClick={onCancel}
-            disabled={loading}
-            startIcon={<Cancel />}
-            sx={{ mr: 2 }}
-          >
-            Cancelar
-          </Button>
-          
+          </Grid>
+        </Grid>
+      </Paper>
+
+      <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
+        <Tooltip title="Registrar otro pago">
           <Button
             variant="contained"
-            color="primary"
-            type="submit"
-            disabled={loading || !formValues.paciente_id || (!citaSeleccionada && (!formValues.concepto || formValues.subtotal <= 0))}
-            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveAlt />}
+            size="medium"
+            onClick={resetForm}
+            startIcon={<Payment />}
+            sx={{ borderRadius: 1.5, px: 3, fontSize: '0.875rem' }}
           >
-            {idPago ? 'Actualizar Pago' : 'Registrar Pago'}
+            Otro Pago
           </Button>
+        </Tooltip>
+
+        <Tooltip title="Imprimir comprobante">
+          <Button
+            variant="outlined"
+            size="medium"
+            startIcon={<PrintOutlined />}
+            sx={{ borderRadius: 1.5, px: 3, fontSize: '0.875rem' }}
+          >
+            Imprimir
+          </Button>
+        </Tooltip>
+      </Stack>
+    </Box>
+  );
+
+  return (
+    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: 2 }}>
+      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+        {/* Header compacto */}
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
+          <PaymentsTwoTone sx={{ mr: 1.5, fontSize: 28, color: 'primary.main' }} />
+          <Box>
+            <Typography variant="h4" fontWeight="600" color="primary.main" sx={{ fontSize: '1.75rem' }}>
+              Gestión de Finanzas
+            </Typography>
+            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
+              Sistema integral de pagos
+            </Typography>
+          </Box>
         </Box>
-      </form>
-    </Paper>
+
+        <Divider sx={{ mb: 2.5 }} />
+
+        {/* Contenido según paso actual */}
+        <Fade in={true} timeout={300}>
+          <Box>
+            {currentStep === 'selection' && renderSeleccionPacientes()}
+            {currentStep === 'payment' && renderProcesarPago()}
+            {currentStep === 'success' && renderExito()}
+          </Box>
+        </Fade>
+
+        {/* Diálogo de detalles de pago */}
+        <Dialog 
+          open={showPaymentDetails} 
+          onClose={() => setShowPaymentDetails(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: { borderRadius: 2 }
+          }}
+        >
+          <DialogTitle sx={{ pb: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Typography variant="h6" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
+                <Info sx={{ mr: 1, color: 'primary.main' }} />
+                Detalles del Pago
+              </Typography>
+              <IconButton onClick={() => setShowPaymentDetails(false)} size="small">
+                <Close />
+              </IconButton>
+            </Box>
+          </DialogTitle>
+          <DialogContent>
+            {selectedPaymentDetails && (
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5 }}>
+                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
+                      Información del Paciente
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Nombre:</strong> {`${selectedPaymentDetails.paciente.nombre} ${selectedPaymentDetails.paciente.apellido_paterno}`.trim()}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Teléfono:</strong> {selectedPaymentDetails.paciente.telefono || 'No disponible'}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Email:</strong> {selectedPaymentDetails.paciente.correo || 'No disponible'}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1.5 }}>
+                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
+                      Servicio Pagado
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Servicio:</strong> {selectedPaymentDetails.cita.servicio_nombre}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Fecha de servicio:</strong> {new Date(selectedPaymentDetails.cita.fecha_consulta).toLocaleDateString('es-ES')}
+                    </Typography>
+                    <Typography variant="body2">
+                      <strong>Doctor:</strong> {selectedPaymentDetails.cita.odontologo_nombre}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1.5 }}>
+                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
+                      Información del Pago
+                    </Typography>
+                    <Grid container spacing={2}>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2">
+                          <strong>Monto:</strong> ${parseFloat(selectedPaymentDetails.pago.total).toFixed(2)}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2">
+                          <strong>Método:</strong> {selectedPaymentDetails.pago.metodo_pago}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2">
+                          <strong>Fecha:</strong> {new Date(selectedPaymentDetails.pago.fecha_pago).toLocaleDateString('es-ES')}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="body2">
+                          <strong>Estado:</strong> {selectedPaymentDetails.pago.estado}
+                        </Typography>
+                      </Grid>
+                      <Grid item xs={12}>
+                        <Typography variant="body2">
+                          <strong>Comprobante:</strong> {selectedPaymentDetails.pago.comprobante}
+                        </Typography>
+                      </Grid>
+                      {selectedPaymentDetails.pago.notas && (
+                        <Grid item xs={12}>
+                          <Typography variant="body2">
+                            <strong>Notas:</strong> {selectedPaymentDetails.pago.notas}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+                  </Paper>
+                </Grid>
+              </Grid>
+            )}
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setShowPaymentDetails(false)} variant="outlined">
+              Cerrar
+            </Button>
+            <Button startIcon={<PrintOutlined />} variant="contained">
+              Imprimir
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo de cancelación */}
+        <Dialog open={showCancelDialog} onClose={() => setShowCancelDialog(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            <Typography variant="h6" fontWeight="600">Confirmar Cancelación</Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              ¿Desea cancelar el proceso de pago?
+            </Alert>
+            <Typography variant="body1">
+              Se perderán todos los datos ingresados en el formulario.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={() => setShowCancelDialog(false)} variant="outlined">
+              Continuar con el Pago
+            </Button>
+            <Button onClick={confirmCancel} color="error" variant="contained">
+              Cancelar Proceso
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo de Confirmación de Pago */}
+        <Dialog
+          open={showConfirmDialog}
+          onClose={() => setShowConfirmDialog(false)}
+          maxWidth="md"
+          fullWidth
+          PaperProps={{
+            sx: {
+              borderRadius: 2,
+              overflow: 'hidden'
+            }
+          }}
+        >
+          {/* Header */}
+          <Box sx={{
+            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
+            color: 'white',
+            p: 2.5,
+            textAlign: 'center'
+          }}>
+            <CheckCircle sx={{ fontSize: 36, mb: 1, opacity: 0.9 }} />
+            <Typography variant="h5" fontWeight="600" sx={{ fontSize: '1.5rem' }}>
+              Confirmar Pago
+            </Typography>
+            <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5, fontSize: '0.9rem' }}>
+              Revise los detalles antes de procesar
+            </Typography>
+          </Box>
+
+          <DialogContent sx={{ p: 0 }}>
+            {/* Monto destacado */}
+            <Box sx={{
+              textAlign: 'center',
+              py: 2.5,
+              bgcolor: 'grey.50',
+              borderBottom: '1px solid',
+              borderColor: 'divider'
+            }}>
+              <Typography variant="h2" color="primary.main" fontWeight="700" sx={{ mb: 1, fontSize: '3rem' }}>
+                ${calcularTotales().total.toFixed(2)}
+              </Typography>
+              <Chip
+                label={paymentData.metodo_pago}
+                color="primary"
+                size="large"
+                sx={{ fontWeight: 600, fontSize: '0.9rem' }}
+              />
+            </Box>
+
+            {/* Información detallada compacta */}
+            <Box sx={{ p: 2.5 }}>
+              <Grid container spacing={2}>
+                {/* Paciente */}
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 32, height: 32 }}>
+                        <Person sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
+                        Paciente
+                      </Typography>
+                    </Box>
+
+                    <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 1, fontSize: '1rem' }}>
+                      {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
+                    </Typography>
+
+                    <Stack spacing={0.5}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <ConfirmationNumber sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          ID: {selectedPaciente?.id}
+                        </Typography>
+                      </Box>
+
+                      {selectedPaciente?.telefono && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Phone sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {selectedPaciente.telefono}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {selectedPaciente?.email && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <Email sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            {selectedPaciente.email}
+                          </Typography>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                </Grid>
+
+                {/* Servicio */}
+                <Grid item xs={12} md={6}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1.5, height: '100%' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar sx={{ bgcolor: 'success.main', mr: 1.5, width: 32, height: 32 }}>
+                        <MedicalServices sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
+                        Servicio
+                      </Typography>
+                    </Box>
+
+                    <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 1, fontSize: '1rem' }}>
+                      {selectedCita?.servicio_nombre}
+                    </Typography>
+
+                    <Stack spacing={0.5}>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <CalendarToday sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                          {selectedCita?.fecha_consulta ?
+                            new Date(selectedCita.fecha_consulta).toLocaleDateString('es-ES') : 'No disponible'
+                          }
+                        </Typography>
+                      </Box>
+
+                      {selectedCita?.odontologo_nombre && (
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          <AccountCircle sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
+                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
+                            Dr. {selectedCita.odontologo_nombre}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <MonetizationOn sx={{ fontSize: 14, mr: 0.5, color: 'success.main' }} />
+                        <Typography variant="body2" color="success.main" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
+                          ${(parseFloat(selectedCita?.precio_servicio) || 0).toFixed(2)}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </Paper>
+                </Grid>
+
+                {/* Detalles del pago */}
+                <Grid item xs={12}>
+                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1.5, border: '1px solid', borderColor: 'primary.200' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+                      <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 32, height: 32 }}>
+                        <Payment sx={{ fontSize: 18 }} />
+                      </Avatar>
+                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
+                        Detalles del Pago
+                      </Typography>
+                    </Box>
+
+                    <Grid container spacing={1.5}>
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
+                          Método
+                        </Typography>
+                        <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
+                          {paymentData.metodo_pago}
+                        </Typography>
+                      </Grid>
+
+                      <Grid item xs={6} sm={3}>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
+                          Fecha
+                        </Typography>
+                        <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
+                          {paymentData.fecha_pago.toLocaleDateString('es-ES')}
+                        </Typography>
+                      </Grid>
+
+                      {paymentData.referencia && (
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
+                            Referencia
+                          </Typography>
+                          <Typography variant="body2" fontWeight="600" sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '0.875rem'
+                          }}>
+                            {paymentData.referencia}
+                          </Typography>
+                        </Grid>
+                      )}
+
+                      {paymentData.email_pagador && (
+                        <Grid item xs={6} sm={3}>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
+                            Email
+                          </Typography>
+                          <Typography variant="body2" fontWeight="600" sx={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            fontSize: '0.875rem'
+                          }}>
+                            {paymentData.email_pagador}
+                          </Typography>
+                        </Grid>
+                      )}
+                    </Grid>
+
+                    {paymentData.notas && (
+                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'white', borderRadius: 1 }}>
+                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
+                          Notas
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
+                          {paymentData.notas}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Box>
+          </DialogContent>
+
+          {/* Footer */}
+          <Box sx={{
+            p: 2.5,
+            bgcolor: 'grey.50',
+            borderTop: '1px solid',
+            borderColor: 'divider'
+          }}>
+            <Stack direction="row" spacing={1.5} justifyContent="center">
+              <Button
+                onClick={() => setShowConfirmDialog(false)}
+                variant="outlined"
+                size="large"
+                disabled={loading}
+                sx={{
+                  minWidth: 140,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem'
+                }}
+              >
+                Revisar Datos
+              </Button>
+
+              <Button
+                onClick={procesarPagoConfirmado}
+                variant="contained"
+                size="large"
+                disabled={loading}
+                startIcon={loading ? <CircularProgress size={20} /> : <CheckCircle />}
+                sx={{
+                  minWidth: 160,
+                  borderRadius: 1.5,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: '0.875rem'
+                }}
+              >
+                {loading ? 'Procesando...' : 'Confirmar Pago'}
+              </Button>
+            </Stack>
+          </Box>
+        </Dialog>
+
+        {/* Notificaciones */}
+        <Notificaciones
+          open={showNotification}
+          message={notificationMessage}
+          type={notificationType}
+          handleClose={handleCloseNotification}
+        />
+      </Paper>
+    </Box>
   );
 };
 

@@ -17,7 +17,8 @@ import {
   useTheme,
   useMediaQuery,
   Paper,
-  SwipeableDrawer
+  SwipeableDrawer,
+  Tooltip
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 
@@ -53,6 +54,8 @@ import {
   MdSettings,
 } from 'react-icons/md';
 
+import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material';
+import { motion } from 'framer-motion';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
@@ -69,7 +72,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
   const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const { isDarkTheme } = useThemeContext();
+  const { isDarkTheme, toggleTheme } = useThemeContext();
   const { setUser, user } = useAuth();
 
   // Estructura de menú organizada por grupos
@@ -166,11 +169,17 @@ const BarraAdmin = ({ onDrawerChange }) => {
           credentials: 'include',
           headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' }
         });
+
         if (!response.ok) throw new Error("Usuario no autenticado");
+
         const data = await response.json();
-        if (data.authenticated && data.user) {
-          setUser(data.user);
+
+        // NUEVO: Usar allAuthenticatedUsers para obtener el admin
+        if (data.authenticated && data.allAuthenticatedUsers && data.allAuthenticatedUsers.administrador) {
+          setUser(data.allAuthenticatedUsers.administrador);
+          console.log('✅ Administrador autenticado correctamente');
         } else {
+          console.log('❌ No hay sesión de administrador activa');
           setUser(null);
         }
       } catch (error) {
@@ -310,16 +319,52 @@ const BarraAdmin = ({ onDrawerChange }) => {
             Odontología Carol
           </Typography>
         </Box>
-        {/* Botón cerrar en móvil */}
-        <IconButton 
-          onClick={isMobile ? () => setMobileOpen(false) : () => updateDrawerState(false)}
-          sx={{
-            color: colors.iconColor,
-            '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
-          }}
-        >
-          <FaChevronLeft />
-        </IconButton>
+
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {/* Botón de cambio de tema en drawer móvil */}
+          {isMobile && (
+            <IconButton
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTheme();
+              }}
+              sx={{
+                color: isDarkTheme ? '#FFC107' : '#5E35B1',
+                backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
+                borderRadius: '50%',
+                padding: '6px',
+                width: '32px',
+                height: '32px',
+                transition: 'background-color 0.3s ease',
+                '&:hover': {
+                  backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
+                }
+              }}
+            >
+              <motion.div
+                animate={{ rotate: isDarkTheme ? 180 : 0 }}
+                transition={{ duration: 0.5, ease: 'easeInOut' }}
+              >
+                {isDarkTheme ? (
+                  <WbSunnyRounded sx={{ fontSize: '18px' }} />
+                ) : (
+                  <NightsStayRounded sx={{ fontSize: '18px' }} />
+                )}
+              </motion.div>
+            </IconButton>
+          )}
+
+          {/* Botón cerrar */}
+          <IconButton
+            onClick={isMobile ? () => setMobileOpen(false) : () => updateDrawerState(false)}
+            sx={{
+              color: colors.iconColor,
+              '&:hover': { backgroundColor: 'rgba(0,0,0,0.04)' }
+            }}
+          >
+            <FaChevronLeft />
+          </IconButton>
+        </Box>
       </Box>
 
       {/* Área de usuario */}
@@ -634,7 +679,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       disableBackdropTransition={false}
       disableDiscovery={false}
       open={mobileOpen}
-      onOpen={() => setMobileOpen(true)} 
+      onOpen={() => setMobileOpen(true)}
       onClose={() => setMobileOpen(false)}
       ModalProps={{
         keepMounted: true, // Mejor rendimiento en móvil
@@ -796,6 +841,38 @@ const BarraAdmin = ({ onDrawerChange }) => {
             >
               <FaCalendarAlt size={18} />
             </IconButton>
+
+            {/* Botón de Cambio de Tema - Nueva funcionalidad agregada */}
+            <Tooltip title={isDarkTheme ? "Modo claro" : "Modo oscuro"} arrow placement="bottom">
+              <IconButton
+                onClick={toggleTheme}
+                sx={{
+                  color: isDarkTheme ? '#FFC107' : '#5E35B1',
+                  backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.1)' : 'rgba(94, 53, 177, 0.05)',
+                  borderRadius: '50%',
+                  padding: '8px',
+                  width: '38px',
+                  height: '38px',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: isDarkTheme ? 'rgba(255, 193, 7, 0.2)' : 'rgba(94, 53, 177, 0.1)',
+                    transform: 'translateY(-2px)',
+                  }
+                }}
+              >
+                <motion.div
+                  animate={{ rotate: isDarkTheme ? 180 : 0 }}
+                  transition={{ duration: 0.5, ease: 'easeInOut' }}
+                >
+                  {isDarkTheme ? (
+                    <WbSunnyRounded sx={{ fontSize: '20px' }} />
+                  ) : (
+                    <NightsStayRounded sx={{ fontSize: '20px' }} />
+                  )}
+                </motion.div>
+              </IconButton>
+            </Tooltip>
+
             <IconButton
               component={Link}
               to="/Administrador/principal"
@@ -812,12 +889,12 @@ const BarraAdmin = ({ onDrawerChange }) => {
           </Box>
         </Toolbar>
       </AppBar>
-      
+
       {/* Render diferente para móvil y escritorio */}
       {renderMobileDrawer()}
       {renderDesktopDrawer()}
       {renderExpandButton()}
-      
+
       <Notificaciones
         open={openNotification}
         message={notificationMessage}

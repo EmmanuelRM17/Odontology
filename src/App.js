@@ -30,6 +30,9 @@ import Ubicacion from './pages/_home/pages/Ubicacion'
 import Principal from "./pages/paciente/pages/Principal";
 import LayoutPaciente from "./pages/paciente/compartidos/LayoutPaciente";
 import Perfil from "./pages/paciente/pages/Perfil";
+import Pagos from "./pages/paciente/pages/Pagos";
+import AyudaPaciente from "./pages/paciente/pages/Ayuda";
+
 
 // Rutas del administrador
 import LayoutAdmin from "./pages/administrador/assets/compartidos/LayoutAdmin";
@@ -49,6 +52,7 @@ import FinanzasForm from "./pages/administrador/pages/FinanzasForm.jsx";
 import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas";
 import Graficas from "./pages/administrador/pages/Graficas";
 import ModeracionServicios from "./pages/administrador/pages/resenyasModerar.jsx";
+import AyudaAdmin from "./pages/paciente/pages/Ayuda";
 
 //Rutas del empleado
 import LayoutEmpleado from "./pages/empleado/LayoutEmpleado";
@@ -215,6 +219,9 @@ function App() {
           {/* Rutas protegidas del paciente */}
           <Route path="/Paciente/principal" element={<PrivateRoute><LayoutPaciente><Chatbot /><Principal /></LayoutPaciente></PrivateRoute>} />
           <Route path="/Paciente/perfil" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/Paciente/principal' }, { name: 'Perfil de Usuario' }]} /><Perfil /></LayoutPaciente></PrivateRoute>} />
+          <Route path="/Paciente/pagos" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/Paciente/principal' }, { name: 'Pagos' }]} /><Pagos /></LayoutPaciente></PrivateRoute>} />
+          <Route path="/Paciente/ayuda" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: 'Inicio', path: '/Paciente/principal' }, { name: 'Ayuda' }]} /><AyudaPaciente /></LayoutPaciente></PrivateRoute>} />
+
 
           {/* Rutas protegidas del administrador */}
           <Route path="/Administrador/principal" element={<PrivateRoute><LayoutAdmin><PrincipalAdmin /></LayoutAdmin></PrivateRoute>} />
@@ -233,6 +240,7 @@ function App() {
           <Route path="/Administrador/Estadisticas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Inicio', path: '/Administrador/principal' }, { name: 'Estadísticas Operativas' }]} /><Graficas /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/CalendarioCita" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Inicio', path: '/Administrador/principal' }, { name: 'Calendario de Citas' }]} /><CalendarioCitas /></LayoutAdmin></PrivateRoute>} />
           <Route path="/Administrador/Resenyas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Inicio', path: '/Administrador/principal' }, { name: 'Moderación de Reseñas' }]} /><ModeracionServicios /></LayoutAdmin></PrivateRoute>} />
+          <Route path="/Administrador/ayuda" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: 'Inicio', path: '/Administrador/principal' }, { name: 'Ayuda' }]} /><AyudaAdmin /></LayoutAdmin></PrivateRoute>} />
 
           {/* Rutas protegidas del empleado */}
           <Route path="/Empleado/principal" element={<PrivateRoute><LayoutEmpleado><Breadcrumbs paths={[{ name: 'Inicio', path: '/Empleado/principal' }]} /><PrincipalEmpleado /></LayoutEmpleado></PrivateRoute>} />
