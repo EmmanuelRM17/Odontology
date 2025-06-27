@@ -76,6 +76,91 @@ import { es } from 'date-fns/locale';
 import axios from 'axios';
 import { useAuth } from '../../../components/Tools/AuthContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
+import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
+
+const PayPalPayment = ({
+  amount,
+  pacienteId,
+  citaId,
+  concepto,
+  onSuccess,
+  onError,
+  disabled = false
+}) => {
+  const initialOptions = {
+    "client-id": "AYaRi5dbGmcaSuvEzcQFQVIDPJXZkBwm4jDBS1qtsj_z9cYzSU7lefnBIceXQyKE1NvJJOtOJdZh6_w7",
+    currency: "USD",
+    intent: "capture",
+  };
+
+  const createOrder = async (data, actions) => {
+    try {
+      const response = await axios.post(
+        'https://back-end-4803.onrender.com/api/Finanzas/PayPal/crear-orden',
+        {
+          paciente_id: pacienteId,
+          cita_id: citaId,
+          monto: amount,
+          concepto: concepto
+        }
+      );
+
+      return response.data.order_id;
+    } catch (error) {
+      console.error('Error creando orden PayPal:', error);
+      onError(error);
+    }
+  };
+
+  const onApprove = async (data, actions) => {
+    try {
+      const response = await axios.post(
+        'https://back-end-4803.onrender.com/api/Finanzas/PayPal/capturar-orden',
+        {
+          orderID: data.orderID
+        }
+      );
+
+      if (response.data.status === 'COMPLETED') {
+        onSuccess(response.data);
+      } else {
+        onError('Pago no completado');
+      }
+    } catch (error) {
+      console.error('Error capturando pago PayPal:', error);
+      onError(error);
+    }
+  };
+
+  if (disabled) {
+    return (
+      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 1 }}>
+        <Typography variant="body2" color="text.secondary">
+          PayPal no disponible temporalmente
+        </Typography>
+      </Box>
+    );
+  }
+
+  return (
+    <PayPalScriptProvider options={initialOptions}>
+      <PayPalButtons
+        createOrder={createOrder}
+        onApprove={onApprove}
+        onError={(err) => {
+          console.error('PayPal Checkout onError', err);
+          onError(err);
+        }}
+        style={{
+          layout: "vertical",
+          color: "blue",
+          shape: "rect",
+          label: "paypal"
+        }}
+      />
+    </PayPalScriptProvider>
+  );
+};
 
 const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const { user } = useAuth();
@@ -206,7 +291,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           }
           pagadosPorPaciente[pacienteId].citasPagadas.push(citaData);
           pagadosPorPaciente[pacienteId].totalPagado += precioServicio;
-          
+
           const fechaPago = new Date(pagoRelacionado.fecha_pago);
           if (!pagadosPorPaciente[pacienteId].ultimoPago || fechaPago > new Date(pagadosPorPaciente[pacienteId].ultimoPago)) {
             pagadosPorPaciente[pacienteId].ultimoPago = pagoRelacionado.fecha_pago;
@@ -223,7 +308,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           }
           deudasPorPaciente[pacienteId].citasPendientes.push(citaData);
           deudasPorPaciente[pacienteId].totalDeuda += precioServicio;
-          
+
           const fechaCita = new Date(cita.fecha_consulta);
           if (!deudasPorPaciente[pacienteId].ultimaCita || fechaCita > new Date(deudasPorPaciente[pacienteId].ultimaCita)) {
             deudasPorPaciente[pacienteId].ultimaCita = cita.fecha_consulta;
@@ -479,13 +564,82 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       }
 
       const citaId = selectedCita.id;
-
       if (!citaId) {
         throw new Error('La cita seleccionada no tiene un ID válido');
       }
 
       const totales = calcularTotales();
 
+      // NUEVO: Manejo específico para MercadoPago
+      if (paymentData.metodo_pago === 'MercadoPago') {
+        try {
+          const mpResponse = await axios.post(
+            'https://back-end-4803.onrender.com/api/Finanzas/MercadoPago/crear-preferencia',
+            {
+              paciente_id: selectedPaciente.id,
+              cita_id: citaId,
+              monto: totales.total,
+              concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
+              email_paciente: paymentData.email_pagador
+            }
+          );
+
+          // Abrir MercadoPago en nueva ventana
+          const ventanaMP = window.open(mpResponse.data.init_point, '_blank');
+
+          showNotif('Redirigiendo a MercadoPago. Complete el pago en la nueva ventana.', 'info');
+
+          // Simular éxito para efectos de demostración
+          // En producción, esto se maneja con webhooks
+          setTimeout(() => {
+            if (ventanaMP && !ventanaMP.closed) {
+              showNotif('Procesando pago en MercadoPago...', 'info');
+            }
+          }, 3000);
+
+          // Registrar intento de pago
+          const pagoMercadoPago = {
+            paciente_id: selectedPaciente.id,
+            cita_id: citaId,
+            monto: totales.total,
+            subtotal: totales.subtotal,
+            total: totales.total,
+            concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
+            metodo_pago: 'MercadoPago',
+            fecha_pago: paymentData.fecha_pago,
+            estado: 'Pendiente', // Se actualiza con webhook
+            comprobante: mpResponse.data.preference_id,
+            notas: `Preferencia MercadoPago: ${mpResponse.data.preference_id}`
+          };
+
+          const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos', pagoMercadoPago);
+
+          showNotif('Solicitud de pago MercadoPago creada. Complete el pago en la ventana.', 'success');
+          setCurrentStep('success');
+          await fetchPacientesConDeudas();
+
+          setTimeout(() => {
+            if (onSave) onSave(response.data);
+          }, 4000);
+
+          return;
+
+        } catch (mpError) {
+          console.error('Error MercadoPago:', mpError);
+          showNotif('Error al procesar con MercadoPago: ' + (mpError.response?.data?.error || mpError.message), 'error');
+          setLoading(false);
+          return;
+        }
+      }
+
+      // NUEVO: Manejo para PayPal se hace en el componente PayPal directamente
+      if (paymentData.metodo_pago === 'PayPal') {
+        showNotif('Use los botones de PayPal para completar el pago', 'info');
+        setLoading(false);
+        return;
+      }
+
+      // CÓDIGO ORIGINAL: Para Efectivo y otros métodos
       const pagoCompleto = {
         paciente_id: selectedPaciente.id,
         cita_id: citaId,
@@ -519,6 +673,37 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Manejar éxito de PayPal 
+  const handlePayPalSuccess = async (details) => {
+    try {
+      setLoading(true);
+      showNotif('¡Pago PayPal exitoso! Procesando...', 'success');
+
+      // El pago ya se guardó automáticamente en el backend
+      setCurrentStep('success');
+
+      // Actualizar listas
+      await fetchPacientesConDeudas();
+
+      setTimeout(() => {
+        if (onSave) onSave({ id: details.id, message: 'Pago PayPal completado' });
+      }, 4000);
+
+    } catch (error) {
+      console.error('Error procesando éxito PayPal:', error);
+      showNotif('Error procesando pago PayPal', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Manejar error de PayPal
+  const handlePayPalError = (error) => {
+    console.error('Error PayPal:', error);
+    showNotif('Error en PayPal: ' + (error.message || 'Error desconocido'), 'error');
+    setLoading(false);
   };
 
   // Cancelar y resetear
@@ -594,12 +779,12 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   // Renderizar filtros compactos
   const renderFiltrosCompactos = () => (
     <Paper elevation={0} sx={{ mb: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
+      <Box sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         p: 1,
-        cursor: 'pointer' 
+        cursor: 'pointer'
       }} onClick={() => setShowFilters(!showFilters)}>
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <FilterList sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
@@ -616,7 +801,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           </IconButton>
         </Tooltip>
       </Box>
-      
+
       <Collapse in={showFilters}>
         <Divider />
         <Box sx={{ p: 1.5 }}>
@@ -803,11 +988,11 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     </Tooltip>
                   )}
                 </Box>
-                
+
                 {tipo === 'pagados' && (
                   <Tooltip title="Más opciones">
-                    <IconButton 
-                      size="small" 
+                    <IconButton
+                      size="small"
                       sx={{ ml: 1 }}
                       onClick={(e) => handleMenuClick(e, servicios[0], paciente)}
                     >
@@ -857,10 +1042,10 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
               }
             }}
           >
-            <Tab 
-              icon={<PersonSearch sx={{ fontSize: 18 }} />} 
-              label="Buscar" 
-              iconPosition="start" 
+            <Tab
+              icon={<PersonSearch sx={{ fontSize: 18 }} />}
+              label="Buscar"
+              iconPosition="start"
             />
             <Tab
               icon={
@@ -1272,6 +1457,70 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                 </Grid>
               </Grid>
 
+              {/* 🆕 Sección especial para PayPal */}
+              {paymentData.metodo_pago === 'PayPal' && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                  <Paper elevation={0} sx={{
+                    p: 2,
+                    bgcolor: 'primary.50',
+                    borderRadius: 1.5,
+                    border: '2px solid',
+                    borderColor: 'primary.main'
+                  }}>
+                    <Typography variant="subtitle2" gutterBottom fontWeight="600" sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: 'primary.main',
+                      mb: 2
+                    }}>
+                      <AccountBalance sx={{ mr: 1, fontSize: 18 }} />
+                      Pagar con PayPal
+                    </Typography>
+
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Monto:</strong> ${totales.total.toFixed(2)} MXN (≈ ${(totales.total * 0.056).toFixed(2)} USD)
+                      </Typography>
+                      <Typography variant="caption" display="block">
+                        PayPal procesa en dólares estadounidenses
+                      </Typography>
+                    </Alert>
+
+                    <PayPalPayment
+                      amount={totales.total}
+                      pacienteId={selectedPaciente.id}
+                      citaId={selectedCita.id}
+                      concepto={`Pago por servicio: ${selectedCita.servicio_nombre}`}
+                      onSuccess={handlePayPalSuccess}
+                      onError={handlePayPalError}
+                      disabled={loading}
+                    />
+
+                    <Typography variant="caption" color="text.secondary" sx={{
+                      display: 'block',
+                      textAlign: 'center',
+                      mt: 1
+                    }}>
+                      Datos de prueba: sb-24ake43790735@business.example.com
+                    </Typography>
+                  </Paper>
+                </Grid>
+              )}
+
+              {/* 🆕 Instrucciones especiales para MercadoPago */}
+              {paymentData.metodo_pago === 'MercadoPago' && (
+                <Grid item xs={12} sx={{ mt: 2 }}>
+                  <Alert severity="info">
+                    <Typography variant="body2">
+                      <strong>Tarjeta de prueba:</strong> 4509 9535 6623 3704 | <strong>CVV:</strong> 123
+                    </Typography>
+                    <Typography variant="caption" display="block">
+                      Al procesar, se abrirá una nueva ventana con MercadoPago
+                    </Typography>
+                  </Alert>
+                </Grid>
+              )}
+
               {/* Resumen de Totales */}
               <Paper sx={{ mt: 2, p: 1.5, bgcolor: 'primary.50', borderRadius: 1.5 }}>
                 <Typography variant="subtitle2" gutterBottom fontWeight="600" sx={{ fontSize: '0.9rem' }}>Resumen del Pago</Typography>
@@ -1287,7 +1536,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                 </Grid>
               </Paper>
 
-              {/* Botones de Acción */}
+              {/* 🆕 Botones de Acción Modificados */}
               <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', mt: 2 }}>
                 <Tooltip title="Cancelar proceso">
                   <Button
@@ -1302,18 +1551,43 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                   </Button>
                 </Tooltip>
 
-                <Tooltip title="Confirmar y procesar el pago">
-                  <Button
-                    variant="contained"
-                    size="medium"
-                    onClick={handleProcesarPago}
-                    disabled={loading}
-                    startIcon={loading ? <CircularProgress size={16} /> : <SaveAlt />}
-                    sx={{ minWidth: 140, borderRadius: 1.5, fontSize: '0.875rem' }}
-                  >
-                    {loading ? 'Procesando...' : 'Procesar Pago'}
-                  </Button>
-                </Tooltip>
+                {/* Botón condicional según método de pago */}
+                {paymentData.metodo_pago === 'PayPal' ? (
+                  <Tooltip title="Use los botones de PayPal arriba">
+                    <Button
+                      variant="contained"
+                      size="medium"
+                      disabled={true}
+                      sx={{
+                        minWidth: 140,
+                        borderRadius: 1.5,
+                        fontSize: '0.875rem',
+                        bgcolor: 'grey.400'
+                      }}
+                    >
+                      Use PayPal Arriba
+                    </Button>
+                  </Tooltip>
+                ) : (
+                  <Tooltip title={
+                    paymentData.metodo_pago === 'MercadoPago'
+                      ? "Crear preferencia y abrir MercadoPago"
+                      : "Confirmar y procesar el pago"
+                  }>
+                    <Button
+                      variant="contained"
+                      size="medium"
+                      onClick={handleProcesarPago}
+                      disabled={loading}
+                      startIcon={loading ? <CircularProgress size={16} /> : <SaveAlt />}
+                      sx={{ minWidth: 140, borderRadius: 1.5, fontSize: '0.875rem' }}
+                    >
+                      {loading ? 'Procesando...' :
+                        paymentData.metodo_pago === 'MercadoPago' ? 'Pagar con MercadoPago' :
+                          'Procesar Pago'}
+                    </Button>
+                  </Tooltip>
+                )}
               </Box>
             </Paper>
           </Grid>
@@ -1427,8 +1701,8 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         </Fade>
 
         {/* Diálogo de detalles de pago */}
-        <Dialog 
-          open={showPaymentDetails} 
+        <Dialog
+          open={showPaymentDetails}
           onClose={() => setShowPaymentDetails(false)}
           maxWidth="md"
           fullWidth
@@ -1466,7 +1740,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     </Typography>
                   </Paper>
                 </Grid>
-                
+
                 <Grid item xs={12} sm={6}>
                   <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1.5 }}>
                     <Typography variant="subtitle2" gutterBottom fontWeight="600">
@@ -1483,7 +1757,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     </Typography>
                   </Paper>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1.5 }}>
                     <Typography variant="subtitle2" gutterBottom fontWeight="600">
