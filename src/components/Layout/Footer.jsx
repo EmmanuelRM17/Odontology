@@ -26,12 +26,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../Tools/ThemeContext';
 
-/**
- * Formatea URLs de redes sociales según el tipo de red
- * @param {string} network - Nombre de la red social
- * @param {string} url - URL o identificador a formatear
- * @returns {string} - URL formateada para la red social
- */
+// Formatea URLs de redes sociales según el tipo de red
 const formatSocialUrl = (network, url) => {
   const cleanUrl = url.replace(/^(https?:\/\/)?(www\.)?/, '');
 
@@ -52,46 +47,46 @@ const formatSocialUrl = (network, url) => {
   }
 };
 
-// Configuración de las redes sociales disponibles
 const availableSocials = [
   {
     label: 'Facebook',
     name: 'facebook',
     icon: <FaFacebook />,
-    baseUrl: 'https://facebook.com/'
+    baseUrl: 'https://facebook.com/',
+    color: '#1877F2'
   },
   {
     label: 'Twitter',
     name: 'twitter',
     icon: <FaTwitter />,
-    baseUrl: 'https://twitter.com/'
+    baseUrl: 'https://twitter.com/',
+    color: '#1DA1F2'
   },
   {
     label: 'LinkedIn',
     name: 'linkedin',
     icon: <FaLinkedin />,
-    baseUrl: 'https://linkedin.com/in/'
+    baseUrl: 'https://linkedin.com/in/',
+    color: '#0A66C2'
   },
   {
     label: 'Instagram',
     name: 'instagram',
     icon: <FaInstagram />,
-    baseUrl: 'https://instagram.com/'
+    baseUrl: 'https://instagram.com/',
+    color: '#E4405F'
   },
   {
     label: 'WhatsApp',
     name: 'whatsapp',
     icon: <FaWhatsapp />,
-    baseUrl: 'https://wa.me/'
+    baseUrl: 'https://wa.me/',
+    color: '#25D366'
   }
 ];
 
-/**
- * Componente Footer mejorado con diseño profesional y responsivo
- * @returns {JSX.Element} Componente Footer
- */
+// Componente Footer mejorado con diseño profesional y responsivo
 const Footer = () => {
-  // Estados para almacenar datos de la API
   const [socials, setSocials] = useState([]);
   const [privacyPolicy, setPrivacyPolicy] = useState([]);
   const [termsConditions, setTermsConditions] = useState([]);
@@ -106,7 +101,6 @@ const Footer = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
-  // Efecto para cargar datos desde la API
   useEffect(() => {
     const fetchSocials = async () => {
       try {
@@ -147,121 +141,177 @@ const Footer = () => {
       }
     };
 
-    // Llamada a todas las funciones de obtención de datos
     fetchSocials();
     fetchPrivacyPolicy();
     fetchTermsConditions();
     fetchDisclaimer();
   }, []);
 
-  /**
-   * Maneja la apertura del modal con contenido dinámico
-   * @param {string} title - Título del modal
-   * @param {string} content - Contenido del modal
-   */
+  // Maneja la apertura del modal con contenido dinámico
   const handleOpenModal = (title, content) => {
     setModalTitle(title);
     setModalContent(content);
     setModalOpen(true);
   };
 
-  /**
-   * Maneja el clic en un ícono de red social
-   * @param {Object} social - Objeto con datos de la red social
-   */
+  // Maneja el clic en un ícono de red social
   const handleSocialClick = (social) => {
     const formattedUrl = formatSocialUrl(social.nombre_red, social.url);
     window.open(formattedUrl, '_blank', 'noopener,noreferrer');
   };
 
-  /**
-   * Cierra el modal
-   */
+  // Cierra el modal
   const handleCloseModal = () => setModalOpen(false);
 
-  // Estilos del footer según el tema
+  // Colores originales mejorados
+  const colors = {
+    light: {
+      background: '#03427C',
+      text: '#ffffff',
+      textSecondary: 'rgba(255, 255, 255, 0.9)',
+      accent: '#0288D1',
+      border: 'rgba(255, 255, 255, 0.2)',
+      hover: 'rgba(255, 255, 255, 0.1)',
+    },
+    dark: {
+      background: '#0D1B2A',
+      text: '#ffffff',
+      textSecondary: 'rgba(255, 255, 255, 0.9)',
+      accent: '#90CAF9',
+      border: 'rgba(255, 255, 255, 0.1)',
+      hover: 'rgba(255, 255, 255, 0.05)',
+    }
+  };
+
+  const currentColors = isDarkTheme ? colors.dark : colors.light;
+
+  // Estilos del footer con colores originales
   const footerStyle = {
-    backgroundColor: isDarkTheme ? '#0D1B2A' : '#03427C',
-    color: '#ffffff',
-    paddingTop: isMobile ? '30px' : '60px',
-    paddingBottom: '20px',
+    backgroundColor: currentColors.background,
+    color: currentColors.text,
+    paddingTop: isMobile ? '48px' : '80px',
+    paddingBottom: '32px',
     width: '100%',
-    boxShadow: '0 -10px 20px rgba(0, 0, 0, 0.05)',
     position: 'relative',
-    zIndex: 1,
+    overflow: 'hidden',
+    boxShadow: '0 -10px 20px rgba(0, 0, 0, 0.05)',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '1px',
+      background: `linear-gradient(90deg, transparent 0%, ${currentColors.accent} 50%, transparent 100%)`,
+    }
   };
 
-  // Estilo del botón de navegación
+  // Estilo mejorado para títulos de sección
+  const sectionTitleStyle = {
+    fontWeight: 700,
+    fontSize: isMobile ? '1.1rem' : '1.25rem',
+    mb: 3,
+    color: currentColors.text,
+    position: 'relative',
+    paddingBottom: '12px',
+    '&::after': {
+      content: '""',
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      width: '32px',
+      height: '3px',
+      background: `linear-gradient(90deg, ${currentColors.accent}, transparent)`,
+      borderRadius: '2px',
+    }
+  };
+
+  // Estilo mejorado para botones de navegación
   const navButtonStyle = {
-    color: '#ffffff',
-    fontSize: '0.85rem',
+    color: currentColors.textSecondary,
+    fontSize: '0.9rem',
     textAlign: 'left',
-    opacity: 0.9,
-    transition: 'all 0.3s ease',
-    padding: '6px 8px',
-    borderRadius: '4px',
-    marginLeft: '-8px',
+    justifyContent: 'flex-start',
+    padding: '8px 0',
+    borderRadius: '6px',
+    textTransform: 'none',
+    fontWeight: 400,
+    letterSpacing: '0.02em',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '0%',
+      height: '100%',
+      background: currentColors.hover,
+      transition: 'width 0.3s ease',
+      zIndex: 0,
+    },
     '&:hover': {
-      opacity: 1,
-      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-      transform: 'translateY(-2px)',
+      color: currentColors.text,
+      transform: 'translateX(8px)',
+      '&::before': {
+        width: '100%',
+      },
+      '& .MuiButton-startIcon': {
+        transform: 'scale(1.1)',
+      }
+    },
+    '& .MuiButton-label': {
+      position: 'relative',
+      zIndex: 1,
     }
   };
 
-  // Estilo para los íconos de redes sociales
-  const socialIconStyle = {
-    color: '#ffffff',
-    fontSize: isMobile ? '1.2rem' : '1.5rem',
-    transition: 'all 0.3s ease',
-    margin: '0 4px',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    padding: '8px',
-    borderRadius: '50%',
+  // Estilo mejorado para íconos de redes sociales
+  const socialIconStyle = (socialColor) => ({
+    color: currentColors.textSecondary,
+    fontSize: isMobile ? '1.3rem' : '1.5rem',
+    padding: '12px',
+    margin: '4px',
+    borderRadius: '12px',
+    background: currentColors.hover,
+    border: `1px solid ${currentColors.border}`,
+    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      background: `linear-gradient(45deg, ${socialColor}, ${socialColor}80)`,
+      opacity: 0,
+      transition: 'opacity 0.3s ease',
+    },
     '&:hover': {
-      transform: 'translateY(-3px) scale(1.05)',
-      color: '#ffffff',
-      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-      boxShadow: '0 5px 15px rgba(0, 0, 0, 0.2)'
+      transform: 'translateY(-4px) scale(1.05)',
+      color: '#FFFFFF',
+      borderColor: socialColor,
+      boxShadow: `0 8px 25px ${socialColor}40, 0 4px 10px rgba(0,0,0,0.1)`,
+      '&::before': {
+        opacity: 1,
+      },
+      '& svg': {
+        position: 'relative',
+        zIndex: 1,
+      }
     }
-  };
+  });
 
   return (
     <Box component="footer" sx={footerStyle}>
-      {/* Onda decorativa en la parte superior del footer */}
-      <Box 
-        sx={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '6px',
-          background: 'linear-gradient(90deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.1) 100%)',
-          zIndex: 2,
-        }}
-      />
-      
-      <Container maxWidth="lg">
-        <Grid container spacing={isMobile ? 4 : 6} justifyContent="space-between">
+      <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 2 }}>
+        <Grid container spacing={isMobile ? 4 : 6}>
           {/* Columna 1: Acerca de Carol */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600, 
-                mb: 2,
-                position: 'relative',
-                display: 'inline-block',
-                '&:after': {
-                  content: '""',
-                  position: 'absolute',
-                  width: '40px',
-                  height: '2px',
-                  bottom: '-8px',
-                  left: 0,
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                }
-              }}
-            >
+            <Typography variant="h6" sx={sectionTitleStyle}>
               Acerca de Carol
             </Typography>
             
@@ -274,34 +324,21 @@ const Footer = () => {
             </Button>
             
             {isMobile && (
-              <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 2 }} />
+              <Divider sx={{ 
+                backgroundColor: currentColors.border, 
+                my: 3,
+                opacity: 0.5 
+              }} />
             )}
           </Grid>
 
           {/* Columna 2: Servicio al Cliente */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600, 
-                mb: 2,
-                position: 'relative',
-                display: 'inline-block',
-                '&:after': {
-                  content: '""',
-                  position: 'absolute',
-                  width: '40px',
-                  height: '2px',
-                  bottom: '-8px',
-                  left: 0,
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                }
-              }}
-            >
+            <Typography variant="h6" sx={sectionTitleStyle}>
               Servicio al Cliente
             </Typography>
             
-            <Stack spacing={1}>
+            <Stack spacing={0.5}>
               <Button
                 sx={navButtonStyle}
                 onClick={() => navigate('/FAQ')}
@@ -320,34 +357,21 @@ const Footer = () => {
             </Stack>
             
             {isMobile && (
-              <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 2 }} />
+              <Divider sx={{ 
+                backgroundColor: currentColors.border, 
+                my: 3,
+                opacity: 0.5 
+              }} />
             )}
           </Grid>
 
           {/* Columna 3: Normatividad */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600, 
-                mb: 2,
-                position: 'relative',
-                display: 'inline-block',
-                '&:after': {
-                  content: '""',
-                  position: 'absolute',
-                  width: '40px',
-                  height: '2px',
-                  bottom: '-8px',
-                  left: 0,
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                }
-              }}
-            >
+            <Typography variant="h6" sx={sectionTitleStyle}>
               Normatividad
             </Typography>
             
-            <Stack spacing={1}>
+            <Stack spacing={0.5}>
               <Button
                 onClick={() => handleOpenModal('Política de Privacidad', privacyPolicy[0]?.contenido || 'No disponible')}
                 sx={navButtonStyle}
@@ -374,30 +398,17 @@ const Footer = () => {
             </Stack>
             
             {isMobile && (
-              <Divider sx={{ backgroundColor: 'rgba(255, 255, 255, 0.2)', my: 2 }} />
+              <Divider sx={{ 
+                backgroundColor: currentColors.border, 
+                my: 3,
+                opacity: 0.5 
+              }} />
             )}
           </Grid>
 
           {/* Columna 4: Redes Sociales */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600, 
-                mb: 2,
-                position: 'relative',
-                display: 'inline-block',
-                '&:after': {
-                  content: '""',
-                  position: 'absolute',
-                  width: '40px',
-                  height: '2px',
-                  bottom: '-8px',
-                  left: 0,
-                  backgroundColor: 'rgba(255, 255, 255, 0.6)',
-                }
-              }}
-            >
+            <Typography variant="h6" sx={sectionTitleStyle}>
               Síguenos
             </Typography>
             
@@ -420,7 +431,7 @@ const Footer = () => {
                     key={social.id}
                     onClick={() => handleSocialClick(social)}
                     aria-label={`Visitar ${socialConfig.label}`}
-                    sx={socialIconStyle}
+                    sx={socialIconStyle(socialConfig.color)}
                   >
                     {socialConfig.icon}
                   </IconButton>
@@ -430,33 +441,32 @@ const Footer = () => {
           </Grid>
         </Grid>
 
-        {/* Línea separadora con diseño mejorado */}
+        {/* Línea separadora mejorada */}
         <Box
           sx={{
             position: 'relative',
-            mt: 5,
-            mb: 3,
+            mt: 6,
+            mb: 4,
             height: '1px',
             width: '100%',
-            background: 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.3) 50%, rgba(255,255,255,0) 100%)',
+            background: `linear-gradient(90deg, transparent 0%, ${currentColors.border} 20%, ${currentColors.accent} 50%, ${currentColors.border} 80%, transparent 100%)`,
           }}
         />
 
-        {/* Copyright con diseño mejorado */}
+        {/* Copyright mejorado */}
         <Box
           sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
+            textAlign: 'center',
+            py: 2,
           }}
         >
           <Typography 
             sx={{ 
-              fontSize: '0.8rem',
-              opacity: 0.7,
-              textAlign: 'center',
+              fontSize: '0.85rem',
+              color: currentColors.textSecondary,
               fontWeight: 300,
-              letterSpacing: '0.5px'
+              letterSpacing: '0.5px',
+              lineHeight: 1.6,
             }}
           >
             © {new Date().getFullYear()} Odontología Carol. Todos los derechos reservados.
@@ -464,7 +474,7 @@ const Footer = () => {
         </Box>
       </Container>
 
-      {/* Modal mejorado con animación y diseño profesional */}
+      {/* Modal mejorado */}
       <Modal
         open={modalOpen}
         onClose={handleCloseModal}
@@ -473,35 +483,41 @@ const Footer = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
         }}
       >
         <Fade in={modalOpen}>
           <Paper
-            elevation={5}
+            elevation={24}
             sx={{
               position: 'relative',
-              borderRadius: '12px',
-              p: { xs: 2, sm: 4 },
+              borderRadius: '16px',
+              p: { xs: 3, sm: 4 },
               mx: 2,
               maxWidth: '700px', 
               maxHeight: '85vh',
               width: '100%',
               overflowY: 'auto',
+              background: isDarkTheme 
+                ? '#132F4C' 
+                : '#ffffff',
+              border: isDarkTheme 
+                ? '1px solid rgba(248, 250, 252, 0.1)' 
+                : '1px solid rgba(0, 0, 0, 0.05)',
+              boxShadow: isDarkTheme
+                ? '0 25px 50px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05)'
+                : '0 25px 50px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
               '&:focus': {
                 outline: 'none',
               },
-              bgcolor: isDarkTheme ? '#132F4C' : '#ffffff',
-              color: isDarkTheme ? '#ffffff' : 'text.primary',
-              border: isDarkTheme ? '1px solid rgba(255,255,255,0.1)' : 'none',
             }}
           >
             {/* Cabecera del modal */}
             <Box 
               sx={{
-                borderBottom: isDarkTheme 
-                  ? '1px solid rgba(255, 255, 255, 0.1)' 
-                  : '1px solid rgba(0, 0, 0, 0.1)',
-                pb: 2,
+                borderBottom: `1px solid ${currentColors.border}`,
+                pb: 3,
                 mb: 3,
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -511,8 +527,9 @@ const Footer = () => {
               <Typography
                 variant="h5"
                 sx={{
-                  fontWeight: 600,
-                  color: isDarkTheme ? '#90CAF9' : '#1565C0',
+                  fontWeight: 700,
+                  color: currentColors.accent,
+                  fontSize: { xs: '1.3rem', sm: '1.5rem' }
                 }}
               >
                 {modalTitle}
@@ -522,11 +539,16 @@ const Footer = () => {
                 onClick={handleCloseModal}
                 aria-label="Cerrar modal"
                 sx={{
-                  color: isDarkTheme ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.5)',
+                  color: currentColors.textSecondary,
+                  backgroundColor: currentColors.hover,
+                  borderRadius: '10px',
+                  padding: '8px',
                   '&:hover': {
-                    color: isDarkTheme ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
-                    backgroundColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                    color: currentColors.text,
+                    backgroundColor: currentColors.border,
+                    transform: 'scale(1.05)',
                   },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 <FaTimes />
@@ -534,17 +556,103 @@ const Footer = () => {
             </Box>
 
             {/* Contenido del modal */}
-            <Box sx={{ mb: 4 }}>
-              <Typography
-                variant="body1"
+            <Box 
+              sx={{ 
+                mb: 4,
+                maxHeight: '60vh',
+                overflowY: 'auto',
+                pr: 1,
+                '&::-webkit-scrollbar': {
+                  width: '6px',
+                },
+                '&::-webkit-scrollbar-track': {
+                  background: currentColors.hover,
+                  borderRadius: '10px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  background: currentColors.border,
+                  borderRadius: '10px',
+                  '&:hover': {
+                    background: currentColors.accent,
+                  },
+                },
+              }}
+            >
+              <Box
                 sx={{
-                  lineHeight: 1.8,
-                  color: isDarkTheme ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
-                  whiteSpace: 'pre-line',
+                  backgroundColor: isDarkTheme ? 'rgba(255, 255, 255, 0.02)' : 'rgba(0, 0, 0, 0.02)',
+                  border: `1px solid ${currentColors.border}`,
+                  borderRadius: '12px',
+                  padding: { xs: 2, sm: 3 },
+                  fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
                 }}
               >
-                {modalContent}
-              </Typography>
+                <Typography
+                  variant="body1"
+                  sx={{
+                    lineHeight: 1.75,
+                    color: isDarkTheme ? 'rgba(255,255,255,0.9)' : 'rgba(0,0,0,0.8)',
+                    fontSize: '0.95rem',
+                    fontWeight: 400,
+                    textAlign: 'justify',
+                    letterSpacing: '0.01em',
+                    '& p': {
+                      marginBottom: '16px',
+                      '&:last-child': {
+                        marginBottom: 0,
+                      },
+                    },
+                    '& h1, & h2, & h3, & h4, & h5, & h6': {
+                      color: currentColors.accent,
+                      fontWeight: 600,
+                      marginTop: '24px',
+                      marginBottom: '12px',
+                      '&:first-of-type': {
+                        marginTop: 0,
+                      },
+                    },
+                    '& h1': {
+                      fontSize: '1.4rem',
+                    },
+                    '& h2': {
+                      fontSize: '1.2rem',
+                    },
+                    '& h3': {
+                      fontSize: '1.1rem',
+                    },
+                    '& ul, & ol': {
+                      paddingLeft: '20px',
+                      marginBottom: '16px',
+                    },
+                    '& li': {
+                      marginBottom: '8px',
+                      lineHeight: 1.6,
+                    },
+                    '& strong, & b': {
+                      color: currentColors.text,
+                      fontWeight: 600,
+                    },
+                    '& em, & i': {
+                      fontStyle: 'italic',
+                      color: currentColors.accent,
+                    },
+                    whiteSpace: 'pre-line',
+                  }}
+                  component="div"
+                  dangerouslySetInnerHTML={{
+                    __html: modalContent
+                      .replace(/\n\n/g, '</p><p>')
+                      .replace(/^/, '<p>')
+                      .replace(/$/, '</p>')
+                      .replace(/<p><\/p>/g, '')
+                      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                      .replace(/^(\d+\.\s)/gm, '<li>$1')
+                      .replace(/^(-\s)/gm, '<li>')
+                      .replace(/^([A-ZÁÉÍÓÚÑ][^:\n]*:)/gm, '<h3>$1</h3>')
+                  }}
+                />
+              </Box>
             </Box>
 
             {/* Pie del modal */}
@@ -552,9 +660,7 @@ const Footer = () => {
               sx={{
                 display: 'flex',
                 justifyContent: 'flex-end',
-                borderTop: isDarkTheme 
-                  ? '1px solid rgba(255, 255, 255, 0.1)' 
-                  : '1px solid rgba(0, 0, 0, 0.1)',
+                borderTop: `1px solid ${currentColors.border}`,
                 pt: 3
               }}
             >
@@ -565,7 +671,7 @@ const Footer = () => {
                   backgroundColor: isDarkTheme ? '#90CAF9' : '#0288D1',
                   color: isDarkTheme ? '#0A1929' : 'white',
                   px: 4,
-                  py: 1,
+                  py: 1.5,
                   borderRadius: '8px',
                   textTransform: 'none',
                   fontWeight: 500,

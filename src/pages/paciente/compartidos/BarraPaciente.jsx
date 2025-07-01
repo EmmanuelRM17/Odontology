@@ -32,6 +32,7 @@ import { motion } from 'framer-motion';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import { clearAuthCache } from '../../../components/Tools/PrivateRoute';
 
 const BarraPaciente = ({ onDrawerChange }) => {
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -214,6 +215,7 @@ const BarraPaciente = ({ onDrawerChange }) => {
 
     // Manejar cierre de sesión
     const handleLogout = async () => {
+         clearAuthCache();
         if (isLoggingOut) return;
         setIsLoggingOut(true);
 

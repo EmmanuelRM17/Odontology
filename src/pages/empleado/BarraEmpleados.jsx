@@ -9,6 +9,7 @@ import {
     FaTooth, FaFileAlt, FaUsers, FaClipboardList, FaFileMedical, FaChartLine
 } from 'react-icons/fa';
 import { useAuth } from '../../components/Tools/AuthContext';
+import { clearAuthCache } from '../../components/Tools/PrivateRoute';
 
 const BarraEmpleados = () => {
     const [anchorEl, setAnchorEl] = useState(null);
@@ -58,6 +59,7 @@ const BarraEmpleados = () => {
     };
 
     const handleLogout = async () => {
+         clearAuthCache();
         try {
             await fetch('https://back-end-4803.onrender.com/api/users/logout', {
                 method: 'POST',

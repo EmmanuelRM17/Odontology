@@ -29,6 +29,27 @@ import {
 } from "@mui/icons-material";
 import { useThemeContext } from '../../components/Tools/ThemeContext';
 
+const useUrlTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    const excludedPaths = [
+      '/error',
+      '/login',
+      '/register',
+      '/recuperacion',
+      '/resetContra',
+      '/confirmacion'
+    ];
+
+    const currentPath = location.pathname;
+
+    if (!excludedPaths.some(path => currentPath.startsWith(path))) {
+      sessionStorage.setItem('lastValidUrl', currentPath);
+    }
+  }, [location.pathname]);
+};
+
 // Configuración de tipos de error con animaciones específicas
 const errorTypes = {
   400: {
@@ -40,7 +61,7 @@ const errorTypes = {
     animation: 'shake',
     actions: [
       { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
-      { label: 'Reintentar', icon: <Refresh />, action: 'reload', variant: 'contained' }
+      { label: 'Reintentar', icon: <Refresh />, action: 'retry', variant: 'contained' }
     ]
   },
   401: {
@@ -88,7 +109,7 @@ const errorTypes = {
     animation: 'glitch',
     actions: [
       { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
-      { label: 'Reintentar', icon: <Refresh />, action: 'reload', variant: 'contained' }
+      { label: 'Reintentar', icon: <Refresh />, action: 'retry', variant: 'contained' }
     ]
   },
   502: {
@@ -100,7 +121,7 @@ const errorTypes = {
     animation: 'pulse',
     actions: [
       { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
-      { label: 'Reintentar', icon: <Refresh />, action: 'reload', variant: 'contained' }
+      { label: 'Reintentar', icon: <Refresh />, action: 'retry', variant: 'contained' }
     ]
   }
 };
@@ -147,7 +168,7 @@ const getErrorAnimation = (animationType) => {
       }
     }
   };
-  
+
   return animations[animationType] || animations.float;
 };
 
@@ -155,6 +176,7 @@ const getErrorAnimation = (animationType) => {
  * Página de error con diseño minimalista y animaciones específicas
  */
 const ErrorPage = () => {
+  useUrlTracker();
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
   const location = useLocation();
@@ -162,14 +184,13 @@ const ErrorPage = () => {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
-  
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
+
   // Determinar el código de error
   const errorCode = !isOnline ? 502 : location.state?.errorCode || 404;
   const errorMessage = location.state?.errorMessage || errorTypes[errorCode]?.description;
   const errorInfo = errorTypes[errorCode] || errorTypes[404];
-  
+
   // Paleta de colores consistente con el proyecto
   const colors = {
     background: isDarkTheme ? '#0F172A' : '#F8FAFC',
@@ -187,10 +208,11 @@ const ErrorPage = () => {
       setLoadingMessage('Reconectando...');
       setIsLoading(true);
       setTimeout(() => {
-        window.location.reload();
+        const redirectUrl = getBestRedirectUrl();
+        navigate(redirectUrl, { replace: true });
       }, 1000);
     };
-    
+
     const handleOffline = () => setIsOnline(false);
 
     window.addEventListener("online", handleOnline);
@@ -200,17 +222,57 @@ const ErrorPage = () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [navigate]);
+
+  const getBestRedirectUrl = () => {
+    const userRole = localStorage.getItem('userRole');
+    const token = localStorage.getItem('token');
+    const lastValidUrl = sessionStorage.getItem('lastValidUrl');
+
+    if (lastValidUrl && lastValidUrl !== window.location.pathname && lastValidUrl !== '/error') {
+      return lastValidUrl;
+    }
+
+    if (token && userRole) {
+      switch (userRole) {
+        case 'administrador':
+          return '/Administrador/principal';
+        case 'empleado':
+          return '/Empleado/principal';
+        case 'paciente':
+          return '/Paciente/principal';
+        default:
+          return '/';
+      }
+    }
+
+    return '/';
+  };
 
   // Manejador de acciones
   const handleAction = (action) => {
     if (action.action === 'back') {
-      navigate(-1);
-    } else if (action.action === 'reload') {
-      setLoadingMessage('Recargando...');
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        navigate('/', { replace: true });
+      }
+    } else if (action.action === 'retry') {
+      setLoadingMessage('Reintentando...');
       setIsLoading(true);
+
       setTimeout(() => {
-        window.location.reload();
+        const redirectUrl = getBestRedirectUrl();
+        navigate(redirectUrl, { replace: true });
+        setIsLoading(false);
+      }, 800);
+    } else if (action.action === 'home') {
+      setLoadingMessage('Redirigiendo al inicio...');
+      setIsLoading(true);
+
+      setTimeout(() => {
+        navigate('/', { replace: true });
+        setIsLoading(false);
       }, 500);
     } else if (action.to) {
       setLoadingMessage('Redirigiendo...');
@@ -220,13 +282,12 @@ const ErrorPage = () => {
       }, 800);
     }
   };
-
   // Animaciones principales
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: { 
+    visible: {
       opacity: 1,
-      transition: { 
+      transition: {
         duration: 0.6,
         staggerChildren: 0.15
       }
@@ -235,10 +296,10 @@ const ErrorPage = () => {
 
   const itemVariants = {
     hidden: { opacity: 0, y: 30 },
-    visible: { 
-      opacity: 1, 
+    visible: {
+      opacity: 1,
       y: 0,
-      transition: { 
+      transition: {
         type: "spring",
         damping: 20,
         stiffness: 300
@@ -247,8 +308,8 @@ const ErrorPage = () => {
   };
 
   const buttonVariants = {
-    hover: { 
-      scale: 1.02, 
+    hover: {
+      scale: 1.02,
       y: -2,
       transition: { type: "spring", stiffness: 400 }
     },
@@ -263,7 +324,7 @@ const ErrorPage = () => {
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.background,
-        backgroundImage: isDarkTheme 
+        backgroundImage: isDarkTheme
           ? 'radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(16, 185, 129, 0.03) 0%, transparent 50%)'
           : 'radial-gradient(circle at 20% 50%, rgba(37, 99, 235, 0.02) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(5, 150, 105, 0.02) 0%, transparent 50%)',
         transition: 'all 0.3s ease',
@@ -320,14 +381,14 @@ const ErrorPage = () => {
           >
             {/* Barra superior con código de error */}
             <motion.div variants={itemVariants}>
-              <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                mb: 4 
+              <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                mb: 4
               }}>
                 <Chip
-                  icon={React.cloneElement(errorInfo.icon, { 
-                    style: { color: '#fff', fontSize: 20 } 
+                  icon={React.cloneElement(errorInfo.icon, {
+                    style: { color: '#fff', fontSize: 20 }
                   })}
                   label={`Error ${errorCode}`}
                   sx={{
@@ -350,7 +411,7 @@ const ErrorPage = () => {
               {/* Sección del icono y código */}
               <Grid item xs={12} md={5}>
                 <motion.div variants={itemVariants}>
-                  <Box sx={{ 
+                  <Box sx={{
                     textAlign: 'center',
                     position: 'relative'
                   }}>
@@ -372,12 +433,12 @@ const ErrorPage = () => {
                       }}
                     >
                       {React.cloneElement(errorInfo.icon, {
-                        sx: { 
+                        sx: {
                           fontSize: { xs: 50, md: 60 },
                           color: errorInfo.color
                         }
                       })}
-                      
+
                       {/* Anillo decorativo */}
                       <Box
                         sx={{
@@ -390,7 +451,7 @@ const ErrorPage = () => {
                         }}
                       />
                     </Box>
-                    
+
                     {/* Código numérico */}
                     <Typography
                       component={motion.div}
@@ -449,21 +510,21 @@ const ErrorPage = () => {
                 </motion.div>
 
                 <motion.div variants={itemVariants}>
-                  <Divider 
-                    sx={{ 
-                      mb: 4, 
+                  <Divider
+                    sx={{
+                      mb: 4,
                       borderColor: colors.border,
                       background: errorInfo.gradient,
                       height: 2,
                       border: 'none'
-                    }} 
+                    }}
                   />
                 </motion.div>
 
                 {/* Botones de acción mejorados */}
                 <motion.div variants={itemVariants}>
-                  <Box sx={{ 
-                    display: 'flex', 
+                  <Box sx={{
+                    display: 'flex',
                     gap: 2,
                     flexDirection: { xs: 'column', sm: 'row' }
                   }}>
@@ -493,8 +554,8 @@ const ErrorPage = () => {
                               px: 4,
                               py: 1.5,
                               minWidth: 140,
-                              boxShadow: action.variant === 'contained' 
-                                ? `0 4px 15px ${errorInfo.color}30` 
+                              boxShadow: action.variant === 'contained'
+                                ? `0 4px 15px ${errorInfo.color}30`
                                 : 'none',
                               ...(action.variant === 'contained' && {
                                 background: errorInfo.gradient,
@@ -534,8 +595,8 @@ const ErrorPage = () => {
 
       {/* Overlay de carga mejorado */}
       <Backdrop
-        sx={{ 
-          color: '#fff', 
+        sx={{
+          color: '#fff',
           zIndex: theme.zIndex.drawer + 1,
           backdropFilter: 'blur(12px)',
           flexDirection: 'column',
@@ -548,24 +609,24 @@ const ErrorPage = () => {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3 }}
         >
-          <CircularProgress 
+          <CircularProgress
             size={70}
             thickness={4}
-            sx={{ 
+            sx={{
               color: errorInfo.color,
               filter: `drop-shadow(0 0 10px ${errorInfo.color}50)`
-            }} 
+            }}
           />
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Typography 
+          <Typography
             variant="h6"
-            sx={{ 
+            sx={{
               fontSize: { xs: '1.1rem', sm: '1.25rem' },
               fontWeight: 500
             }}

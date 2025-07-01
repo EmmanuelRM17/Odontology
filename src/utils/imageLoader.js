@@ -1,4 +1,4 @@
-// imageLoader.js - Implementación mejorada y más robusta
+import { useState, useEffect } from 'react';
 
 // Importación manual de imágenes (más confiable)
 import img1 from '../assets/imagenes/img_1.jpg';
