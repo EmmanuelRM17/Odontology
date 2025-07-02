@@ -147,7 +147,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
+    const handleOnline = () => {
+      setIsOnline(true);
+      fetchTitleAndLogo(); // << intenta recargar favicon/título al reconectar
+    };
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -178,17 +181,18 @@ function App() {
         setTituloPagina(nombre_pagina);
       }
       if (logo) {
-        const linkElement = document.querySelector("link[rel~='icon']");
-        if (linkElement) {
-          linkElement.href = `data:image/png;base64,${logo}`;
-        } else {
-          const link = document.createElement("link");
-          link.rel = "icon";
-          link.type = "image/png";
-          link.href = `data:image/png;base64,${logo}`;
-          document.head.appendChild(link);
-        }
+        // Elimina cualquier favicon existente con ID o rel=icon
+        const oldIcons = document.querySelectorAll("link[rel='icon']");
+        oldIcons.forEach(icon => icon.parentNode.removeChild(icon));
+
+        const newIcon = document.createElement("link");
+        newIcon.id = "dynamic-favicon";
+        newIcon.rel = "icon";
+        newIcon.type = "image/png";
+        newIcon.href = `data:image/png;base64,${logo}`;
+        document.head.appendChild(newIcon);
       }
+
       setFetchErrors(0);
       setLoading(false);
 

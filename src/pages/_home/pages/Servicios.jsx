@@ -91,18 +91,18 @@ const Servicios = () => {
         palette: {
             mode: isDarkTheme ? 'dark' : 'light',
             primary: {
-                main: isDarkTheme ? '#4A9FDC' : '#03427C',
+                main: isDarkTheme ? '#3B82F6' : '#2563EB', // Azul más cálido y menos intenso
             },
             secondary: {
-                main: '#4CAF50',
+                main: '#10B981', // Verde más suave
             },
             background: {
-                default: isDarkTheme ? '#121212' : '#ffffff', // Fondo más oscuro
-                paper: isDarkTheme ? '#1E1E1E' : '#ffffff',  // Tarjetas más oscuras
+                default: isDarkTheme ? '#0F172A' : '#F8FAFC', // Fondo más suave, menos negro
+                paper: isDarkTheme ? '#1E293B' : '#FFFFFF',  // Tarjetas menos oscuras
             },
             text: {
-                primary: isDarkTheme ? '#ffffff' : '#03427C',
-                secondary: isDarkTheme ? '#B8C7DC' : '#476685',
+                primary: isDarkTheme ? '#F1F5F9' : '#334155', // Texto más suave
+                secondary: isDarkTheme ? '#94A3B8' : '#64748B',
             },
         },
         typography: {
@@ -123,14 +123,16 @@ const Servicios = () => {
                     root: {
                         borderRadius: 16,
                         overflow: 'hidden',
-                        boxShadow: isDarkTheme ? '0 4px 20px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.1)',
+                        boxShadow: isDarkTheme 
+                            ? '0 4px 20px rgba(0,0,0,0.25)' // Sombra más suave en modo oscuro
+                            : '0 2px 8px rgba(0,0,0,0.1)',
                     },
                 },
             },
             MuiPaper: {
                 styleOverrides: {
                     root: {
-                        backgroundImage: 'none', // Elimina el papel cuadriculado en modo oscuro
+                        backgroundImage: 'none',
                     },
                 },
             },
@@ -186,218 +188,223 @@ const Servicios = () => {
     };
 
     // Componente de tarjeta de servicio individual
-    const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
-        const theme = useTheme();
-        const [dialogOpen, setDialogOpen] = useState(false);
-        const [isHovered, setIsHovered] = useState(false);
+const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
+    const theme = useTheme();
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [isHovered, setIsHovered] = useState(false);
 
-        const handleOpenDialog = () => {
-            setDialogOpen(true);
-        };
+    const handleOpenDialog = () => {
+        setDialogOpen(true);
+    };
 
-        const handleCloseDialog = () => {
-            setDialogOpen(false);
-        };
+    const handleCloseDialog = () => {
+        setDialogOpen(false);
+    };
 
-        // Obtener color según categoría
-        const getCategoryColor = (category) => {
-            switch(category) {
-                case 'Preventivos': return '#4CAF50';
-                case 'Estéticos': return '#2196F3';
-                case 'Restaurativos': return '#FF9800';
-                default: return theme.palette.primary.main;
-            }
-        };
+    // Obtener color según categoría con paleta más suave
+    const getCategoryColor = (category) => {
+        switch(category) {
+            case 'Preventivos': return isDarkTheme ? '#10B981' : '#059669';
+            case 'Estéticos': return isDarkTheme ? '#3B82F6' : '#2563EB';
+            case 'Restaurativos': return isDarkTheme ? '#F59E0B' : '#D97706';
+            default: return theme.palette.primary.main;
+        }
+    };
 
-        const categoryColor = getCategoryColor(service.category);
+    const categoryColor = getCategoryColor(service.category);
 
-        return (
-            <Fade in timeout={300 + index * 50}>
-                <Card
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    sx={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                        transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
-                        backgroundColor: isDarkTheme 
-                            ? alpha(theme.palette.background.paper, 0.95)
-                            : theme.palette.background.paper,
-                        borderRadius: '16px',
-                        overflow: 'hidden',
-                        position: 'relative',
-                        boxShadow: isHovered
-                            ? isDarkTheme
-                                ? `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.2)`
-                                : `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.1)`
-                            : theme.shadows[2],
-                        border: isDarkTheme ? `1px solid ${alpha(theme.palette.divider, 0.05)}` : 'none'
-                    }}
-                >
-                    <Box sx={{
-                        position: 'relative',
-                        overflow: 'hidden',
-                        height: 200,
-                        borderBottom: `3px solid ${categoryColor}`
-                    }}>
-                        <img
-                            src={service.image_url
-                                ? service.image_url.includes('cloudinary')
-                                    ? service.image_url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/')
-                                    : service.image_url
-                                : getPlaceholderImage(service.title)
-                            }
-                            alt={service.title}
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = getPlaceholderImage(service.title);
-                            }}
-                            style={{
-                                height: '100%',
-                                width: '100%',
-                                objectFit: 'cover',
-                                display: 'block',
-                                transition: 'transform 0.5s ease',
-                                transform: isHovered ? 'scale(1.05)' : 'scale(1)'
-                            }}
-                        />
+    return (
+        <Fade in timeout={300 + index * 50}>
+            <Card
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                sx={{
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
+                    backgroundColor: isDarkTheme 
+                        ? alpha('#1E293B', 0.95) // Fondo menos oscuro
+                        : theme.palette.background.paper,
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    boxShadow: isHovered
+                        ? isDarkTheme
+                            ? `0 12px 20px -10px ${alpha(categoryColor, 0.3)}, 0 4px 20px 0px rgba(0,0,0,0.15)`
+                            : `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.1)`
+                        : theme.shadows[2],
+                    border: isDarkTheme ? `1px solid ${alpha('#94A3B8', 0.1)}` : 'none'
+                }}
+            >
+                {/* Contenedor de imagen con aspect ratio mejorado */}
+                <Box sx={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    aspectRatio: '16/10', // Aspect ratio más equilibrado
+                    minHeight: '180px', // Altura mínima más pequeña
+                    maxHeight: '220px', // Altura máxima controlada
+                    borderBottom: `3px solid ${categoryColor}`
+                }}>
+                    <img
+                        src={service.image_url
+                            ? service.image_url.includes('cloudinary')
+                                ? service.image_url.replace('/upload/', '/upload/w_400,h_250,c_fill,q_auto,f_auto/') // Dimensiones más equilibradas
+                                : service.image_url
+                            : getPlaceholderImage(service.title)
+                        }
+                        alt={service.title}
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getPlaceholderImage(service.title);
+                        }}
+                        style={{
+                            height: '100%',
+                            width: '100%',
+                            objectFit: 'cover',
+                            objectPosition: 'center', // Centrar la imagen
+                            display: 'block',
+                            transition: 'transform 0.5s ease',
+                            transform: isHovered ? 'scale(1.05)' : 'scale(1)'
+                        }}
+                    />
 
-                        {/* Categoría */}
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                top: 10,
-                                left: 10,
-                                bgcolor: 'rgba(255,255,255,0.9)',
-                                color: categoryColor,
-                                py: 0.5,
-                                px: 1.5,
-                                borderRadius: '30px',
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                            }}
-                        >
-                            {service.category || 'General'}
-                        </Box>
-
-                        {/* Gradiente para mejor legibilidad */}
-                        <Box
-                            sx={{
-                                position: 'absolute',
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                height: '30%',
-                                background: 'linear-gradient(to top, rgba(0,0,0,0.6), rgba(0,0,0,0))',
-                            }}
-                        />
+                    {/* Categoría con estilo mejorado */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: 12,
+                            left: 12,
+                            bgcolor: isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255,255,255,0.95)',
+                            color: categoryColor,
+                            py: 0.5,
+                            px: 1.5,
+                            borderRadius: '20px',
+                            fontWeight: 600,
+                            fontSize: '0.75rem',
+                            boxShadow: isDarkTheme 
+                                ? '0 2px 8px rgba(0,0,0,0.3)' 
+                                : '0 2px 4px rgba(0,0,0,0.1)',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                    >
+                        {service.category || 'General'}
                     </Box>
 
-                    <CardContent sx={{
-                        flexGrow: 1,
-                        p: 3,
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'space-between'
-                    }}>
-                        <Box>
-                            <Typography
-                                variant="h6"
-                                component="h2"
-                                sx={{
-                                    fontWeight: 600,
-                                    mb: 1,
-                                    color: theme.palette.text.primary,
-                                    fontSize: '1.1rem',
-                                    lineHeight: 1.3,
-                                    height: '2.8rem',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical'
-                                }}
-                            >
-                                {service.title}
-                            </Typography>
-
-                            <Typography
-                                variant="body2"
-                                color="text.secondary"
-                                sx={{
-                                    mb: 2,
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 3,
-                                    WebkitBoxOrient: 'vertical',
-                                    lineHeight: 1.5,
-                                    minHeight: '4.5rem'
-                                }}
-                            >
-                                {service.description && service.description.includes('.')
-                                    ? service.description.split('.')[0] + '.'
-                                    : service.description}
-                            </Typography>
-                        </Box>
-                        
-                        <Box sx={{ p: 0, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
-                            {/* Botón para ver detalles */}
-                            <Button
-                                variant="outlined"
-                                startIcon={<InfoIcon />}
-                                onClick={handleOpenDialog}
-                                sx={{
-                                    flex: 1,
-                                    borderRadius: '50px',
-                                    py: 1,
-                                    borderColor: categoryColor,
-                                    color: categoryColor,
-                                    '&:hover': {
-                                        borderColor: categoryColor,
-                                        backgroundColor: alpha(categoryColor, 0.05),
-                                    }
-                                }}
-                            >
-                                Detalles
-                            </Button>
-
-                            {/* Botón de agendar cita */}
-                            <Button
-                                variant="contained"
-                                startIcon={<CalendarMonthIcon />}
-                                onClick={() => handleAgendarCita(service)}
-                                sx={{
-                                    flex: 1,
-                                    borderRadius: '50px',
-                                    py: 1,
-                                    background: categoryColor,
-                                    '&:hover': {
-                                        background: theme.palette.mode === 'dark' 
-                                            ? alpha(categoryColor, 0.8)
-                                            : alpha(categoryColor, 0.9),
-                                        boxShadow: `0 4px 8px ${alpha(categoryColor, 0.4)}`
-                                    }
-                                }}
-                            >
-                                Agendar
-                            </Button>
-                        </Box>
-                    </CardContent>
-
-                    <ServicioDetalleDialog
-                        open={dialogOpen}
-                        onClose={handleCloseDialog}
-                        servicioId={service.id}
-                        onAgendarCita={(service) => handleAgendarCita(service)}
+                    {/* Gradiente más suave */}
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: '25%',
+                            background: isDarkTheme 
+                                ? 'linear-gradient(to top, rgba(30,41,59,0.6), rgba(30,41,59,0))'
+                                : 'linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0))',
+                        }}
                     />
-                </Card>
-            </Fade>
-        );
-    };
+                </Box>
+
+                <CardContent sx={{
+                    flexGrow: 1,
+                    p: 3,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
+                }}>
+                    <Box>
+                        <Typography
+                            variant="h6"
+                            component="h2"
+                            sx={{
+                                fontWeight: 600,
+                                mb: 1,
+                                color: theme.palette.text.primary,
+                                fontSize: '1.1rem',
+                                lineHeight: 1.3,
+                                height: '2.8rem',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical'
+                            }}
+                        >
+                            {service.title}
+                        </Typography>
+
+                        <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                                mb: 2,
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                lineHeight: 1.5,
+                                minHeight: '4.5rem'
+                            }}
+                        >
+                            {service.description && service.description.includes('.')
+                                ? service.description.split('.')[0] + '.'
+                                : service.description}
+                        </Typography>
+                    </Box>
+                    
+                    <Box sx={{ p: 0, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
+                        <Button
+                            variant="outlined"
+                            startIcon={<InfoIcon />}
+                            onClick={handleOpenDialog}
+                            sx={{
+                                flex: 1,
+                                borderRadius: '50px',
+                                py: 1,
+                                borderColor: categoryColor,
+                                color: categoryColor,
+                                '&:hover': {
+                                    borderColor: categoryColor,
+                                    backgroundColor: alpha(categoryColor, 0.05),
+                                }
+                            }}
+                        >
+                            Detalles
+                        </Button>
+
+                        <Button
+                            variant="contained"
+                            startIcon={<CalendarMonthIcon />}
+                            onClick={() => handleAgendarCita(service)}
+                            sx={{
+                                flex: 1,
+                                borderRadius: '50px',
+                                py: 1,
+                                background: categoryColor,
+                                '&:hover': {
+                                    background: alpha(categoryColor, 0.9),
+                                    boxShadow: `0 4px 8px ${alpha(categoryColor, 0.4)}`
+                                }
+                            }}
+                        >
+                            Agendar
+                        </Button>
+                    </Box>
+                </CardContent>
+
+                <ServicioDetalleDialog
+                    open={dialogOpen}
+                    onClose={handleCloseDialog}
+                    servicioId={service.id}
+                    onAgendarCita={(service) => handleAgendarCita(service)}
+                />
+            </Card>
+        </Fade>
+    );
+};
 
     // Componente de esqueleto de carga mejorado para el tema oscuro
     const ServicesLoadingSkeleton = () => {
