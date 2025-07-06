@@ -131,7 +131,7 @@ const Home = () => {
         overflow: 'hidden'
       }}
     >
-      {/* Elementos decorativos de fondo */}
+      {/* Elementos decorativos de fondo optimizados */}
       <Box
         sx={{
           position: 'absolute',
@@ -142,7 +142,8 @@ const Home = () => {
           borderRadius: '50%',
           background: `radial-gradient(circle, ${colors.primary}10 0%, transparent 70%)`,
           zIndex: 0,
-          animation: 'float 8s ease-in-out infinite'
+          animation: 'float 8s ease-in-out infinite',
+          willChange: 'transform' // Optimización de rendimiento
         }}
       />
 
@@ -156,7 +157,8 @@ const Home = () => {
           borderRadius: '50%',
           background: `radial-gradient(circle, ${colors.primary}08 0%, transparent 70%)`,
           zIndex: 0,
-          animation: 'float 12s ease-in-out infinite reverse'
+          animation: 'float 12s ease-in-out infinite reverse',
+          willChange: 'transform'
         }}
       />
 
@@ -170,67 +172,215 @@ const Home = () => {
           borderRadius: '50%',
           background: `radial-gradient(circle, ${colors.primary}05 0%, transparent 70%)`,
           zIndex: 0,
-          animation: 'float 15s ease-in-out infinite'
+          animation: 'float 15s ease-in-out infinite',
+          willChange: 'transform'
         }}
       />
 
-      {/* Estilos globales para animaciones */}
+      {/* Estilos globales para animaciones OPTIMIZADOS */}
       <Global
         styles={`
+          /* Animaciones base optimizadas con hardware acceleration */
           @keyframes float {
-            0% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-20px) scale(1.05); }
-            100% { transform: translateY(0px) scale(1); }
+            0% { 
+              transform: translate3d(0, 0, 0) scale(1); 
+            }
+            50% { 
+              transform: translate3d(0, -20px, 0) scale(1.05); 
+            }
+            100% { 
+              transform: translate3d(0, 0, 0) scale(1); 
+            }
           }
           
+          /* Animaciones de entrada más fluidas */
           @keyframes fadeInUp {
             from {
               opacity: 0;
-              transform: translateY(30px);
+              transform: translate3d(0, 30px, 0);
             }
             to {
               opacity: 1;
-              transform: translateY(0);
+              transform: translate3d(0, 0, 0);
             }
           }
           
           @keyframes fadeInLeft {
             from {
               opacity: 0;
-              transform: translateX(-30px);
+              transform: translate3d(-30px, 0, 0);
             }
             to {
               opacity: 1;
-              transform: translateX(0);
+              transform: translate3d(0, 0, 0);
             }
           }
           
           @keyframes fadeInRight {
             from {
               opacity: 0;
-              transform: translateX(30px);
+              transform: translate3d(30px, 0, 0);
             }
             to {
               opacity: 1;
-              transform: translateX(0);
+              transform: translate3d(0, 0, 0);
+            }
+          }
+
+          /* Animación de escalado suave */
+          @keyframes scaleIn {
+            from {
+              opacity: 0;
+              transform: translate3d(0, 0, 0) scale(0.9);
+            }
+            to {
+              opacity: 1;
+              transform: translate3d(0, 0, 0) scale(1);
+            }
+          }
+
+          /* Animación de deslizamiento optimizada */
+          @keyframes slideInUp {
+            from {
+              opacity: 0;
+              transform: translate3d(0, 40px, 0) scale(0.95);
+            }
+            to {
+              opacity: 1;
+              transform: translate3d(0, 0, 0) scale(1);
+            }
+          }
+
+          /* Animación de pulso mejorada */
+          @keyframes pulse {
+            0% { 
+              transform: scale(1);
+              opacity: 1;
+            }
+            50% { 
+              transform: scale(1.05);
+              opacity: 0.8;
+            }
+            100% { 
+              transform: scale(1);
+              opacity: 1;
+            }
+          }
+
+          /* Animación de gradiente suave */
+          @keyframes gradientShift {
+            0% { 
+              background-position: 0% 0%; 
+            }
+            50% { 
+              background-position: 100% 100%; 
+            }
+            100% { 
+              background-position: 0% 0%; 
             }
           }
           
-          @keyframes pulse {
-            0% { backgroundPosition: '0% 0%'; }
-            100% { backgroundPosition: '200% 0%'; }
-          }
-          
+          /* Clases utilitarias optimizadas */
           .animate-fade-up {
-            animation: fadeInUp 0.6s ease-out forwards;
+            animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
           }
           
           .animate-fade-left {
-            animation: fadeInLeft 0.6s ease-out forwards;
+            animation: fadeInLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
           }
           
           .animate-fade-right {
-            animation: fadeInRight 0.6s ease-out forwards;
+            animation: fadeInRight 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
+          }
+
+          .animate-scale-in {
+            animation: scaleIn 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
+          }
+
+          .animate-slide-up {
+            animation: slideInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+            will-change: transform, opacity;
+          }
+
+          .animate-pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+            will-change: transform;
+          }
+
+          /* Optimizaciones globales de rendimiento */
+          * {
+            box-sizing: border-box;
+          }
+
+          /* Smooth scrolling optimizado */
+          html {
+            scroll-behavior: smooth;
+          }
+
+          /* Prevenir layout shifts durante animaciones */
+          .animation-container {
+            contain: layout style paint;
+          }
+
+          /* Reducir motion para usuarios que lo prefieren */
+          @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+              animation-duration: 0.01ms !important;
+              animation-iteration-count: 1 !important;
+              transition-duration: 0.01ms !important;
+              scroll-behavior: auto !important;
+            }
+            
+            .animate-fade-up,
+            .animate-fade-left,
+            .animate-fade-right,
+            .animate-scale-in,
+            .animate-slide-up {
+              animation: none !important;
+              opacity: 1 !important;
+              transform: none !important;
+            }
+          }
+
+          /* Optimizaciones para móviles */
+          @media (max-width: 768px) {
+            /* Reducir complejidad de animaciones en móviles */
+            .float-animation {
+              animation-duration: 10s !important;
+            }
+            
+            /* Simplificar transforms en pantallas pequeñas */
+            .complex-transform {
+              transform: translateY(0) !important;
+            }
+          }
+
+          /* Efectos de hover optimizados */
+          .hover-lift {
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform;
+          }
+          
+          .hover-lift:hover {
+            transform: translateY(-4px);
+          }
+
+          /* Efectos de focus mejorados para accesibilidad */
+          .focus-visible {
+            outline: 2px solid ${colors.primary};
+            outline-offset: 2px;
+            border-radius: 4px;
+          }
+
+          /* Transiciones suaves para cambios de tema */
+          .theme-transition {
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
           }
         `}
       />
@@ -239,6 +389,7 @@ const Home = () => {
       <HomeHero colors={colors} isPaused={isPaused} setIsPaused={setIsPaused} />
       <HomeServices colors={colors} setIsPaused={setIsPaused} />
       <HomeTestimonials colors={colors} infoData={infoData} />
+
     </Box>
   );
 };

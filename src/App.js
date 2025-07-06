@@ -88,7 +88,7 @@ function AppContent({ loading, forceLoading, isOnline }) {
         <Route path="/agendar-cita" element={<><Chatbot /><Agendar /></>} />
         <Route path="/confirmacion" element={<Confirmacion />} />
         <Route path="/about" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Acerca de" }]} /><Acerca /></LayoutConEncabezado>} />
-        <Route path="/servicios" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios" }]} /><Servicios /></LayoutConEncabezado>} />
+        <Route path="/servicios" element={<LayoutConEncabezado><Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios" }]} /><Servicios /></LayoutConEncabezado>} />
         <Route path="/servicios/detalle/:servicioId" element={<LayoutConEncabezado><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios", path: "/servicios" }, { name: "Detalle del Servicio" }]} /><ServiciosDetalle /></LayoutConEncabezado>} />
         <Route path="/recuperacion" element={<Recuperacion />} />
         <Route path="/resetContra" element={<Reset />} />

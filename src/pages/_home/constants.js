@@ -83,24 +83,7 @@ export const FEATURES_DATA = [
   }
 ];
 
-// Datos para testimonios
-export const TESTIMONIALS = [
-  {
-    name: "María Fernández",
-    testimonial: "La atención fue excelente. El doctor me explicó todo el procedimiento y no sentí ninguna molestia. Estoy muy satisfecha con el resultado.",
-    rating: 5
-  },
-  {
-    name: "Carlos Gutiérrez",
-    testimonial: "Mi hija tenía miedo de ir al dentista, pero el personal fue muy amable y paciente con ella. Ahora hasta quiere regresar para su próxima revisión.",
-    rating: 5
-  },
-  {
-    name: "Laura Mendoza",
-    testimonial: "Precios muy accesibles y un trabajo profesional. El ambiente del consultorio es muy acogedor y limpio. Definitivamente lo recomiendo.",
-    rating: 4
-  }
-];
+
 
 // Función para calcular colores basados en el tema
 export const getThemeColors = (isDarkTheme) => ({

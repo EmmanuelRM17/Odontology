@@ -12,7 +12,9 @@ import {
   Avatar,
   Chip,
   useMediaQuery,
-  Container
+  Container,
+  Skeleton,
+  Alert
 } from '@mui/material';
 import { 
   CalendarToday, 
@@ -24,46 +26,144 @@ import {
   Person,
   HealthAndSafety,
   InsertDriveFile,
-  CreditCard
+  CreditCard,
+  EventAvailable,
+  EventNote
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import { useAuth } from '../../../components/Tools/AuthContext';
 
 /**
- * Componente Principal del Portal del Paciente
- * Pantalla de inicio con acceso a las principales funcionalidades
+ * Componente Principal del Portal del Paciente con próxima cita dinámica
  */
 const Principal = () => {
   const navigate = useNavigate();
   const { isDarkTheme } = useThemeContext();
   const isMobile = useMediaQuery(theme => theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme => theme.breakpoints.down('md'));
+  const { user } = useAuth(); // Obtener usuario del contexto de autenticación
+  
+  // Estados para manejar la próxima cita
+  const [proximaCita, setProximaCita] = useState(null);
+  const [citaLoading, setCitaLoading] = useState(true);
+  const [citaError, setCitaError] = useState(null);
+  const [tieneProximaCita, setTieneProximaCita] = useState(false);
+  
+  // Obtener ID del paciente desde el contexto de autenticación
+  const pacienteId = user?.id;
 
-  // Datos de ejemplo para la próxima cita (en un entorno real, se obtendría de una API)
-  const [proximaCita, setProximaCita] = useState({
-    fecha: '15 de marzo, 2025',
-    hora: '10:30 AM',
-    doctor: 'Dra. Carol Jiménez',
-    tipo: 'Limpieza dental'
-  });
+  // Efecto para cargar la próxima cita del paciente
+  useEffect(() => {
+    const fetchProximaCita = async () => {
+      if (!pacienteId) {
+        setCitaLoading(false);
+        return;
+      }
 
-  // Colores según el modo del sistema con mejor contraste y paleta más cálida
+      try {
+        setCitaLoading(true);
+        setCitaError(null);
+        
+        const response = await fetch(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteId}/proxima`);
+        
+        if (response.status === 404) {
+          // No hay citas próximas - esto es normal
+          setTieneProximaCita(false);
+          setProximaCita(null);
+          setCitaLoading(false);
+          return;
+        }
+        
+        if (!response.ok) {
+          throw new Error('Error al obtener la próxima cita');
+        }
+        
+        const data = await response.json();
+        
+        if (data.tiene_proxima_cita) {
+          setProximaCita(data.cita);
+          setTieneProximaCita(true);
+        } else {
+          setTieneProximaCita(false);
+          setProximaCita(null);
+        }
+        
+      } catch (error) {
+        console.error('Error al cargar próxima cita:', error);
+        setCitaError(error.message);
+        setTieneProximaCita(false);
+        setProximaCita(null);
+      } finally {
+        setCitaLoading(false);
+      }
+    };
+
+    fetchProximaCita();
+  }, [pacienteId]);
+
+  // Función para refrescar los datos de la cita
+  const refrescarCita = () => {
+    if (pacienteId) {
+      setCitaLoading(true);
+      setCitaError(null);
+      
+      const fetchProximaCita = async () => {
+        try {
+          const response = await fetch(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteId}/proxima`);
+          
+          if (response.status === 404) {
+            setTieneProximaCita(false);
+            setProximaCita(null);
+            setCitaLoading(false);
+            return;
+          }
+          
+          if (!response.ok) {
+            throw new Error('Error al obtener la próxima cita');
+          }
+          
+          const data = await response.json();
+          
+          if (data.tiene_proxima_cita) {
+            setProximaCita(data.cita);
+            setTieneProximaCita(true);
+          } else {
+            setTieneProximaCita(false);
+            setProximaCita(null);
+          }
+          
+        } catch (error) {
+          console.error('Error al cargar próxima cita:', error);
+          setCitaError(error.message);
+          setTieneProximaCita(false);
+          setProximaCita(null);
+        } finally {
+          setCitaLoading(false);
+        }
+      };
+      
+      fetchProximaCita();
+    }
+  };
+
+  // Colores según el modo del sistema
   const colors = {
     background: isDarkTheme ? '#121F2F' : '#F9FDFF',
-    primary: isDarkTheme ? '#3B82F6' : '#0557A5', // Azul principal
+    primary: isDarkTheme ? '#3B82F6' : '#0557A5',
     primaryLight: isDarkTheme ? '#60A5FA' : '#3B82F6', 
-    secondary: isDarkTheme ? '#4ADE80' : '#10B981', // Verde para elementos secundarios
-    accent: isDarkTheme ? '#F59E0B' : '#F59E0B', // Naranja cálido para acentos
+    secondary: isDarkTheme ? '#4ADE80' : '#10B981',
+    accent: isDarkTheme ? '#F59E0B' : '#F59E0B',
     text: isDarkTheme ? '#FFFFFF' : '#1F2937',
     subtext: isDarkTheme ? '#D1D5DB' : '#4B5563',
     cardBg: isDarkTheme ? '#1E2A42' : '#FFFFFF',
     cardBorder: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-    cardHoverBg: isDarkTheme ? '#2C3A52' : '#FFFFFF',
     gradientStart: isDarkTheme ? '#1E3A8A' : '#DBEAFE',
     gradientEnd: isDarkTheme ? '#1E40AF' : '#EFF6FF',
     chipBg: isDarkTheme ? 'rgba(79, 70, 229, 0.2)' : 'rgba(79, 70, 229, 0.1)',
     chipText: isDarkTheme ? '#A5B4FC' : '#4F46E5',
-    shadow: isDarkTheme ? '0 10px 15px -3px rgba(0,0,0,0.4)' : '0 10px 15px -3px rgba(0,0,0,0.1)'
+    shadow: isDarkTheme ? '0 10px 15px -3px rgba(0,0,0,0.4)' : '0 10px 15px -3px rgba(0,0,0,0.1)',
+    error: isDarkTheme ? '#EF4444' : '#DC2626',
+    success: isDarkTheme ? '#10B981' : '#059669'
   };
 
   // Módulos principales del portal
@@ -99,74 +199,80 @@ const Principal = () => {
     { title: "Notificaciones", icon: <Notifications fontSize="small" />, path: "/Paciente/notificaciones" }
   ];
 
-  return (
-    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
-      {/* Bienvenida personalizada con resumen */}
-      <Paper 
-        elevation={0}
-        sx={{
-          p: { xs: 3, md: 4 },
-          mb: 4,
-          borderRadius: 2,
-          background: `linear-gradient(135deg, ${colors.gradientStart} 0%, ${colors.gradientEnd} 100%)`,
-          display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'center', md: 'flex-start' },
-          gap: 3
-        }}
-      >
-        <Avatar 
-          sx={{ 
-            width: { xs: 80, md: 100 }, 
-            height: { xs: 80, md: 100 },
-            bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(59,130,246,0.1)',
-            color: colors.primary,
-            border: `3px solid ${colors.primary}`
+  // Componente para la tarjeta de próxima cita
+  const ProximaCitaCard = () => {
+    if (citaLoading) {
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 2, md: 3 },
+            mb: 4,
+            borderRadius: 2,
+            border: `1px solid ${colors.cardBorder}`,
+            bgcolor: colors.cardBg,
+            boxShadow: colors.shadow
           }}
         >
-          <Person sx={{ fontSize: { xs: 40, md: 50 } }} />
-        </Avatar>
-        
-        <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
-          <Box sx={{ mb: 1 }}>
-            <Typography 
-              variant="h4" 
-              sx={{ 
-                fontWeight: 700, 
-                color: isDarkTheme ? 'white' : colors.primary,
-                fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
-              }}
-            >
-              Bienvenido a tu Portal Dental
-            </Typography>
-            <Typography 
-              variant="subtitle1"
-              sx={{ 
-                mt: 1, 
-                mb: 2,
-                color: isDarkTheme ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
-                maxWidth: { md: '80%' }
-              }}
-            >
-              Gestiona tu salud dental y mantente al día con tus tratamientos, citas y récord médico.
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+            <Skeleton variant="circular" width={24} height={24} sx={{ mr: 1.5 }} />
+            <Skeleton variant="text" width={150} height={32} />
           </Box>
-          
-          <Chip 
-            icon={<HealthAndSafety />} 
-            label="Tu salud dental, nuestra prioridad" 
-            sx={{ 
-              bgcolor: colors.chipBg, 
-              color: colors.chipText,
-              fontWeight: 500,
-              py: 0.5,
-              mb: { xs: 2, md: 0 }
-            }} 
-          />
-        </Box>
-      </Paper>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            {[1, 2, 3, 4, 5].map((item) => (
+              <Grid item xs={12} md={2.4} key={item}>
+                <Skeleton variant="text" width="100%" height={24} />
+                <Skeleton variant="text" width="80%" height={20} />
+              </Grid>
+            ))}
+          </Grid>
+        </Paper>
+      );
+    }
 
-      {/* Tarjeta de próxima cita */}
+    if (citaError) {
+      return (
+        <Alert 
+          severity="warning" 
+          sx={{ mb: 4 }}
+          action={
+            <Button color="inherit" size="small" onClick={refrescarCita}>
+              Reintentar
+            </Button>
+          }
+        >
+          Error al cargar tu próxima cita: {citaError}
+        </Alert>
+      );
+    }
+
+    if (!tieneProximaCita) {
+      return (
+        <Paper
+          elevation={0}
+          sx={{
+            p: { xs: 3, md: 4 },
+            mb: 4,
+            borderRadius: 2,
+            border: `1px solid ${colors.cardBorder}`,
+            bgcolor: colors.cardBg,
+            boxShadow: colors.shadow,
+            textAlign: 'center'
+          }}
+        >
+          <EventNote sx={{ fontSize: 48, color: colors.subtext, mb: 2 }} />
+          <Typography variant="h6" color={colors.text} gutterBottom>
+            No tienes citas próximas programadas
+          </Typography>
+          <Typography variant="body2" color={colors.subtext} sx={{ mb: 3 }}>
+            ¡Es un buen momento para agendar tu próxima consulta dental!
+          </Typography>
+        </Paper>
+      );
+    }
+
+    return (
       <Paper
         elevation={0}
         sx={{
@@ -183,6 +289,28 @@ const Principal = () => {
           <Typography variant="h6" fontWeight={600} color={colors.text}>
             Tu próxima cita
           </Typography>
+          {proximaCita?.es_tratamiento && (
+            <Chip 
+              label={`Tratamiento - Cita #${proximaCita.numero_cita_tratamiento}`} 
+              size="small" 
+              sx={{ 
+                ml: 2,
+                bgcolor: colors.chipBg, 
+                color: colors.chipText,
+                fontWeight: 500
+              }} 
+            />
+          )}
+          <Chip 
+            label={proximaCita?.estado || 'Pendiente'} 
+            size="small" 
+            sx={{ 
+              ml: 1,
+              bgcolor: proximaCita?.estado === 'Confirmada' ? colors.secondary : colors.accent,
+              color: 'white',
+              fontWeight: 500
+            }} 
+          />
         </Box>
         
         <Divider sx={{ mb: 2 }} />
@@ -192,7 +320,7 @@ const Principal = () => {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <CalendarToday sx={{ color: colors.primary, mr: 1.5, fontSize: 20 }} />
               <Typography variant="body1" color={colors.text} fontWeight={500}>
-                {proximaCita.fecha}
+                {proximaCita?.fecha}
               </Typography>
             </Box>
           </Grid>
@@ -201,20 +329,20 @@ const Principal = () => {
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <AccessTime sx={{ color: colors.primary, mr: 1.5, fontSize: 20 }} />
               <Typography variant="body1" color={colors.text} fontWeight={500}>
-                {proximaCita.hora}
+                {proximaCita?.hora}
               </Typography>
             </Box>
           </Grid>
           
           <Grid item xs={12} md={3}>
             <Typography variant="body1" color={colors.text}>
-              <b>Dentista:</b> {proximaCita.doctor}
+              <b>Dentista:</b> {proximaCita?.doctor}
             </Typography>
           </Grid>
           
           <Grid item xs={12} md={2}>
             <Chip 
-              label={proximaCita.tipo} 
+              label={proximaCita?.tipo} 
               size="small" 
               sx={{ 
                 bgcolor: isDarkTheme ? 'rgba(79, 209, 197, 0.15)' : 'rgba(79, 209, 197, 0.1)', 
@@ -242,7 +370,85 @@ const Principal = () => {
             </Button>
           </Grid>
         </Grid>
+        
+        {proximaCita?.notas && (
+          <Box sx={{ mt: 2, p: 2, bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)', borderRadius: 1 }}>
+            <Typography variant="caption" color={colors.subtext}>
+              <b>Notas:</b> {proximaCita.notas}
+            </Typography>
+          </Box>
+        )}
       </Paper>
+    );
+  };
+
+  return (
+    <Container maxWidth="xl" sx={{ py: { xs: 2, md: 4 } }}>
+      {/* Bienvenida personalizada */}
+      <Paper 
+        elevation={0}
+        sx={{
+          p: { xs: 3, md: 4 },
+          mb: 4,
+          borderRadius: 2,
+          background: `linear-gradient(135deg, ${colors.gradientStart} 0%, ${colors.gradientEnd} 100%)`,
+          display: 'flex',
+          flexDirection: { xs: 'column', md: 'row' },
+          alignItems: { xs: 'center', md: 'flex-start' },
+          gap: 3
+        }}
+      >
+        <Avatar 
+          sx={{ 
+            width: { xs: 80, md: 100 }, 
+            height: { xs: 80, md: 100 },
+            bgcolor: isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(59,130,246,0.1)',
+            color: colors.primary,
+            border: `3px solid ${colors.primary}`
+          }}
+        >
+          <Person sx={{ fontSize: { xs: 40, md: 50 } }} />
+        </Avatar>
+        
+        <Box sx={{ flex: 1, textAlign: { xs: 'center', md: 'left' } }}>
+          <Typography 
+            variant="h4" 
+            sx={{ 
+              fontWeight: 700, 
+              color: isDarkTheme ? 'white' : colors.primary,
+              fontSize: { xs: '1.75rem', sm: '2rem', md: '2.25rem' }
+            }}
+          >
+            Bienvenido{user?.nombre ? `, ${user.nombre}` : ''} a tu Portal Dental
+          </Typography>
+          <Typography 
+            variant="subtitle1"
+            sx={{ 
+              mt: 1, 
+              mb: 2,
+              color: isDarkTheme ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+              maxWidth: { md: '80%' }
+            }}
+          >
+            Gestiona tu salud dental y mantente al día con tus tratamientos, citas y récord médico.
+          </Typography>
+          
+          <Chip 
+            icon={<HealthAndSafety />} 
+            label="Tu salud dental, nuestra prioridad" 
+            sx={{ 
+              bgcolor: colors.chipBg, 
+              color: colors.chipText,
+              fontWeight: 500,
+              py: 0.5,
+              mb: { xs: 2, md: 0 }
+            }} 
+          />
+        </Box>
+      </Paper>
+
+      {/* Tarjeta de próxima cita - Ahora dinámica */}
+      <ProximaCitaCard />
 
       {/* Módulos principales */}
       <Typography 
@@ -279,7 +485,6 @@ const Principal = () => {
                 }
               }}
             >
-              {/* Gradiente hover effect */}
               <Box
                 className="hover-gradient"
                 sx={{
@@ -372,7 +577,7 @@ const Principal = () => {
         Accesos rápidos
       </Typography>
 
-      <Grid container spacing={2} sx={{ mb: 4 }}>
+      <Grid container spacing={2}>
         {quickAccessModules.map((module, index) => (
           <Grid item xs={6} sm={3} key={index}>
             <Paper
