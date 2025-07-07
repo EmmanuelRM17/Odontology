@@ -28,6 +28,9 @@ import Ubicacion from "./pages/_home/pages/Ubicacion";
 
 // Componentes paciente
 import Principal from "./pages/paciente/pages/Principal";
+import Citas from "./pages/paciente/pages/Citas";
+import Tratamientos from "./pages/paciente/pages/Tratamientos";
+import Progreso from "./pages/paciente/pages/Progreso";
 import LayoutPaciente from "./pages/paciente/compartidos/LayoutPaciente";
 import Perfil from "./pages/paciente/pages/Perfil";
 import Pagos from "./pages/paciente/pages/Pagos";
@@ -95,6 +98,9 @@ function AppContent({ loading, forceLoading, isOnline }) {
 
         {/* Rutas protegidas del paciente */}
         <Route path="/Paciente/principal" element={<PrivateRoute><LayoutPaciente><Chatbot /><Principal /></LayoutPaciente></PrivateRoute>} />
+        <Route path="/Paciente/citas" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" },{ name: "Mis Citas" }]}/><Citas /></LayoutPaciente></PrivateRoute>}/>
+        <Route path="/Paciente/tratamientos" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" },{ name: "Mis Tratamientos" }]}/><Tratamientos /></LayoutPaciente></PrivateRoute>}/>
+        <Route path="/Paciente/progreso" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" },{ name: "Mi progreso" }]}/><Progreso /></LayoutPaciente></PrivateRoute>}/>
         <Route path="/Paciente/perfil" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Perfil de Usuario" }]} /><Perfil /></LayoutPaciente></PrivateRoute>} />
         <Route path="/Paciente/pagos" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Pagos" }]} /><Pagos /></LayoutPaciente></PrivateRoute>} />
         <Route path="/Paciente/ayuda" element={<PrivateRoute><LayoutPaciente><Chatbot /><Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Ayuda" }]} /><AyudaPaciente /></LayoutPaciente></PrivateRoute>} />
