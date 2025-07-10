@@ -21,7 +21,307 @@ import {
 import axios from 'axios';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-// Componente Footer compacto y tradicional
+
+  // Función mejorada que convierte texto plano a HTML bien formateado
+  const formatContentForDisplay = (content) => {
+    if (!content) return '<p class="policy-paragraph">Contenido no disponible</p>';
+
+    let formattedContent = content
+      .trim()
+      .replace(/\r\n/g, '\n') // Normalizar saltos de línea
+      .replace(/\r/g, '\n');
+
+    // 1. CAJAS ESPECIALES PRIMERO (antes de procesar párrafos)
+    formattedContent = formattedContent
+      .replace(/^IMPORTANTE:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="important-notice"><strong>IMPORTANTE:</strong> $1</div>')
+      .replace(/^NOTA:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="note-box"><strong>NOTA:</strong> $1</div>')
+      .replace(/^AVISO:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="warning-box"><strong>AVISO:</strong> $1</div>');
+
+    // 2. TÍTULOS (detectar líneas completas en mayúsculas o títulos numerados)
+    formattedContent = formattedContent
+      // Títulos principales (líneas en mayúsculas completas)
+      .replace(/^([A-ZÁÉÍÓÚÑ\s]{4,})$/gm, '<h3 class="policy-title">$1</h3>')
+      // Subtítulos numerados (1. TÍTULO, 1.1 TÍTULO, etc.)
+      .replace(/^(\d+\.(?:\d+\.?)?\s+[A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]+)$/gm, '<h4 class="policy-subtitle">$1</h4>');
+
+    // 3. LISTAS (mejorar detección)
+    formattedContent = formattedContent
+      // Listas numeradas (líneas que empiezan con número.)
+      .replace(/^(\d+\.\s+.+)$/gm, '<li class="numbered-item">$1</li>')
+      // Listas con viñetas (•, -, *)
+      .replace(/^[•\-\*]\s+(.+)$/gm, '<li class="bullet-item">• $1</li>');
+
+    // 4. TEXTO DESTACADO
+    formattedContent = formattedContent
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong class="highlight-text">$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em class="italic-text">$1</em>');
+
+    // 5. DETECTAR ELEMENTOS ESPECIALES
+    formattedContent = formattedContent
+      // Fechas (DD/MM/YYYY)
+      .replace(/(\d{1,2}\/\d{1,2}\/\d{4})/g, '<span class="date-highlight">$1</span>')
+      // Emails
+      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="email-link">$1</a>')
+      // Teléfonos mexicanos
+      .replace(/(\d{3}\s?\d{3}\s?\d{4})/g, '<span class="phone-highlight">$1</span>');
+
+    // 6. PROCESAR PÁRRAFOS (después de todo lo demás)
+    // Dividir por líneas vacías para crear párrafos
+    let paragraphs = formattedContent.split(/\n\s*\n/);
+
+    paragraphs = paragraphs.map(paragraph => {
+      paragraph = paragraph.trim();
+      if (!paragraph) return '';
+
+      // Si ya es HTML (contiene tags), no envolver en <p>
+      if (paragraph.includes('<h3') || paragraph.includes('<h4') ||
+        paragraph.includes('<div class=') || paragraph.includes('<li class=')) {
+        return paragraph;
+      }
+
+      // Si no, envolver en párrafo
+      return `<p class="policy-paragraph">${paragraph}</p>`;
+    });
+
+    formattedContent = paragraphs.filter(p => p).join('\n\n');
+
+    // 7. AGRUPAR LISTAS CONSECUTIVAS
+    formattedContent = formattedContent
+      // Agrupar elementos de lista numerada consecutivos
+      .replace(/(<li class="numbered-item">.*?<\/li>\s*)+/gs, (match) => {
+        return `<ol class="numbered-list">${match}</ol>`;
+      })
+      // Agrupar elementos de lista con viñetas consecutivos
+      .replace(/(<li class="bullet-item">.*?<\/li>\s*)+/gs, (match) => {
+        return `<ul class="bullet-list">${match}</ul>`;
+      });
+
+    // 8. LIMPIEZA FINAL
+    formattedContent = formattedContent
+      .replace(/<p class="policy-paragraph"><\/p>/g, '')
+      .replace(/<p class="policy-paragraph">\s*<\/p>/g, '')
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // Reducir múltiples saltos de línea
+      .trim();
+
+    return formattedContent;
+  };
+
+  // Estilos mejorados para el contenido formateado
+  const getFormattedContentStyles = (theme, isDarkTheme) => ({
+    // Contenedor principal
+    lineHeight: 1.6,
+    fontSize: '0.9rem',
+
+    // TÍTULOS
+    '& .policy-title': {
+      fontSize: '1.25rem',
+      fontWeight: 700,
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      marginTop: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      borderBottom: `3px solid ${isDarkTheme ? '#4B9FFF' : '#1976d2'}`,
+      paddingBottom: theme.spacing(0.75),
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      textAlign: 'left',
+    },
+
+    '& .policy-subtitle': {
+      fontSize: '1.1rem',
+      fontWeight: 600,
+      color: isDarkTheme ? '#E8F1FF' : '#333333',
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(1.25),
+      paddingLeft: theme.spacing(1),
+      borderLeft: `4px solid ${isDarkTheme ? '#4B9FFF' : '#1976d2'}`,
+      backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.05) : alpha('#1976d2', 0.05),
+      padding: theme.spacing(0.75, 1),
+      borderRadius: theme.spacing(0.5),
+    },
+
+    // PÁRRAFOS
+    '& .policy-paragraph': {
+      marginBottom: theme.spacing(1.5),
+      textAlign: 'justify',
+      lineHeight: 1.7,
+      fontSize: '0.9rem',
+      color: isDarkTheme ? '#E8F1FF' : '#424242',
+    },
+
+    // LISTAS
+    '& .numbered-list': {
+      paddingLeft: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      listStyleType: 'decimal',
+
+      '& .numbered-item': {
+        marginBottom: theme.spacing(0.75),
+        lineHeight: 1.6,
+        fontSize: '0.9rem',
+        color: isDarkTheme ? '#E8F1FF' : '#424242',
+        listStyleType: 'none', // Quitamos el estilo por defecto
+        position: 'relative',
+        paddingLeft: theme.spacing(0.5),
+      },
+    },
+
+    '& .bullet-list': {
+      paddingLeft: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      listStyleType: 'none',
+
+      '& .bullet-item': {
+        marginBottom: theme.spacing(0.75),
+        lineHeight: 1.6,
+        fontSize: '0.9rem',
+        color: isDarkTheme ? '#E8F1FF' : '#424242',
+        listStyleType: 'none',
+        position: 'relative',
+        paddingLeft: theme.spacing(1),
+
+        '&::before': {
+          content: '"•"',
+          position: 'absolute',
+          left: 0,
+          color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+          fontWeight: 'bold',
+          fontSize: '1.2em',
+        },
+      },
+    },
+
+    // TEXTO DESTACADO
+    '& .highlight-text': {
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      fontWeight: 600,
+      backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.1) : alpha('#1976d2', 0.1),
+      padding: theme.spacing(0.1, 0.3),
+      borderRadius: theme.spacing(0.3),
+    },
+
+    '& .italic-text': {
+      fontStyle: 'italic',
+      color: isDarkTheme ? '#B0BEC5' : '#666666',
+      fontWeight: 500,
+    },
+
+    // CAJAS ESPECIALES
+    '& .important-notice': {
+      backgroundColor: isDarkTheme ? alpha('#f44336', 0.15) : alpha('#f44336', 0.1),
+      color: isDarkTheme ? '#ffcdd2' : '#c62828',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#f44336', 0.4) : alpha('#f44336', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#f44336' : '#d32f2f'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#f44336' : '#b71c1c',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    '& .note-box': {
+      backgroundColor: isDarkTheme ? alpha('#2196f3', 0.15) : alpha('#2196f3', 0.1),
+      color: isDarkTheme ? '#bbdefb' : '#1565c0',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#2196f3', 0.4) : alpha('#2196f3', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#2196f3' : '#1976d2'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#2196f3' : '#0d47a1',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    '& .warning-box': {
+      backgroundColor: isDarkTheme ? alpha('#ff9800', 0.15) : alpha('#ff9800', 0.1),
+      color: isDarkTheme ? '#ffcc02' : '#ef6c00',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#ff9800', 0.4) : alpha('#ff9800', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#ff9800' : '#f57c00'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#ff9800' : '#e65100',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    // ELEMENTOS ESPECIALES
+    '& .date-highlight': {
+      backgroundColor: isDarkTheme ? alpha('#666666', 0.3) : alpha('#f5f5f5', 0.9),
+      color: isDarkTheme ? '#ffffff' : '#333333',
+      padding: theme.spacing(0.25, 0.5),
+      borderRadius: theme.spacing(0.5),
+      fontFamily: 'monospace',
+      fontSize: '0.85rem',
+      border: `1px solid ${isDarkTheme ? alpha('#666666', 0.5) : alpha('#cccccc', 0.8)}`,
+    },
+
+    '& .email-link': {
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      textDecoration: 'underline',
+      fontWeight: 500,
+      '&:hover': {
+        textDecoration: 'none',
+        backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.1) : alpha('#1976d2', 0.1),
+        borderRadius: theme.spacing(0.3),
+        padding: theme.spacing(0.1, 0.3),
+      },
+    },
+
+    '& .phone-highlight': {
+      backgroundColor: isDarkTheme ? alpha('#4caf50', 0.2) : alpha('#4caf50', 0.15),
+      color: isDarkTheme ? '#a5d6a7' : '#1b5e20',
+      padding: theme.spacing(0.25, 0.6),
+      borderRadius: theme.spacing(0.5),
+      fontFamily: 'monospace',
+      fontSize: '0.85rem',
+      fontWeight: 600,
+      border: `1px solid ${isDarkTheme ? alpha('#4caf50', 0.4) : alpha('#4caf50', 0.3)}`,
+    },
+
+    // ESPACIADO GENERAL
+    '& > *:first-of-type': {
+      marginTop: 0,
+    },
+    '& > *:last-child': {
+      marginBottom: 0,
+    },
+
+    // MEJORAS RESPONSIVAS
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '0.85rem',
+
+      '& .policy-title': {
+        fontSize: '1.1rem',
+      },
+
+      '& .policy-subtitle': {
+        fontSize: '1rem',
+      },
+
+      '& .numbered-list, & .bullet-list': {
+        paddingLeft: theme.spacing(1.5),
+      },
+    },
+  });
+
+
+// Componente Footer compacto y tradicional para pacientes
 const FooterPaciente = () => {
   // Estados para datos provenientes de la API
   const [privacyPolicy, setPrivacyPolicy] = useState([]);
@@ -77,17 +377,6 @@ const FooterPaciente = () => {
 
   // Cierra el modal
   const handleCloseModal = () => setModalOpen(false);
-
-  // Formatear contenido para mejor legibilidad
-  const formatContent = (content) => {
-    if (!content) return 'Contenido no disponible';
-    
-    return content
-      .split('\n')
-      .map(paragraph => paragraph.trim())
-      .filter(paragraph => paragraph.length > 0)
-      .join('\n\n');
-  };
 
   return (
     <>
@@ -223,7 +512,7 @@ const FooterPaciente = () => {
         </Container>
       </Box>
 
-      {/* Modal para documentos legales */}
+      {/* Modal para documentos legales con formateo profesional */}
       <Modal
         open={modalOpen}
         onClose={handleCloseModal}
@@ -306,7 +595,7 @@ const FooterPaciente = () => {
               </IconButton>
             </Box>
 
-            {/* Contenido scrolleable */}
+            {/* Contenido scrolleable con formateo profesional */}
             <Box 
               sx={{ 
                 maxHeight: 'calc(85vh - 140px)',
@@ -328,17 +617,17 @@ const FooterPaciente = () => {
                 }
               }}
             >
-              <Typography
-                variant="body2"
+              {/* Contenido formateado profesionalmente */}
+              <Box
+                component="div"
                 sx={{
-                  lineHeight: 1.6,
+                  ...getFormattedContentStyles(theme, isDarkTheme),
                   color: isDarkTheme ? '#e0e0e0' : '#424242',
-                  whiteSpace: 'pre-line',
-                  fontSize: '0.9rem'
                 }}
-              >
-                {formatContent(modalContent)}
-              </Typography>
+                dangerouslySetInnerHTML={{
+                  __html: formatContentForDisplay(modalContent)
+                }}
+              />
             </Box>
 
             {/* Footer del modal */}

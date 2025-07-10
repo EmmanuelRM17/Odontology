@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { 
-  Box, 
-  Typography, 
-  IconButton, 
+import {
+  Box,
+  Typography,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button, 
-  Grid, 
-  Container, 
+  Button,
+  Grid,
+  Container,
   Divider,
   useMediaQuery,
   Stack,
@@ -17,12 +17,12 @@ import {
   CardContent,
   Chip
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import { 
-  FaFacebook, 
-  FaTwitter, 
-  FaLinkedin, 
-  FaInstagram, 
+import { useTheme, alpha } from '@mui/material/styles';
+import {
+  FaFacebook,
+  FaTwitter,
+  FaLinkedin,
+  FaInstagram,
   FaWhatsapp,
   FaTimes,
   FaCookieBite
@@ -100,20 +100,20 @@ const Footer = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalContent, setModalContent] = useState('');
   const [modalTitle, setModalTitle] = useState('');
-  
+
   // Estados para el aviso de cookies
   const [showCookieNotice, setShowCookieNotice] = useState(false);
   const [cookieDialogOpen, setCookieDialogOpen] = useState(false);
   const [bannerHiddenForDialog, setBannerHiddenForDialog] = useState(false);
   const [cookiesRejected, setCookiesRejected] = useState(false);
-  
+
   // Estados para notificaciones
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     type: 'info'
   });
-  
+
   const navigate = useNavigate();
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
@@ -123,7 +123,7 @@ const Footer = () => {
   useEffect(() => {
     // Verificar si el usuario ya interactuó con las cookies
     const cookiesAccepted = localStorage.getItem('carolDental_cookiesAccepted');
-    
+
     if (!cookiesAccepted) {
       // Primera visita - mostrar banner después de 2 segundos
       setTimeout(() => setShowCookieNotice(true), 2000);
@@ -192,7 +192,7 @@ const Footer = () => {
     setBannerHiddenForDialog(false);
     setCookieDialogOpen(false);
     setCookiesRejected(false);
-    
+
     // Mostrar notificación de éxito
     setNotification({
       open: true,
@@ -208,12 +208,12 @@ const Footer = () => {
     setBannerHiddenForDialog(false);
     setCookieDialogOpen(false);
     setCookiesRejected(true);
-    
+
     // Limpiar cookies existentes del navegador
     document.cookie = 'carolDental_admin=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'carolDental_empleado=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
     document.cookie = 'carolDental_paciente=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-    
+
     // Mostrar notificación de advertencia
     setNotification({
       open: true,
@@ -275,11 +275,310 @@ const Footer = () => {
     }
   };
 
+  // Función mejorada que convierte texto plano a HTML bien formateado
+  const formatContentForDisplay = (content) => {
+    if (!content) return '<p class="policy-paragraph">Contenido no disponible</p>';
+
+    let formattedContent = content
+      .trim()
+      .replace(/\r\n/g, '\n') // Normalizar saltos de línea
+      .replace(/\r/g, '\n');
+
+    // 1. CAJAS ESPECIALES PRIMERO (antes de procesar párrafos)
+    formattedContent = formattedContent
+      .replace(/^IMPORTANTE:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="important-notice"><strong>IMPORTANTE:</strong> $1</div>')
+      .replace(/^NOTA:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="note-box"><strong>NOTA:</strong> $1</div>')
+      .replace(/^AVISO:\s*(.+?)(?=\n\n|\n[A-Z0-9]|$)/gims, '<div class="warning-box"><strong>AVISO:</strong> $1</div>');
+
+    // 2. TÍTULOS (detectar líneas completas en mayúsculas o títulos numerados)
+    formattedContent = formattedContent
+      // Títulos principales (líneas en mayúsculas completas)
+      .replace(/^([A-ZÁÉÍÓÚÑ\s]{4,})$/gm, '<h3 class="policy-title">$1</h3>')
+      // Subtítulos numerados (1. TÍTULO, 1.1 TÍTULO, etc.)
+      .replace(/^(\d+\.(?:\d+\.?)?\s+[A-ZÁÉÍÓÚÑ][A-Za-záéíóúñ\s]+)$/gm, '<h4 class="policy-subtitle">$1</h4>');
+
+    // 3. LISTAS (mejorar detección)
+    formattedContent = formattedContent
+      // Listas numeradas (líneas que empiezan con número.)
+      .replace(/^(\d+\.\s+.+)$/gm, '<li class="numbered-item">$1</li>')
+      // Listas con viñetas (•, -, *)
+      .replace(/^[•\-\*]\s+(.+)$/gm, '<li class="bullet-item">• $1</li>');
+
+    // 4. TEXTO DESTACADO
+    formattedContent = formattedContent
+      .replace(/\*\*([^*\n]+)\*\*/g, '<strong class="highlight-text">$1</strong>')
+      .replace(/\*([^*\n]+)\*/g, '<em class="italic-text">$1</em>');
+
+    // 5. DETECTAR ELEMENTOS ESPECIALES
+    formattedContent = formattedContent
+      // Fechas (DD/MM/YYYY)
+      .replace(/(\d{1,2}\/\d{1,2}\/\d{4})/g, '<span class="date-highlight">$1</span>')
+      // Emails
+      .replace(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, '<a href="mailto:$1" class="email-link">$1</a>')
+      // Teléfonos mexicanos
+      .replace(/(\d{3}\s?\d{3}\s?\d{4})/g, '<span class="phone-highlight">$1</span>');
+
+    // 6. PROCESAR PÁRRAFOS (después de todo lo demás)
+    // Dividir por líneas vacías para crear párrafos
+    let paragraphs = formattedContent.split(/\n\s*\n/);
+
+    paragraphs = paragraphs.map(paragraph => {
+      paragraph = paragraph.trim();
+      if (!paragraph) return '';
+
+      // Si ya es HTML (contiene tags), no envolver en <p>
+      if (paragraph.includes('<h3') || paragraph.includes('<h4') ||
+        paragraph.includes('<div class=') || paragraph.includes('<li class=')) {
+        return paragraph;
+      }
+
+      // Si no, envolver en párrafo
+      return `<p class="policy-paragraph">${paragraph}</p>`;
+    });
+
+    formattedContent = paragraphs.filter(p => p).join('\n\n');
+
+    // 7. AGRUPAR LISTAS CONSECUTIVAS
+    formattedContent = formattedContent
+      // Agrupar elementos de lista numerada consecutivos
+      .replace(/(<li class="numbered-item">.*?<\/li>\s*)+/gs, (match) => {
+        return `<ol class="numbered-list">${match}</ol>`;
+      })
+      // Agrupar elementos de lista con viñetas consecutivos
+      .replace(/(<li class="bullet-item">.*?<\/li>\s*)+/gs, (match) => {
+        return `<ul class="bullet-list">${match}</ul>`;
+      });
+
+    // 8. LIMPIEZA FINAL
+    formattedContent = formattedContent
+      .replace(/<p class="policy-paragraph"><\/p>/g, '')
+      .replace(/<p class="policy-paragraph">\s*<\/p>/g, '')
+      .replace(/\n\s*\n\s*\n/g, '\n\n') // Reducir múltiples saltos de línea
+      .trim();
+
+    return formattedContent;
+  };
+
+  // Estilos mejorados para el contenido formateado
+  const getFormattedContentStyles = (theme, isDarkTheme) => ({
+    // Contenedor principal
+    lineHeight: 1.6,
+    fontSize: '0.9rem',
+
+    // TÍTULOS
+    '& .policy-title': {
+      fontSize: '1.25rem',
+      fontWeight: 700,
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      marginTop: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      borderBottom: `3px solid ${isDarkTheme ? '#4B9FFF' : '#1976d2'}`,
+      paddingBottom: theme.spacing(0.75),
+      textTransform: 'uppercase',
+      letterSpacing: '0.5px',
+      textAlign: 'left',
+    },
+
+    '& .policy-subtitle': {
+      fontSize: '1.1rem',
+      fontWeight: 600,
+      color: isDarkTheme ? '#E8F1FF' : '#333333',
+      marginTop: theme.spacing(2),
+      marginBottom: theme.spacing(1.25),
+      paddingLeft: theme.spacing(1),
+      borderLeft: `4px solid ${isDarkTheme ? '#4B9FFF' : '#1976d2'}`,
+      backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.05) : alpha('#1976d2', 0.05),
+      padding: theme.spacing(0.75, 1),
+      borderRadius: theme.spacing(0.5),
+    },
+
+    // PÁRRAFOS
+    '& .policy-paragraph': {
+      marginBottom: theme.spacing(1.5),
+      textAlign: 'justify',
+      lineHeight: 1.7,
+      fontSize: '0.9rem',
+      color: isDarkTheme ? '#E8F1FF' : '#424242',
+    },
+
+    // LISTAS
+    '& .numbered-list': {
+      paddingLeft: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      listStyleType: 'decimal',
+
+      '& .numbered-item': {
+        marginBottom: theme.spacing(0.75),
+        lineHeight: 1.6,
+        fontSize: '0.9rem',
+        color: isDarkTheme ? '#E8F1FF' : '#424242',
+        listStyleType: 'none', // Quitamos el estilo por defecto
+        position: 'relative',
+        paddingLeft: theme.spacing(0.5),
+      },
+    },
+
+    '& .bullet-list': {
+      paddingLeft: theme.spacing(2.5),
+      marginBottom: theme.spacing(1.5),
+      listStyleType: 'none',
+
+      '& .bullet-item': {
+        marginBottom: theme.spacing(0.75),
+        lineHeight: 1.6,
+        fontSize: '0.9rem',
+        color: isDarkTheme ? '#E8F1FF' : '#424242',
+        listStyleType: 'none',
+        position: 'relative',
+        paddingLeft: theme.spacing(1),
+
+        '&::before': {
+          content: '"•"',
+          position: 'absolute',
+          left: 0,
+          color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+          fontWeight: 'bold',
+          fontSize: '1.2em',
+        },
+      },
+    },
+
+    // TEXTO DESTACADO
+    '& .highlight-text': {
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      fontWeight: 600,
+      backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.1) : alpha('#1976d2', 0.1),
+      padding: theme.spacing(0.1, 0.3),
+      borderRadius: theme.spacing(0.3),
+    },
+
+    '& .italic-text': {
+      fontStyle: 'italic',
+      color: isDarkTheme ? '#B0BEC5' : '#666666',
+      fontWeight: 500,
+    },
+
+    // CAJAS ESPECIALES
+    '& .important-notice': {
+      backgroundColor: isDarkTheme ? alpha('#f44336', 0.15) : alpha('#f44336', 0.1),
+      color: isDarkTheme ? '#ffcdd2' : '#c62828',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#f44336', 0.4) : alpha('#f44336', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#f44336' : '#d32f2f'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#f44336' : '#b71c1c',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    '& .note-box': {
+      backgroundColor: isDarkTheme ? alpha('#2196f3', 0.15) : alpha('#2196f3', 0.1),
+      color: isDarkTheme ? '#bbdefb' : '#1565c0',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#2196f3', 0.4) : alpha('#2196f3', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#2196f3' : '#1976d2'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#2196f3' : '#0d47a1',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    '& .warning-box': {
+      backgroundColor: isDarkTheme ? alpha('#ff9800', 0.15) : alpha('#ff9800', 0.1),
+      color: isDarkTheme ? '#ffcc02' : '#ef6c00',
+      padding: theme.spacing(1.5),
+      borderRadius: theme.spacing(1),
+      marginBottom: theme.spacing(2),
+      border: `2px solid ${isDarkTheme ? alpha('#ff9800', 0.4) : alpha('#ff9800', 0.3)}`,
+      borderLeft: `6px solid ${isDarkTheme ? '#ff9800' : '#f57c00'}`,
+      fontSize: '0.9rem',
+      fontWeight: 500,
+
+      '& strong': {
+        color: isDarkTheme ? '#ff9800' : '#e65100',
+        fontSize: '1em',
+        marginRight: theme.spacing(0.5),
+      },
+    },
+
+    // ELEMENTOS ESPECIALES
+    '& .date-highlight': {
+      backgroundColor: isDarkTheme ? alpha('#666666', 0.3) : alpha('#f5f5f5', 0.9),
+      color: isDarkTheme ? '#ffffff' : '#333333',
+      padding: theme.spacing(0.25, 0.5),
+      borderRadius: theme.spacing(0.5),
+      fontFamily: 'monospace',
+      fontSize: '0.85rem',
+      border: `1px solid ${isDarkTheme ? alpha('#666666', 0.5) : alpha('#cccccc', 0.8)}`,
+    },
+
+    '& .email-link': {
+      color: isDarkTheme ? '#4B9FFF' : '#1976d2',
+      textDecoration: 'underline',
+      fontWeight: 500,
+      '&:hover': {
+        textDecoration: 'none',
+        backgroundColor: isDarkTheme ? alpha('#4B9FFF', 0.1) : alpha('#1976d2', 0.1),
+        borderRadius: theme.spacing(0.3),
+        padding: theme.spacing(0.1, 0.3),
+      },
+    },
+
+    '& .phone-highlight': {
+      backgroundColor: isDarkTheme ? alpha('#4caf50', 0.2) : alpha('#4caf50', 0.15),
+      color: isDarkTheme ? '#a5d6a7' : '#1b5e20',
+      padding: theme.spacing(0.25, 0.6),
+      borderRadius: theme.spacing(0.5),
+      fontFamily: 'monospace',
+      fontSize: '0.85rem',
+      fontWeight: 600,
+      border: `1px solid ${isDarkTheme ? alpha('#4caf50', 0.4) : alpha('#4caf50', 0.3)}`,
+    },
+
+    // ESPACIADO GENERAL
+    '& > *:first-of-type': {
+      marginTop: 0,
+    },
+    '& > *:last-child': {
+      marginBottom: 0,
+    },
+
+    // MEJORAS RESPONSIVAS
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '0.85rem',
+
+      '& .policy-title': {
+        fontSize: '1.1rem',
+      },
+
+      '& .policy-subtitle': {
+        fontSize: '1rem',
+      },
+
+      '& .numbered-list, & .bullet-list': {
+        paddingLeft: theme.spacing(1.5),
+      },
+    },
+  });
+
+  
   const currentColors = isDarkTheme ? colors.dark : colors.light;
 
   return (
-    <Box 
-      component="footer" 
+    <Box
+      component="footer"
       sx={{
         backgroundColor: currentColors.background,
         color: currentColors.text,
@@ -304,8 +603,8 @@ const Footer = () => {
         <Grid container spacing={{ xs: 4, md: 6 }}>
           {/* Columna 1: Acerca de Carol */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{
                 fontWeight: 700,
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -327,7 +626,7 @@ const Footer = () => {
             >
               Acerca de Carol
             </Typography>
-            
+
             <Button
               onClick={() => navigate('/about')}
               fullWidth
@@ -349,20 +648,20 @@ const Footer = () => {
             >
               Información sobre nuestra empresa
             </Button>
-            
+
             {isMobile && (
-              <Divider sx={{ 
-                backgroundColor: currentColors.border, 
+              <Divider sx={{
+                backgroundColor: currentColors.border,
                 my: 3,
-                opacity: 0.5 
+                opacity: 0.5
               }} />
             )}
           </Grid>
 
           {/* Columna 2: Servicio al Cliente */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{
                 fontWeight: 700,
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -384,7 +683,7 @@ const Footer = () => {
             >
               Servicio al Cliente
             </Typography>
-            
+
             <Stack spacing={0.5}>
               <Button
                 onClick={() => navigate('/FAQ')}
@@ -407,7 +706,7 @@ const Footer = () => {
               >
                 Preguntas frecuentes
               </Button>
-              
+
               <Button
                 onClick={() => navigate('/Contact')}
                 fullWidth
@@ -430,20 +729,20 @@ const Footer = () => {
                 Contáctanos
               </Button>
             </Stack>
-            
+
             {isMobile && (
-              <Divider sx={{ 
-                backgroundColor: currentColors.border, 
+              <Divider sx={{
+                backgroundColor: currentColors.border,
                 my: 3,
-                opacity: 0.5 
+                opacity: 0.5
               }} />
             )}
           </Grid>
 
           {/* Columna 3: Normatividad */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{
                 fontWeight: 700,
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -465,7 +764,7 @@ const Footer = () => {
             >
               Normatividad
             </Typography>
-            
+
             <Stack spacing={0.5}>
               <Button
                 onClick={() => handleOpenModal('Política de Privacidad', privacyPolicy[0]?.contenido || 'No disponible')}
@@ -488,7 +787,7 @@ const Footer = () => {
               >
                 Política de Privacidad
               </Button>
-              
+
               <Button
                 onClick={() => handleOpenModal('Términos y Condiciones', termsConditions[0]?.contenido || 'No disponible')}
                 fullWidth
@@ -510,7 +809,7 @@ const Footer = () => {
               >
                 Términos y Condiciones
               </Button>
-              
+
               <Button
                 onClick={() => handleOpenModal('Deslinde Legal', disclaimer[0]?.contenido || 'No disponible')}
                 fullWidth
@@ -558,20 +857,20 @@ const Footer = () => {
                 {cookiesRejected ? 'Configuración de Cookies' : 'Aviso de Cookies'}
               </Button>
             </Stack>
-            
+
             {isMobile && (
-              <Divider sx={{ 
-                backgroundColor: currentColors.border, 
+              <Divider sx={{
+                backgroundColor: currentColors.border,
                 my: 3,
-                opacity: 0.5 
+                opacity: 0.5
               }} />
             )}
           </Grid>
 
           {/* Columna 4: Redes Sociales */}
           <Grid item xs={12} sm={6} md={3}>
-            <Typography 
-              variant="h6" 
+            <Typography
+              variant="h6"
               sx={{
                 fontWeight: 700,
                 fontSize: { xs: '1.1rem', md: '1.25rem' },
@@ -593,8 +892,8 @@ const Footer = () => {
             >
               Síguenos
             </Typography>
-            
-            <Box 
+
+            <Box
               sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
@@ -652,8 +951,8 @@ const Footer = () => {
 
         {/* Copyright */}
         <Box sx={{ textAlign: 'center', py: 2 }}>
-          <Typography 
-            sx={{ 
+          <Typography
+            sx={{
               fontSize: '0.85rem',
               color: currentColors.textSecondary,
               fontWeight: 300,
@@ -663,14 +962,14 @@ const Footer = () => {
           >
             © {new Date().getFullYear()} Odontología Carol. Todos los derechos reservados.
           </Typography>
-          
+
           {/* Indicador de cookies rechazadas */}
           {cookiesRejected && (
-            <Box 
-              sx={{ 
-                mt: 2, 
-                display: 'flex', 
-                alignItems: 'center', 
+            <Box
+              sx={{
+                mt: 2,
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 gap: 1,
                 p: 1,
@@ -680,9 +979,9 @@ const Footer = () => {
                 borderColor: 'divider'
               }}
             >
-              <Typography 
-                variant="caption" 
-                sx={{ 
+              <Typography
+                variant="caption"
+                sx={{
                   color: 'text.secondary',
                   fontWeight: 500,
                   fontSize: '0.8rem'
@@ -826,7 +1125,7 @@ const Footer = () => {
                     Info
                   </Button>
                 )}
-                
+
                 <Button
                   size="small"
                   onClick={cookiesRejected ? handleAcceptCookies : handleRejectCookies}
@@ -844,7 +1143,7 @@ const Footer = () => {
                 >
                   {cookiesRejected ? 'Aceptar' : 'Rechazar'}
                 </Button>
-                
+
                 {!cookiesRejected && (
                   <Button
                     size="small"
@@ -919,11 +1218,11 @@ const Footer = () => {
             bgcolor: cookiesRejected ? 'action.hover' : 'transparent',
           }}
         >
-          <FaCookieBite 
-            style={{ 
+          <FaCookieBite
+            style={{
               fontSize: '1.5rem',
               color: cookiesRejected ? theme.palette.warning.main : theme.palette.primary.main
-            }} 
+            }}
           />
           <Box sx={{ flex: 1 }}>
             <Typography variant="h5" component="div" sx={{ fontWeight: 600 }}>
@@ -973,7 +1272,7 @@ const Footer = () => {
                   variant="contained"
                   color="primary"
                   size="small"
-                  sx={{ 
+                  sx={{
                     mt: 1,
                     textTransform: 'none',
                     fontWeight: 600
@@ -1120,22 +1419,19 @@ const Footer = () => {
         </DialogTitle>
 
         <DialogContent sx={{ p: 3 }}>
-          <Typography
-            variant="body1"
-            sx={{
-              lineHeight: 1.75,
-              textAlign: 'justify',
-              whiteSpace: 'pre-line',
-            }}
+          <Box
             component="div"
+            sx={{
+              ...getFormattedContentStyles(theme),
+              '& > *:first-of-type': {
+                marginTop: 0,
+              },
+              '& > *:last-child': {
+                marginBottom: 0,
+              },
+            }}
             dangerouslySetInnerHTML={{
-              __html: modalContent
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/^/, '<p>')
-                .replace(/$/, '</p>')
-                .replace(/<p><\/p>/g, '')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+              __html: formatContentForDisplay(modalContent)
             }}
           />
         </DialogContent>
