@@ -23,11 +23,19 @@ import {
   useMediaQuery,
   CircularProgress,
   Alert,
+  AlertTitle,
   ToggleButton,
   ToggleButtonGroup,
   Divider,
   Tabs,
-  Tab
+  Tab,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Skeleton,
+  Collapse
 } from "@mui/material";
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import PersonIcon from '@mui/icons-material/Person';
@@ -42,15 +50,155 @@ import DonutLargeIcon from '@mui/icons-material/DonutLarge';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TableChartIcon from '@mui/icons-material/TableChart';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-// Componente para la vista de Tratamientos
+// Panel de filtros simple
+const PanelFiltros = ({ onFilterChange, loading }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [filtros, setFiltros] = useState({
+    periodo: '',
+    fechaInicio: '',
+    fechaFin: '',
+    servicio: 'todos'
+  });
+
+  const aplicarFiltroRapido = (periodo) => {
+    const nuevosFiltros = { ...filtros, periodo };
+    setFiltros(nuevosFiltros);
+    onFilterChange(nuevosFiltros);
+  };
+
+  const handleChange = (campo, valor) => {
+    const nuevosFiltros = { ...filtros, [campo]: valor };
+    setFiltros(nuevosFiltros);
+  };
+
+  const aplicarFiltros = () => {
+    onFilterChange(filtros);
+  };
+
+  const resetearFiltros = () => {
+    const filtrosVacios = {
+      periodo: '',
+      fechaInicio: '',
+      fechaFin: '',
+      servicio: 'todos'
+    };
+    setFiltros(filtrosVacios);
+    onFilterChange(filtrosVacios);
+  };
+
+  return (
+    <Card elevation={2} sx={{ mb: 3 }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <FilterListIcon color="primary" />
+            <Typography variant="h6">Filtros</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton onClick={resetearFiltros} size="small">
+              <RestartAltIcon />
+            </IconButton>
+            <IconButton onClick={() => setExpanded(!expanded)} size="small">
+              <ExpandMoreIcon sx={{ 
+                transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                transition: '0.3s' 
+              }} />
+            </IconButton>
+          </Box>
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Hoy', value: 'hoy' },
+            { label: 'Semana', value: 'semana' },
+            { label: 'Mes', value: 'mes' },
+            { label: 'Trimestre', value: 'trimestre' }
+          ].map((filtro) => (
+            <Chip
+              key={filtro.value}
+              label={filtro.label}
+              onClick={() => aplicarFiltroRapido(filtro.value)}
+              color={filtros.periodo === filtro.value ? 'primary' : 'default'}
+              variant={filtros.periodo === filtro.value ? 'filled' : 'outlined'}
+              disabled={loading}
+            />
+          ))}
+        </Box>
+
+        <Collapse in={expanded}>
+          <Divider sx={{ mb: 2 }} />
+          <Grid container spacing={2}>
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Fecha Inicio"
+                type="date"
+                value={filtros.fechaInicio}
+                onChange={(e) => handleChange('fechaInicio', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <TextField
+                label="Fecha Fin"
+                type="date"
+                value={filtros.fechaFin}
+                onChange={(e) => handleChange('fechaFin', e.target.value)}
+                InputLabelProps={{ shrink: true }}
+                fullWidth
+                size="small"
+              />
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth size="small">
+                <InputLabel>Servicio</InputLabel>
+                <Select
+                  value={filtros.servicio}
+                  onChange={(e) => handleChange('servicio', e.target.value)}
+                  label="Servicio"
+                >
+                  <MenuItem value="todos">Todos</MenuItem>
+                  <MenuItem value="consulta">Consulta</MenuItem>
+                  <MenuItem value="limpieza">Limpieza</MenuItem>
+                  <MenuItem value="ortodoncia">Ortodoncia</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={3}>
+              <Button 
+                variant="contained" 
+                fullWidth 
+                onClick={aplicarFiltros}
+                sx={{ height: '40px' }}
+              >
+                Aplicar
+              </Button>
+            </Grid>
+          </Grid>
+        </Collapse>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Componente para vista de tratamientos
 const TratamientosView = ({ data, loading, error, chartType, onChartTypeChange }) => {
   const { darkMode } = useThemeContext();
   
-  // Opciones para gráficas de servicios
+  const datosValidos = data && Array.isArray(data) && data.length > 1;
+  
   const options = {
     title: "Servicios Odontológicos Realizados",
     titleTextStyle: {
@@ -60,10 +208,9 @@ const TratamientosView = ({ data, loading, error, chartType, onChartTypeChange }
       fontName: "Roboto"
     },
     pieHole: chartType === "DonutChart" ? 0.4 : 0,
-    is3D: chartType === "PieChart3D",
     backgroundColor: 'transparent',
     colors: ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#8710D8"],
-    legend: chartType === "Table" ? { position: "top" } : { position: "right" },
+    legend: { position: "right" },
     chartArea: { width: '80%', height: '80%' },
     vAxis: chartType === "BarChart" ? { title: "Cantidad" } : {},
     hAxis: chartType === "BarChart" ? { title: "Servicio" } : {}
@@ -82,13 +229,12 @@ const TratamientosView = ({ data, loading, error, chartType, onChartTypeChange }
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <Typography variant="h6">Servicios Odontológicos Realizados</Typography>
+          <Typography variant="h6">Servicios Odontológicos</Typography>
           <ToggleButtonGroup
             value={chartType}
             exclusive
             onChange={onChartTypeChange}
             size="small"
-            aria-label="tipo de gráfica"
             sx={{ 
               bgcolor: 'rgba(255,255,255,0.1)',
               '& .MuiToggleButton-root': { 
@@ -97,27 +243,39 @@ const TratamientosView = ({ data, loading, error, chartType, onChartTypeChange }
               }
             }}
           >
-            <ToggleButton value="PieChart" aria-label="gráfica circular">
+            <ToggleButton value="PieChart">
               <PieChartIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="DonutChart" aria-label="gráfica de anillo">
+            <ToggleButton value="DonutChart">
               <DonutLargeIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="BarChart" aria-label="gráfica de barras">
+            <ToggleButton value="BarChart">
               <BarChartIcon fontSize="small" />
-            </ToggleButton>
-            <ToggleButton value="Table" aria-label="tabla">
-              <TableChartIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
+        
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
             <CircularProgress />
           </Box>
         ) : error ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-            <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error}</Alert>
+          <Alert severity="error" sx={{ m: 1 }}>
+            <AlertTitle>Error</AlertTitle>
+            {error}
+          </Alert>
+        ) : !datosValidos ? (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: 300,
+            color: 'text.secondary'
+          }}>
+            <ErrorOutlineIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+            <Typography variant="h6" gutterBottom>Sin datos</Typography>
+            <Typography variant="body2">No hay servicios para mostrar</Typography>
           </Box>
         ) : (
           <Chart
@@ -133,24 +291,24 @@ const TratamientosView = ({ data, loading, error, chartType, onChartTypeChange }
   );
 };
 
-// Componente para la vista de Ingresos
+// Componente para vista de ingresos
 const IngresosView = ({ data, loading, error, chartType, onChartTypeChange }) => {
   const { darkMode } = useThemeContext();
   
-  // Convertir datos para BarChart si es necesario
+  const datosValidos = data && Array.isArray(data) && data.length > 1;
+  
   const chartData = React.useMemo(() => {
     if (data.length <= 1) return data;
     
     if (chartType === "ColumnChart") {
       return data.map((row, index) => {
-        if (index === 0) return row; // Mantener encabezados
+        if (index === 0) return row;
         return [row[0], row[1], row[1] > 1000 ? row[1].toString() : null];
       });
     }
     return data;
   }, [data, chartType]);
   
-  // Opciones para gráficas de ingresos
   const options = {
     title: "Ingresos Mensual y Anual",
     titleTextStyle: {
@@ -196,7 +354,6 @@ const IngresosView = ({ data, loading, error, chartType, onChartTypeChange }) =>
             exclusive
             onChange={onChartTypeChange}
             size="small"
-            aria-label="tipo de gráfica"
             sx={{ 
               bgcolor: 'rgba(255,255,255,0.1)',
               '& .MuiToggleButton-root': { 
@@ -205,24 +362,39 @@ const IngresosView = ({ data, loading, error, chartType, onChartTypeChange }) =>
               }
             }}
           >
-            <ToggleButton value="LineChart" aria-label="gráfica de línea">
+            <ToggleButton value="LineChart">
               <ShowChartIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="ColumnChart" aria-label="gráfica de columnas">
+            <ToggleButton value="ColumnChart">
               <BarChartIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="Table" aria-label="tabla">
+            <ToggleButton value="Table">
               <TableChartIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
+        
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
             <CircularProgress />
           </Box>
         ) : error ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-            <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error}</Alert>
+          <Alert severity="error" sx={{ m: 1 }}>
+            <AlertTitle>Error</AlertTitle>
+            {error}
+          </Alert>
+        ) : !datosValidos ? (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: 300,
+            color: 'text.secondary'
+          }}>
+            <ErrorOutlineIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+            <Typography variant="h6" gutterBottom>Sin datos</Typography>
+            <Typography variant="body2">No hay ingresos para mostrar</Typography>
           </Box>
         ) : (
           <Chart
@@ -238,11 +410,12 @@ const IngresosView = ({ data, loading, error, chartType, onChartTypeChange }) =>
   );
 };
 
-// Componente para la vista de Citas por Día
+// Componente para vista de citas por día
 const CitasDiaView = ({ data, loading, error, chartType, onChartTypeChange }) => {
   const { darkMode } = useThemeContext();
   
-  // Opciones para gráficas de citas por día
+  const datosValidos = data && Array.isArray(data) && data.length > 1;
+  
   const options = {
     title: "Citas por Día de la Semana",
     titleTextStyle: {
@@ -278,7 +451,6 @@ const CitasDiaView = ({ data, loading, error, chartType, onChartTypeChange }) =>
             exclusive
             onChange={onChartTypeChange}
             size="small"
-            aria-label="tipo de gráfica"
             sx={{ 
               bgcolor: 'rgba(255,255,255,0.1)',
               '& .MuiToggleButton-root': { 
@@ -287,24 +459,39 @@ const CitasDiaView = ({ data, loading, error, chartType, onChartTypeChange }) =>
               }
             }}
           >
-            <ToggleButton value="ColumnChart" aria-label="gráfica de columnas">
+            <ToggleButton value="ColumnChart">
               <BarChartIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="LineChart" aria-label="gráfica de línea">
+            <ToggleButton value="LineChart">
               <ShowChartIcon fontSize="small" />
             </ToggleButton>
-            <ToggleButton value="Table" aria-label="tabla">
+            <ToggleButton value="Table">
               <TableChartIcon fontSize="small" />
             </ToggleButton>
           </ToggleButtonGroup>
         </Box>
+        
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
             <CircularProgress />
           </Box>
         ) : error ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-            <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error}</Alert>
+          <Alert severity="error" sx={{ m: 1 }}>
+            <AlertTitle>Error</AlertTitle>
+            {error}
+          </Alert>
+        ) : !datosValidos ? (
+          <Box sx={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            height: 300,
+            color: 'text.secondary'
+          }}>
+            <ErrorOutlineIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+            <Typography variant="h6" gutterBottom>Sin datos</Typography>
+            <Typography variant="body2">No hay citas para mostrar</Typography>
           </Box>
         ) : (
           <Chart
@@ -322,11 +509,12 @@ const CitasDiaView = ({ data, loading, error, chartType, onChartTypeChange }) =>
 
 // Componente principal del Dashboard
 const Dashboard = () => {
-  // Contextos
   const { user } = useAuth();
   const { darkMode } = useThemeContext();
-  
-  // Estados para almacenar datos
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Estados para datos
   const [dataTratamientos, setDataTratamientos] = useState([["Servicio", "Cantidad"]]);
   const [dataIngresos, setDataIngresos] = useState([["Mes", "Ingresos", { role: "annotation" }]]);
   const [dataCitasDia, setDataCitasDia] = useState([["Día", "Cantidad"]]);
@@ -338,12 +526,12 @@ const Dashboard = () => {
     ingresosSemana: 0,
     tasaOcupacion: 0
   });
-  
+
   // Estados para tipos de gráficas
   const [tratamientosChartType, setTratamientosChartType] = useState("PieChart");
   const [ingresosChartType, setIngresosChartType] = useState("LineChart");
   const [citasDiaChartType, setCitasDiaChartType] = useState("ColumnChart");
-  
+
   // Estados de UI
   const [loading, setLoading] = useState({
     tratamientos: true,
@@ -360,23 +548,39 @@ const Dashboard = () => {
     metricas: null
   });
   const [tabSelected, setTabSelected] = useState("general");
-  
-  // Theme para responsive
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Función para obtener los servicios más realizados
-  const fetchTratamientos = async () => {
+  const fetchTratamientos = async (filtros = {}) => {
     setLoading(prev => ({ ...prev, tratamientos: true }));
     try {
-      const response = await axios.get("https://back-end-4803.onrender.com/api/Graficas/topservicios");
+      let url = "https://back-end-4803.onrender.com/api/Graficas/topservicios";
+      const params = new URLSearchParams();
       
-      const formattedData = [["Servicio", "Cantidad"]];
-      response.data.slice(0, 5).forEach((item) => {
-        formattedData.push([item.servicio_nombre, item.total_realizados]);
-      });
+      if (filtros.periodo) params.append('periodo', filtros.periodo);
+      if (filtros.fechaInicio && filtros.fechaFin) {
+        params.append('fechaInicio', filtros.fechaInicio);
+        params.append('fechaFin', filtros.fechaFin);
+      }
+      if (filtros.servicio && filtros.servicio !== 'todos') {
+        params.append('servicio', filtros.servicio);
+      }
       
-      setDataTratamientos(formattedData);
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await axios.get(url);
+      
+      if (response.data && response.data.length > 0) {
+        const formattedData = [["Servicio", "Cantidad"]];
+        response.data.slice(0, 5).forEach((item) => {
+          formattedData.push([item.servicio_nombre, item.total_realizados]);
+        });
+        setDataTratamientos(formattedData);
+      } else {
+        setDataTratamientos([["Servicio", "Cantidad"]]);
+      }
+      
       setError(prev => ({ ...prev, tratamientos: null }));
     } catch (err) {
       console.error("Error obteniendo datos de tratamientos:", err);
@@ -388,23 +592,40 @@ const Dashboard = () => {
   };
 
   // Función para obtener ingresos mensuales
-  const fetchIngresos = async () => {
+  const fetchIngresos = async (filtros = {}) => {
     setLoading(prev => ({ ...prev, ingresos: true }));
     try {
-      const response = await axios.get("https://back-end-4803.onrender.com/api/Graficas/ingresos-mensuales");
+      let url = "https://back-end-4803.onrender.com/api/Graficas/ingresos-mensuales";
+      const params = new URLSearchParams();
       
-      const formattedData = [["Mes", "Ingresos", { role: "annotation" }]];
-      const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
-                     "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+      if (filtros.periodo) params.append('periodo', filtros.periodo);
+      if (filtros.fechaInicio && filtros.fechaFin) {
+        params.append('fechaInicio', filtros.fechaInicio);
+        params.append('fechaFin', filtros.fechaFin);
+      }
       
-      // Asegurarse de que todos los datos son numéricos para el eje Y
-      response.data.forEach((item) => {
-        const ingreso = Number(item.total_ingresos);
-        const mostrarAnotacion = ingreso > 1000 ? ingreso.toString() : null;
-        formattedData.push([meses[item.mes - 1], ingreso, mostrarAnotacion]);
-      });
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
       
-      setDataIngresos(formattedData);
+      const response = await axios.get(url);
+      
+      if (response.data && response.data.length > 0) {
+        const formattedData = [["Mes", "Ingresos", { role: "annotation" }]];
+        const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", 
+                       "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+        
+        response.data.forEach((item) => {
+          const ingreso = Number(item.total_ingresos);
+          const mostrarAnotacion = ingreso > 1000 ? ingreso.toString() : null;
+          formattedData.push([meses[item.mes - 1], ingreso, mostrarAnotacion]);
+        });
+        
+        setDataIngresos(formattedData);
+      } else {
+        setDataIngresos([["Mes", "Ingresos", { role: "annotation" }]]);
+      }
+      
       setError(prev => ({ ...prev, ingresos: null }));
     } catch (err) {
       console.error("Error obteniendo datos de ingresos:", err);
@@ -416,25 +637,35 @@ const Dashboard = () => {
   };
 
   // Función para obtener citas por día de la semana
-  const fetchCitasPorDia = async () => {
+  const fetchCitasPorDia = async (filtros = {}) => {
     setLoading(prev => ({ ...prev, citasDia: true }));
     try {
-      const response = await axios.get("https://back-end-4803.onrender.com/api/Graficas/citas-por-dia");
+      let url = "https://back-end-4803.onrender.com/api/Graficas/citas-por-dia";
+      const params = new URLSearchParams();
+      
+      if (filtros.periodo) params.append('periodo', filtros.periodo);
+      if (filtros.fechaInicio && filtros.fechaFin) {
+        params.append('fechaInicio', filtros.fechaInicio);
+        params.append('fechaFin', filtros.fechaFin);
+      }
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await axios.get(url);
       
       const formattedData = [["Día", "Cantidad"]];
-      // En MySQL, WEEKDAY devuelve: 0=Lunes, 1=Martes, 2=Miércoles, 3=Jueves, 4=Viernes, 5=Sábado, 6=Domingo
       const dias = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
       
-      // Inicializar todos los días con 0 citas
       const citasPorDia = dias.map(dia => [dia, 0]);
       
-      // Asignar el total de citas a cada día según el índice del día de la semana
-      response.data.forEach((item) => {
-        // El dia_semana ya corresponde directamente con el índice en el array dias
-        citasPorDia[item.dia_semana][1] = Number(item.total_citas);
-      });
+      if (response.data && response.data.length > 0) {
+        response.data.forEach((item) => {
+          citasPorDia[item.dia_semana][1] = Number(item.total_citas);
+        });
+      }
       
-      // Completar el array de datos formateado
       citasPorDia.forEach(row => {
         formattedData.push(row);
       });
@@ -451,28 +682,43 @@ const Dashboard = () => {
   };
 
   // Función para obtener las próximas citas
-  const fetchProximasCitas = async () => {
+  const fetchProximasCitas = async (filtros = {}) => {
     setLoading(prev => ({ ...prev, proximasCitas: true }));
     try {
-      const response = await axios.get("https://back-end-4803.onrender.com/api/Graficas/proximas-citas");
+      let url = "https://back-end-4803.onrender.com/api/Graficas/proximas-citas";
+      const params = new URLSearchParams();
       
-      const citasFormateadas = response.data.map(cita => ({
-        id: cita.id,
-        paciente: `${cita.nombre} ${cita.aPaterno}`,
-        servicio: cita.servicio_nombre,
-        fecha: new Date(cita.fecha_consulta).toLocaleDateString('es-ES', {
-          day: '2-digit',
-          month: 'short',
-          year: 'numeric'
-        }),
-        hora: new Date(cita.fecha_consulta).toLocaleTimeString('es-ES', {
-          hour: '2-digit',
-          minute: '2-digit'
-        }),
-        estado: cita.estado
-      }));
+      params.append('limite', '6');
+      if (filtros.servicio && filtros.servicio !== 'todos') {
+        params.append('servicio', filtros.servicio);
+      }
       
-      setProximasCitas(citasFormateadas);
+      url += `?${params.toString()}`;
+      
+      const response = await axios.get(url);
+      
+      if (response.data && response.data.length > 0) {
+        const citasFormateadas = response.data.map(cita => ({
+          id: cita.id,
+          paciente: `${cita.nombre} ${cita.aPaterno}`,
+          servicio: cita.servicio_nombre,
+          fecha: new Date(cita.fecha_consulta).toLocaleDateString('es-ES', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+          }),
+          hora: new Date(cita.fecha_consulta).toLocaleTimeString('es-ES', {
+            hour: '2-digit',
+            minute: '2-digit'
+          }),
+          estado: cita.estado
+        }));
+        
+        setProximasCitas(citasFormateadas);
+      } else {
+        setProximasCitas([]);
+      }
+      
       setError(prev => ({ ...prev, proximasCitas: null }));
     } catch (err) {
       console.error("Error obteniendo próximas citas:", err);
@@ -484,10 +730,19 @@ const Dashboard = () => {
   };
 
   // Función para obtener métricas de resumen
-  const fetchMetricasResumen = async () => {
+  const fetchMetricasResumen = async (filtros = {}) => {
     setLoading(prev => ({ ...prev, metricas: true }));
     try {
-      const response = await axios.get("https://back-end-4803.onrender.com/api/Graficas/metricas-resumen");
+      let url = "https://back-end-4803.onrender.com/api/Graficas/metricas-resumen";
+      const params = new URLSearchParams();
+      
+      if (filtros.periodo) params.append('periodo', filtros.periodo);
+      
+      if (params.toString()) {
+        url += `?${params.toString()}`;
+      }
+      
+      const response = await axios.get(url);
       
       setMetricasResumen({
         citasHoy: response.data.citas_hoy,
@@ -512,21 +767,25 @@ const Dashboard = () => {
     }
   };
 
-  // Cargar todos los datos al montar el componente
+  // Cargar todos los datos
+  const cargarTodosDatos = async (filtros = {}) => {
+    await Promise.all([
+      fetchTratamientos(filtros),
+      fetchIngresos(filtros),
+      fetchCitasPorDia(filtros),
+      fetchProximasCitas(filtros),
+      fetchMetricasResumen(filtros)
+    ]);
+  };
+
+  // Manejar cambio de filtros
+  const handleFilterChange = (filtros) => {
+    cargarTodosDatos(filtros);
+  };
+
+  // Cargar datos al montar el componente
   useEffect(() => {
-    const cargarDatos = async () => {
-      fetchTratamientos();
-      fetchIngresos();
-      fetchCitasPorDia();
-      fetchProximasCitas();
-      fetchMetricasResumen();
-    };
-    
-    cargarDatos();
-    
-    // Actualizar cada 5 minutos
-    const interval = setInterval(cargarDatos, 300000);
-    return () => clearInterval(interval);
+    cargarTodosDatos();
   }, []);
 
   // Manejadores para cambio de tipo de gráficas
@@ -564,386 +823,7 @@ const Dashboard = () => {
     }
   };
 
-  // Vista de Citas
-  const CitasView = () => (
-    <>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Administración de Citas
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Visualiza y gestiona las citas programadas. Monitorea la distribución por días y los estados de las próximas citas.
-        </Typography>
-      </Box>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={7}>
-          <CitasDiaView 
-            data={dataCitasDia}
-            loading={loading.citasDia}
-            error={error.citasDia}
-            chartType={citasDiaChartType}
-            onChartTypeChange={handleCitasDiaChartChange}
-          />
-        </Grid>
-        <Grid item xs={12} md={5}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2
-              }}>
-                <Typography variant="h6">Resumen de Citas</Typography>
-                <EventAvailableIcon />
-              </Box>
-              
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: '#E0F2FE' }}>
-                    <Typography variant="subtitle2" color="text.secondary">Citas Hoy</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#0369A1' }}>
-                      {metricasResumen.citasHoy}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: '#DCFCE7' }}>
-                    <Typography variant="subtitle2" color="text.secondary">Citas Semana</Typography>
-                    <Typography variant="h4" sx={{ fontWeight: 'bold', color: '#059669' }}>
-                      {metricasResumen.citasSemana}
-                    </Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12}>
-                  <Paper elevation={2} sx={{ p: 2, textAlign: 'center', bgcolor: '#F0FDF4' }}>
-                    <Typography variant="subtitle2" color="text.secondary">Ocupación</Typography>
-                    <Box sx={{ position: 'relative', pt: 1 }}>
-                      <Box sx={{ 
-                        width: '100%', 
-                        height: 10, 
-                        bgcolor: '#E5E7EB',
-                        borderRadius: 5
-                      }}>
-                        <Box sx={{ 
-                          width: `${metricasResumen.tasaOcupacion}%`, 
-                          height: '100%', 
-                          bgcolor: '#10B981',
-                          borderRadius: 5
-                        }}/>
-                      </Box>
-                      <Typography variant="body1" sx={{ mt: 1, fontWeight: 'bold' }}>
-                        {metricasResumen.tasaOcupacion}%
-                      </Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-              </Grid>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2
-              }}>
-                <Typography variant="h6">Próximas Citas</Typography>
-                <AccessTimeIcon />
-              </Box>
-              
-              {loading.proximasCitas ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                  <CircularProgress />
-                </Box>
-              ) : error.proximasCitas ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-                  <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error.proximasCitas}</Alert>
-                </Box>
-              ) : (
-                <>
-                  <Grid container spacing={2}>
-                    {proximasCitas.map((cita) => (
-                      <Grid item xs={12} md={6} key={cita.id}>
-                        <Paper
-                          elevation={1}
-                          sx={{ 
-                            p: 2, 
-                            borderLeft: cita.estado === "Confirmada" ? '4px solid #10B981' : 
-                                      cita.estado === "Pendiente" ? '4px solid #F59E0B' : 
-                                      cita.estado === "Cancelada" ? '4px solid #EF4444' : '4px solid #6B7280',
-                            borderRadius: '4px',
-                            backgroundColor: '#FAFAFA',
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: 2
-                          }}
-                        >
-                          <Avatar sx={{ 
-                            bgcolor: cita.estado === "Confirmada" ? '#D1FAE5' : 
-                                    cita.estado === "Pendiente" ? '#FEF3C7' : 
-                                    cita.estado === "Cancelada" ? '#FEE2E2' : '#F3F4F6' 
-                          }}>
-                            {cita.estado === "Confirmada" ? 
-                              <EventAvailableIcon sx={{ color: '#065F46' }} /> : 
-                              <PriorityHighIcon sx={{ 
-                                color: cita.estado === "Pendiente" ? '#92400E' : 
-                                      cita.estado === "Cancelada" ? '#B91C1C' : '#1F2937' 
-                              }} />
-                            }
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                              <Typography variant="subtitle1" sx={{ fontWeight: 'medium' }}>
-                                {cita.paciente}
-                              </Typography>
-                              <Chip 
-                                label={cita.estado} 
-                                size="small"
-                                sx={{ 
-                                  ...getChipColor(cita.estado),
-                                  height: '24px',
-                                }}
-                              />
-                            </Box>
-                            <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>
-                              <strong>Servicio:</strong> {cita.servicio}
-                            </Typography>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <Typography variant="body2" color="text.secondary">
-                                {cita.fecha}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary">
-                                {cita.hora}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </>
-  );
-
-  // Vista de Pacientes
-  const PacientesView = () => (
-    <>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Gestión de Pacientes
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Análisis de los pacientes registrados en el sistema. Visualiza estadísticas y tendencias importantes.
-        </Typography>
-      </Box>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2, 
-                textAlign: "center" 
-              }}>
-                <Typography variant="h6">Nuevos Pacientes por Mes</Typography>
-              </Box>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                p: 3 
-              }}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: '#FFEDD5', mb: 2 }}>
-                  <PersonIcon sx={{ fontSize: 40, color: '#F59E0B' }} />
-                </Avatar>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#F59E0B', mb: 1 }}>
-                  {metricasResumen.nuevoPacientes || 0}
-                </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Nuevos pacientes este mes
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2, 
-                textAlign: "center" 
-              }}>
-                <Typography variant="h6">Distribución por Tratamientos</Typography>
-              </Box>
-              {loading.tratamientos ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                  <CircularProgress />
-                </Box>
-              ) : error.tratamientos ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-                  <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error.tratamientos}</Alert>
-                </Box>
-              ) : (
-                <Chart
-                  chartType="BarChart"
-                  width="100%"
-                  height="300px"
-                  data={dataTratamientos}
-                  options={{
-                    title: "Pacientes por Tipo de Tratamiento",
-                    backgroundColor: 'transparent',
-                    colors: ["#8B5CF6"],
-                    legend: { position: "none" },
-                    hAxis: { title: "Cantidad" },
-                    vAxis: { title: "Tratamiento" },
-                    chartArea: { width: '70%', height: '80%' }
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </>
-  );
-
-  // Vista de Finanzas
-  const FinanzasView = () => (
-    <>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Análisis Financiero
-        </Typography>
-        <Typography variant="body1" color="text.secondary" paragraph>
-          Información financiera detallada de la clínica. Monitorea ingresos y proyecciones.
-        </Typography>
-      </Box>
-      
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <IngresosView 
-            data={dataIngresos}
-            loading={loading.ingresos}
-            error={error.ingresos}
-            chartType={ingresosChartType}
-            onChartTypeChange={handleIngresosChartChange}
-          />
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2, 
-                textAlign: "center" 
-              }}>
-                <Typography variant="h6">Ingresos de la Semana</Typography>
-              </Box>
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                p: 3 
-              }}>
-                <Avatar sx={{ width: 80, height: 80, bgcolor: '#DBEAFE', mb: 2 }}>
-                  <AttachMoneyIcon sx={{ fontSize: 40, color: '#2563EB' }} />
-                </Avatar>
-                <Typography variant="h3" sx={{ fontWeight: 'bold', color: '#2563EB', mb: 1 }}>
-                  ${metricasResumen.ingresosSemana || 0}
-                </Typography>
-                <Typography variant="subtitle1" color="text.secondary">
-                  Total facturado esta semana
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-        
-        <Grid item xs={12} md={6}>
-          <Card elevation={3}>
-            <CardContent>
-              <Box sx={{ 
-                backgroundColor: "#1E3A8A", 
-                color: "white", 
-                padding: 1, 
-                borderRadius: 1, 
-                mb: 2, 
-                textAlign: "center" 
-              }}>
-                <Typography variant="h6">Servicios Más Rentables</Typography>
-              </Box>
-              {loading.tratamientos ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px' }}>
-                  <CircularProgress />
-                </Box>
-              ) : error.tratamientos ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
-                  <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error.tratamientos}</Alert>
-                </Box>
-              ) : (
-                <Chart
-                  chartType="PieChart"
-                  width="100%"
-                  height="300px"
-                  data={dataTratamientos}
-                  options={{
-                    title: "Distribución de Ingresos por Servicio",
-                    titleTextStyle: {
-                      fontSize: 16,
-                      bold: true,
-                      color: darkMode ? "#f5f5f5" : "#333",
-                      fontName: "Roboto"
-                    },
-                    pieHole: 0.4,
-                    backgroundColor: 'transparent',
-                    colors: ["#4285F4", "#EA4335", "#FBBC05", "#34A853", "#8710D8"],
-                    legend: { position: "right" },
-                    chartArea: { width: '80%', height: '80%' }
-                  }}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-    </>
-  );
-
-  // Vista General (Dashboard principal)
+  // Vista General
   const GeneralView = () => (
     <>
       {/* Tarjetas de métricas resumen */}
@@ -1152,6 +1032,19 @@ const Dashboard = () => {
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '300px', flexDirection: 'column' }}>
                   <Alert severity="error" sx={{ mb: 2, width: '100%' }}>{error.proximasCitas}</Alert>
                 </Box>
+              ) : proximasCitas.length === 0 ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center', 
+                  height: 300,
+                  color: 'text.secondary'
+                }}>
+                  <ScheduleIcon sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                  <Typography variant="h6" gutterBottom>Sin citas</Typography>
+                  <Typography variant="body2">No hay citas próximas</Typography>
+                </Box>
               ) : (
                 <List sx={{ 
                   width: '100%', 
@@ -1186,7 +1079,7 @@ const Dashboard = () => {
                                   cita.estado === "Cancelada" ? '#FEE2E2' : '#F3F4F6' 
                         }}>
                           {cita.estado === "Confirmada" ? 
-                            <EventAvailableIcon sx={{ color: '#065F46' }} /> : 
+                            <CheckCircleIcon sx={{ color: '#065F46' }} /> : 
                             <PriorityHighIcon sx={{ 
                               color: cita.estado === "Pendiente" ? '#92400E' : 
                                      cita.estado === "Cancelada" ? '#B91C1C' : '#1F2937' 
@@ -1238,20 +1131,6 @@ const Dashboard = () => {
     </>
   );
 
-  // Renderizado de la vista según la pestaña seleccionada
-  const renderSelectedView = () => {
-    switch (tabSelected) {
-      case "citas":
-        return <CitasView />;
-      case "pacientes":
-        return <PacientesView />;
-      case "finanzas":
-        return <FinanzasView />;
-      default:
-        return <GeneralView />;
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: -20 }}
@@ -1279,6 +1158,12 @@ const Dashboard = () => {
 
         {/* Notificaciones */}
         <Notificaciones />
+
+        {/* Panel de filtros */}
+        <PanelFiltros 
+          onFilterChange={handleFilterChange}
+          loading={Object.values(loading).some(Boolean)}
+        />
 
         {/* Pestañas */}
         <Paper 
@@ -1321,29 +1206,11 @@ const Dashboard = () => {
               icon={<TrendingUpIcon />} 
               iconPosition="start" 
             />
-            <Tab 
-              label="Citas" 
-              value="citas" 
-              icon={<EventAvailableIcon />} 
-              iconPosition="start" 
-            />
-            <Tab 
-              label="Pacientes" 
-              value="pacientes" 
-              icon={<PersonIcon />} 
-              iconPosition="start" 
-            />
-            <Tab 
-              label="Finanzas" 
-              value="finanzas" 
-              icon={<AttachMoneyIcon />} 
-              iconPosition="start" 
-            />
           </Tabs>
         </Paper>
 
         {/* Contenido según pestaña seleccionada */}
-        {renderSelectedView()}
+        <GeneralView />
         
         {/* Pie de página */}
         <Box sx={{ mt: 3, textAlign: 'center' }}>

@@ -1,165 +1,268 @@
-import React, { useState, useEffect } from 'react';
-import { Box, Typography, Tab, Tabs, Card, CardContent, CircularProgress } from '@mui/material';
-import { FaSignInAlt, FaFileAlt, FaUserFriends } from 'react-icons/fa';
+import React, { useState } from 'react';
+import { 
+  Box, 
+  Typography, 
+  Tabs, 
+  Tab, 
+  Card, 
+  Container,
+  Fade,
+  useTheme,
+  useMediaQuery,
+  Divider,
+  Chip,
+  Stack
+} from '@mui/material';
+import { 
+  SecurityOutlined, 
+  HistoryOutlined,
+  DashboardOutlined 
+} from '@mui/icons-material';
 import LoginAttemptsReport from './LoginAttemptsReport';
 import LogsReport from './LogsReport';
-import { Link } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 
-const Reportes = () => {
-  const [selectedTab, setSelectedTab] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const { isDarkTheme } = useThemeContext();
+// Configuración de pestañas
+const TABS_CONFIG = [
+  {
+    id: 0,
+    label: 'Intentos de Login',
+    icon: SecurityOutlined,
+    description: 'Monitoreo de intentos de acceso al sistema',
+    color: '#2196f3'
+  },
+  {
+    id: 1,
+    label: 'Auditoría del Sistema',
+    icon: HistoryOutlined,
+    description: 'Registro de actividades y eventos del sistema',
+    color: '#ff9800'
+  }
+];
 
-  // Definición de colores
+const Reportes = () => {
+  const [selectedTab, setSelectedTab] = useState(0);
+  const { isDarkTheme } = useThemeContext();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Configuración de colores dinámicos
   const colors = {
-    background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
-    paper: isDarkTheme ? '#243447' : '#ffffff',
-    tableBackground: isDarkTheme ? '#1E2A3A' : '#e3f2fd',
-    text: isDarkTheme ? '#FFFFFF' : '#333333',
-    secondaryText: isDarkTheme ? '#E8F1FF' : '#666666',
-    primary: isDarkTheme ? '#0052A3' : '#1976d2',
-    hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
+    background: isDarkTheme ? '#0f1419' : '#f8fafc',
+    cardBg: isDarkTheme ? '#1e293b' : '#ffffff',
+    headerBg: isDarkTheme ? '#334155' : '#ffffff',
+    text: isDarkTheme ? '#f1f5f9' : '#1e293b',
+    secondaryText: isDarkTheme ? '#94a3b8' : '#64748b',
+    primary: isDarkTheme ? '#3b82f6' : '#2563eb',
+    accent: isDarkTheme ? '#06b6d4' : '#0891b2',
+    shadow: isDarkTheme 
+      ? '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)' 
+      : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+    border: isDarkTheme ? '#374151' : '#e2e8f0',
+    tabActive: isDarkTheme ? '#3b82f6' : '#2563eb',
+    tabHover: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)'
   };
 
+  // Manejar cambio de pestaña
   const handleTabChange = (event, newValue) => {
-    setLoading(true);
     setSelectedTab(newValue);
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
+  };
+
+  // Renderizar contenido de pestaña
+  const renderTabContent = () => {
+    const activeTab = TABS_CONFIG[selectedTab];
+    
+    return (
+      <Fade in={true} timeout={300}>
+        <Box>
+          {selectedTab === 0 && <LoginAttemptsReport />}
+          {selectedTab === 1 && <LogsReport />}
+        </Box>
+      </Fade>
+    );
   };
 
   return (
     <Box
       sx={{
-        p: 4,
         minHeight: '100vh',
-        background: colors.background,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        transition: 'background-color 0.3s ease'
+        background: `linear-gradient(135deg, ${colors.background} 0%, ${colors.background}dd 100%)`,
+        py: { xs: 2, md: 4 }
       }}
     >
-      <Typography
-        variant="h4"
-        sx={{
-          mb: 4,
-          fontWeight: 'bold',
-          color: colors.primary,
-          fontFamily: 'Roboto, sans-serif',
-          textAlign: 'center',
-        }}
-      >
-        Reportes del Sistema
-      </Typography>
-
-      <Tabs
-        value={selectedTab ?? false}
-        onChange={handleTabChange}
-        indicatorColor="primary"
-        textColor="primary"
-        centered
-        sx={{
-          mb: 4,
-          backgroundColor: colors.paper,
-          borderRadius: '12px',
-          boxShadow: '0px 4px 12px rgba(0, 0, 0, 0.1)',
-          '& .MuiTab-root': {
-            textTransform: 'none',
-            fontWeight: 'bold',
-            color: colors.text,
-            '&:hover': {
-              backgroundColor: colors.hover,
-            },
-            transition: '0.3s',
-          },
-          '& .Mui-selected': {
-            color: `${colors.primary} !important`,
-          },
-        }}
-      >
-        <Tab
-          label="Intentos de Login"
-          icon={<FaSignInAlt />}
-          sx={{ fontFamily: 'Roboto, sans-serif' }}
-        />
-        <Tab
-          label="Auditoría del Sistema"
-          icon={<FaFileAlt />}
-          sx={{ fontFamily: 'Roboto, sans-serif' }}
-        />
-      </Tabs>
-
-      <Card
-        sx={{
-          backgroundColor: colors.paper,
-          boxShadow: isDarkTheme
-            ? '0px 6px 20px rgba(0, 0, 0, 0.3)'
-            : '0px 6px 20px rgba(0, 0, 0, 0.1)',
-          borderRadius: '16px',
-          width: '100%',
-          maxWidth: '900px',
-          transition: 'all 0.3s ease',
-        }}
-      >
-        <CardContent>
-          {loading ? (
+      <Container maxWidth="xl">
+        {/* Header Section */}
+        <Box sx={{ mb: 4 }}>
+          <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2 }}>
             <Box
               sx={{
+                p: 1.5,
+                borderRadius: 2,
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.accent} 100%)`,
                 display: 'flex',
-                justifyContent: 'center',
                 alignItems: 'center',
-                height: '200px',
-                color: colors.text
+                justifyContent: 'center'
               }}
             >
-              <CircularProgress sx={{ color: colors.primary }} />
-              <Typography variant="body1" sx={{ ml: 2, color: colors.text }}>
-                Cargando...
-              </Typography>
+              <DashboardOutlined sx={{ color: 'white', fontSize: 28 }} />
             </Box>
-          ) : selectedTab === null ? (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                height: '200px',
-                color: colors.text
-              }}
-            >
+            <Box>
               <Typography
-                variant="h6"
+                variant={isMobile ? 'h5' : 'h4'}
                 sx={{
-                  fontWeight: 'bold',
-                  textAlign: 'center',
-                  color: colors.primary,
-                  mb: 2
+                  fontWeight: 700,
+                  color: colors.text,
+                  fontFamily: '"Inter", "Roboto", sans-serif',
+                  letterSpacing: '-0.02em'
                 }}
               >
-                Selecciona una opción para ver su contenido
+                Centro de Reportes
               </Typography>
               <Typography
                 variant="body1"
                 sx={{
                   color: colors.secondaryText,
-                  textAlign: 'center'
+                  fontWeight: 400,
+                  mt: 0.5
                 }}
               >
-                Elige una de las pestañas superiores para visualizar el reporte correspondiente
+                Monitoreo y análisis de la actividad del sistema
               </Typography>
             </Box>
-          ) : (
-            <>
-              {selectedTab === 0 && <LoginAttemptsReport isDarkTheme={isDarkTheme} colors={colors} />}
-              {selectedTab === 1 && <LogsReport isDarkTheme={isDarkTheme} colors={colors} />}
-            </>
-          )}
-        </CardContent>
-      </Card>
+          </Stack>
+
+          <Divider sx={{ borderColor: colors.border, my: 3 }} />
+        </Box>
+
+        {/* Navigation Tabs */}
+        <Card
+          elevation={0}
+          sx={{
+            background: colors.headerBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 3,
+            overflow: 'hidden',
+            mb: 3,
+            boxShadow: colors.shadow
+          }}
+        >
+          <Tabs
+            value={selectedTab}
+            onChange={handleTabChange}
+            variant={isMobile ? 'scrollable' : 'standard'}
+            scrollButtons="auto"
+            sx={{
+              minHeight: 64,
+              '& .MuiTabs-indicator': {
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+                background: `linear-gradient(90deg, ${colors.primary} 0%, ${colors.accent} 100%)`
+              },
+              '& .MuiTabs-root': {
+                minHeight: 64
+              }
+            }}
+          >
+            {TABS_CONFIG.map((tab) => {
+              const IconComponent = tab.icon;
+              const isActive = selectedTab === tab.id;
+              
+              return (
+                <Tab
+                  key={tab.id}
+                  icon={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <IconComponent 
+                        sx={{ 
+                          fontSize: 20,
+                          color: isActive ? colors.tabActive : colors.secondaryText,
+                          transition: 'color 0.2s ease'
+                        }} 
+                      />
+                      {!isMobile && (
+                        <Chip
+                          size="small"
+                          label="Nuevo"
+                          sx={{
+                            height: 20,
+                            fontSize: '0.7rem',
+                            bgcolor: isActive ? colors.primary : colors.border,
+                            color: isActive ? 'white' : colors.secondaryText,
+                            transition: 'all 0.2s ease',
+                            '& .MuiChip-label': {
+                              px: 1
+                            }
+                          }}
+                        />
+                      )}
+                    </Box>
+                  }
+                  label={
+                    <Box sx={{ textAlign: 'left', minWidth: 0 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontWeight: isActive ? 600 : 500,
+                          color: isActive ? colors.tabActive : colors.text,
+                          fontSize: isMobile ? '0.875rem' : '0.95rem',
+                          transition: 'color 0.2s ease'
+                        }}
+                      >
+                        {tab.label}
+                      </Typography>
+                      {!isMobile && (
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: colors.secondaryText,
+                            display: 'block',
+                            fontSize: '0.75rem',
+                            mt: 0.25,
+                            opacity: isActive ? 1 : 0.7,
+                            transition: 'opacity 0.2s ease'
+                          }}
+                        >
+                          {tab.description}
+                        </Typography>
+                      )}
+                    </Box>
+                  }
+                  iconPosition="start"
+                  sx={{
+                    minHeight: 64,
+                    px: { xs: 2, md: 3 },
+                    textTransform: 'none',
+                    alignItems: 'flex-start',
+                    justifyContent: 'flex-start',
+                    '&:hover': {
+                      backgroundColor: colors.tabHover,
+                    },
+                    '&.Mui-selected': {
+                      backgroundColor: colors.tabHover,
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                />
+              );
+            })}
+          </Tabs>
+        </Card>
+
+        {/* Content Area */}
+        <Card
+          elevation={0}
+          sx={{
+            background: colors.cardBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 3,
+            overflow: 'hidden',
+            boxShadow: colors.shadow,
+            minHeight: 500
+          }}
+        >
+          {renderTabContent()}
+        </Card>
+      </Container>
     </Box>
   );
 };
