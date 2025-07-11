@@ -12,43 +12,52 @@ import {
   Rating,
   IconButton,
   Skeleton,
-  Alert
+  Alert,
+  Card,
+  CardContent,
+  Chip,
+  Stack
 } from '@mui/material';
-import { Star, ChevronLeft, ChevronRight } from '@mui/icons-material';
-
-// Hooks y utilidades
-import { useIntersectionObserver } from '../constants';
+import { 
+  Star, 
+  ChevronLeft, 
+  ChevronRight, 
+  FormatQuote,
+  Verified,
+  CalendarToday
+} from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
+import { useIntersectionObserver } from '../constants';
 import ContactButtons from './Steps/ContactButtons';
 
-// Componente para skeleton loading
+// Componente de skeleton mejorado
 const TestimonialSkeleton = ({ colors }) => (
-  <Paper
-    elevation={0}
-    sx={{
-      p: { xs: 3, md: 4 },
-      height: '280px',
-      borderRadius: { xs: '12px', md: '16px' },
-      backgroundColor: colors.cardBg,
-      border: `1px solid ${colors.border}`,
-    }}
-  >
-    <Skeleton variant="rectangular" width="60%" height={24} sx={{ mb: 2 }} />
-    <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
-    <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
-    <Skeleton variant="text" width="80%" height={20} sx={{ mb: 3 }} />
-    <Box sx={{ display: 'flex', alignItems: 'center', mt: 'auto' }}>
-      <Skeleton variant="circular" width={42} height={42} sx={{ mr: 2 }} />
-      <Skeleton variant="text" width="40%" height={20} />
-    </Box>
-  </Paper>
+  <Card elevation={0} sx={{
+    height: 320,
+    borderRadius: 4,
+    border: `1px solid ${colors.border}`,
+    backgroundColor: colors.cardBg,
+    overflow: 'hidden'
+  }}>
+    <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Skeleton variant="rectangular" width={120} height={24} sx={{ mb: 2, borderRadius: 1 }} />
+      <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
+      <Skeleton variant="text" height={20} sx={{ mb: 1 }} />
+      <Skeleton variant="text" width="80%" height={20} sx={{ mb: 3 }} />
+      <Box sx={{ mt: 'auto', display: 'flex', alignItems: 'center' }}>
+        <Skeleton variant="circular" width={48} height={48} sx={{ mr: 2 }} />
+        <Box sx={{ flex: 1 }}>
+          <Skeleton variant="text" width="60%" height={20} sx={{ mb: 0.5 }} />
+          <Skeleton variant="text" width="40%" height={16} />
+        </Box>
+      </Box>
+    </CardContent>
+  </Card>
 );
 
-// Componente para testimonios optimizado
-const TestimonialCard = ({ testimonial, index, isVisible, colors }) => {
-  const theme = useTheme();
-  
-  // Generar iniciales para el avatar
+// Componente de tarjeta de testimonio renovado
+const TestimonialCard = ({ testimonial, index, isVisible, colors, isDarkTheme }) => {
+  // Generar iniciales elegantes
   const getInitials = (name) => {
     return name
       .split(' ')
@@ -58,222 +67,282 @@ const TestimonialCard = ({ testimonial, index, isVisible, colors }) => {
       .slice(0, 2);
   };
   
-  // Formatear fecha
+  // Formatear fecha de manera elegante
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('es-ES', {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
       year: 'numeric',
-      month: 'short',
+      month: 'long',
       day: 'numeric'
     });
   };
+
+  // Colores de avatar más conservadores
+  const avatarColors = [
+    { bg: isDarkTheme ? '#4B9FFF20' : '#E3F2FD', color: isDarkTheme ? '#4B9FFF' : '#1976D2' },
+    { bg: isDarkTheme ? '#10B98120' : '#E8F5E8', color: isDarkTheme ? '#10B981' : '#059669' },
+    { bg: isDarkTheme ? '#F59E0B20' : '#FFF3E0', color: isDarkTheme ? '#F59E0B' : '#F57C00' },
+    { bg: isDarkTheme ? '#EF444420' : '#FFEBEE', color: isDarkTheme ? '#EF4444' : '#D32F2F' }
+  ];
+  
+  const avatarColor = avatarColors[index % avatarColors.length];
   
   return (
-    <Fade
-      in={isVisible}
-      timeout={800}
-      style={{ transitionDelay: `${index * 200}ms` }}
-    >
-      <Paper
+    <Fade in={isVisible} timeout={600 + (index * 200)}>
+      <Card
         elevation={0}
         sx={{
-          p: { xs: 3, md: 4 },
           height: '100%',
-          borderRadius: { xs: '12px', md: '16px' },
-          backgroundColor: colors.cardBg,
+          borderRadius: 4,
           border: `1px solid ${colors.border}`,
-          transition: 'all 0.3s ease',
-          display: 'flex',
-          flexDirection: 'column',
+          backgroundColor: colors.cardBg,
+          position: 'relative',
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+          overflow: 'hidden',
+          cursor: 'pointer',
           '&:hover': {
-            backgroundColor: colors.cardHover,
-            transform: 'translateY(-5px)',
-            boxShadow: colors.shadow
+            transform: 'translateY(-4px)',
+            boxShadow: isDarkTheme 
+              ? '0 8px 25px rgba(0,0,0,0.3)'
+              : '0 8px 25px rgba(0,0,0,0.1)',
+            borderColor: colors.primary
           },
-          opacity: 0,
-          animation: isVisible ?
-            index % 2 === 0 ? 'fadeInLeft 0.6s forwards' : 'fadeInRight 0.6s forwards'
-            : 'none',
-          animationDelay: `${index * 0.2}s`,
-          '&:focus-within': {
-            outline: `2px solid ${colors.primary}`,
-            outlineOffset: '2px'
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '3px',
+            background: colors.primary,
+            opacity: 0,
+            transition: 'opacity 0.3s ease'
+          },
+          '&:hover::before': {
+            opacity: 1
           }
         }}
-        tabIndex={0}
       >
-        <Rating
-          value={testimonial.rating}
-          readOnly
-          icon={<Star sx={{ color: '#FFD700', fontSize: { xs: '1rem', md: '1.2rem' } }} />}
-          emptyIcon={<Star sx={{ 
-            color: colors.border, 
-            fontSize: { xs: '1rem', md: '1.2rem' } 
-          }} />}
-          precision={0.5}
-          sx={{ mb: 2 }}
-        />
-
-        <Typography
-          variant="body1"
-          sx={{
-            color: colors.text,
-            mb: 3,
-            lineHeight: 1.7,
-            fontStyle: 'italic',
-            fontSize: { xs: '0.9rem', md: '1rem' },
-            flex: 1,
-            position: 'relative',
-            '&::before': {
-              content: '"""',
-              fontSize: '3rem',
-              color: colors.border,
-              position: 'absolute',
-              top: -20,
-              left: -10,
-              opacity: 0.3,
-              zIndex: 0
-            }
-          }}
-        >
-          "{testimonial.testimonial}"
-        </Typography>
-
-        <Box sx={{ 
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          mt: 'auto'
-        }}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Avatar
+        <CardContent sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+          {/* Header con rating y fecha */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+            <Rating
+              value={testimonial.rating}
+              readOnly
+              size="small"
               sx={{
-                bgcolor: `${colors.primary}30`,
-                color: colors.primary,
-                width: { xs: 36, md: 42 },
-                height: { xs: 36, md: 42 },
-                mr: 2,
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600
+                '& .MuiRating-iconFilled': {
+                  color: '#FFD700'
+                },
+                '& .MuiRating-iconEmpty': {
+                  color: colors.border
+                }
               }}
-            >
-              {getInitials(testimonial.name)}
-            </Avatar>
-            <Box>
-              <Typography
-                variant="subtitle2"
-                sx={{
-                  fontWeight: 600,
-                  color: colors.primary,
-                  fontSize: { xs: '0.85rem', md: '0.95rem' }
-                }}
-              >
-                {testimonial.name}
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: colors.subtext,
-                  fontSize: { xs: '0.7rem', md: '0.75rem' }
-                }}
-              >
-                {formatDate(testimonial.date)}
-              </Typography>
-            </Box>
+            />
+            <FormatQuote 
+              sx={{
+                fontSize: 24,
+                color: colors.border,
+                opacity: 0.5
+              }}
+            />
           </Box>
-        </Box>
-      </Paper>
+
+          {/* Contenido del testimonio */}
+          <Typography
+            variant="body2"
+            sx={{
+              color: colors.text,
+              lineHeight: 1.7,
+              fontSize: '0.95rem',
+              flex: 1,
+              mb: 3,
+              fontStyle: 'italic',
+              position: 'relative'
+            }}
+          >
+            {testimonial.testimonial}
+          </Typography>
+
+          {/* Footer con información del usuario */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            mt: 'auto',
+            pt: 2,
+            borderTop: `1px solid ${colors.border}`
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+              <Avatar
+                sx={{
+                  bgcolor: isDarkTheme ? avatarColor.bg + '20' : avatarColor.bg,
+                  color: avatarColor.color,
+                  width: 48,
+                  height: 48,
+                  mr: 2,
+                  fontSize: '1rem',
+                  fontWeight: 700,
+                  border: `2px solid ${avatarColor.color}20`
+                }}
+              >
+                {getInitials(testimonial.name)}
+              </Avatar>
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 700,
+                    color: colors.primary,
+                    fontSize: '0.9rem',
+                    mb: 0.5
+                  }}
+                >
+                  {testimonial.name}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                  <CalendarToday sx={{ fontSize: 12, color: colors.subtext }} />
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      color: colors.subtext,
+                      fontSize: '0.75rem'
+                    }}
+                  >
+                    {formatDate(testimonial.date)}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+            
+            <Chip
+              icon={<Verified sx={{ fontSize: 14 }} />}
+              label="Verificado"
+              size="small"
+              sx={{
+                bgcolor: isDarkTheme ? 'rgba(16,185,129,0.2)' : 'rgba(16,185,129,0.1)',
+                color: isDarkTheme ? '#10B981' : '#059669',
+                border: `1px solid ${isDarkTheme ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.2)'}`,
+                fontSize: '0.7rem',
+                height: 22,
+                '& .MuiChip-icon': {
+                  fontSize: 12
+                }
+              }}
+            />
+          </Box>
+        </CardContent>
+      </Card>
     </Fade>
   );
 };
 
-// Componente para móvil simplificado
+// Componente slider para móvil mejorado
 const MobileTestimonialSlider = ({ testimonials, testimonialVisible, colors, isDarkTheme }) => {
-  const [index, setIndex] = React.useState(0);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
 
   const nextTestimonial = () => {
-    setIndex((current) => (current === testimonials.length - 1 ? 0 : current + 1));
+    setDirection(1);
+    setCurrentIndex((prev) => (prev === testimonials.length - 1 ? 0 : prev + 1));
   };
 
   const prevTestimonial = () => {
-    setIndex((current) => (current === 0 ? testimonials.length - 1 : current - 1));
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev === 0 ? testimonials.length - 1 : prev - 1));
   };
 
   if (testimonials.length === 0) return null;
 
   return (
-    <Box sx={{ width: '100%', mb: 3, position: 'relative' }}>
-      <Box sx={{ padding: '8px', minHeight: '280px' }}>
+    <Box sx={{ position: 'relative', width: '100%' }}>
+      {/* Tarjeta actual */}
+      <Box sx={{ mb: 3, minHeight: 320 }}>
         <TestimonialCard
-          testimonial={testimonials[index]}
-          index={index}
+          testimonial={testimonials[currentIndex]}
+          index={currentIndex}
           isVisible={testimonialVisible}
           colors={colors}
+          isDarkTheme={isDarkTheme}
         />
       </Box>
 
+      {/* Controles de navegación */}
       {testimonials.length > 1 && (
         <>
-          <Box sx={{ 
-            position: 'absolute', 
-            left: 0, 
-            right: 0, 
-            top: '50%', 
-            transform: 'translateY(-50%)',
+          <Box sx={{
             display: 'flex',
             justifyContent: 'space-between',
-            px: 1,
-            zIndex: 10 
+            position: 'absolute',
+            top: '50%',
+            left: -16,
+            right: -16,
+            transform: 'translateY(-50%)',
+            zIndex: 10,
+            pointerEvents: 'none'
           }}>
             <IconButton
               onClick={prevTestimonial}
-              sx={{ 
-                backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-                boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+              sx={{
+                backgroundColor: colors.cardBg,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 color: colors.primary,
-                width: 36, 
-                height: 36
+                width: 44,
+                height: 44,
+                border: `1px solid ${colors.border}`,
+                pointerEvents: 'auto',
+                '&:hover': {
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  transform: 'scale(1.1)'
+                }
               }}
             >
-              <ChevronLeft fontSize="small" />
+              <ChevronLeft />
             </IconButton>
+            
             <IconButton
               onClick={nextTestimonial}
-              sx={{ 
-                backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-                boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
+              sx={{
+                backgroundColor: colors.cardBg,
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                 color: colors.primary,
-                width: 36, 
-                height: 36
+                width: 44,
+                height: 44,
+                border: `1px solid ${colors.border}`,
+                pointerEvents: 'auto',
+                '&:hover': {
+                  backgroundColor: colors.primary,
+                  color: 'white',
+                  transform: 'scale(1.1)'
+                }
               }}
             >
-              <ChevronRight fontSize="small" />
+              <ChevronRight />
             </IconButton>
           </Box>
 
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'center',
-              mt: 2,
-              gap: 1
-            }}
-          >
+          {/* Indicadores */}
+          <Box sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 1.5,
+            mt: 3
+          }}>
             {testimonials.map((_, idx) => (
               <Box
                 key={`indicator-${idx}`}
-                onClick={() => setIndex(idx)}
+                onClick={() => setCurrentIndex(idx)}
                 sx={{
-                  width: 8,
+                  width: idx === currentIndex ? 24 : 8,
                   height: 8,
-                  borderRadius: '50%',
-                  bgcolor: idx === index
-                    ? colors.primary
-                    : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                  borderRadius: 4,
+                  bgcolor: idx === currentIndex ? colors.primary : colors.border,
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'scale(1.3)',
-                    bgcolor: colors.primary
+                    bgcolor: colors.primary,
+                    transform: 'scale(1.2)'
                   }
                 }}
               />
@@ -285,20 +354,20 @@ const MobileTestimonialSlider = ({ testimonials, testimonialVisible, colors, isD
   );
 };
 
-// Componente principal HomeTestimonials
+// Componente principal HomeTestimonials renovado
 const HomeTestimonials = ({ colors }) => {
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [testimonialRef, testimonialVisible] = useIntersectionObserver();
   const [ctaRef, ctaVisible] = useIntersectionObserver();
   
-  // Estados para manejar datos del backend
+  // Estados para datos del backend
   const [testimonials, setTestimonials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Función para cargar testimonios desde el backend
+  // Cargar testimonios desde el backend
   const fetchTestimonials = async () => {
     try {
       setLoading(true);
@@ -310,7 +379,7 @@ const HomeTestimonials = ({ colors }) => {
       
       const data = await response.json();
       
-      // Filtrar solo reseñas habilitadas y mapear a formato requerido
+      // Procesar y formatear datos - SELECCIÓN AL AZAR
       const activeTestimonials = data
         .filter(item => item.estado === 'Habilitado')
         .map(item => ({
@@ -320,7 +389,8 @@ const HomeTestimonials = ({ colors }) => {
           testimonial: item.comentario,
           date: item.fecha_creacion
         }))
-        .slice(0, 6); // Mostrar máximo 6 testimonios
+        .sort(() => Math.random() - 0.5) // Mezclar al azar
+        .slice(0, isMobile ? 3 : 6); // Máximo 3 en móvil, 6 en desktop
       
       setTestimonials(activeTestimonials);
       setError(null);
@@ -332,49 +402,54 @@ const HomeTestimonials = ({ colors }) => {
     }
   };
 
-  // Cargar testimonios al montar el componente
+  // Cargar datos al montar
   useEffect(() => {
     fetchTestimonials();
-  }, []);
+  }, [isMobile]);
 
   return (
-    <Container 
-      maxWidth="lg"
-      sx={{ px: { xs: 2, sm: 3, md: 4 } }}
-    >
-      {/* Sección de Testimonios */}
-      <Box
-        ref={testimonialRef}
-        sx={{ mb: { xs: 4, sm: 5, md: 8 } }}
-      >
-        <Typography
-          variant="h4"
-          align="center"
-          sx={{
-            fontWeight: 700,
-            mb: { xs: 1.5, md: 2 },
-            color: colors.text,
-            fontSize: { xs: '1.6rem', sm: '1.8rem', md: '2rem' }
-          }}
-        >
-          Lo que dicen nuestros pacientes
-        </Typography>
+    <Container maxWidth="lg" sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+      {/* Sección principal */}
+      <Box ref={testimonialRef} sx={{ mb: { xs: 6, md: 10 } }}>
+        {/* Header mejorado con colores conservadores */}
+        <Box sx={{ textAlign: 'center', mb: { xs: 4, md: 6 } }}>
+          <Chip
+            label="Testimonios"
+            sx={{
+              bgcolor: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
+              color: colors.primary,
+              fontWeight: 600,
+              mb: 2,
+              border: `1px solid ${isDarkTheme ? 'rgba(75,159,255,0.3)' : 'rgba(25,118,210,0.2)'}`
+            }}
+          />
+          
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 700,
+              mb: 2,
+              color: colors.text,
+              fontSize: { xs: '2rem', md: '2.5rem' }
+            }}
+          >
+            Lo que dicen nuestros pacientes
+          </Typography>
 
-        <Typography
-          variant="subtitle1"
-          align="center"
-          sx={{
-            color: colors.subtext,
-            maxWidth: '800px',
-            mx: 'auto',
-            mb: { xs: 3, sm: 4, md: 5 },
-            fontSize: { xs: '0.95rem', sm: '1rem', md: '1.1rem' },
-            lineHeight: 1.7,
-            px: { xs: 1, sm: 2, md: 0 }
-          }}
-        >
-          La satisfacción de nuestros pacientes es nuestra mejor carta de presentación
-        </Typography>
+          <Typography
+            variant="h6"
+            sx={{
+              color: colors.subtext,
+              maxWidth: 600,
+              mx: 'auto',
+              fontSize: { xs: '1rem', md: '1.1rem' },
+              lineHeight: 1.6,
+              fontWeight: 400
+            }}
+          >
+            Experiencias reales de pacientes satisfechos que confían en nuestra atención dental de calidad
+          </Typography>
+        </Box>
 
         {/* Contenido de testimonios */}
         {loading ? (
@@ -382,7 +457,7 @@ const HomeTestimonials = ({ colors }) => {
           isMobile ? (
             <TestimonialSkeleton colors={colors} />
           ) : (
-            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+            <Grid container spacing={4}>
               {[1, 2, 3].map((index) => (
                 <Grid item xs={12} md={4} key={index}>
                   <TestimonialSkeleton colors={colors} />
@@ -392,30 +467,37 @@ const HomeTestimonials = ({ colors }) => {
           )
         ) : error ? (
           // Estado de error
-          <Alert 
-            severity="info" 
-            sx={{ 
-              maxWidth: '600px', 
-              mx: 'auto',
-              backgroundColor: colors.cardBg,
-              color: colors.text
-            }}
-          >
-            {error}
-          </Alert>
+          <Paper sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 3
+          }}>
+            <Typography variant="h6" color={colors.text} gutterBottom>
+              {error}
+            </Typography>
+            <Typography variant="body2" color={colors.subtext}>
+              Intenta recargar la página o vuelve más tarde
+            </Typography>
+          </Paper>
         ) : testimonials.length === 0 ? (
           // Sin testimonios
-          <Alert 
-            severity="info" 
-            sx={{ 
-              maxWidth: '600px', 
-              mx: 'auto',
-              backgroundColor: colors.cardBg,
-              color: colors.text
-            }}
-          >
-            Aún no hay testimonios disponibles.
-          </Alert>
+          <Paper sx={{
+            p: 4,
+            textAlign: 'center',
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.border}`,
+            borderRadius: 3
+          }}>
+            <Star sx={{ fontSize: 48, color: colors.primary, mb: 2 }} />
+            <Typography variant="h6" color={colors.text} gutterBottom>
+              Próximamente
+            </Typography>
+            <Typography variant="body2" color={colors.subtext}>
+              Estamos recopilando testimonios de nuestros pacientes
+            </Typography>
+          </Paper>
         ) : (
           // Mostrar testimonios
           isMobile ? (
@@ -426,7 +508,7 @@ const HomeTestimonials = ({ colors }) => {
               isDarkTheme={isDarkTheme}
             />
           ) : (
-            <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+            <Grid container spacing={4}>
               {testimonials.map((testimonial, index) => (
                 <Grid item xs={12} md={4} key={testimonial.id}>
                   <TestimonialCard
@@ -434,6 +516,7 @@ const HomeTestimonials = ({ colors }) => {
                     index={index}
                     isVisible={testimonialVisible}
                     colors={colors}
+                    isDarkTheme={isDarkTheme}
                   />
                 </Grid>
               ))}
@@ -442,57 +525,59 @@ const HomeTestimonials = ({ colors }) => {
         )}
       </Box>
 
-      {/* CTA Final */}
+      {/* CTA Final renovado con colores conservadores */}
       <Box
         ref={ctaRef}
         sx={{
-          p: { xs: 3, sm: 4, md: 5 },
-          borderRadius: { xs: '16px', md: '20px' },
-          background: colors.accentGradient,
+          p: { xs: 4, md: 6 },
+          borderRadius: 3,
+          backgroundColor: colors.primary,
           color: 'white',
           textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(37, 99, 235, 0.2)',
-          opacity: 0,
-          transform: 'translateY(30px)',
-          transition: 'opacity 0.8s ease, transform 0.8s ease',
-          ...(ctaVisible && {
-            opacity: 1,
-            transform: 'translateY(0)'
-          })
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: isDarkTheme 
+            ? '0 8px 32px rgba(0,0,0,0.3)' 
+            : '0 8px 32px rgba(25,118,210,0.2)',
+          transform: ctaVisible ? 'translateY(0)' : 'translateY(30px)',
+          opacity: ctaVisible ? 1 : 0,
+          transition: 'all 0.8s ease'
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 800,
-            mb: { xs: 2, md: 3 },
-            fontSize: { xs: '1.5rem', sm: '1.7rem', md: '2.2rem' }
-          }}
-        >
-          ¿Necesitas atención dental?
-        </Typography>
+        <Stack spacing={3} alignItems="center">
+          <Box>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                mb: 2,
+                fontSize: { xs: '1.8rem', md: '2.2rem' }
+              }}
+            >
+              ¿Necesitas atención dental?
+            </Typography>
 
-        <Typography
-          variant="body1"
-          sx={{
-            mb: { xs: 3, md: 4 },
-            maxWidth: '800px',
-            mx: 'auto',
-            opacity: 0.9,
-            fontSize: { xs: '0.95rem', sm: '1rem', md: '1.1rem' },
-            lineHeight: 1.7,
-            px: { xs: 1, sm: 2, md: 0 }
-          }}
-        >
-          Estamos comprometidos con la salud bucal de nuestra comunidad. Ofrecemos tratamientos dentales de calidad con un trato cercano y precios accesibles. ¡Tu sonrisa es nuestra prioridad!
-        </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                opacity: 0.95,
+                fontSize: { xs: '1rem', md: '1.1rem' },
+                lineHeight: 1.6,
+                maxWidth: 600,
+                mx: 'auto'
+              }}
+            >
+              Agenda tu cita y descubre la atención dental de calidad que mereces.
+            </Typography>
+          </Box>
 
-        <ContactButtons
-          colors={colors}
-          isDarkTheme={isDarkTheme}
-          isCTA={true}
-          showLabels={true}
-        />
+          <ContactButtons
+            colors={colors}
+            isDarkTheme={isDarkTheme}
+            isCTA={true}
+            showLabels={true}
+          />
+        </Stack>
       </Box>
     </Container>
   );

@@ -17,103 +17,151 @@ import {
   Alert,
   CircularProgress,
   Grow,
-  Tooltip
+  Tooltip,
+  Stack,
+  CardMedia
 } from '@mui/material';
-import { ChevronLeft, ChevronRight, ArrowForward, Sync } from '@mui/icons-material';
+import { ChevronLeft, ChevronRight, ArrowForward, Sync, Schedule, AttachMoney } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import { SectionDivider } from './Home';
-// Implementación sin librerías externas
 
-// Componente para error mejorado
+// Componente para error rediseñado
 const ErrorMessage = ({ message, onRetry, isDarkTheme }) => (
-  <Alert
-    severity="error"
-    variant="outlined"
+  <Paper
+    elevation={0}
     sx={{
       my: 4,
-      p: { xs: 2, md: 3 },
-      borderRadius: '12px',
-      backgroundColor: isDarkTheme ? 'rgba(239, 68, 68, 0.1)' : 'rgba(254, 226, 226, 0.8)'
+      p: 4,
+      borderRadius: '24px',
+      background: isDarkTheme 
+        ? 'linear-gradient(145deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.05))'
+        : 'linear-gradient(145deg, rgba(254, 226, 226, 0.8), rgba(255, 255, 255, 0.9))',
+      border: `2px solid rgba(239, 68, 68, 0.2)`,
+      backdropFilter: 'blur(20px)',
+      position: 'relative',
+      overflow: 'hidden'
     }}
-    action={
-      <Button
-        color="error"
-        size="small"
-        onClick={onRetry}
-        variant="outlined"
-        startIcon={<Sync />}
-        sx={{ 
-          borderRadius: '8px',
-          textTransform: 'none',
-          fontWeight: 500,
-          whiteSpace: 'nowrap' 
-        }}
-      >
-        Reintentar
-      </Button>
-    }
   >
-    <Typography variant="h6" component="div" sx={{ 
-      mb: 1, 
-      fontWeight: 600,
-      fontSize: { xs: '1rem', md: '1.25rem' } 
-    }}>
-      No pudimos cargar los servicios
-    </Typography>
-    <Typography variant="body2" sx={{ fontSize: { xs: '0.85rem', md: '0.9rem' } }}>
-      {message || 'Ocurrió un error. Por favor intenta nuevamente.'}
-    </Typography>
-  </Alert>
-);
-
-// Componente para skeleton de servicios durante carga optimizado
-const ServicesSkeleton = ({ isDarkTheme, count = 3 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  return (
-    <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-      {Array.from({ length: count }).map((_, index) => (
-        <Grid item xs={12} sm={6} md={4} key={index}>
-          <Card
-            sx={{
-              borderRadius: '16px',
-              height: { xs: '220px', sm: '250px', md: '280px' },
-              backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.6)' : 'rgba(248, 250, 252, 0.8)',
-              overflow: 'hidden'
+    <Box sx={{ position: 'relative', zIndex: 2 }}>
+      <Stack direction="row" spacing={3} alignItems="flex-start">
+        <Box
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: '16px',
+            background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            boxShadow: '0 8px 32px rgba(239, 68, 68, 0.3)'
+          }}
+        >
+          <Sync sx={{ fontSize: 28 }} />
+        </Box>
+        
+        <Box flex={1}>
+          <Typography 
+            variant="h5" 
+            sx={{ 
+              fontWeight: 700, 
+              mb: 1.5,
+              color: isDarkTheme ? '#ffffff' : '#1a1a1a'
             }}
           >
-            <Box
-              sx={{
-                height: '5px',
-                width: '100%',
-                background: 'linear-gradient(90deg, #e0e0e0, #f5f5f5, #e0e0e0)',
-                backgroundSize: '200% 100%',
-                animation: 'pulse 1.5s ease-in-out infinite'
-              }}
+            No pudimos cargar los servicios
+          </Typography>
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: isDarkTheme ? 'rgba(255,255,255,0.8)' : 'rgba(0,0,0,0.7)',
+              lineHeight: 1.6,
+              mb: 3
+            }}
+          >
+            {message || 'Algo salió mal. Por favor intenta nuevamente.'}
+          </Typography>
+          
+          <Button
+            onClick={onRetry}
+            variant="contained"
+            size="large"
+            startIcon={<Sync />}
+            sx={{
+              borderRadius: '16px',
+              textTransform: 'none',
+              fontWeight: 600,
+              px: 4,
+              py: 1.5,
+              background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+              boxShadow: '0 8px 32px rgba(239, 68, 68, 0.3)',
+              '&:hover': {
+                transform: 'translateY(-2px)',
+                boxShadow: '0 12px 40px rgba(239, 68, 68, 0.4)'
+              }
+            }}
+          >
+            Reintentar
+          </Button>
+        </Box>
+      </Stack>
+    </Box>
+  </Paper>
+);
+
+// Skeleton rediseñado
+const ServicesSkeleton = ({ isDarkTheme, count = 3 }) => {
+  return (
+    <Grid container spacing={4}>
+      {Array.from({ length: count }).map((_, index) => (
+        <Grid item xs={12} sm={6} md={4} key={index}>
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: '24px',
+              overflow: 'hidden',
+              height: 400,
+              background: isDarkTheme 
+                ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6))'
+                : 'linear-gradient(145deg, rgba(248, 250, 252, 0.9), rgba(255, 255, 255, 0.8))',
+              border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+              backdropFilter: 'blur(20px)'
+            }}
+          >
+            {/* Imagen skeleton */}
+            <Skeleton 
+              variant="rectangular" 
+              width="100%" 
+              height={200}
+              animation="wave"
             />
-            <CardContent sx={{ p: { xs: 2, md: 4 } }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-                <Skeleton variant="rounded" width={80} height={24} />
-                <Skeleton variant="circular" width={36} height={36} />
-              </Box>
-
-              <Skeleton variant="rounded" width="70%" height={24} sx={{ mb: 2.5 }} />
-              <Skeleton variant="rounded" width="100%" height={isMobile ? 40 : 60} sx={{ mb: 4 }} />
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <Skeleton variant="rounded" width={100} height={36} />
-              </Box>
-            </CardContent>
-          </Card>
+            
+            {/* Content skeleton */}
+            <Box sx={{ p: 3 }}>
+              <Stack spacing={1} sx={{ mb: 2 }}>
+                <Skeleton variant="rounded" width={80} height={24} sx={{ borderRadius: '12px' }} />
+                <Skeleton variant="rounded" width="80%" height={28} sx={{ borderRadius: '8px' }} />
+              </Stack>
+              
+              <Skeleton variant="rounded" width="100%" height={20} sx={{ mb: 1, borderRadius: '6px' }} />
+              <Skeleton variant="rounded" width="70%" height={20} sx={{ mb: 3, borderRadius: '6px' }} />
+              
+              <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                <Skeleton variant="rounded" width={80} height={24} sx={{ borderRadius: '12px' }} />
+                <Skeleton variant="rounded" width={90} height={24} sx={{ borderRadius: '12px' }} />
+              </Stack>
+              
+              <Skeleton variant="rounded" width="100%" height={48} sx={{ borderRadius: '16px' }} />
+            </Box>
+          </Paper>
         </Grid>
       ))}
     </Grid>
   );
 };
 
-// Componente para tarjeta de servicio optimizada
+// Tarjeta de servicio rediseñada usando datos reales
 const ServiceCard = ({
   service,
   offset,
@@ -125,6 +173,8 @@ const ServiceCard = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   return (
     <Grow
@@ -132,152 +182,208 @@ const ServiceCard = ({
       timeout={800 + (offset * 150)}
       style={{ transformOrigin: '50% 100%' }}
     >
-      <Card
+      <Paper
         onClick={() => navigate(`/servicios/detalle/${service.id}`)}
+        elevation={0}
         sx={{
-          borderRadius: { xs: '12px', md: '16px' },
+          borderRadius: '24px',
           overflow: 'hidden',
-          backgroundColor: colors.cardBg,
-          transition: 'all 0.4s ease',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.03)',
+          background: isDarkTheme 
+            ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(51, 65, 85, 0.6))'
+            : 'linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.8))',
           border: `1px solid ${colors.border}`,
           cursor: 'pointer',
-          height: '100%',
-          minHeight: { xs: '220px', sm: '250px', md: '280px' },
+          height: 400,
+          position: 'relative',
           transform: offset === 0 ? 'scale(1.02)' : 'scale(1)',
-          opacity: offset === 0 ? 1 : 0.88,
+          opacity: offset === 0 ? 1 : 0.85,
+          backdropFilter: 'blur(20px)',
+          transition: 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
           '&:hover': {
-            transform: 'translateY(-8px) scale(1.02)',
-            boxShadow: colors.shadow,
+            transform: 'translateY(-16px) scale(1.03)',
             opacity: 1,
-            borderColor: colors.primary
+            boxShadow: isDarkTheme 
+              ? '0 32px 80px rgba(0,0,0,0.4)' 
+              : `0 32px 80px ${colors.primary}25`,
+            '& .service-button': {
+              transform: 'translateX(8px)',
+            }
           },
           '&:active': {
-            transform: 'translateY(-3px) scale(0.98)',
+            transform: 'translateY(-8px) scale(0.98)',
             transition: 'all 0.2s ease',
           }
         }}
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
-        {/* Barra superior decorativa */}
-        <Box
-          sx={{
-            height: { xs: 4, md: 5 },
-            width: '100%',
-            background: colors.accentGradient
-          }}
-        />
-
-        <CardContent sx={{ p: { xs: 2.5, md: 4 } }}>
-          <Box
-            sx={{
-              mb: 2,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}
-          >
-            <Chip
-              label="Destacado"
-              size="small"
+        {/* Imagen del servicio */}
+        <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
+          {!imageError ? (
+            <CardMedia
+              component="img"
+              height="200"
+              image={service.image_url}
+              alt={service.title}
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
               sx={{
-                backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
-                color: colors.primary,
-                fontWeight: 600,
-                fontSize: { xs: '0.65rem', md: '0.7rem' },
-                py: 0.5,
-                borderRadius: '6px'
+                objectFit: 'cover',
+                transition: 'transform 0.5s ease',
+                transform: imageLoaded ? 'scale(1)' : 'scale(1.1)',
+                opacity: imageLoaded ? 1 : 0
               }}
             />
-
+          ) : (
+            // Fallback si la imagen falla
             <Box
               sx={{
-                width: { xs: 30, md: 36 },
-                height: { xs: 30, md: 36 },
-                borderRadius: '50%',
+                height: '100%',
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.primary}dd)`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.15)' : 'rgba(37, 99, 235, 0.08)',
-                color: colors.primary,
-                fontSize: { xs: '0.9rem', md: '1rem' },
-                fontWeight: 600
+                color: 'white',
+                fontSize: '3rem',
+                fontWeight: 700
               }}
             >
-              {serviceNumber}
+              {service.title.charAt(0)}
             </Box>
-          </Box>
+          )}
 
+          {/* Overlay con gradiente */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.1) 100%)'
+            }}
+          />
+
+          {/* Badge de categoría */}
+          <Chip
+            label={service.category}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 16,
+              left: 16,
+              bgcolor: 'rgba(255,255,255,0.9)',
+              color: colors.primary,
+              fontWeight: 600,
+              fontSize: '0.75rem',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)'
+            }}
+          />
+          
+          {/* Número del servicio */}
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 16,
+              right: 16,
+              width: 36,
+              height: 36,
+              borderRadius: '12px',
+              bgcolor: 'rgba(255,255,255,0.9)',
+              color: colors.primary,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.2)'
+            }}
+          >
+            {serviceNumber}
+          </Box>
+        </Box>
+
+        {/* Contenido principal */}
+        <Box sx={{ p: 3, height: 200, display: 'flex', flexDirection: 'column' }}>
           <Typography
             variant="h5"
             sx={{
               fontWeight: 700,
               color: colors.text,
-              mb: { xs: 1.5, md: 2.5 },
-              fontSize: { xs: '1.1rem', md: '1.3rem' },
-              lineHeight: 1.3
+              mb: 2,
+              fontSize: '1.25rem',
+              lineHeight: 1.3,
+              letterSpacing: '-0.025em'
             }}
           >
             {service.title}
           </Typography>
 
           <Typography
-            variant="body1"
+            variant="body2"
             sx={{
               color: colors.subtext,
-              mb: { xs: 3, md: 4 },
-              lineHeight: 1.7,
-              fontSize: { xs: '0.85rem', md: '0.95rem' },
-              height: { xs: '2.8em', md: '3.4em' },
+              mb: 3,
+              lineHeight: 1.6,
               overflow: 'hidden',
               display: '-webkit-box',
               WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical'
+              WebkitBoxOrient: 'vertical',
+              flex: 1
             }}
           >
-            {service.description.split('.')[0] + '.'}
+            {service.description}
           </Typography>
 
-          <Box
+          {/* Información real del servicio */}
+          <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Schedule sx={{ fontSize: 16, color: colors.primary }} />
+              <Typography variant="caption" sx={{ color: colors.subtext, fontWeight: 500 }}>
+                {service.duration}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <AttachMoney sx={{ fontSize: 16, color: colors.primary }} />
+              <Typography variant="caption" sx={{ color: colors.subtext, fontWeight: 500 }}>
+                ${service.price}
+              </Typography>
+            </Box>
+          </Stack>
+
+          {/* Botón de acción */}
+          <Button
+            className="service-button"
+            fullWidth
+            variant="contained"
+            endIcon={<ArrowForward />}
             sx={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              mt: 'auto'
+              borderRadius: '16px',
+              textTransform: 'none',
+              fontWeight: 600,
+              py: 1.5,
+              fontSize: '0.95rem',
+              background: colors.accentGradient,
+              boxShadow: `0 8px 24px ${colors.primary}30`,
+              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              '&:hover': {
+                background: colors.accentGradient,
+                boxShadow: `0 12px 32px ${colors.primary}40`,
+                transform: 'translateY(-2px)'
+              }
             }}
           >
-            <Button
-              endIcon={<ArrowForward />}
-              sx={{
-                color: 'white',
-                textTransform: 'none',
-                fontWeight: 600,
-                background: colors.accentGradient,
-                px: { xs: 2, md: 2.5 },
-                py: 1,
-                borderRadius: '8px',
-                fontSize: { xs: '0.85rem', md: '0.9rem' },
-                '&:hover': {
-                  background: colors.accentGradient,
-                  transform: 'translateX(4px)',
-                  boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)'
-                },
-                '&:active': {
-                  transform: 'translateX(0px)',
-                },
-                transition: 'all 0.3s ease'
-              }}
-            >
-              Ver detalles
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
+            Ver detalles
+          </Button>
+        </Box>
+      </Paper>
     </Grow>
   );
 };
 
-// Visualización de servicios para móvil (versión simplificada sin swipeable-views)
+// Slider móvil rediseñado
 const MobileServiceSlider = ({
   services,
   currentServiceIndex,
@@ -287,116 +393,113 @@ const MobileServiceSlider = ({
   setIsPaused,
   isDarkTheme
 }) => {
-  // Funciones para navegar entre servicios
-  const nextSlide = () => {
-    setCurrentServiceIndex((prev) => 
-      prev === services.length - 1 ? 0 : prev + 1
-    );
-  };
-
-  const prevSlide = () => {
-    setCurrentServiceIndex((prev) => 
-      prev === 0 ? services.length - 1 : prev - 1
-    );
-  };
+  const nextSlide = () => setCurrentServiceIndex((prev) => 
+    prev === services.length - 1 ? 0 : prev + 1
+  );
+  
+  const prevSlide = () => setCurrentServiceIndex((prev) => 
+    prev === 0 ? services.length - 1 : prev - 1
+  );
 
   return (
-    <Box sx={{ width: '100%', position: 'relative', mb: 4 }}>
+    <Box sx={{ position: 'relative', mb: 5 }}>
       {/* Contenedor principal */}
-      <Box sx={{ 
-        position: 'relative',
-        width: '100%', 
-        display: 'flex',
-        justifyContent: 'center',
-        px: 2
-      }}>
-        {/* Servicio actual */}
-        <Box sx={{ width: '100%', maxWidth: '320px' }}>
-          <ServiceCard
-            service={services[currentServiceIndex]}
-            offset={0}
-            serviceNumber={currentServiceIndex + 1}
-            navigate={navigate}
-            colors={colors}
-            setIsPaused={setIsPaused}
-            isDarkTheme={isDarkTheme}
-          />
-        </Box>
+      <Box sx={{ px: 3, position: 'relative' }}>
+        <ServiceCard
+          service={services[currentServiceIndex]}
+          offset={0}
+          serviceNumber={currentServiceIndex + 1}
+          navigate={navigate}
+          colors={colors}
+          setIsPaused={setIsPaused}
+          isDarkTheme={isDarkTheme}
+        />
 
-        {/* Botones de navegación */}
-        <Box sx={{ 
-          position: 'absolute', 
-          left: 0, 
-          right: 0, 
-          top: '50%', 
-          transform: 'translateY(-50%)',
-          display: 'flex',
-          justifyContent: 'space-between',
-          px: 1,
-          zIndex: 10
-        }}>
-          <IconButton
-            onClick={prevSlide}
-            sx={{ 
-              backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-              boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
-              color: colors.primary,
-              width: 36, 
-              height: 36
-            }}
-          >
-            <ChevronLeft />
-          </IconButton>
-          <IconButton
-            onClick={nextSlide}
-            sx={{ 
-              backgroundColor: isDarkTheme ? 'rgba(30, 41, 59, 0.7)' : 'rgba(255, 255, 255, 0.8)',
-              boxShadow: '0 3px 8px rgba(0,0,0,0.15)',
-              color: colors.primary,
-              width: 36, 
-              height: 36
-            }}
-          >
-            <ChevronRight />
-          </IconButton>
-        </Box>
+        {/* Botones flotantes rediseñados */}
+        <IconButton
+          onClick={prevSlide}
+          sx={{
+            position: 'absolute',
+            left: -10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 10,
+            width: 56,
+            height: 56,
+            background: isDarkTheme 
+              ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.8))'
+              : 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9))',
+            backdropFilter: 'blur(20px)',
+            border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+            color: colors.primary,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            '&:hover': {
+              transform: 'translateY(-50%) scale(1.1)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)'
+            }
+          }}
+        >
+          <ChevronLeft sx={{ fontSize: 28 }} />
+        </IconButton>
+
+        <IconButton
+          onClick={nextSlide}
+          sx={{
+            position: 'absolute',
+            right: -10,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            zIndex: 10,
+            width: 56,
+            height: 56,
+            background: isDarkTheme 
+              ? 'linear-gradient(145deg, rgba(30, 41, 59, 0.9), rgba(51, 65, 85, 0.8))'
+              : 'linear-gradient(145deg, rgba(255, 255, 255, 0.95), rgba(248, 250, 252, 0.9))',
+            backdropFilter: 'blur(20px)',
+            border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+            color: colors.primary,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+            transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            '&:hover': {
+              transform: 'translateY(-50%) scale(1.1)',
+              boxShadow: '0 12px 40px rgba(0,0,0,0.2)'
+            }
+          }}
+        >
+          <ChevronRight sx={{ fontSize: 28 }} />
+        </IconButton>
       </Box>
 
-      {/* Indicadores */}
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 1,
-          mt: 3
-        }}
-      >
+      {/* Indicadores modernos */}
+      <Stack direction="row" justifyContent="center" spacing={1} mt={4}>
         {services.map((_, idx) => (
           <Box
-            key={`indicator-${idx}`}
+            key={idx}
             onClick={() => setCurrentServiceIndex(idx)}
             sx={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              bgcolor: idx === currentServiceIndex
-                ? colors.primary
-                : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+              width: idx === currentServiceIndex ? 32 : 12,
+              height: 12,
+              borderRadius: '8px',
+              background: idx === currentServiceIndex
+                ? `linear-gradient(135deg, ${colors.primary}, ${colors.primary}dd)`
+                : isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
               cursor: 'pointer',
-              transition: 'all 0.3s ease',
+              transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              border: idx === currentServiceIndex ? `2px solid ${colors.primary}40` : 'none',
               '&:hover': {
-                transform: 'scale(1.3)',
-                bgcolor: colors.primary
+                transform: 'scale(1.2)',
+                background: `linear-gradient(135deg, ${colors.primary}, ${colors.primary}dd)`
               }
             }}
           />
         ))}
-      </Box>
+      </Stack>
     </Box>
   );
 };
 
-// Componente principal HomeServices optimizado
+// Componente principal
 const HomeServices = ({ colors, setIsPaused }) => {
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
@@ -405,14 +508,14 @@ const HomeServices = ({ colors, setIsPaused }) => {
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
   const containerRef = useRef(null);
 
-  // Estados
+  // Estados (mantenidos igual)
   const [currentServiceIndex, setCurrentServiceIndex] = useState(0);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Función para cargar servicios
+  // Funciones (mantenidas igual)
   const fetchServices = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -423,7 +526,6 @@ const HomeServices = ({ colors, setIsPaused }) => {
       if (!response.ok) {
         throw new Error(`Error ${response.status}: ${response.statusText}`);
       }
-
       const data = await response.json();
       setServices(data);
     } catch (error) {
@@ -440,190 +542,191 @@ const HomeServices = ({ colors, setIsPaused }) => {
     }, 500);
   }, [fetchServices]);
 
-  // Efecto para cargar servicios
   useEffect(() => {
     fetchServices();
   }, [fetchServices]);
 
-  // Auto rotación de servicios (solo en desktop)
   useEffect(() => {
     if (isMobile || services.length <= 1) return;
-
     const interval = setInterval(() => {
       setCurrentServiceIndex(prev => (prev + 1) % services.length);
     }, 5000);
-
     return () => clearInterval(interval);
   }, [isMobile, services.length]);
 
-  // Navegación entre servicios
   const prevService = useCallback(() => {
     if (services.length > 1) {
-      setCurrentServiceIndex(prev => {
-        const newIndex = prev === 0 ? services.length - 1 : prev - 1;
-        return newIndex;
-      });
+      setCurrentServiceIndex(prev => prev === 0 ? services.length - 1 : prev - 1);
     }
   }, [services.length]);
 
   const nextService = useCallback(() => {
     if (services.length > 1) {
-      setCurrentServiceIndex(prev => {
-        const newIndex = (prev + 1) % services.length;
-        return newIndex;
-      });
+      setCurrentServiceIndex(prev => (prev + 1) % services.length);
     }
   }, [services.length]);
 
-  // Navegar a la página de servicios
   const handleExploreServices = useCallback(() => {
     navigate('/servicios');
   }, [navigate]);
 
   return (
-    <Container 
-      maxWidth="lg" 
-      ref={containerRef}
-      sx={{ px: { xs: 2, sm: 3, md: 4 } }}
-    >
-      {/* Sección de Servicios Destacados */}
-      <Box sx={{ mb: { xs: 4, sm: 5, md: 8 } }}>
-        <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
-            mb: { xs: 3, md: 4 }
-          }}
-        >
-          <Box sx={{ mb: { xs: 2, md: 0 } }}>
-            <Typography
-              variant="h4"
+    <Container maxWidth="lg" ref={containerRef} sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+      <Box sx={{ mb: { xs: 6, sm: 7, md: 10 } }}>
+        {/* Header rediseñado */}
+        <Box sx={{ mb: 6, textAlign: 'center', position: 'relative' }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 800,
+              background: `linear-gradient(135deg, ${colors.text}, ${colors.text}cc)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              mb: 2,
+              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+              letterSpacing: '-0.02em',
+              position: 'relative'
+            }}
+          >
+            Nuestros Servicios
+            <Box
               sx={{
-                fontWeight: 700,
-                color: colors.text,
-                mb: { xs: 1, md: 1.5 },
-                fontSize: { xs: '1.6rem', sm: '1.8rem', md: '2rem' }
+                position: 'absolute',
+                bottom: -8,
+                left: '50%',
+                transform: 'translateX(-50%)',
+                width: 80,
+                height: 4,
+                background: colors.accentGradient,
+                borderRadius: '2px'
               }}
-            >
-              Nuestros Servicios
-            </Typography>
-            <Typography
-              variant="subtitle1"
-              sx={{
-                color: colors.subtext,
-                maxWidth: '600px',
-                fontSize: { xs: '0.9rem', sm: '0.95rem', md: '1rem' }
-              }}
-            >
-              Ofrecemos una amplia gama de tratamientos odontológicos para toda la familia
-            </Typography>
-          </Box>
+            />
+          </Typography>
+          
+          <Typography
+            variant="h6"
+            sx={{
+              color: colors.subtext,
+              maxWidth: '600px',
+              mx: 'auto',
+              mb: 4,
+              fontWeight: 400,
+              lineHeight: 1.6,
+              fontSize: { xs: '1rem', md: '1.1rem' }
+            }}
+          >
+            Descubre nuestra amplia gama de tratamientos dentales especializados para toda la familia
+          </Typography>
 
-          <Box sx={{ 
-            display: 'flex', 
-            gap: 1.5,
-            mt: { xs: 1, md: 0 }
-          }}>
-            <Tooltip title="Ver todos los servicios">
-              <Button
-                onClick={handleExploreServices}
-                variant="outlined"
-                sx={{
-                  borderColor: colors.primary,
-                  color: colors.primary,
-                  fontWeight: 600,
-                  px: { xs: 2, md: 3 },
-                  py: 1,
-                  borderRadius: '8px',
+          {/* Controles del header */}
+          <Stack 
+            direction={{ xs: 'column', sm: 'row' }} 
+            spacing={2} 
+            justifyContent="center" 
+            alignItems="center"
+          >
+            <Button
+              onClick={handleExploreServices}
+              variant="outlined"
+              size="large"
+              sx={{
+                borderColor: colors.primary,
+                color: colors.primary,
+                fontWeight: 600,
+                px: 4,
+                py: 1.5,
+                borderRadius: '16px',
+                borderWidth: '2px',
+                textTransform: 'none',
+                fontSize: '1rem',
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                '&:hover': {
                   borderWidth: '2px',
-                  textTransform: 'none',
-                  mr: 2,
-                  fontSize: { xs: '0.85rem', md: '0.9rem' }
-                }}
-              >
-                Ver todos
-              </Button>
-            </Tooltip>
+                  transform: 'translateY(-2px)',
+                  boxShadow: `0 12px 32px ${colors.primary}30`
+                }
+              }}
+            >
+              Ver todos los servicios
+            </Button>
 
-            {/* Botones de navegación - solo para tablet y desktop */}
             {!isMobile && (
-              <>
+              <Stack direction="row" spacing={1}>
                 <IconButton
                   onClick={prevService}
                   disabled={loading || services.length <= 1}
-                  size={isMobile ? "small" : "medium"}
-                  aria-label="Servicio anterior"
                   sx={{
-                    backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '16px',
+                    background: isDarkTheme 
+                      ? 'linear-gradient(145deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.1))'
+                      : 'linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.05))',
+                    border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                    backdropFilter: 'blur(10px)',
+                    color: colors.primary,
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     '&:hover': {
-                      backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)'
+                      transform: 'translateY(-2px) scale(1.05)',
                     },
-                    opacity: (loading || services.length <= 1) ? 0.5 : 1,
-                    transition: 'all 0.2s ease',
-                    '&:active': {
-                      transform: 'scale(0.95)'
-                    },
-                    mx: 0.5,
-                    width: { xs: 32, md: 40 },
-                    height: { xs: 32, md: 40 },
-                    border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    '&:disabled': {
+                      opacity: 0.4
+                    }
                   }}
                 >
-                  <ChevronLeft sx={{
-                    color: (loading || services.length <= 1) ? 'rgba(100, 116, 139, 0.5)' : colors.primary,
-                    fontSize: { xs: '1.1rem', md: '1.4rem' }
-                  }} />
+                  <ChevronLeft />
                 </IconButton>
-
+                
                 <IconButton
                   onClick={nextService}
                   disabled={loading || services.length <= 1}
-                  size={isMobile ? "small" : "medium"}
-                  aria-label="Siguiente servicio"
                   sx={{
-                    backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.1)' : 'rgba(37, 99, 235, 0.05)',
+                    width: 48,
+                    height: 48,
+                    borderRadius: '16px',
+                    background: isDarkTheme 
+                      ? 'linear-gradient(145deg, rgba(59, 130, 246, 0.15), rgba(59, 130, 246, 0.1))'
+                      : 'linear-gradient(145deg, rgba(37, 99, 235, 0.08), rgba(37, 99, 235, 0.05))',
+                    border: `2px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`,
+                    backdropFilter: 'blur(10px)',
+                    color: colors.primary,
+                    transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     '&:hover': {
-                      backgroundColor: isDarkTheme ? 'rgba(59, 130, 246, 0.2)' : 'rgba(37, 99, 235, 0.1)'
+                      transform: 'translateY(-2px) scale(1.05)',
                     },
-                    opacity: (loading || services.length <= 1) ? 0.5 : 1,
-                    transition: 'all 0.2s ease',
-                    '&:active': {
-                      transform: 'scale(0.95)'
-                    },
-                    mx: 0.5,
-                    width: { xs: 32, md: 40 },
-                    height: { xs: 32, md: 40 },
-                    border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+                    '&:disabled': {
+                      opacity: 0.4
+                    }
                   }}
                 >
-                  <ChevronRight sx={{
-                    color: (loading || services.length <= 1) ? 'rgba(100, 116, 139, 0.5)' : colors.primary,
-                    fontSize: { xs: '1.1rem', md: '1.4rem' }
-                  }} />
+                  <ChevronRight />
                 </IconButton>
-              </>
+              </Stack>
             )}
-          </Box>
+          </Stack>
         </Box>
 
-        {/* Estado de carga con spinner */}
+        {/* Estados de carga */}
         {isRetrying && (
           <Box sx={{ 
             display: 'flex', 
+            flexDirection: 'column',
             justifyContent: 'center', 
             alignItems: 'center',
-            height: '200px'
+            height: '300px',
+            textAlign: 'center'
           }}>
-            <CircularProgress size={40} color="primary" />
-            <Typography variant="body2" sx={{ ml: 2, color: colors.text }}>
-              Reintentando...
+            <CircularProgress size={48} sx={{ mb: 3 }} />
+            <Typography variant="h6" sx={{ color: colors.text, mb: 1 }}>
+              Reintentando conexión...
+            </Typography>
+            <Typography variant="body2" sx={{ color: colors.subtext }}>
+              Por favor espera un momento
             </Typography>
           </Box>
         )}
 
-        {/* Muestra error si existe */}
         {error && !isRetrying && (
           <ErrorMessage
             message={error}
@@ -632,7 +735,6 @@ const HomeServices = ({ colors, setIsPaused }) => {
           />
         )}
 
-        {/* Muestra skeleton durante la carga */}
         {loading && !isRetrying && (
           <ServicesSkeleton
             isDarkTheme={isDarkTheme}
@@ -640,11 +742,10 @@ const HomeServices = ({ colors, setIsPaused }) => {
           />
         )}
 
-        {/* Mostrar servicios */}
+        {/* Servicios principales */}
         {!loading && !error && services.length > 0 && (
           <>
             {isMobile ? (
-              // Versión móvil con swipeable views
               <MobileServiceSlider
                 services={services}
                 currentServiceIndex={currentServiceIndex}
@@ -655,26 +756,20 @@ const HomeServices = ({ colors, setIsPaused }) => {
                 isDarkTheme={isDarkTheme}
               />
             ) : (
-              // Versión para tablet/desktop
-              <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+              <Grid container spacing={4}>
                 {(() => {
-                  // Determinar cuántos servicios mostrar basado en el tamaño de pantalla
                   const displayCount = isTablet ? 2 : 3;
-
-                  // Crear array para los servicios visibles
                   const visibleServices = [];
 
-                  // Llenar el array con los servicios que deben mostrarse
                   for (let i = 0; i < displayCount && i < services.length; i++) {
                     const index = (currentServiceIndex + i) % services.length;
                     visibleServices.push({
                       service: services[index],
                       index: index,
-                      realIndex: index + 1 // Añadimos el índice real (para mostrar al usuario)
+                      realIndex: index + 1
                     });
                   }
 
-                  // Renderizar los servicios visibles
                   return visibleServices.map((item, offset) => (
                     <Grid item xs={12} sm={6} md={4} key={`service-${item.index}`}>
                       <ServiceCard
@@ -692,37 +787,32 @@ const HomeServices = ({ colors, setIsPaused }) => {
               </Grid>
             )}
 
-            {/* Indicador visual para tablet/desktop */}
+            {/* Indicadores para desktop */}
             {!isMobile && services.length > 3 && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  mt: 4,
-                  gap: 1
-                }}
-              >
+              <Stack direction="row" justifyContent="center" spacing={1.5} mt={6}>
                 {services.map((_, idx) => (
                   <Box
-                    key={`indicator-${idx}`}
+                    key={idx}
                     onClick={() => setCurrentServiceIndex(idx)}
                     sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: currentServiceIndex <= idx && idx < currentServiceIndex + (isTablet ? 2 : 3)
-                        ? colors.primary
-                        : isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
+                      width: currentServiceIndex <= idx && idx < currentServiceIndex + (isTablet ? 2 : 3) ? 32 : 12,
+                      height: 12,
+                      borderRadius: '8px',
+                      background: currentServiceIndex <= idx && idx < currentServiceIndex + (isTablet ? 2 : 3)
+                        ? `linear-gradient(135deg, ${colors.primary}, ${colors.primary}dd)`
+                        : isDarkTheme ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.15)',
                       cursor: 'pointer',
-                      transition: 'all 0.3s ease',
+                      transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                      border: currentServiceIndex <= idx && idx < currentServiceIndex + (isTablet ? 2 : 3) 
+                        ? `2px solid ${colors.primary}40` : 'none',
                       '&:hover': {
                         transform: 'scale(1.3)',
-                        bgcolor: colors.primary
+                        background: `linear-gradient(135deg, ${colors.primary}, ${colors.primary}dd)`
                       }
                     }}
                   />
                 ))}
-              </Box>
+              </Stack>
             )}
           </>
         )}

@@ -51,11 +51,11 @@ import { useThemeContext } from '../../../components/Tools/ThemeContext';
 const ModeracionServicios = () => {
   const { user } = useAuth();
   const { isDarkTheme } = useThemeContext();
-  
+
   // Estado para reseñas
   const [reviews, setReviews] = useState([]);
   const [selectedComment, setSelectedComment] = useState({ usuario: "", comentario: "" });
-  
+
   // Estados para visualización y filtros
   const [viewMode, setViewMode] = useState('table'); // table, grid, detailed
   const [page, setPage] = useState(0);
@@ -102,7 +102,7 @@ const ModeracionServicios = () => {
           throw new Error("Error al obtener reseñas");
         }
         const data = await response.json();
-  
+
         const mappedReviews = data.map((item) => ({
           id: item.reseñaId,
           usuario: `${item.nombre} ${item.aPaterno} ${item.aMaterno}`,
@@ -111,20 +111,20 @@ const ModeracionServicios = () => {
           calificacion: item.calificacion,
           fecha: item.fecha_creacion,
         }));
-  
+
         setReviews(mappedReviews);
-      }       catch (error) {
+      } catch (error) {
         console.error("Error al obtener reseñas:", error);
         showNotification("Error al obtener reseñas del servidor", "error");
       }
     };
-  
+
     fetchReviews();
     const intervalId = setInterval(fetchReviews, 5000);
-    
+
     return () => clearInterval(intervalId);
   }, []);
-  
+
   // Función para mostrar notificaciones
   const showNotification = (message, type = "success") => {
     setNotification({
@@ -138,7 +138,7 @@ const ModeracionServicios = () => {
   const handleSearch = (event) => setSearch(event.target.value);
   const handleStatusFilter = (event) => setStatusFilter(event.target.value);
   const handleStarFilter = (event) => setStarFilter(event.target.value);
-  
+
   // Manejador para cambio de vista
   const handleViewChange = (view) => {
     setViewMode(view);
@@ -146,8 +146,8 @@ const ModeracionServicios = () => {
 
   // Abrir diálogo de comentario completo
   const handleOpenCommentDialog = (review) => {
-    setSelectedComment({ 
-      usuario: review.usuario, 
+    setSelectedComment({
+      usuario: review.usuario,
       comentario: review.comentario,
       calificacion: review.calificacion,
       estado: review.estado,
@@ -182,7 +182,7 @@ const ModeracionServicios = () => {
         if (!response.ok) {
           throw new Error("Error al eliminar la reseña");
         }
-        
+
         setReviews((prevReviews) =>
           prevReviews.filter((review) => review.id !== selectedReview.id)
         );
@@ -211,7 +211,7 @@ const ModeracionServicios = () => {
         if (!response.ok) {
           throw new Error("Error al actualizar estado de la reseña");
         }
-        
+
         setReviews((prevReviews) =>
           prevReviews.map((review) =>
             review.id === selectedReview.id
@@ -220,8 +220,7 @@ const ModeracionServicios = () => {
           )
         );
         showNotification(
-          `Reseña de "${selectedReview.usuario}" ${
-            dialogAction === "habilitar" ? "habilitada" : "deshabilitada"
+          `Reseña de "${selectedReview.usuario}" ${dialogAction === "habilitar" ? "habilitada" : "deshabilitada"
           }.`,
           "success"
         );
@@ -243,8 +242,8 @@ const ModeracionServicios = () => {
         statusFilter === "habilitados"
           ? review.estado === "Habilitado"
           : statusFilter === "deshabilitados"
-          ? review.estado === "Deshabilitado"
-          : true
+            ? review.estado === "Deshabilitado"
+            : true
       )
       .filter((review) =>
         starFilter === "all"
@@ -283,7 +282,7 @@ const ModeracionServicios = () => {
   // Renderizado de vista de tabla
   const renderTableView = () => {
     return (
-      <TableContainer 
+      <TableContainer
         component={Paper}
         sx={{
           boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
@@ -309,7 +308,7 @@ const ModeracionServicios = () => {
               filteredReviews
                 .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
                 .map((review, index) => (
-                  <TableRow 
+                  <TableRow
                     key={review.id}
                     sx={{
                       '&:hover': {
@@ -344,8 +343,8 @@ const ModeracionServicios = () => {
                     <TableCell align="center">
                       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
                         <Tooltip title="Ver reseña">
-                          <IconButton 
-                            onClick={() => handleOpenCommentDialog(review)} 
+                          <IconButton
+                            onClick={() => handleOpenCommentDialog(review)}
                             sx={{
                               backgroundColor: colors.primary,
                               color: 'white',
@@ -361,24 +360,29 @@ const ModeracionServicios = () => {
                           </IconButton>
                         </Tooltip>
                         <Tooltip title={review.estado === "Habilitado" ? "Deshabilitar reseña" : "Habilitar reseña"}>
-                          <IconButton 
+                          <IconButton
                             onClick={() => handleOpenDialog(review, "habilitar/deshabilitar")}
                             sx={{
-                              backgroundColor: review.estado === "Habilitado" ? "#E6F4EA" : "#FEE2E2",
-                              color: review.estado === "Habilitado" ? "#1B873F" : "#DC2626",
+                              backgroundColor: review.estado === "Habilitado" ? "#FEE2E2" : "#E6F4EA",
+                              color: review.estado === "Habilitado" ? "#DC2626" : "#1B873F",
                               padding: '6px',
                               borderRadius: '50%',
                               '&:hover': {
-                                backgroundColor: review.estado === "Habilitado" ? "rgba(27, 135, 63, 0.1)" : "rgba(220, 38, 38, 0.1)",
+                                backgroundColor: review.estado === "Habilitado"
+                                  ? "rgba(220, 38, 38, 0.1)"
+                                  : "rgba(27, 135, 63, 0.1)",
                               },
                             }}
                           >
-                            {review.estado === "Habilitado" ? <CheckCircle fontSize="small" /> : <Cancel fontSize="small" />}
+                            {review.estado === "Habilitado"
+                              ? <Cancel fontSize="small" />
+                              : <CheckCircle fontSize="small" />}
                           </IconButton>
                         </Tooltip>
+
                         <Tooltip title="Eliminar reseña">
-                          <IconButton 
-                            onClick={() => handleOpenDialog(review, "eliminar")} 
+                          <IconButton
+                            onClick={() => handleOpenDialog(review, "eliminar")}
                             sx={{
                               backgroundColor: "#FEE2E2",
                               color: "#DC2626",
@@ -420,7 +424,7 @@ const ModeracionServicios = () => {
             .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
             .map((review) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={review.id}>
-                <Card 
+                <Card
                   sx={{
                     height: '100%',
                     backgroundColor: colors.paper,
@@ -435,10 +439,10 @@ const ModeracionServicios = () => {
                     overflow: 'visible',
                   }}
                 >
-                  <Box 
-                    sx={{ 
-                      position: 'absolute', 
-                      top: -10, 
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      top: -10,
                       right: 16,
                     }}
                   >
@@ -454,7 +458,7 @@ const ModeracionServicios = () => {
                       }}
                     />
                   </Box>
-                  
+
                   <CardContent sx={{ pt: 4 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
                       <Avatar
@@ -468,11 +472,11 @@ const ModeracionServicios = () => {
                         {review.usuario.charAt(0)}
                       </Avatar>
                     </Box>
-                    
-                    <Typography 
-                      variant="h6" 
-                      align="center" 
-                      sx={{ 
+
+                    <Typography
+                      variant="h6"
+                      align="center"
+                      sx={{
                         color: colors.text,
                         fontWeight: 600,
                         mb: 1,
@@ -480,17 +484,17 @@ const ModeracionServicios = () => {
                     >
                       {review.usuario}
                     </Typography>
-                    
-                    <Rating 
-                      value={review.calificacion} 
-                      readOnly 
+
+                    <Rating
+                      value={review.calificacion}
+                      readOnly
                       sx={{ display: 'flex', justifyContent: 'center', my: 2 }}
                     />
-                    
-                    <Typography 
-                      variant="body2" 
-                      align="center" 
-                      sx={{ 
+
+                    <Typography
+                      variant="body2"
+                      align="center"
+                      sx={{
                         color: colors.secondaryText,
                         height: '60px',
                         overflow: 'hidden',
@@ -503,7 +507,7 @@ const ModeracionServicios = () => {
                     >
                       {review.comentario}
                     </Typography>
-                    
+
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
                       <Tooltip title="Ver reseña">
                         <IconButton
@@ -522,7 +526,7 @@ const ModeracionServicios = () => {
                           <Visibility fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      
+
                       <Tooltip title={review.estado === "Habilitado" ? "Deshabilitar reseña" : "Habilitar reseña"}>
                         <IconButton
                           onClick={() => handleOpenDialog(review, "habilitar/deshabilitar")}
@@ -539,7 +543,7 @@ const ModeracionServicios = () => {
                           {review.estado === "Habilitado" ? <CheckCircle fontSize="small" /> : <Cancel fontSize="small" />}
                         </IconButton>
                       </Tooltip>
-                      
+
                       <Tooltip title="Eliminar reseña">
                         <IconButton
                           onClick={() => handleOpenDialog(review, "eliminar")}
@@ -582,11 +586,11 @@ const ModeracionServicios = () => {
           filteredReviews
             .slice(page * rowsPerPage, (page + 1) * rowsPerPage)
             .map((review) => (
-              <Paper 
+              <Paper
                 key={review.id}
-                sx={{ 
-                  mb: 2, 
-                  p: 3, 
+                sx={{
+                  mb: 2,
+                  p: 3,
                   backgroundColor: colors.paper,
                   borderRadius: '12px',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -622,16 +626,16 @@ const ModeracionServicios = () => {
                       />
                     </Box>
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={6} md={6}>
                     <Typography variant="body2" sx={{ color: colors.text, mb: 1 }}>
-                      {review.comentario.length > 150 
-                        ? `${review.comentario.slice(0, 150)}...` 
+                      {review.comentario.length > 150
+                        ? `${review.comentario.slice(0, 150)}...`
                         : review.comentario}
                     </Typography>
                     <Rating value={review.calificacion} readOnly sx={{ mt: 1 }} />
                   </Grid>
-                  
+
                   <Grid item xs={12} sm={6} md={3} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <Tooltip title="Ver reseña">
@@ -651,7 +655,7 @@ const ModeracionServicios = () => {
                           <Visibility />
                         </IconButton>
                       </Tooltip>
-                      
+
                       <Tooltip title={review.estado === "Habilitado" ? "Deshabilitar reseña" : "Habilitar reseña"}>
                         <IconButton
                           onClick={() => handleOpenDialog(review, "habilitar/deshabilitar")}
@@ -668,7 +672,7 @@ const ModeracionServicios = () => {
                           {review.estado === "Habilitado" ? <CheckCircle /> : <Cancel />}
                         </IconButton>
                       </Tooltip>
-                      
+
                       <Tooltip title="Eliminar reseña">
                         <IconButton
                           onClick={() => handleOpenDialog(review, "eliminar")}
@@ -713,9 +717,9 @@ const ModeracionServicios = () => {
     >
       <Box sx={{ padding: { xs: 2, sm: 3, md: 4 } }}>
         {/* Cabecera con título y selector de vista */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           flexDirection: { xs: 'column', sm: 'row' },
           mb: { xs: 2, sm: 3 },
@@ -731,12 +735,12 @@ const ModeracionServicios = () => {
           >
             Gestión de Reseñas
           </Typography>
-          
+
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Tooltip title="Vista de tabla">
-              <IconButton 
+              <IconButton
                 onClick={() => handleViewChange('table')}
-                sx={{ 
+                sx={{
                   color: viewMode === 'table' ? 'white' : colors.text,
                   backgroundColor: viewMode === 'table' ? colors.primary : 'transparent',
                   '&:hover': {
@@ -747,11 +751,11 @@ const ModeracionServicios = () => {
                 <ListIcon />
               </IconButton>
             </Tooltip>
-            
+
             <Tooltip title="Vista de tarjetas">
-              <IconButton 
+              <IconButton
                 onClick={() => handleViewChange('grid')}
-                sx={{ 
+                sx={{
                   color: viewMode === 'grid' ? 'white' : colors.text,
                   backgroundColor: viewMode === 'grid' ? colors.primary : 'transparent',
                   '&:hover': {
@@ -762,11 +766,11 @@ const ModeracionServicios = () => {
                 <GridView />
               </IconButton>
             </Tooltip>
-            
+
             <Tooltip title="Vista detallada">
-              <IconButton 
+              <IconButton
                 onClick={() => handleViewChange('detailed')}
-                sx={{ 
+                sx={{
                   color: viewMode === 'detailed' ? 'white' : colors.text,
                   backgroundColor: viewMode === 'detailed' ? colors.primary : 'transparent',
                   '&:hover': {
@@ -883,36 +887,36 @@ const ModeracionServicios = () => {
             </FormControl>
           </Grid>
         </Grid>
-        
+
         {/* Información de resultados */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          mb: 2 
+          mb: 2
         }}>
           <Typography sx={{ color: colors.secondaryText }}>
             {filteredReviews.length} {filteredReviews.length === 1 ? 'reseña' : 'reseñas'} encontradas
           </Typography>
         </Box>
-        
+
         {/* Mostrar vista según la selección */}
         {viewMode === 'table' && renderTableView()}
         {viewMode === 'grid' && renderCardView()}
         {viewMode === 'detailed' && renderDetailedView()}
-        
+
         {/* Paginación */}
         <Box display="flex" justifyContent="center" mt={3}>
           <Button
             variant="contained"
-            sx={{ 
-              backgroundColor: colors.primary, 
-              color: "white", 
+            sx={{
+              backgroundColor: colors.primary,
+              color: "white",
               mx: 1,
               '&:disabled': {
                 backgroundColor: '#E0E0E0',
                 color: '#A0A0A0'
-              } 
+              }
             }}
             startIcon={<ArrowBack />}
             disabled={page === 0}
@@ -922,14 +926,14 @@ const ModeracionServicios = () => {
           </Button>
           <Button
             variant="contained"
-            sx={{ 
-              backgroundColor: colors.primary, 
-              color: "white", 
+            sx={{
+              backgroundColor: colors.primary,
+              color: "white",
               mx: 1,
               '&:disabled': {
                 backgroundColor: '#E0E0E0',
                 color: '#A0A0A0'
-              } 
+              }
             }}
             endIcon={<ArrowForward />}
             disabled={(page + 1) * rowsPerPage >= filteredReviews.length}
@@ -940,10 +944,10 @@ const ModeracionServicios = () => {
         </Box>
 
         {/* Diálogo para ver la reseña completa */}
-        <Dialog 
-          open={openCommentDialog} 
-          onClose={() => setOpenCommentDialog(false)} 
-          fullWidth 
+        <Dialog
+          open={openCommentDialog}
+          onClose={() => setOpenCommentDialog(false)}
+          fullWidth
           maxWidth="sm"
           PaperProps={{
             sx: {
@@ -954,9 +958,9 @@ const ModeracionServicios = () => {
             }
           }}
         >
-          <Box sx={{ 
+          <Box sx={{
             position: 'relative',
-            backgroundColor: colors.tableBackground, 
+            backgroundColor: colors.tableBackground,
             py: 3
           }}>
             <IconButton
@@ -970,7 +974,7 @@ const ModeracionServicios = () => {
             >
               <Cancel />
             </IconButton>
-            
+
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Avatar
                 sx={{
@@ -983,25 +987,25 @@ const ModeracionServicios = () => {
               >
                 {selectedComment.usuario ? selectedComment.usuario.charAt(0) : '?'}
               </Avatar>
-              
-              <Typography variant="h6" sx={{ 
+
+              <Typography variant="h6" sx={{
                 fontWeight: "bold",
                 color: colors.titleColor,
               }}>
                 {selectedComment.usuario}
               </Typography>
-              
+
               <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Rating value={selectedComment.calificacion || 5} readOnly size="medium" />
               </Box>
             </Box>
           </Box>
-          
+
           <DialogContent sx={{ px: 4, py: 3 }}>
-            <Typography 
-              variant="body1" 
-              sx={{ 
-                textAlign: "justify", 
+            <Typography
+              variant="body1"
+              sx={{
+                textAlign: "justify",
                 mb: 3,
                 color: colors.text,
                 lineHeight: 1.6,
@@ -1010,9 +1014,9 @@ const ModeracionServicios = () => {
             >
               {selectedComment.comentario}
             </Typography>
-            
+
             <Divider sx={{ my: 2, backgroundColor: colors.divider }} />
-            
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Typography variant="body2" sx={{ color: colors.secondaryText, fontSize: '0.875rem' }}>
                 Fecha: {selectedComment.fecha ? new Date(selectedComment.fecha).toLocaleDateString('es-ES', {
@@ -1023,7 +1027,7 @@ const ModeracionServicios = () => {
                   minute: '2-digit'
                 }) : 'No disponible'}
               </Typography>
-              
+
               <Chip
                 label={selectedComment.estado || "No disponible"}
                 sx={{
@@ -1037,12 +1041,12 @@ const ModeracionServicios = () => {
               />
             </Box>
           </DialogContent>
-          
+
           <DialogActions sx={{ p: 3, pt: 0, justifyContent: 'center' }}>
-            <Button 
-              onClick={() => setOpenCommentDialog(false)} 
+            <Button
+              onClick={() => setOpenCommentDialog(false)}
               variant="contained"
-              sx={{ 
+              sx={{
                 backgroundColor: colors.primary,
                 borderRadius: '8px',
                 px: 4,
@@ -1057,8 +1061,8 @@ const ModeracionServicios = () => {
         </Dialog>
 
         {/* Diálogo de confirmación para acciones */}
-        <Dialog 
-          open={openDialog} 
+        <Dialog
+          open={openDialog}
           onClose={() => setOpenDialog(false)}
           PaperProps={{
             sx: {
@@ -1071,9 +1075,9 @@ const ModeracionServicios = () => {
             }
           }}
         >
-          <Box sx={{ 
-            backgroundColor: dialogAction === 'eliminar' 
-              ? '#FEF2F2' 
+          <Box sx={{
+            backgroundColor: dialogAction === 'eliminar'
+              ? '#FEF2F2'
               : dialogAction === 'habilitar'
                 ? '#F0FDF4'
                 : '#FEF3F2',
@@ -1085,68 +1089,68 @@ const ModeracionServicios = () => {
             py: 4,
             borderBottom: `1px solid ${colors.divider}`
           }}>
-            <Avatar sx={{ 
-              width: 56, 
-              height: 56, 
-              bgcolor: dialogAction === 'eliminar' 
-                ? '#DC2626' 
+            <Avatar sx={{
+              width: 56,
+              height: 56,
+              bgcolor: dialogAction === 'eliminar'
+                ? '#DC2626'
                 : dialogAction === 'habilitar'
                   ? '#16A34A'
                   : '#DC2626',
               mb: 2
             }}>
-              {dialogAction === 'eliminar' 
-                ? <Delete /> 
+              {dialogAction === 'eliminar'
+                ? <Delete />
                 : dialogAction === 'habilitar'
                   ? <CheckCircle />
                   : <Cancel />
               }
             </Avatar>
-            
-            <Typography variant="h6" sx={{ 
+
+            <Typography variant="h6" sx={{
               fontWeight: 600,
-              color: dialogAction === 'eliminar' 
-                ? '#991B1B' 
+              color: dialogAction === 'eliminar'
+                ? '#991B1B'
                 : dialogAction === 'habilitar'
                   ? '#166534'
                   : '#991B1B',
               textAlign: 'center'
             }}>
-              {dialogAction === 'eliminar' 
-                ? 'Eliminar reseña' 
+              {dialogAction === 'eliminar'
+                ? 'Eliminar reseña'
                 : dialogAction === 'habilitar'
                   ? 'Habilitar reseña'
                   : 'Deshabilitar reseña'}
             </Typography>
           </Box>
-          
+
           <DialogContent sx={{ p: 3 }}>
-            <Typography sx={{ 
-              color: colors.text, 
-              fontSize: '1rem', 
+            <Typography sx={{
+              color: colors.text,
+              fontSize: '1rem',
               textAlign: 'center',
               mt: 1,
               mb: 2
             }}>
-              {dialogAction === 'eliminar' 
-                ? '¿Estás seguro que deseas eliminar permanentemente esta reseña?' 
+              {dialogAction === 'eliminar'
+                ? '¿Estás seguro que deseas eliminar permanentemente esta reseña?'
                 : dialogAction === 'habilitar'
                   ? '¿Deseas habilitar esta reseña para que sea visible?'
                   : '¿Deseas deshabilitar esta reseña para que no sea visible?'}
             </Typography>
-            
-            <Box sx={{ 
-              backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)', 
-              p: 2, 
+
+            <Box sx={{
+              backgroundColor: isDarkTheme ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)',
+              p: 2,
               borderRadius: '8px',
               mb: 2
             }}>
               <Typography sx={{ fontWeight: 'bold', color: colors.text, mb: 1 }}>
                 Reseña de: {selectedReview?.usuario}
               </Typography>
-              
-              <Typography sx={{ 
-                color: colors.secondaryText, 
+
+              <Typography sx={{
+                color: colors.secondaryText,
                 fontSize: '0.9rem',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -1157,11 +1161,11 @@ const ModeracionServicios = () => {
                 "{selectedReview?.comentario}"
               </Typography>
             </Box>
-            
+
             {dialogAction === 'eliminar' && (
-              <Typography sx={{ 
-                color: '#DC2626', 
-                fontSize: '0.875rem', 
+              <Typography sx={{
+                color: '#DC2626',
+                fontSize: '0.875rem',
                 fontStyle: 'italic',
                 textAlign: 'center',
                 mt: 2
@@ -1170,12 +1174,12 @@ const ModeracionServicios = () => {
               </Typography>
             )}
           </DialogContent>
-          
+
           <DialogActions sx={{ p: 3, pt: 1, justifyContent: 'center', gap: 2 }}>
-            <Button 
+            <Button
               onClick={() => setOpenDialog(false)}
               variant="outlined"
-              sx={{ 
+              sx={{
                 borderColor: isDarkTheme ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.2)',
                 color: colors.text,
                 borderRadius: '8px',
@@ -1188,12 +1192,12 @@ const ModeracionServicios = () => {
             >
               Cancelar
             </Button>
-            <Button 
-              onClick={handleConfirmAction} 
+            <Button
+              onClick={handleConfirmAction}
               variant="contained"
               sx={{
-                backgroundColor: dialogAction === 'eliminar' 
-                  ? '#DC2626' 
+                backgroundColor: dialogAction === 'eliminar'
+                  ? '#DC2626'
                   : dialogAction === 'habilitar'
                     ? '#16A34A'
                     : '#DC2626',
@@ -1201,16 +1205,16 @@ const ModeracionServicios = () => {
                 borderRadius: '8px',
                 px: 3,
                 '&:hover': {
-                  backgroundColor: dialogAction === 'eliminar' 
-                    ? '#B91C1C' 
+                  backgroundColor: dialogAction === 'eliminar'
+                    ? '#B91C1C'
                     : dialogAction === 'habilitar'
                       ? '#15803D'
                       : '#B91C1C'
                 }
               }}
             >
-              {dialogAction === 'eliminar' 
-                ? 'Eliminar' 
+              {dialogAction === 'eliminar'
+                ? 'Eliminar'
                 : dialogAction === 'habilitar'
                   ? 'Habilitar'
                   : 'Deshabilitar'}

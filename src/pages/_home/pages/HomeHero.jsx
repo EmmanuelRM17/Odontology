@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   Box,
   Typography,
@@ -97,113 +97,132 @@ const BenefitItem = ({ benefit, index, animateServices, colors, isDarkTheme }) =
   );
 };
 
-// Componente FeatureCard OPTIMIZADO - sin conflictos de animación
-const FeatureCard = ({ feature, index, isVisible, colors }) => {
+// Componente FeatureCard OPTIMIZADO
+const FeatureCard = memo(({ 
+  feature, 
+  index, 
+  isVisible, 
+  colors,
+  isMobile 
+}) => {
   const Icon = feature.icon;
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Estilos memoizados para evitar re-cálculos
+  const cardStyles = useMemo(() => ({
+    container: {
+      // Uso de CSS custom properties para animaciones más eficientes
+      '--delay': `${index * 120}ms`,
+      '--translate-y': isVisible ? '0px' : '30px',
+      '--scale': isVisible ? '1' : '0.95',
+      '--opacity': isVisible ? '1' : '0',
+      
+      opacity: 'var(--opacity)',
+      transform: 'translateY(var(--translate-y)) scale(var(--scale))',
+      transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDelay: 'var(--delay)'
+    },
+    paper: {
+      p: isMobile ? 2.5 : 3.5,
+      height: '100%',
+      borderRadius: '16px',
+      backgroundColor: colors.cardBg,
+      border: `1px solid ${colors.border}`,
+      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+      display: 'flex',
+      flexDirection: 'column',
+      '&:hover': {
+        backgroundColor: colors.cardHover,
+        transform: 'translateY(-8px) scale(1.02)',
+        boxShadow: colors.shadow,
+        borderColor: colors.primary
+      }
+    },
+    iconContainer: {
+      '--icon-delay': `${(index * 120) + 200}ms`,
+      '--icon-opacity': isVisible ? '1' : '0',
+      '--icon-scale': isVisible ? '1' : '0.8',
+      '--icon-rotate': isVisible ? '0deg' : '-10deg',
+      
+      display: 'flex',
+      justifyContent: 'center',
+      mb: isMobile ? 2 : 3,
+      opacity: 'var(--icon-opacity)',
+      transform: 'scale(var(--icon-scale)) rotate(var(--icon-rotate))',
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDelay: 'var(--icon-delay)'
+    },
+    iconBox: {
+      width: isMobile ? 48 : 64,
+      height: isMobile ? 48 : 64,
+      borderRadius: '50%',
+      background: colors.lightBg,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: colors.primary,
+      mb: 1,
+      transition: 'all 0.3s ease'
+    },
+    title: {
+      '--title-delay': `${(index * 120) + 300}ms`,
+      '--title-opacity': isVisible ? '1' : '0',
+      '--title-translate': isVisible ? '0px' : '15px',
+      
+      fontWeight: 600,
+      color: colors.text,
+      fontSize: isMobile ? '1rem' : '1.1rem',
+      mb: isMobile ? 1.5 : 2,
+      textAlign: 'center',
+      opacity: 'var(--title-opacity)',
+      transform: 'translateY(var(--title-translate))',
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDelay: 'var(--title-delay)'
+    },
+    description: {
+      '--desc-delay': `${(index * 120) + 400}ms`,
+      '--desc-opacity': isVisible ? '1' : '0',
+      '--desc-translate': isVisible ? '0px' : '15px',
+      
+      color: colors.subtext,
+      lineHeight: 1.6,
+      fontSize: isMobile ? '0.85rem' : '0.95rem',
+      textAlign: 'center',
+      opacity: 'var(--desc-opacity)',
+      transform: 'translateY(var(--desc-translate))',
+      transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDelay: 'var(--desc-delay)'
+    }
+  }), [feature, index, isVisible, colors, isMobile]);
 
   return (
-    <Box
-      sx={{
-        // Animación inicial suave desde opacity 0
-        opacity: isVisible ? 1 : 0,
-        transform: isVisible 
-          ? 'translateY(0px) scale(1)' 
-          : 'translateY(30px) scale(0.95)',
-        transition: `all 0.6s cubic-bezier(0.4, 0, 0.2, 1)`,
-        transitionDelay: `${index * 120}ms`, // Delay progresivo más suave
-        willChange: 'transform, opacity' // Optimización de rendimiento
-      }}
-    >
-      <Paper
-        elevation={0}
-        sx={{
-          p: isMobile ? 2.5 : 3.5,
-          height: '100%',
-          borderRadius: '16px',
-          backgroundColor: colors.cardBg,
-          border: `1px solid ${colors.border}`,
-          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-          transformOrigin: 'center',
-          '&:hover': {
-            backgroundColor: colors.cardHover,
-            transform: 'translateY(-8px) scale(1.02)',
-            boxShadow: colors.shadow,
-            borderColor: colors.primary
-          },
-          display: 'flex',
-          flexDirection: 'column'
-        }}
-      >
-        {/* Icono con animación suave */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'center',
-            mb: isMobile ? 2 : 3
-          }}
-        >
-          <Box
-            sx={{
-              width: isMobile ? 48 : 64,
-              height: isMobile ? 48 : 64,
-              borderRadius: '50%',
-              background: colors.lightBg,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: colors.primary,
-              mb: 1,
-              transition: 'all 0.3s ease',
-              // Animación del icono con delay adicional
-              opacity: isVisible ? 1 : 0,
-              transform: isVisible ? 'scale(1) rotate(0deg)' : 'scale(0.8) rotate(-10deg)',
-              transitionDelay: `${(index * 120) + 200}ms`
-            }}
-          >
+    <Box sx={cardStyles.container}>
+      <Paper elevation={0} sx={cardStyles.paper}>
+        <Box sx={cardStyles.iconContainer}>
+          <Box sx={cardStyles.iconBox}>
             <Icon sx={{ fontSize: isMobile ? '22px' : '28px' }} />
           </Box>
         </Box>
 
-        {/* Título con animación escalonada */}
-        <Typography
-          variant="h6"
-          align="center"
-          sx={{
-            fontWeight: 600,
-            color: colors.text,
-            fontSize: isMobile ? '1rem' : '1.1rem',
-            mb: isMobile ? 1.5 : 2,
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? 'translateY(0px)' : 'translateY(15px)',
-            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            transitionDelay: `${(index * 120) + 300}ms`
-          }}
-        >
+        <Typography variant="h6" sx={cardStyles.title}>
           {feature.title}
         </Typography>
 
-        {/* Descripción con animación final */}
-        <Typography
-          variant="body2"
-          align="center"
-          sx={{
-            color: colors.subtext,
-            lineHeight: 1.6,
-            fontSize: isMobile ? '0.85rem' : '0.95rem',
-            opacity: isVisible ? 1 : 0,
-            transform: isVisible ? 'translateY(0px)' : 'translateY(15px)',
-            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            transitionDelay: `${(index * 120) + 400}ms`
-          }}
-        >
+        <Typography variant="body2" sx={cardStyles.description}>
           {feature.description}
         </Typography>
       </Paper>
     </Box>
   );
-};
+}, (prevProps, nextProps) => {
+  // Optimización de memo: solo re-renderizar si cambian props relevantes
+  return (
+    prevProps.isVisible === nextProps.isVisible &&
+    prevProps.index === nextProps.index &&
+    prevProps.colors === nextProps.colors &&
+    prevProps.isMobile === nextProps.isMobile &&
+    prevProps.feature.title === nextProps.feature.title
+  );
+});
 
 // Componente ImageCarousel 
 const ImageCarousel = React.memo(({
@@ -396,15 +415,63 @@ const ImageCarousel = React.memo(({
   );
 });
 
+// Hook personalizado para manejar el estado de la sección "¿Por qué elegirnos?"
+const useWhyChooseUsSection = () => {
+  const [whyUsRef, whyUsVisible] = useIntersectionObserver({ 
+    threshold: 0.2,
+    rootMargin: '100px' // Activar animación antes de que sea visible
+  });
+
+  // Memoizar los estilos de título para evitar re-cálculos
+  const titleStyles = useMemo(() => ({
+    title: {
+      '--title-opacity': whyUsVisible ? '1' : '0',
+      '--title-translate': whyUsVisible ? '0px' : '20px',
+      
+      fontWeight: 700,
+      textAlign: 'center',
+      fontSize: { xs: '1.6rem', sm: '1.8rem', md: '2rem' },
+      mb: { xs: 1.5, md: 2 },
+      opacity: 'var(--title-opacity)',
+      transform: 'translateY(var(--title-translate))',
+      transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+    },
+    subtitle: {
+      '--subtitle-opacity': whyUsVisible ? '1' : '0',
+      '--subtitle-translate': whyUsVisible ? '0px' : '20px',
+      
+      textAlign: 'center',
+      maxWidth: '800px',
+      mx: 'auto',
+      mb: { xs: 3, sm: 4, md: 5 },
+      fontSize: { xs: '0.95rem', sm: '1rem', md: '1.1rem' },
+      lineHeight: 1.7,
+      px: { xs: 1, sm: 2, md: 0 },
+      opacity: 'var(--subtitle-opacity)',
+      transform: 'translateY(var(--subtitle-translate))',
+      transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
+      transitionDelay: '100ms'
+    }
+  }), [whyUsVisible]);
+
+  return {
+    whyUsRef,
+    whyUsVisible,
+    titleStyles
+  };
+};
+
 // Componente principal HomeHero optimizado
 const HomeHero = ({ colors, isPaused, setIsPaused }) => {
   const { isDarkTheme } = useThemeContext();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [animateServices, setAnimateServices] = useState(false);
-  const [whyUsRef, whyUsVisible] = useIntersectionObserver({ threshold: 0.2 }); // Mayor threshold para activación más temprana
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const isTablet = useMediaQuery(theme.breakpoints.down('md'));
+
+  // Custom hook para manejar la sección "¿Por qué elegirnos?"
+  const { whyUsRef, whyUsVisible, titleStyles } = useWhyChooseUsSection();
 
   // Efecto para activar animaciones con mejor timing
   useEffect(() => {
@@ -414,6 +481,23 @@ const HomeHero = ({ colors, isPaused, setIsPaused }) => {
 
     return () => clearTimeout(timer);
   }, []);
+
+  // Memoizar la grid de features para evitar re-renders innecesarios
+  const featuresGrid = useMemo(() => (
+    <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
+      {FEATURES_DATA.map((feature, index) => (
+        <Grid item xs={6} sm={6} md={3} key={`feature-${index}`}>
+          <FeatureCard
+            feature={feature}
+            index={index}
+            isVisible={whyUsVisible}
+            colors={colors}
+            isMobile={isMobile}
+          />
+        </Grid>
+      ))}
+    </Grid>
+  ), [whyUsVisible, colors, isMobile]);
 
   return (
     <Container maxWidth="lg" sx={{ px: 0, position: 'relative' }}>
@@ -441,7 +525,7 @@ const HomeHero = ({ colors, isPaused, setIsPaused }) => {
             borderRadius: '50%',
             background: `radial-gradient(circle, ${colors.primary}08 0%, ${colors.primary}04 50%, transparent 70%)`,
             animation: 'floatWave 12s ease-in-out infinite',
-            willChange: 'transform', // Optimización de rendimiento
+            willChange: 'transform',
             '@keyframes floatWave': {
               '0%, 100%': {
                 transform: 'translate(0, 0) scale(1)',
@@ -460,18 +544,18 @@ const HomeHero = ({ colors, isPaused, setIsPaused }) => {
         />
 
         {/* Círculos flotantes optimizados */}
-        {[...Array(4)].map((_, index) => ( // Reducido de 6 a 4 para mejor performance
+        {[...Array(4)].map((_, index) => (
           <Box
             key={index}
             sx={{
               position: 'absolute',
-              width: `${20 + Math.random() * 30}px`, // Tamaños más pequeños
+              width: `${20 + Math.random() * 30}px`,
               height: `${20 + Math.random() * 30}px`,
               borderRadius: '50%',
               background: `linear-gradient(135deg, ${colors.primary}12, ${colors.primary}06)`,
               top: `${Math.random() * 80}%`,
               left: `${Math.random() * 80}%`,
-              animation: `float${index} ${8 + Math.random() * 6}s ease-in-out infinite`, // Animaciones más rápidas
+              animation: `float${index} ${8 + Math.random() * 6}s ease-in-out infinite`,
               animationDelay: `${Math.random() * 4}s`,
               willChange: 'transform',
               [`@keyframes float${index}`]: {
@@ -751,61 +835,35 @@ const HomeHero = ({ colors, isPaused, setIsPaused }) => {
         <SectionDivider colors={colors} />
 
         {/* Sección "Por qué elegirnos" - OPTIMIZADA */}
-        <Box
+        <Box 
           ref={whyUsRef}
-          sx={{ mb: { xs: 4, sm: 5, md: 8 } }}
+          sx={{ 
+            mb: { xs: 4, sm: 5, md: 8 },
+            contain: 'layout style' // Optimización del navegador
+          }}
         >
-          {/* Título con animación mejorada */}
           <Typography
             variant="h4"
-            align="center"
             sx={{
-              fontWeight: 700,
-              mb: { xs: 1.5, md: 2 },
-              color: colors.text,
-              fontSize: { xs: '1.6rem', sm: '1.8rem', md: '2rem' },
-              opacity: whyUsVisible ? 1 : 0,
-              transform: whyUsVisible ? 'translateY(0px)' : 'translateY(20px)',
-              transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)'
+              ...titleStyles.title,
+              color: colors.text
             }}
           >
             ¿Por qué elegirnos?
           </Typography>
 
-          {/* Subtítulo con animación */}
           <Typography
             variant="subtitle1"
-            align="center"
             sx={{
-              color: colors.subtext,
-              maxWidth: '800px',
-              mx: 'auto',
-              mb: { xs: 3, sm: 4, md: 5 },
-              fontSize: { xs: '0.95rem', sm: '1rem', md: '1.1rem' },
-              lineHeight: 1.7,
-              px: { xs: 1, sm: 2, md: 0 },
-              opacity: whyUsVisible ? 1 : 0,
-              transform: whyUsVisible ? 'translateY(0px)' : 'translateY(20px)',
-              transition: 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)',
-              transitionDelay: '100ms'
+              ...titleStyles.subtitle,
+              color: colors.subtext
             }}
           >
             Nuestra prioridad es ofrecer servicios odontológicos con un enfoque genuino en el bienestar de nuestra comunidad
           </Typography>
 
           {/* Grid de features con animaciones optimizadas */}
-          <Grid container spacing={{ xs: 2, sm: 3, md: 4 }}>
-            {FEATURES_DATA.map((feature, index) => (
-              <Grid item xs={6} sm={6} md={3} key={index}>
-                <FeatureCard
-                  feature={feature}
-                  index={index}
-                  isVisible={whyUsVisible}
-                  colors={colors}
-                />
-              </Grid>
-            ))}
-          </Grid>
+          {featuresGrid}
         </Box>
 
         <SectionDivider colors={colors} />
