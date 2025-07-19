@@ -4,7 +4,7 @@ import BarraNav from './barraNav';
 import PieDePagina from './Footer';
 import { useThemeContext } from '../Tools/ThemeContext';
 
-const LayoutConEncabezado = ({ children, noPadding = false }) => {
+const   LayoutConEncabezado = ({ children, noPadding = false }) => {
   const { isDarkTheme } = useThemeContext();
 
   return (

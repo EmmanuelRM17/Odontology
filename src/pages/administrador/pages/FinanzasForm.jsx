@@ -40,7 +40,11 @@ import {
   Stepper,
   Step,
   StepLabel,
-  LinearProgress
+  LinearProgress,
+  Switch,
+  FormControlLabel,
+  Accordion,
+  AccordionDetails
 } from '@mui/material';
 import {
   Receipt,
@@ -74,7 +78,18 @@ import {
   Add,
   TrendingUp,
   AttachMoney,
-  Email
+  Email,
+  Settings,
+  CreditCard,
+  AccountBalance,
+  Visibility,
+  VisibilityOff,
+  Save,
+  Biotech,
+  Error,
+  ContentCopy,
+  Link,
+  Security
 } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
@@ -110,7 +125,10 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     disabled: isDarkTheme ? '#616161' : '#bdbdbd'
   };
 
-  // Estados principales
+  // Estados principales del módulo
+  const [mainActiveTab, setMainActiveTab] = useState(0); // 0: Pagos, 1: Configuración
+
+  // ==================== ESTADOS PARA PAGOS ====================
   const [currentStep, setCurrentStep] = useState('selection');
   const [activeTab, setActiveTab] = useState(0); // 0: Deudas, 1: Pagados, 2: Buscar
   const [loading, setLoading] = useState(false);
@@ -153,6 +171,43 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     referencia: '',
     notas: ''
   });
+
+  // ==================== ESTADOS PARA CONFIGURACIÓN ====================
+  const [configLoading, setConfigLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState({ mercadopago: false, paypal: false });
+
+  // Estados de configuración
+  const [config, setConfig] = useState({
+    mercadopago: {
+      enabled: false,
+      access_token: '',
+      public_key: '',
+      webhook_url: '',
+      mode: 'sandbox'
+    },
+    paypal: {
+      enabled: false,
+      client_id: '',
+      client_secret: '',
+      webhook_url: '',
+      mode: 'sandbox'
+    }
+  });
+
+  // Estados para mostrar/ocultar credenciales
+  const [showCredentials, setShowCredentials] = useState({
+    mercadopago_token: false,
+    mercadopago_secret: false,
+    paypal_id: false,
+    paypal_secret: false
+  });
+
+  const [showTestDialog, setShowTestDialog] = useState(false);
+  const [testResults, setTestResults] = useState(null);
+  const [activeProvider, setActiveProvider] = useState('');
+
+  // ==================== FUNCIONES PARA PAGOS ====================
 
   // Función para mostrar notificaciones
   const showNotif = useCallback((message, type = 'info') => {
@@ -292,12 +347,11 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     const fetchPacientes = async () => {
       try {
         const response = await axios.get('https://back-end-4803.onrender.com/api/reportes/pacientes');
-        // Asegurar que siempre sea un array
         setPacientes(Array.isArray(response.data) ? response.data : []);
         await fetchPacientesConDeudas();
       } catch (err) {
         console.error('Error al cargar pacientes:', err);
-        setPacientes([]); // Set array vacío en error
+        setPacientes([]);
         showNotif('Error al cargar pacientes', 'error');
       }
     };
@@ -375,7 +429,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       });
 
       setSelectedCita(cita);
-
       setCurrentStep('payment');
 
       try {
@@ -482,7 +535,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
 
       const totales = calcularTotales();
 
-      // PAGO EN EFECTIVO - SIMPLIFICADO
       const pagoCompleto = {
         paciente_id: selectedPaciente.id,
         cita_id: citaId,
@@ -497,7 +549,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         notas: paymentData.notas || 'Pago procesado en efectivo'
       };
 
-      // USAR ENDPOINT UPSERT PARA EVITAR DUPLICADOS
       const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos/upsert', pagoCompleto);
 
       showNotif('Pago procesado exitosamente', 'success');
@@ -560,15 +611,15 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       const telefono = paciente.telefono?.toLowerCase() || '';
       const email = paciente.correo?.toLowerCase() || '';
       const busqueda = searchTerm.toLowerCase();
-      
-      const coincideBusqueda = nombreCompleto.includes(busqueda) || 
-                             telefono.includes(busqueda) || 
-                             email.includes(busqueda);
+
+      const coincideBusqueda = nombreCompleto.includes(busqueda) ||
+        telefono.includes(busqueda) ||
+        email.includes(busqueda);
 
       if (!coincideBusqueda) return false;
 
       const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
-      
+
       if (filtros.montoMin && monto < parseFloat(filtros.montoMin)) return false;
       if (filtros.montoMax && monto > parseFloat(filtros.montoMax)) return false;
 
@@ -597,13 +648,145 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     pacientesPagados: pacientesFiltradosPagados.length
   };
 
+  // ==================== FUNCIONES PARA CONFIGURACIÓN ====================
+
+  // Cargar configuración actual
+  useEffect(() => {
+    if (mainActiveTab === 1) {
+      loadConfiguration();
+    }
+  }, [mainActiveTab]);
+
+  const loadConfiguration = async () => {
+    try {
+      setConfigLoading(true);
+      const response = await axios.get('https://back-end-4803.onrender.com/api/Finanzas/config');
+
+      if (response.data) {
+        setConfig({
+          mercadopago: {
+            enabled: response.data.mercadopago_enabled || false,
+            access_token: response.data.mercadopago_access_token || '',
+            public_key: response.data.mercadopago_public_key || '',
+            webhook_url: response.data.mercadopago_webhook_url || '',
+            mode: response.data.mercadopago_mode || 'sandbox'
+          },
+          paypal: {
+            enabled: response.data.paypal_enabled || false,
+            client_id: response.data.paypal_client_id || '',
+            client_secret: response.data.paypal_client_secret || '',
+            webhook_url: response.data.paypal_webhook_url || '',
+            mode: response.data.paypal_mode || 'sandbox'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Error al cargar configuración:', error);
+      showNotif('Error al cargar la configuración', 'error');
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  // Actualizar configuración específica
+  const updateConfig = (provider, field, value) => {
+    setConfig(prev => ({
+      ...prev,
+      [provider]: {
+        ...prev[provider],
+        [field]: value
+      }
+    }));
+  };
+
+  // Guardar configuración
+  const saveConfiguration = async () => {
+    try {
+      setSaving(true);
+
+      const configData = {
+        mercadopago_enabled: config.mercadopago.enabled,
+        mercadopago_access_token: config.mercadopago.access_token,
+        mercadopago_public_key: config.mercadopago.public_key,
+        mercadopago_webhook_url: config.mercadopago.webhook_url,
+        mercadopago_mode: config.mercadopago.mode,
+        paypal_enabled: config.paypal.enabled,
+        paypal_client_id: config.paypal.client_id,
+        paypal_client_secret: config.paypal.client_secret,
+        paypal_webhook_url: config.paypal.webhook_url,
+        paypal_mode: config.paypal.mode
+      };
+
+      await axios.put('https://back-end-4803.onrender.com/api/Finanzas/config', configData);
+      showNotif('Configuración guardada exitosamente', 'success');
+    } catch (error) {
+      console.error('Error al guardar configuración:', error);
+      showNotif('Error al guardar la configuración', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Probar conexión
+  const testConnection = async (provider) => {
+    try {
+      setTesting(prev => ({ ...prev, [provider]: true }));
+      setActiveProvider(provider);
+
+      const endpoint = provider === 'mercadopago'
+        ? 'https://back-end-4803.onrender.com/api/Finanzas/test-mercadopago'
+        : 'https://back-end-4803.onrender.com/api/Finanzas/test-paypal';
+
+      const response = await axios.post(endpoint, {
+        config: config[provider]
+      });
+
+      setTestResults({
+        provider,
+        success: true,
+        message: response.data.message || 'Conexión exitosa',
+        details: response.data
+      });
+      setShowTestDialog(true);
+      showNotif(`Conexión con ${provider} exitosa`, 'success');
+    } catch (error) {
+      console.error(`Error probando ${provider}:`, error);
+      setTestResults({
+        provider,
+        success: false,
+        message: error.response?.data?.error || `Error de conexión con ${provider}`,
+        details: error.response?.data || {}
+      });
+      setShowTestDialog(true);
+      showNotif(`Error de conexión con ${provider}`, 'error');
+    } finally {
+      setTesting(prev => ({ ...prev, [provider]: false }));
+    }
+  };
+
+  // Copiar al portapapeles
+  const copyToClipboard = (text, label) => {
+    navigator.clipboard.writeText(text);
+    showNotif(`${label} copiado al portapapeles`, 'success');
+  };
+
+  // Toggle visibilidad de credenciales
+  const toggleCredentialVisibility = (key) => {
+    setShowCredentials(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // ==================== RENDERS ====================
+
   // Render de estadísticas
   const renderEstadisticas = () => (
     <Grid container spacing={3} sx={{ mb: 3 }}>
       <Grid item xs={6} md={3}>
-        <Card elevation={0} sx={{ 
-          p: 2, 
-          bgcolor: colors.cardBg, 
+        <Card elevation={0} sx={{
+          p: 2,
+          bgcolor: colors.cardBg,
           borderRadius: 2,
           border: `1px solid ${colors.cardBorder}`
         }}>
@@ -621,9 +804,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         </Card>
       </Grid>
       <Grid item xs={6} md={3}>
-        <Card elevation={0} sx={{ 
-          p: 2, 
-          bgcolor: colors.cardBg, 
+        <Card elevation={0} sx={{
+          p: 2,
+          bgcolor: colors.cardBg,
           borderRadius: 2,
           border: `1px solid ${colors.cardBorder}`
         }}>
@@ -641,9 +824,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         </Card>
       </Grid>
       <Grid item xs={6} md={3}>
-        <Card elevation={0} sx={{ 
-          p: 2, 
-          bgcolor: colors.cardBg, 
+        <Card elevation={0} sx={{
+          p: 2,
+          bgcolor: colors.cardBg,
           borderRadius: 2,
           border: `1px solid ${colors.cardBorder}`
         }}>
@@ -661,9 +844,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         </Card>
       </Grid>
       <Grid item xs={6} md={3}>
-        <Card elevation={0} sx={{ 
-          p: 2, 
-          bgcolor: colors.cardBg, 
+        <Card elevation={0} sx={{
+          p: 2,
+          bgcolor: colors.cardBg,
           borderRadius: 2,
           border: `1px solid ${colors.cardBorder}`
         }}>
@@ -687,9 +870,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const renderPacientesList = () => (
     <Box>
       {/* Barra de búsqueda */}
-      <Paper elevation={0} sx={{ 
-        p: 2, 
-        mb: 2, 
+      <Paper elevation={0} sx={{
+        p: 2,
+        mb: 2,
         borderRadius: 2,
         bgcolor: colors.paper,
         border: `1px solid ${colors.cardBorder}`
@@ -734,17 +917,17 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       </Paper>
 
       {/* Tabs */}
-      <Paper elevation={0} sx={{ 
-        mb: 2, 
+      <Paper elevation={0} sx={{
+        mb: 2,
         borderRadius: 2,
         bgcolor: colors.paper,
         border: `1px solid ${colors.cardBorder}`
       }}>
-        <Tabs 
-          value={activeTab} 
+        <Tabs
+          value={activeTab}
           onChange={(e, v) => setActiveTab(v)}
           variant="fullWidth"
-          sx={{ 
+          sx={{
             borderBottom: `1px solid ${colors.cardBorder}`,
             '& .MuiTab-root': {
               color: colors.textSecondary,
@@ -757,18 +940,18 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
             },
           }}
         >
-          <Tab 
-            icon={<Warning />} 
+          <Tab
+            icon={<Warning />}
             label={`Deudas (${pacientesFiltradosDeudas.length})`}
             iconPosition="start"
           />
-          <Tab 
-            icon={<CheckCircleOutline />} 
+          <Tab
+            icon={<CheckCircleOutline />}
             label={`Pagados (${pacientesFiltradosPagados.length})`}
             iconPosition="start"
           />
-          <Tab 
-            icon={<PersonSearch />} 
+          <Tab
+            icon={<PersonSearch />}
             label="Buscar"
             iconPosition="start"
           />
@@ -853,12 +1036,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                       '& .MuiOutlinedInput-notchedOutline': {
                         borderColor: colors.cardBorder,
                       },
-                      '&:hover .MuiOutlinedInput-notchedOutline': {
-                        borderColor: colors.primary,
-                      },
-                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                        borderColor: colors.primary,
-                      },
                     }}
                   >
                     <MenuItem value="deuda_desc">Mayor monto</MenuItem>
@@ -927,9 +1104,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       </Paper>
 
       {/* Contenido de tabs */}
-      <Paper elevation={0} sx={{ 
-        p: 2, 
-        borderRadius: 2, 
+      <Paper elevation={0} sx={{
+        p: 2,
+        borderRadius: 2,
         minHeight: 400,
         bgcolor: colors.paper,
         border: `1px solid ${colors.cardBorder}`
@@ -957,15 +1134,15 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                   <Grid container spacing={2}>
                     {pacientesFiltradosDeudas.map((paciente) => (
                       <Grid item xs={12} md={6} key={paciente.paciente_id}>
-                        <Card 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
+                        <Card
+                          elevation={0}
+                          sx={{
+                            p: 2,
                             border: `1px solid ${colors.cardBorder}`,
                             borderRadius: 2,
                             cursor: 'pointer',
                             bgcolor: colors.paper,
-                            '&:hover': { 
+                            '&:hover': {
                               borderColor: colors.primary,
                               boxShadow: 2,
                               backgroundColor: colors.hover
@@ -1052,15 +1229,15 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                   <Grid container spacing={2}>
                     {pacientesFiltradosPagados.map((paciente) => (
                       <Grid item xs={12} md={6} key={paciente.paciente_id}>
-                        <Card 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2, 
+                        <Card
+                          elevation={0}
+                          sx={{
+                            p: 2,
                             border: `1px solid ${colors.cardBorder}`,
                             borderRadius: 2,
                             cursor: 'pointer',
                             bgcolor: colors.paper,
-                            '&:hover': { 
+                            '&:hover': {
                               borderColor: colors.success,
                               boxShadow: 2,
                               backgroundColor: colors.hover
@@ -1144,7 +1321,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                   Buscar Paciente
                 </Typography>
                 <Autocomplete
-                  options={pacientes || []} // Siempre array
+                  options={pacientes || []}
                   getOptionLabel={(option) => `${option.nombre || ''} ${option.aPaterno || ''} ${option.aMaterno || ''}`.trim()}
                   renderInput={(params) => (
                     <TextField
@@ -1250,9 +1427,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         <Grid container spacing={3}>
           {/* Información del paciente */}
           <Grid item xs={12} md={6}>
-            <Card elevation={0} sx={{ 
-              p: 3, 
-              border: `1px solid ${colors.cardBorder}`, 
+            <Card elevation={0} sx={{
+              p: 3,
+              border: `1px solid ${colors.cardBorder}`,
               borderRadius: 2,
               bgcolor: colors.paper
             }}>
@@ -1280,9 +1457,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
 
           {/* Información del servicio */}
           <Grid item xs={12} md={6}>
-            <Card elevation={0} sx={{ 
-              p: 3, 
-              border: `1px solid ${colors.cardBorder}`, 
+            <Card elevation={0} sx={{
+              p: 3,
+              border: `1px solid ${colors.cardBorder}`,
               borderRadius: 2,
               bgcolor: colors.paper
             }}>
@@ -1306,16 +1483,16 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
 
           {/* Formulario de pago - SOLO EFECTIVO */}
           <Grid item xs={12}>
-            <Card elevation={0} sx={{ 
-              p: 3, 
-              border: `1px solid ${colors.cardBorder}`, 
+            <Card elevation={0} sx={{
+              p: 3,
+              border: `1px solid ${colors.cardBorder}`,
               borderRadius: 2,
               bgcolor: colors.paper
             }}>
               <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
                 Método de Pago
               </Typography>
-              
+
               {/* Solo mostrar método efectivo */}
               <Grid container spacing={2} sx={{ mb: 3 }}>
                 <Grid item xs={12}>
@@ -1378,16 +1555,16 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     }}
                   />
                 </Grid>
-                
+
                 <Grid item xs={12} md={6}>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                     <DateTimePicker
                       label="Fecha y Hora del Pago"
                       value={paymentData.fecha_pago}
                       onChange={(date) => setPaymentData(prev => ({ ...prev, fecha_pago: date }))}
-                      renderInput={(params) => <TextField 
-                        {...params} 
-                        fullWidth 
+                      renderInput={(params) => <TextField
+                        {...params}
+                        fullWidth
                         sx={{
                           '& .MuiInputBase-root': {
                             color: colors.text,
@@ -1412,7 +1589,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     />
                   </LocalizationProvider>
                 </Grid>
-                
+
                 <Grid item xs={12}>
                   <TextField
                     fullWidth
@@ -1447,10 +1624,10 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
               </Grid>
 
               {/* Resumen */}
-              <Card elevation={0} sx={{ 
-                p: 3, 
-                bgcolor: colors.cardBg, 
-                borderRadius: 2, 
+              <Card elevation={0} sx={{
+                p: 3,
+                bgcolor: colors.cardBg,
+                borderRadius: 2,
                 mb: 3,
                 border: `1px solid ${colors.primary}`
               }}>
@@ -1519,11 +1696,11 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         <Typography variant="body1" color={colors.textSecondary} gutterBottom>
           El pago ha sido registrado correctamente en el sistema
         </Typography>
-        
-        <Card elevation={0} sx={{ 
-          p: 3, 
-          mt: 3, 
-          border: `1px solid ${colors.cardBorder}`, 
+
+        <Card elevation={0} sx={{
+          p: 3,
+          mt: 3,
+          border: `1px solid ${colors.cardBorder}`,
           borderRadius: 2,
           bgcolor: colors.paper
         }}>
@@ -1566,10 +1743,10 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
             </Grid>
           </Grid>
         </Card>
-        
+
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
-          <Button 
-            variant="outlined" 
+          <Button
+            variant="outlined"
             onClick={resetForm}
             startIcon={<Add />}
             sx={{
@@ -1583,8 +1760,8 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           >
             Nuevo Pago
           </Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             startIcon={<PrintOutlined />}
             sx={{
               backgroundColor: colors.primary,
@@ -1601,37 +1778,630 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     </Container>
   );
 
+  // Renderizar card de configuración para MercadoPago
+  const renderMercadoPagoConfig = () => (
+    <Card elevation={0} sx={{
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: 2,
+      bgcolor: colors.paper
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <CreditCard sx={{ color: '#00b0ff', fontSize: 32, mr: 2 }} />
+            <Box>
+              <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+                MercadoPago
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Configuración para pagos con MercadoPago
+              </Typography>
+            </Box>
+          </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={config.mercadopago.enabled}
+                onChange={(e) => updateConfig('mercadopago', 'enabled', e.target.checked)}
+                color="primary"
+              />
+            }
+            label={
+              <Chip
+                label={config.mercadopago.enabled ? "Activo" : "Inactivo"}
+                color={config.mercadopago.enabled ? "success" : "default"}
+                size="small"
+              />
+            }
+          />
+        </Box>
+
+        <Accordion expanded={config.mercadopago.enabled} sx={{ bgcolor: 'transparent', boxShadow: 'none' }}>
+          <AccordionDetails sx={{ p: 0 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ color: colors.textSecondary }}>Modo de Operación</InputLabel>
+                  <Select
+                    value={config.mercadopago.mode}
+                    onChange={(e) => updateConfig('mercadopago', 'mode', e.target.value)}
+                    label="Modo de Operación"
+                    sx={{
+                      '& .MuiSelect-select': {
+                        color: colors.text,
+                        backgroundColor: colors.inputBg
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.cardBorder,
+                      },
+                    }}
+                  >
+                    <MenuItem value="sandbox">Sandbox (Pruebas)</MenuItem>
+                    <MenuItem value="live">Live (Producción)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Access Token"
+                  type={showCredentials.mercadopago_token ? "text" : "password"}
+                  value={config.mercadopago.access_token}
+                  onChange={(e) => updateConfig('mercadopago', 'access_token', e.target.value)}
+                  placeholder="TEST-123456789... o APP-123456789..."
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          onClick={() => toggleCredentialVisibility('mercadopago_token')}
+                          size="small"
+                        >
+                          {showCredentials.mercadopago_token ?
+                            <VisibilityOff sx={{ color: colors.textSecondary }} /> :
+                            <Visibility sx={{ color: colors.textSecondary }} />
+                          }
+                        </IconButton>
+                        {config.mercadopago.access_token && (
+                          <IconButton
+                            onClick={() => copyToClipboard(config.mercadopago.access_token, 'Access Token')}
+                            size="small"
+                          >
+                            <ContentCopy sx={{ color: colors.textSecondary }} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Public Key"
+                  value={config.mercadopago.public_key}
+                  onChange={(e) => updateConfig('mercadopago', 'public_key', e.target.value)}
+                  placeholder="TEST-123456789... o APP-123456789..."
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    endAdornment: config.mercadopago.public_key && (
+                      <IconButton
+                        onClick={() => copyToClipboard(config.mercadopago.public_key, 'Public Key')}
+                        size="small"
+                      >
+                        <ContentCopy sx={{ color: colors.textSecondary }} />
+                      </IconButton>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Webhook URL (Opcional)"
+                  value={config.mercadopago.webhook_url}
+                  onChange={(e) => updateConfig('mercadopago', 'webhook_url', e.target.value)}
+                  placeholder="https://tudominio.com/api/webhooks/mercadopago"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Link sx={{ color: colors.textSecondary }} />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={testing.mercadopago ? <CircularProgress size={16} /> : <Biotech />}
+                    onClick={() => testConnection('mercadopago')}
+                    disabled={!config.mercadopago.access_token || !config.mercadopago.public_key || testing.mercadopago}
+                    sx={{
+                      color: colors.primary,
+                      borderColor: colors.primary,
+                      '&:hover': { borderColor: colors.primary, backgroundColor: colors.hover },
+                    }}
+                  >
+                    {testing.mercadopago ? 'Probando...' : 'Probar Conexión'}
+                  </Button>
+
+                  <Alert severity="info" sx={{ flex: 1 }}>
+                    <Typography variant="caption">
+                      Para obtener las credenciales, visita tu cuenta de MercadoPago → Desarrolladores → Credenciales
+                    </Typography>
+                  </Alert>
+                </Box>
+              </Grid>
+            </Grid>
+          </AccordionDetails>
+        </Accordion>
+      </CardContent>
+    </Card>
+  );
+
+  // Renderizar card de configuración para PayPal
+  const renderPayPalConfig = () => (
+    <Card elevation={0} sx={{
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: 2,
+      bgcolor: colors.paper
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <AccountBalance sx={{ color: '#0070ba', fontSize: 32, mr: 2 }} />
+            <Box>
+              <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+                PayPal
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Configuración para pagos con PayPal
+              </Typography>
+            </Box>
+          </Box>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={config.paypal.enabled}
+                onChange={(e) => updateConfig('paypal', 'enabled', e.target.checked)}
+                color="primary"
+              />
+            }
+            label={
+              <Chip
+                label={config.paypal.enabled ? "Activo" : "Inactivo"}
+                color={config.paypal.enabled ? "success" : "default"}
+                size="small"
+              />
+            }
+          />
+        </Box>
+
+        <Accordion expanded={config.paypal.enabled} sx={{ bgcolor: 'transparent', boxShadow: 'none' }}>
+          <AccordionDetails sx={{ p: 0 }}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel sx={{ color: colors.textSecondary }}>Modo de Operación</InputLabel>
+                  <Select
+                    value={config.paypal.mode}
+                    onChange={(e) => updateConfig('paypal', 'mode', e.target.value)}
+                    label="Modo de Operación"
+                    sx={{
+                      '& .MuiSelect-select': {
+                        color: colors.text,
+                        backgroundColor: colors.inputBg
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.cardBorder,
+                      },
+                    }}
+                  >
+                    <MenuItem value="sandbox">Sandbox (Pruebas)</MenuItem>
+                    <MenuItem value="live">Live (Producción)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Client ID"
+                  type={showCredentials.paypal_id ? "text" : "password"}
+                  value={config.paypal.client_id}
+                  onChange={(e) => updateConfig('paypal', 'client_id', e.target.value)}
+                  placeholder="AYaRi5dbGmcaSuvEz..."
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          onClick={() => toggleCredentialVisibility('paypal_id')}
+                          size="small"
+                        >
+                          {showCredentials.paypal_id ?
+                            <VisibilityOff sx={{ color: colors.textSecondary }} /> :
+                            <Visibility sx={{ color: colors.textSecondary }} />
+                          }
+                        </IconButton>
+                        {config.paypal.client_id && (
+                          <IconButton
+                            onClick={() => copyToClipboard(config.paypal.client_id, 'Client ID')}
+                            size="small"
+                          >
+                            <ContentCopy sx={{ color: colors.textSecondary }} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Client Secret"
+                  type={showCredentials.paypal_secret ? "text" : "password"}
+                  value={config.paypal.client_secret}
+                  onChange={(e) => updateConfig('paypal', 'client_secret', e.target.value)}
+                  placeholder="EHJtX2KQPg3Uo..."
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <IconButton
+                          onClick={() => toggleCredentialVisibility('paypal_secret')}
+                          size="small"
+                        >
+                          {showCredentials.paypal_secret ?
+                            <VisibilityOff sx={{ color: colors.textSecondary }} /> :
+                            <Visibility sx={{ color: colors.textSecondary }} />
+                          }
+                        </IconButton>
+                        {config.paypal.client_secret && (
+                          <IconButton
+                            onClick={() => copyToClipboard(config.paypal.client_secret, 'Client Secret')}
+                            size="small"
+                          >
+                            <ContentCopy sx={{ color: colors.textSecondary }} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={6}>
+                <TextField
+                  fullWidth
+                  label="Webhook URL (Opcional)"
+                  value={config.paypal.webhook_url}
+                  onChange={(e) => updateConfig('paypal', 'webhook_url', e.target.value)}
+                  placeholder="https://tudominio.com/api/webhooks/paypal"
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': { borderColor: colors.cardBorder },
+                      '&:hover fieldset': { borderColor: colors.primary },
+                      '&.Mui-focused fieldset': { borderColor: colors.primary },
+                    },
+                    '& .MuiInputLabel-root': { color: colors.textSecondary },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Link sx={{ color: colors.textSecondary }} />
+                      </InputAdornment>
+                    )
+                  }}
+                />
+              </Grid>
+
+              <Grid item xs={12}>
+                <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    startIcon={testing.paypal ? <CircularProgress size={16} /> : <Biotech />}
+                    onClick={() => testConnection('paypal')}
+                    disabled={!config.paypal.client_id || !config.paypal.client_secret || testing.paypal}
+                    sx={{
+                      color: colors.primary,
+                      borderColor: colors.primary,
+                      '&:hover': { borderColor: colors.primary, backgroundColor: colors.hover },
+                    }}
+                  >
+                    {testing.paypal ? 'Probando...' : 'Probar Conexión'}
+                  </Button>
+
+                  <Alert severity="info" sx={{ flex: 1 }}>
+                    <Typography variant="caption">
+                      Para obtener las credenciales, visita PayPal Developer → My Apps & Credentials
+                    </Typography>
+                  </Alert>
+                </Box>
+              </Grid>
+            </Grid>
+          </AccordionDetails>
+        </Accordion>
+      </CardContent>
+    </Card>
+  );
+
+  // Renderizar resumen de estado
+  const renderStatusSummary = () => (
+    <Card elevation={0} sx={{
+      border: `1px solid ${colors.cardBorder}`,
+      borderRadius: 2,
+      bgcolor: colors.paper,
+      mb: 3
+    }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text, mb: 2 }}>
+          Estado de Métodos de Pago
+        </Typography>
+
+        <Grid container spacing={2}>
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <MonetizationOn sx={{ color: colors.success, mr: 1 }} />
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.text }}>
+                  Efectivo
+                </Typography>
+              </Box>
+              <Chip label="Siempre Activo" color="success" size="small" />
+              <Typography variant="caption" display="block" color={colors.textSecondary} sx={{ mt: 1 }}>
+                Pagos presenciales en la clínica
+              </Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <CreditCard sx={{ color: '#00b0ff', mr: 1 }} />
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.text }}>
+                  MercadoPago
+                </Typography>
+              </Box>
+              <Chip
+                label={config.mercadopago.enabled ? "Configurado" : "Inactivo"}
+                color={config.mercadopago.enabled ? "success" : "default"}
+                size="small"
+              />
+              <Typography variant="caption" display="block" color={colors.textSecondary} sx={{ mt: 1 }}>
+                Modo: {config.mercadopago.mode === 'sandbox' ? 'Pruebas' : 'Producción'}
+              </Typography>
+            </Paper>
+          </Grid>
+
+          <Grid item xs={12} md={4}>
+            <Paper sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                <AccountBalance sx={{ color: '#0070ba', mr: 1 }} />
+                <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.text }}>
+                  PayPal
+                </Typography>
+              </Box>
+              <Chip
+                label={config.paypal.enabled ? "Configurado" : "Inactivo"}
+                color={config.paypal.enabled ? "success" : "default"}
+                size="small"
+              />
+              <Typography variant="caption" display="block" color={colors.textSecondary} sx={{ mt: 1 }}>
+                Modo: {config.paypal.mode === 'sandbox' ? 'Pruebas' : 'Producción'}
+              </Typography>
+            </Paper>
+          </Grid>
+        </Grid>
+      </CardContent>
+    </Card>
+  );
   return (
     <Container maxWidth="xl" sx={{ py: 3, bgcolor: colors.background, minHeight: '100vh' }}>
       {loading && <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, '& .MuiLinearProgress-bar': { backgroundColor: colors.primary } }} />}
-      
+
       {/* Header */}
       <Box sx={{ mb: 4 }}>
         <Typography variant="h3" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
           Gestión de Finanzas
         </Typography>
         <Typography variant="h6" color={colors.textSecondary}>
-          Sistema de pagos y cobros
+          Sistema de pagos y configuración
         </Typography>
       </Box>
+
+      {/* Tabs principales */}
+      <Paper elevation={0} sx={{
+        mb: 3,
+        borderRadius: 2,
+        bgcolor: colors.paper,
+        border: `1px solid ${colors.cardBorder}`
+      }}>
+        <Tabs
+          value={mainActiveTab}
+          onChange={(e, v) => setMainActiveTab(v)}
+          variant="fullWidth"
+          sx={{
+            borderBottom: `1px solid ${colors.cardBorder}`,
+            '& .MuiTab-root': {
+              color: colors.textSecondary,
+              '&.Mui-selected': {
+                color: colors.primary,
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: colors.primary,
+            },
+          }}
+        >
+          <Tab
+            icon={<Payment />}
+            label="Gestión de Pagos"
+            iconPosition="start"
+          />
+          <Tab
+            icon={<Settings />}
+            label="Configuración"
+            iconPosition="start"
+          />
+        </Tabs>
+      </Paper>
 
       {/* Contenido principal */}
       <Fade in={true} timeout={300}>
         <Box>
-          {currentStep === 'selection' && (
+          {/* Tab Gestión de Pagos */}
+          {mainActiveTab === 0 && (
             <>
-              {renderEstadisticas()}
-              {renderPacientesList()}
+              {currentStep === 'selection' && (
+                <>
+                  {renderEstadisticas()}
+                  {renderPacientesList()}
+                </>
+              )}
+
+              {currentStep === 'payment' && renderProcesarPago()}
+
+              {currentStep === 'success' && renderExito()}
             </>
           )}
-          
-          {currentStep === 'payment' && renderProcesarPago()}
-          
-          {currentStep === 'success' && renderExito()}
+
+          {/* Tab Configuración */}
+          {mainActiveTab === 1 && (
+            <Box>
+              {configLoading ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                  <CircularProgress sx={{ color: colors.primary }} />
+                </Box>
+              ) : (
+                <Grid container spacing={3}>
+                  {/* Resumen de estado */}
+                  <Grid item xs={12}>
+                    {renderStatusSummary()}
+                  </Grid>
+
+                  {/* Configuración MercadoPago */}
+                  <Grid item xs={12}>
+                    {renderMercadoPagoConfig()}
+                  </Grid>
+
+                  {/* Configuración PayPal */}
+                  <Grid item xs={12}>
+                    {renderPayPalConfig()}
+                  </Grid>
+
+                  {/* Botones de acción */}
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                      <Button
+                        variant="outlined"
+                        onClick={loadConfiguration}
+                        disabled={saving}
+                        startIcon={<Refresh />}
+                        sx={{
+                          color: colors.primary,
+                          borderColor: colors.primary,
+                          '&:hover': {
+                            borderColor: colors.primary,
+                            backgroundColor: colors.hover,
+                          },
+                        }}
+                      >
+                        Recargar
+                      </Button>
+                      <Button
+                        variant="contained"
+                        onClick={saveConfiguration}
+                        disabled={saving}
+                        startIcon={saving ? <CircularProgress size={16} /> : <Save />}
+                        sx={{
+                          backgroundColor: colors.primary,
+                          color: colors.paper,
+                          '&:hover': {
+                            backgroundColor: colors.primaryLight,
+                          },
+                        }}
+                      >
+                        {saving ? 'Guardando...' : 'Guardar Configuración'}
+                      </Button>
+                    </Box>
+                  </Grid>
+                </Grid>
+              )}
+            </Box>
+          )}
         </Box>
       </Fade>
 
-      {/* Diálogo de confirmación */}
+      {/* Diálogo de confirmación de pago */}
       <Dialog open={showConfirmDialog} onClose={() => setShowConfirmDialog(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
           <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
@@ -1661,9 +2431,9 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           <Button onClick={() => setShowConfirmDialog(false)} variant="outlined" sx={{ color: colors.textSecondary, borderColor: colors.textSecondary }}>
             Cancelar
           </Button>
-          <Button 
-            onClick={procesarPagoConfirmado} 
-            variant="contained" 
+          <Button
+            onClick={procesarPagoConfirmado}
+            variant="contained"
             disabled={loading}
             startIcon={loading ? <CircularProgress size={16} /> : <CheckCircle />}
             sx={{
@@ -1763,6 +2533,54 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           </Button>
           <Button startIcon={<PrintOutlined />} variant="contained" sx={{ backgroundColor: colors.primary, color: colors.paper }}>
             Imprimir
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de resultados de prueba */}
+      <Dialog
+        open={showTestDialog}
+        onClose={() => setShowTestDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            {testResults?.success ? (
+              <CheckCircle sx={{ color: colors.success, mr: 2 }} />
+            ) : (
+              <Error sx={{ color: colors.error, mr: 2 }} />
+            )}
+            <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+              Resultado de Prueba - {activeProvider}
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          {testResults && (
+            <Box>
+              <Alert severity={testResults.success ? "success" : "error"} sx={{ mb: 2 }}>
+                {testResults.message}
+              </Alert>
+
+              {testResults.details && Object.keys(testResults.details).length > 0 && (
+                <Card elevation={0} sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                    Detalles de la Conexión:
+                  </Typography>
+                  {Object.entries(testResults.details).map(([key, value]) => (
+                    <Typography key={key} variant="body2" sx={{ color: colors.text, mb: 1 }}>
+                      <strong>{key}:</strong> {String(value)}
+                    </Typography>
+                  ))}
+                </Card>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowTestDialog(false)} variant="contained" sx={{ backgroundColor: colors.primary, color: colors.paper }}>
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
