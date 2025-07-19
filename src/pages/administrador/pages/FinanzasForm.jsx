@@ -35,7 +35,12 @@ import {
   Tooltip,
   Menu,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Container,
+  Stepper,
+  Step,
+  StepLabel,
+  LinearProgress
 } from '@mui/material';
 import {
   Receipt,
@@ -46,14 +51,11 @@ import {
   CheckCircle,
   PaymentsTwoTone,
   Search,
-  AccountBalance,
   MonetizationOn,
-  CreditCard,
   AccountBalanceWallet,
   Warning,
   PersonSearch,
   ArrowBack,
-  Email,
   ConfirmationNumber,
   Phone,
   CalendarToday,
@@ -68,108 +70,49 @@ import {
   GetApp,
   FileCopy,
   Info,
-  Close
+  Close,
+  Add,
+  TrendingUp,
+  AttachMoney,
+  Email
 } from '@mui/icons-material';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider, DateTimePicker } from '@mui/x-date-pickers';
 import { es } from 'date-fns/locale';
 import axios from 'axios';
 import { useAuth } from '../../../components/Tools/AuthContext';
+import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
-import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
-
-const PayPalPayment = ({
-  amount,
-  pacienteId,
-  citaId,
-  concepto,
-  onSuccess,
-  onError,
-  disabled = false
-}) => {
-  const initialOptions = {
-    "client-id": "AYaRi5dbGmcaSuvEzcQFQVIDPJXZkBwm4jDBS1qtsj_z9cYzSU7lefnBIceXQyKE1NvJJOtOJdZh6_w7",
-    currency: "USD",
-    intent: "capture",
-  };
-
-  const createOrder = async (data, actions) => {
-    try {
-      const response = await axios.post(
-        'https://back-end-4803.onrender.com/api/Finanzas/PayPal/crear-orden',
-        {
-          paciente_id: pacienteId,
-          cita_id: citaId,
-          monto: amount,
-          concepto: concepto
-        }
-      );
-
-      return response.data.order_id;
-    } catch (error) {
-      console.error('Error creando orden PayPal:', error);
-      onError(error);
-    }
-  };
-
-  const onApprove = async (data, actions) => {
-    try {
-      const response = await axios.post(
-        'https://back-end-4803.onrender.com/api/Finanzas/PayPal/capturar-orden',
-        {
-          orderID: data.orderID
-        }
-      );
-
-      if (response.data.status === 'COMPLETED') {
-        onSuccess(response.data);
-      } else {
-        onError('Pago no completado');
-      }
-    } catch (error) {
-      console.error('Error capturando pago PayPal:', error);
-      onError(error);
-    }
-  };
-
-  if (disabled) {
-    return (
-      <Box sx={{ p: 2, textAlign: 'center', bgcolor: 'grey.100', borderRadius: 1 }}>
-        <Typography variant="body2" color="text.secondary">
-          PayPal no disponible temporalmente
-        </Typography>
-      </Box>
-    );
-  }
-
-  return (
-    <PayPalScriptProvider options={initialOptions}>
-      <PayPalButtons
-        createOrder={createOrder}
-        onApprove={onApprove}
-        onError={(err) => {
-          console.error('PayPal Checkout onError', err);
-          onError(err);
-        }}
-        style={{
-          layout: "vertical",
-          color: "blue",
-          shape: "rect",
-          label: "paypal"
-        }}
-      />
-    </PayPalScriptProvider>
-  );
-};
 
 const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const { user } = useAuth();
+  const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  // Configuración de colores para tema oscuro/claro
+  const colors = {
+    background: isDarkTheme ? '#121212' : '#fafafa',
+    paper: isDarkTheme ? '#1e1e1e' : '#ffffff',
+    text: isDarkTheme ? '#ffffff' : '#000000',
+    textSecondary: isDarkTheme ? '#b0b0b0' : '#666666',
+    primary: isDarkTheme ? '#90caf9' : '#1976d2',
+    primaryLight: isDarkTheme ? '#bbdefb' : '#42a5f5',
+    success: isDarkTheme ? '#81c784' : '#4caf50',
+    warning: isDarkTheme ? '#ffb74d' : '#ff9800',
+    error: isDarkTheme ? '#f48fb1' : '#f44336',
+    info: isDarkTheme ? '#81d4fa' : '#2196f3',
+    cardBg: isDarkTheme ? '#2c2c2c' : '#f5f5f5',
+    cardBorder: isDarkTheme ? '#404040' : '#e0e0e0',
+    inputBg: isDarkTheme ? '#333333' : '#ffffff',
+    buttonBg: isDarkTheme ? '#404040' : '#f0f0f0',
+    hover: isDarkTheme ? '#333333' : '#f5f5f5',
+    disabled: isDarkTheme ? '#616161' : '#bdbdbd'
+  };
+
   // Estados principales
   const [currentStep, setCurrentStep] = useState('selection');
-  const [activeTab, setActiveTab] = useState(1); // 0: Buscar, 1: Deudas, 2: Pagados
+  const [activeTab, setActiveTab] = useState(0); // 0: Deudas, 1: Pagados, 2: Buscar
   const [loading, setLoading] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
@@ -189,24 +132,24 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const [selectedPago, setSelectedPago] = useState(null);
 
   // Estados para filtros
+  const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [filtros, setFiltros] = useState({
     montoMin: '',
     montoMax: '',
-    fechaDesde: null,
-    fechaHasta: null,
     ordenarPor: 'deuda_desc'
   });
+
+  // Estados de notificaciones
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState('info');
   const [formErrors, setFormErrors] = useState({});
 
-  // Estado del formulario de pago
+  // Estado del formulario de pago - SIMPLIFICADO SOLO EFECTIVO
   const [paymentData, setPaymentData] = useState({
     metodo_pago: 'Efectivo',
     fecha_pago: new Date(),
-    email_pagador: '',
     referencia: '',
     notas: ''
   });
@@ -235,7 +178,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       const todasCitas = citasResponse.data;
       const todosPagos = pagosResponse.data;
 
-      // Filtrar citas completadas
       const citasCompletadas = todasCitas.filter(cita =>
         cita.estado === 'Completada' &&
         cita.precio_servicio &&
@@ -280,7 +222,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         };
 
         if (pagoRelacionado) {
-          // Paciente con pago
           if (!pagadosPorPaciente[pacienteId]) {
             pagadosPorPaciente[pacienteId] = {
               ...datosBasicos,
@@ -297,7 +238,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
             pagadosPorPaciente[pacienteId].ultimoPago = pagoRelacionado.fecha_pago;
           }
         } else {
-          // Paciente con deuda
           if (!deudasPorPaciente[pacienteId]) {
             deudasPorPaciente[pacienteId] = {
               ...datosBasicos,
@@ -352,10 +292,12 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     const fetchPacientes = async () => {
       try {
         const response = await axios.get('https://back-end-4803.onrender.com/api/reportes/pacientes');
-        setPacientes(response.data);
+        // Asegurar que siempre sea un array
+        setPacientes(Array.isArray(response.data) ? response.data : []);
         await fetchPacientesConDeudas();
       } catch (err) {
         console.error('Error al cargar pacientes:', err);
+        setPacientes([]); // Set array vacío en error
         showNotif('Error al cargar pacientes', 'error');
       }
     };
@@ -378,7 +320,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   const handleVerDetalles = async (pago, paciente) => {
     try {
       setLoading(true);
-      // Buscar información completa del pago
       const response = await axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/${pago.pago.id}`);
       setSelectedPaymentDetails({
         pago: response.data,
@@ -435,11 +376,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
 
       setSelectedCita(cita);
 
-      setPaymentData(prev => ({
-        ...prev,
-        email_pagador: pacienteData.correo || ''
-      }));
-
       setCurrentStep('payment');
 
       try {
@@ -484,10 +420,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
           id: cita.consulta_id,
           precio_servicio: parseFloat(cita.precio_servicio) || 0
         });
-        setPaymentData(prev => ({
-          ...prev,
-          email_pagador: paciente.email || ''
-        }));
         setCurrentStep('payment');
       } else {
         showNotif('Este paciente tiene múltiples servicios pendientes. Seleccione uno específico desde la lista de deudas.', 'info');
@@ -529,26 +461,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
       return;
     }
 
-    const errors = {};
-
-    if (paymentData.metodo_pago === 'MercadoPago' && !paymentData.email_pagador.trim()) {
-      errors.email_pagador = 'Email requerido para MercadoPago';
-    }
-
-    if (paymentData.metodo_pago === 'PayPal' && !paymentData.email_pagador.trim()) {
-      errors.email_pagador = 'Email requerido para PayPal';
-    }
-
-    if ((paymentData.metodo_pago === 'MercadoPago' || paymentData.metodo_pago === 'PayPal') && !paymentData.referencia.trim()) {
-      errors.referencia = 'Referencia/ID de transacción requerida';
-    }
-
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      showNotif('Complete todos los campos requeridos', 'warning');
-      return;
-    }
-
     setFormErrors({});
     setShowConfirmDialog(true);
   };
@@ -570,76 +482,7 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
 
       const totales = calcularTotales();
 
-      // NUEVO: Manejo específico para MercadoPago
-      if (paymentData.metodo_pago === 'MercadoPago') {
-        try {
-          const mpResponse = await axios.post(
-            'https://back-end-4803.onrender.com/api/Finanzas/MercadoPago/crear-preferencia',
-            {
-              paciente_id: selectedPaciente.id,
-              cita_id: citaId,
-              monto: totales.total,
-              concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
-              email_paciente: paymentData.email_pagador
-            }
-          );
-
-          // Abrir MercadoPago en nueva ventana
-          const ventanaMP = window.open(mpResponse.data.init_point, '_blank');
-
-          showNotif('Redirigiendo a MercadoPago. Complete el pago en la nueva ventana.', 'info');
-
-          // Simular éxito para efectos de demostración
-          // En producción, esto se maneja con webhooks
-          setTimeout(() => {
-            if (ventanaMP && !ventanaMP.closed) {
-              showNotif('Procesando pago en MercadoPago...', 'info');
-            }
-          }, 3000);
-
-          // Registrar intento de pago
-          const pagoMercadoPago = {
-            paciente_id: selectedPaciente.id,
-            cita_id: citaId,
-            monto: totales.total,
-            subtotal: totales.subtotal,
-            total: totales.total,
-            concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
-            metodo_pago: 'MercadoPago',
-            fecha_pago: paymentData.fecha_pago,
-            estado: 'Pendiente', // Se actualiza con webhook
-            comprobante: mpResponse.data.preference_id,
-            notas: `Preferencia MercadoPago: ${mpResponse.data.preference_id}`
-          };
-
-          const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos', pagoMercadoPago);
-
-          showNotif('Solicitud de pago MercadoPago creada. Complete el pago en la ventana.', 'success');
-          setCurrentStep('success');
-          await fetchPacientesConDeudas();
-
-          setTimeout(() => {
-            if (onSave) onSave(response.data);
-          }, 4000);
-
-          return;
-
-        } catch (mpError) {
-          console.error('Error MercadoPago:', mpError);
-          showNotif('Error al procesar con MercadoPago: ' + (mpError.response?.data?.error || mpError.message), 'error');
-          setLoading(false);
-          return;
-        }
-      }
-
-      // NUEVO: Manejo para PayPal se hace en el componente PayPal directamente
-      if (paymentData.metodo_pago === 'PayPal') {
-        showNotif('Use los botones de PayPal para completar el pago', 'info');
-        setLoading(false);
-        return;
-      }
-
-      // CÓDIGO ORIGINAL: Para Efectivo y otros métodos
+      // PAGO EN EFECTIVO - SIMPLIFICADO
       const pagoCompleto = {
         paciente_id: selectedPaciente.id,
         cita_id: citaId,
@@ -647,24 +490,24 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
         subtotal: totales.subtotal,
         total: totales.total,
         concepto: `Pago por servicio: ${selectedCita.servicio_nombre}`,
-        metodo_pago: paymentData.metodo_pago,
+        metodo_pago: 'Efectivo',
         fecha_pago: paymentData.fecha_pago,
         estado: 'Pagado',
-        comprobante: paymentData.referencia || `${paymentData.metodo_pago.substring(0, 3).toUpperCase()}-${Date.now()}`,
-        notas: paymentData.notas || `Pago procesado vía ${paymentData.metodo_pago}`
+        comprobante: paymentData.referencia || `EFE-${Date.now()}`,
+        notas: paymentData.notas || 'Pago procesado en efectivo'
       };
 
-      const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos', pagoCompleto);
+      // USAR ENDPOINT UPSERT PARA EVITAR DUPLICADOS
+      const response = await axios.post('https://back-end-4803.onrender.com/api/Finanzas/Pagos/upsert', pagoCompleto);
 
-      showNotif('¡Pago procesado exitosamente!', 'success');
+      showNotif('Pago procesado exitosamente', 'success');
       setCurrentStep('success');
 
-      // ACTUALIZAR LISTAS DESPUÉS DEL PAGO EXITOSO
       await fetchPacientesConDeudas();
 
       setTimeout(() => {
         if (onSave) onSave(response.data);
-      }, 4000);
+      }, 3000);
 
     } catch (err) {
       console.error('Error al procesar pago:', err);
@@ -673,37 +516,6 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Manejar éxito de PayPal 
-  const handlePayPalSuccess = async (details) => {
-    try {
-      setLoading(true);
-      showNotif('¡Pago PayPal exitoso! Procesando...', 'success');
-
-      // El pago ya se guardó automáticamente en el backend
-      setCurrentStep('success');
-
-      // Actualizar listas
-      await fetchPacientesConDeudas();
-
-      setTimeout(() => {
-        if (onSave) onSave({ id: details.id, message: 'Pago PayPal completado' });
-      }, 4000);
-
-    } catch (error) {
-      console.error('Error procesando éxito PayPal:', error);
-      showNotif('Error procesando pago PayPal', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Manejar error de PayPal
-  const handlePayPalError = (error) => {
-    console.error('Error PayPal:', error);
-    showNotif('Error en PayPal: ' + (error.message || 'Error desconocido'), 'error');
-    setLoading(false);
   };
 
   // Cancelar y resetear
@@ -728,386 +540,658 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     setPaymentData({
       metodo_pago: 'Efectivo',
       fecha_pago: new Date(),
-      email_pagador: '',
       referencia: '',
       notas: ''
     });
     setFormErrors({});
-    setActiveTab(1);
+    setActiveTab(0);
+    setSearchTerm('');
     setFiltros({
       montoMin: '',
       montoMax: '',
-      fechaDesde: null,
-      fechaHasta: null,
       ordenarPor: 'deuda_desc'
     });
   };
 
-  // Aplicar filtros
-  const aplicarFiltros = (lista, tipo = 'deudas') => {
+  // Filtrar listas
+  const filtrarPacientes = (lista, tipo = 'deudas') => {
     return lista.filter(paciente => {
-      const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
-      const fecha = tipo === 'deudas' ? paciente.ultimaCita : paciente.ultimoPago;
+      const nombreCompleto = `${paciente.nombre} ${paciente.apellido_paterno} ${paciente.apellido_materno}`.toLowerCase();
+      const telefono = paciente.telefono?.toLowerCase() || '';
+      const email = paciente.correo?.toLowerCase() || '';
+      const busqueda = searchTerm.toLowerCase();
+      
+      const coincideBusqueda = nombreCompleto.includes(busqueda) || 
+                             telefono.includes(busqueda) || 
+                             email.includes(busqueda);
 
+      if (!coincideBusqueda) return false;
+
+      const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
+      
       if (filtros.montoMin && monto < parseFloat(filtros.montoMin)) return false;
       if (filtros.montoMax && monto > parseFloat(filtros.montoMax)) return false;
-
-      if (filtros.fechaDesde || filtros.fechaHasta) {
-        const fechaReferencia = new Date(fecha);
-        if (filtros.fechaDesde && fechaReferencia < filtros.fechaDesde) return false;
-        if (filtros.fechaHasta && fechaReferencia > filtros.fechaHasta) return false;
-      }
 
       return true;
     }).sort((a, b) => {
       const montoA = tipo === 'deudas' ? a.totalDeuda : a.totalPagado;
       const montoB = tipo === 'deudas' ? b.totalDeuda : b.totalPagado;
-      const fechaA = tipo === 'deudas' ? a.ultimaCita : a.ultimoPago;
-      const fechaB = tipo === 'deudas' ? b.ultimaCita : b.ultimoPago;
 
       switch (filtros.ordenarPor) {
         case 'deuda_asc': return montoA - montoB;
         case 'deuda_desc': return montoB - montoA;
-        case 'fecha_desc': return new Date(fechaB) - new Date(fechaA);
-        case 'fecha_asc': return new Date(fechaA) - new Date(fechaB);
         case 'nombre': return `${a.nombre} ${a.apellido_paterno}`.localeCompare(`${b.nombre} ${b.apellido_paterno}`);
         default: return montoB - montoA;
       }
     });
   };
 
-  // Renderizar filtros compactos
-  const renderFiltrosCompactos = () => (
-    <Paper elevation={0} sx={{ mb: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
-      <Box sx={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        p: 1,
-        cursor: 'pointer'
-      }} onClick={() => setShowFilters(!showFilters)}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <FilterList sx={{ mr: 1, fontSize: 18, color: 'text.secondary' }} />
-          <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>
-            Filtros
-          </Typography>
-          {(filtros.montoMin || filtros.montoMax || filtros.fechaDesde || filtros.fechaHasta) && (
-            <Chip label="Activos" size="small" color="primary" sx={{ ml: 1, height: 18, fontSize: '0.7rem' }} />
-          )}
-        </Box>
-        <Tooltip title="Actualizar datos">
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); fetchPacientesConDeudas(); }} disabled={loading}>
-            <Refresh sx={{ fontSize: 16 }} />
-          </IconButton>
-        </Tooltip>
-      </Box>
+  const pacientesFiltradosDeudas = filtrarPacientes(pacientesConDeudas, 'deudas');
+  const pacientesFiltradosPagados = filtrarPacientes(pacientesPagados, 'pagados');
 
-      <Collapse in={showFilters}>
-        <Divider />
-        <Box sx={{ p: 1.5 }}>
-          <Grid container spacing={1.5} alignItems="center">
-            <Grid item xs={6} sm={2}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Min $"
-                type="number"
-                value={filtros.montoMin}
-                onChange={(e) => setFiltros(prev => ({ ...prev, montoMin: e.target.value }))}
-                sx={{ '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
-              />
-            </Grid>
-            <Grid item xs={6} sm={2}>
-              <TextField
-                size="small"
-                fullWidth
-                label="Max $"
-                type="number"
-                value={filtros.montoMax}
-                onChange={(e) => setFiltros(prev => ({ ...prev, montoMax: e.target.value }))}
-                sx={{ '& .MuiInputBase-input': { fontSize: '0.875rem' } }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <FormControl size="small" fullWidth>
-                <InputLabel sx={{ fontSize: '0.875rem' }}>Ordenar por</InputLabel>
-                <Select
-                  value={filtros.ordenarPor}
-                  onChange={(e) => setFiltros(prev => ({ ...prev, ordenarPor: e.target.value }))}
-                  label="Ordenar por"
-                  sx={{ '& .MuiSelect-select': { fontSize: '0.875rem' } }}
-                >
-                  <MenuItem value="deuda_desc">Mayor monto</MenuItem>
-                  <MenuItem value="deuda_asc">Menor monto</MenuItem>
-                  <MenuItem value="fecha_desc">Más reciente</MenuItem>
-                  <MenuItem value="fecha_asc">Más antiguo</MenuItem>
-                  <MenuItem value="nombre">Nombre A-Z</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <Button
-                size="small"
-                variant="outlined"
-                fullWidth
-                onClick={() => setFiltros({
-                  montoMin: '',
-                  montoMax: '',
-                  fechaDesde: null,
-                  fechaHasta: null,
-                  ordenarPor: 'deuda_desc'
-                })}
-                sx={{ fontSize: '0.75rem' }}
-              >
-                Limpiar
-              </Button>
-            </Grid>
-          </Grid>
-        </Box>
-      </Collapse>
-    </Paper>
-  );
-
-  // Renderizar tarjeta de paciente compacta
-  const renderPacienteCard = (paciente, tipo = 'deudas') => {
-    const monto = tipo === 'deudas' ? paciente.totalDeuda : paciente.totalPagado;
-    const servicios = tipo === 'deudas' ? paciente.citasPendientes : paciente.citasPagadas;
-    const fecha = tipo === 'deudas' ? paciente.ultimaCita : paciente.ultimoPago;
-    const color = tipo === 'deudas' ? 'error' : 'success';
-
-    return (
-      <Card
-        key={paciente.paciente_id}
-        elevation={0}
-        sx={{
-          mb: 1,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 1.5,
-          cursor: 'pointer',
-          transition: 'all 0.2s ease-in-out',
-          '&:hover': {
-            borderColor: 'primary.main',
-            boxShadow: 1,
-            transform: 'translateY(-1px)'
-          },
-          opacity: loading ? 0.7 : 1,
-          pointerEvents: loading ? 'none' : 'auto'
-        }}
-        onClick={async () => {
-          if (tipo === 'deudas') {
-            if (servicios.length === 1) {
-              await handleSelectPacienteConDeuda(paciente, servicios[0]);
-            } else {
-              showNotif(`${paciente.nombre} tiene ${servicios.length} servicios pendientes. Seleccione uno específico.`, 'info');
-            }
-          } else if (tipo === 'pagados') {
-            // Mostrar detalles directamente al hacer click
-            if (servicios.length > 0) {
-              await handleVerDetalles(servicios[0], paciente);
-            }
-          }
-        }}
-      >
-        <CardContent sx={{ p: 1.5 }}>
-          <Grid container spacing={1.5} alignItems="center">
-            <Grid item xs={12} md={7}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Tooltip title={`${paciente.nombre} ${paciente.apellido_paterno} - ${tipo === 'deudas' ? 'Click para cobrar' : 'Click para ver detalles'}`}>
-                  <Avatar
-                    sx={{
-                      bgcolor: `${color}.main`,
-                      mr: 1.5,
-                      width: 36,
-                      height: 36,
-                      fontSize: '0.9rem',
-                      fontWeight: 600
-                    }}
-                  >
-                    {(paciente.nombre || 'P').charAt(0)}
-                  </Avatar>
-                </Tooltip>
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography variant="subtitle2" fontWeight="600" sx={{ fontSize: '0.875rem', mb: 0.25 }} noWrap>
-                    {`${paciente.nombre} ${paciente.apellido_paterno} ${paciente.apellido_materno || ''}`.trim()}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                    {paciente.telefono && (
-                      <Tooltip title="Teléfono">
-                        <span>{paciente.telefono}</span>
-                      </Tooltip>
-                    )}
-                    {fecha && (
-                      <Tooltip title={tipo === 'deudas' ? 'Última cita' : 'Último pago'}>
-                        <span>
-                          {paciente.telefono && ' • '}
-                          {new Date(fecha).toLocaleDateString('es-ES')}
-                        </span>
-                      </Tooltip>
-                    )}
-                  </Typography>
-                </Box>
-                <Box sx={{ textAlign: 'right', ml: 1 }}>
-                  <Typography variant="h6" color={`${color}.main`} fontWeight="700" sx={{ fontSize: '1rem' }}>
-                    ${monto.toFixed(2)}
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.7rem' }}>
-                    {servicios.length} servicio(s)
-                  </Typography>
-                </Box>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={5}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, flex: 1 }}>
-                  {servicios.slice(0, 2).map((servicio, index) => (
-                    <Tooltip key={index} title={`${servicio.servicio_nombre} - $${servicio.precio_servicio.toFixed(2)}`}>
-                      <Chip
-                        label={`${servicio.servicio_nombre.slice(0, 10)}${servicio.servicio_nombre.length > 10 ? '...' : ''} • $${servicio.precio_servicio.toFixed(2)}`}
-                        size="small"
-                        variant="outlined"
-                        color={color}
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                        onClick={tipo === 'deudas' ? (e) => {
-                          e.stopPropagation();
-                          handleSelectPacienteConDeuda(paciente, servicio);
-                        } : undefined}
-                      />
-                    </Tooltip>
-                  ))}
-                  {servicios.length > 2 && (
-                    <Tooltip title={`Ver ${servicios.length - 2} servicios más`}>
-                      <Chip
-                        label={`+${servicios.length - 2}`}
-                        size="small"
-                        variant="outlined"
-                        color="default"
-                        sx={{ fontSize: '0.7rem', height: 20 }}
-                      />
-                    </Tooltip>
-                  )}
-                </Box>
-
-                {tipo === 'pagados' && (
-                  <Tooltip title="Más opciones">
-                    <IconButton
-                      size="small"
-                      sx={{ ml: 1 }}
-                      onClick={(e) => handleMenuClick(e, servicios[0], paciente)}
-                    >
-                      <MoreVert sx={{ fontSize: 16 }} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    );
+  // Estadísticas
+  const estadisticas = {
+    totalDeudas: pacientesFiltradosDeudas.reduce((sum, p) => sum + p.totalDeuda, 0),
+    totalPagados: pacientesFiltradosPagados.reduce((sum, p) => sum + p.totalPagado, 0),
+    pacientesConDeudas: pacientesFiltradosDeudas.length,
+    pacientesPagados: pacientesFiltradosPagados.length
   };
 
-  // Renderizar selección de pacientes
-  const renderSeleccionPacientes = () => {
-    const pacientesFiltradosDeudas = aplicarFiltros(pacientesConDeudas, 'deudas');
-    const pacientesFiltradosPagados = aplicarFiltros(pacientesPagados, 'pagados');
+  // Render de estadísticas
+  const renderEstadisticas = () => (
+    <Grid container spacing={3} sx={{ mb: 3 }}>
+      <Grid item xs={6} md={3}>
+        <Card elevation={0} sx={{ 
+          p: 2, 
+          bgcolor: colors.cardBg, 
+          borderRadius: 2,
+          border: `1px solid ${colors.cardBorder}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" color={colors.error}>
+                {estadisticas.pacientesConDeudas}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Deudas pendientes
+              </Typography>
+            </Box>
+            <Warning sx={{ fontSize: 32, color: colors.error }} />
+          </Box>
+        </Card>
+      </Grid>
+      <Grid item xs={6} md={3}>
+        <Card elevation={0} sx={{ 
+          p: 2, 
+          bgcolor: colors.cardBg, 
+          borderRadius: 2,
+          border: `1px solid ${colors.cardBorder}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" color={colors.success}>
+                {estadisticas.pacientesPagados}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Pagos completados
+              </Typography>
+            </Box>
+            <CheckCircle sx={{ fontSize: 32, color: colors.success }} />
+          </Box>
+        </Card>
+      </Grid>
+      <Grid item xs={6} md={3}>
+        <Card elevation={0} sx={{ 
+          p: 2, 
+          bgcolor: colors.cardBg, 
+          borderRadius: 2,
+          border: `1px solid ${colors.cardBorder}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" color={colors.error}>
+                ${estadisticas.totalDeudas.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Total adeudado
+              </Typography>
+            </Box>
+            <TrendingUp sx={{ fontSize: 32, color: colors.error }} />
+          </Box>
+        </Card>
+      </Grid>
+      <Grid item xs={6} md={3}>
+        <Card elevation={0} sx={{ 
+          p: 2, 
+          bgcolor: colors.cardBg, 
+          borderRadius: 2,
+          border: `1px solid ${colors.cardBorder}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box>
+              <Typography variant="h4" fontWeight="bold" color={colors.success}>
+                ${estadisticas.totalPagados.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Total recaudado
+              </Typography>
+            </Box>
+            <AttachMoney sx={{ fontSize: 32, color: colors.success }} />
+          </Box>
+        </Card>
+      </Grid>
+    </Grid>
+  );
 
-    return (
-      <Box sx={{ maxWidth: 1000, mx: 'auto' }}>
-        {/* Header compacto */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="h5" fontWeight="600" gutterBottom sx={{ color: 'text.primary', fontSize: '1.5rem' }}>
-            Gestión de Pagos
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-            Administre los pagos de servicios completados
-          </Typography>
-        </Box>
+  // Render de lista de pacientes
+  const renderPacientesList = () => (
+    <Box>
+      {/* Barra de búsqueda */}
+      <Paper elevation={0} sx={{ 
+        p: 2, 
+        mb: 2, 
+        borderRadius: 2,
+        bgcolor: colors.paper,
+        border: `1px solid ${colors.cardBorder}`
+      }}>
+        <TextField
+          fullWidth
+          placeholder="Buscar paciente por nombre, teléfono o email..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{
+            '& .MuiInputBase-root': {
+              color: colors.text,
+              backgroundColor: colors.inputBg
+            },
+            '& .MuiOutlinedInput-root': {
+              '& fieldset': {
+                borderColor: colors.cardBorder,
+              },
+              '&:hover fieldset': {
+                borderColor: colors.primary,
+              },
+              '&.Mui-focused fieldset': {
+                borderColor: colors.primary,
+              },
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search sx={{ color: colors.textSecondary }} />
+              </InputAdornment>
+            ),
+            endAdornment: searchTerm && (
+              <InputAdornment position="end">
+                <IconButton onClick={() => setSearchTerm('')} size="small">
+                  <Close sx={{ color: colors.textSecondary }} />
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Paper>
 
-        {/* Tabs compactos */}
-        <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden', border: '1px solid', borderColor: 'divider' }}>
-          <Tabs
-            value={activeTab}
-            onChange={(e, v) => setActiveTab(v)}
+      {/* Tabs */}
+      <Paper elevation={0} sx={{ 
+        mb: 2, 
+        borderRadius: 2,
+        bgcolor: colors.paper,
+        border: `1px solid ${colors.cardBorder}`
+      }}>
+        <Tabs 
+          value={activeTab} 
+          onChange={(e, v) => setActiveTab(v)}
+          variant="fullWidth"
+          sx={{ 
+            borderBottom: `1px solid ${colors.cardBorder}`,
+            '& .MuiTab-root': {
+              color: colors.textSecondary,
+              '&.Mui-selected': {
+                color: colors.primary,
+              },
+            },
+            '& .MuiTabs-indicator': {
+              backgroundColor: colors.primary,
+            },
+          }}
+        >
+          <Tab 
+            icon={<Warning />} 
+            label={`Deudas (${pacientesFiltradosDeudas.length})`}
+            iconPosition="start"
+          />
+          <Tab 
+            icon={<CheckCircleOutline />} 
+            label={`Pagados (${pacientesFiltradosPagados.length})`}
+            iconPosition="start"
+          />
+          <Tab 
+            icon={<PersonSearch />} 
+            label="Buscar"
+            iconPosition="start"
+          />
+        </Tabs>
+
+        {/* Filtros */}
+        <Collapse in={showFilters}>
+          <Box sx={{ p: 2, borderTop: `1px solid ${colors.cardBorder}` }}>
+            <Grid container spacing={2}>
+              <Grid item xs={6} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Monto mínimo"
+                  type="number"
+                  value={filtros.montoMin}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, montoMin: e.target.value }))}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: colors.cardBorder,
+                      },
+                      '&:hover fieldset': {
+                        borderColor: colors.primary,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: colors.primary,
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: colors.textSecondary,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <TextField
+                  size="small"
+                  fullWidth
+                  label="Monto máximo"
+                  type="number"
+                  value={filtros.montoMax}
+                  onChange={(e) => setFiltros(prev => ({ ...prev, montoMax: e.target.value }))}
+                  sx={{
+                    '& .MuiInputBase-root': {
+                      color: colors.text,
+                      backgroundColor: colors.inputBg
+                    },
+                    '& .MuiOutlinedInput-root': {
+                      '& fieldset': {
+                        borderColor: colors.cardBorder,
+                      },
+                      '&:hover fieldset': {
+                        borderColor: colors.primary,
+                      },
+                      '&.Mui-focused fieldset': {
+                        borderColor: colors.primary,
+                      },
+                    },
+                    '& .MuiInputLabel-root': {
+                      color: colors.textSecondary,
+                    },
+                  }}
+                />
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <FormControl size="small" fullWidth>
+                  <InputLabel sx={{ color: colors.textSecondary }}>Ordenar por</InputLabel>
+                  <Select
+                    value={filtros.ordenarPor}
+                    onChange={(e) => setFiltros(prev => ({ ...prev, ordenarPor: e.target.value }))}
+                    label="Ordenar por"
+                    sx={{
+                      '& .MuiSelect-select': {
+                        color: colors.text,
+                        backgroundColor: colors.inputBg
+                      },
+                      '& .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.cardBorder,
+                      },
+                      '&:hover .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.primary,
+                      },
+                      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                        borderColor: colors.primary,
+                      },
+                    }}
+                  >
+                    <MenuItem value="deuda_desc">Mayor monto</MenuItem>
+                    <MenuItem value="deuda_asc">Menor monto</MenuItem>
+                    <MenuItem value="nombre">Nombre A-Z</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6} md={3}>
+                <Button
+                  variant="outlined"
+                  fullWidth
+                  onClick={() => setFiltros({ montoMin: '', montoMax: '', ordenarPor: 'deuda_desc' })}
+                  sx={{
+                    color: colors.primary,
+                    borderColor: colors.primary,
+                    '&:hover': {
+                      borderColor: colors.primary,
+                      backgroundColor: colors.hover,
+                    },
+                  }}
+                >
+                  Limpiar
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </Collapse>
+
+        {/* Botones de acción */}
+        <Box sx={{ p: 2, display: 'flex', gap: 1, justifyContent: 'space-between', alignItems: 'center' }}>
+          <Button
+            startIcon={<FilterList />}
+            onClick={() => setShowFilters(!showFilters)}
+            variant={showFilters ? "contained" : "outlined"}
+            size="small"
             sx={{
-              borderBottom: '1px solid',
-              borderColor: 'divider',
-              '& .MuiTab-root': {
-                fontSize: '0.85rem',
-                fontWeight: 500,
-                textTransform: 'none',
-                minHeight: 44,
-                px: 2
-              }
+              color: showFilters ? colors.paper : colors.primary,
+              borderColor: colors.primary,
+              backgroundColor: showFilters ? colors.primary : 'transparent',
+              '&:hover': {
+                borderColor: colors.primary,
+                backgroundColor: showFilters ? colors.primary : colors.hover,
+              },
             }}
           >
-            <Tab
-              icon={<PersonSearch sx={{ fontSize: 18 }} />}
-              label="Buscar"
-              iconPosition="start"
-            />
-            <Tab
-              icon={
-                <Badge badgeContent={pacientesConDeudas.length} color="error" max={99}>
-                  <Warning sx={{ fontSize: 18 }} />
-                </Badge>
-              }
-              label={`Deudas (${pacientesFiltradosDeudas.length})`}
-              iconPosition="start"
-            />
-            <Tab
-              icon={
-                <Badge badgeContent={pacientesPagados.length} color="success" max={99}>
-                  <CheckCircleOutline sx={{ fontSize: 18 }} />
-                </Badge>
-              }
-              label={`Pagados (${pacientesFiltradosPagados.length})`}
-              iconPosition="start"
-            />
-          </Tabs>
+            Filtros
+          </Button>
+          <Button
+            startIcon={<Refresh />}
+            onClick={fetchPacientesConDeudas}
+            disabled={loading}
+            size="small"
+            sx={{
+              color: colors.primary,
+              borderColor: colors.primary,
+              '&:hover': {
+                borderColor: colors.primary,
+                backgroundColor: colors.hover,
+              },
+            }}
+          >
+            Actualizar
+          </Button>
+        </Box>
+      </Paper>
 
-          <Box sx={{ p: 2 }}>
-            {activeTab === 0 ? (
+      {/* Contenido de tabs */}
+      <Paper elevation={0} sx={{ 
+        p: 2, 
+        borderRadius: 2, 
+        minHeight: 400,
+        bgcolor: colors.paper,
+        border: `1px solid ${colors.cardBorder}`
+      }}>
+        {loading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress sx={{ color: colors.primary }} />
+          </Box>
+        ) : (
+          <>
+            {/* Tab Deudas */}
+            {activeTab === 0 && (
               <Box>
-                <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 500, mb: 1.5, fontSize: '1rem' }}>
+                {pacientesFiltradosDeudas.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <CheckCircle sx={{ fontSize: 64, color: colors.success, mb: 2 }} />
+                    <Typography variant="h6" gutterBottom sx={{ color: colors.text }}>
+                      No hay deudas pendientes
+                    </Typography>
+                    <Typography variant="body2" color={colors.textSecondary}>
+                      Todos los pacientes están al día con sus pagos
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Grid container spacing={2}>
+                    {pacientesFiltradosDeudas.map((paciente) => (
+                      <Grid item xs={12} md={6} key={paciente.paciente_id}>
+                        <Card 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            border: `1px solid ${colors.cardBorder}`,
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            bgcolor: colors.paper,
+                            '&:hover': { 
+                              borderColor: colors.primary,
+                              boxShadow: 2,
+                              backgroundColor: colors.hover
+                            }
+                          }}
+                          onClick={() => {
+                            if (paciente.citasPendientes.length === 1) {
+                              handleSelectPacienteConDeuda(paciente, paciente.citasPendientes[0]);
+                            } else {
+                              showNotif(`${paciente.nombre} tiene ${paciente.citasPendientes.length} servicios pendientes`, 'info');
+                            }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Avatar sx={{ bgcolor: colors.error, mr: 2 }}>
+                              {paciente.nombre.charAt(0)}
+                            </Avatar>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.text }}>
+                                {`${paciente.nombre} ${paciente.apellido_paterno}`.trim()}
+                              </Typography>
+                              <Typography variant="body2" color={colors.textSecondary}>
+                                {paciente.telefono}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'right' }}>
+                              <Typography variant="h6" color={colors.error} fontWeight="bold">
+                                ${paciente.totalDeuda.toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption" color={colors.textSecondary}>
+                                {paciente.citasPendientes.length} servicio(s)
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {paciente.citasPendientes.slice(0, 2).map((cita, index) => (
+                              <Chip
+                                key={index}
+                                label={`${cita.servicio_nombre} - $${cita.precio_servicio}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: colors.error,
+                                  color: colors.error,
+                                  backgroundColor: colors.paper
+                                }}
+                              />
+                            ))}
+                            {paciente.citasPendientes.length > 2 && (
+                              <Chip
+                                label={`+${paciente.citasPendientes.length - 2} más`}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: colors.textSecondary,
+                                  color: colors.textSecondary,
+                                  backgroundColor: colors.paper
+                                }}
+                              />
+                            )}
+                          </Box>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Box>
+            )}
+
+            {/* Tab Pagados */}
+            {activeTab === 1 && (
+              <Box>
+                {pacientesFiltradosPagados.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 6 }}>
+                    <PaidOutlined sx={{ fontSize: 64, color: colors.textSecondary, mb: 2 }} />
+                    <Typography variant="h6" gutterBottom sx={{ color: colors.text }}>
+                      No hay pagos registrados
+                    </Typography>
+                    <Typography variant="body2" color={colors.textSecondary}>
+                      Aún no se han completado pagos
+                    </Typography>
+                  </Box>
+                ) : (
+                  <Grid container spacing={2}>
+                    {pacientesFiltradosPagados.map((paciente) => (
+                      <Grid item xs={12} md={6} key={paciente.paciente_id}>
+                        <Card 
+                          elevation={0} 
+                          sx={{ 
+                            p: 2, 
+                            border: `1px solid ${colors.cardBorder}`,
+                            borderRadius: 2,
+                            cursor: 'pointer',
+                            bgcolor: colors.paper,
+                            '&:hover': { 
+                              borderColor: colors.success,
+                              boxShadow: 2,
+                              backgroundColor: colors.hover
+                            }
+                          }}
+                          onClick={() => {
+                            if (paciente.citasPagadas.length > 0) {
+                              handleVerDetalles(paciente.citasPagadas[0], paciente);
+                            }
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Avatar sx={{ bgcolor: colors.success, mr: 2 }}>
+                              {paciente.nombre.charAt(0)}
+                            </Avatar>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography variant="subtitle1" fontWeight="bold" sx={{ color: colors.text }}>
+                                {`${paciente.nombre} ${paciente.apellido_paterno}`.trim()}
+                              </Typography>
+                              <Typography variant="body2" color={colors.textSecondary}>
+                                {paciente.telefono}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ textAlign: 'right' }}>
+                              <Typography variant="h6" color={colors.success} fontWeight="bold">
+                                ${paciente.totalPagado.toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption" color={colors.textSecondary}>
+                                {paciente.citasPagadas.length} servicio(s)
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                            {paciente.citasPagadas.slice(0, 2).map((cita, index) => (
+                              <Chip
+                                key={index}
+                                label={`${cita.servicio_nombre} - $${cita.precio_servicio}`}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: colors.success,
+                                  color: colors.success,
+                                  backgroundColor: colors.paper
+                                }}
+                              />
+                            ))}
+                            {paciente.citasPagadas.length > 2 && (
+                              <Chip
+                                label={`+${paciente.citasPagadas.length - 2} más`}
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  borderColor: colors.textSecondary,
+                                  color: colors.textSecondary,
+                                  backgroundColor: colors.paper
+                                }}
+                              />
+                            )}
+                            <Tooltip title="Más opciones">
+                              <IconButton
+                                size="small"
+                                sx={{ ml: 1, color: colors.textSecondary }}
+                                onClick={(e) => handleMenuClick(e, paciente.citasPagadas[0], paciente)}
+                              >
+                                <MoreVert sx={{ fontSize: 16 }} />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </Card>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Box>
+            )}
+
+            {/* Tab Buscar */}
+            {activeTab === 2 && (
+              <Box>
+                <Typography variant="h6" gutterBottom sx={{ color: colors.text }}>
                   Buscar Paciente
                 </Typography>
                 <Autocomplete
-                  options={pacientes}
-                  getOptionLabel={(option) => `${option.nombre} ${option.aPaterno} ${option.aMaterno || ''}`.trim()}
+                  options={pacientes || []} // Siempre array
+                  getOptionLabel={(option) => `${option.nombre || ''} ${option.aPaterno || ''} ${option.aMaterno || ''}`.trim()}
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Escriba el nombre del paciente"
-                      size="small"
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                      label="Busque y seleccione un paciente"
+                      sx={{
+                        '& .MuiInputBase-root': {
+                          color: colors.text,
+                          backgroundColor: colors.inputBg
+                        },
+                        '& .MuiOutlinedInput-root': {
+                          '& fieldset': {
+                            borderColor: colors.cardBorder,
+                          },
+                          '&:hover fieldset': {
+                            borderColor: colors.primary,
+                          },
+                          '&.Mui-focused fieldset': {
+                            borderColor: colors.primary,
+                          },
+                        },
+                        '& .MuiInputLabel-root': {
+                          color: colors.textSecondary,
+                        },
+                      }}
                       InputProps={{
                         ...params.InputProps,
                         startAdornment: (
-                          <>
-                            <Search sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                            {params.InputProps.startAdornment}
-                          </>
+                          <InputAdornment position="start">
+                            <Search sx={{ color: colors.textSecondary }} />
+                          </InputAdornment>
                         )
                       }}
                     />
                   )}
                   renderOption={(props, option) => (
                     <li {...props}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', py: 0.75 }}>
-                        <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 30, height: 30, fontSize: '0.8rem' }}>
-                          {option.nombre.charAt(0)}
-                        </Avatar>
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>
-                            {`${option.nombre} ${option.aPaterno} ${option.aMaterno || ''}`.trim()}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            {option.telefono && `Tel: ${option.telefono}`}
-                            {option.email && ` • ${option.email}`}
-                          </Typography>
-                        </Box>
+                      <Avatar sx={{ bgcolor: colors.primary, mr: 2 }}>
+                        {(option.nombre || 'P').charAt(0)}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="body1" sx={{ color: colors.text }}>
+                          {`${option.nombre || ''} ${option.aPaterno || ''} ${option.aMaterno || ''}`.trim()}
+                        </Typography>
+                        <Typography variant="body2" color={colors.textSecondary}>
+                          {option.telefono || ''} • {option.email || ''}
+                        </Typography>
                       </Box>
                     </li>
                   )}
@@ -1115,1001 +1199,608 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
                     if (value) handleSelectPacienteBusqueda(value);
                   }}
                   loading={loading}
+                  noOptionsText="No se encontraron pacientes"
+                  loadingText="Cargando pacientes..."
                 />
               </Box>
-            ) : (
-              <Box>
-                {renderFiltrosCompactos()}
-
-                {/* Estadísticas compactas */}
-                <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                  <Grid item xs={6} sm={3}>
-                    <Tooltip title="Pacientes con deudas pendientes">
-                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'error.50', borderRadius: 1.5 }}>
-                        <Typography variant="h6" fontWeight="700" color="error.main" sx={{ fontSize: '1.25rem' }}>
-                          {pacientesFiltradosDeudas.length}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Con deudas
-                        </Typography>
-                      </Paper>
-                    </Tooltip>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Tooltip title="Pacientes al día con sus pagos">
-                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'success.50', borderRadius: 1.5 }}>
-                        <Typography variant="h6" fontWeight="700" color="success.main" sx={{ fontSize: '1.25rem' }}>
-                          {pacientesFiltradosPagados.length}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Al día
-                        </Typography>
-                      </Paper>
-                    </Tooltip>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Tooltip title={`Total ${activeTab === 1 ? 'adeudado' : 'pagado'}`}>
-                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'warning.50', borderRadius: 1.5 }}>
-                        <Typography variant="h6" fontWeight="700" color="warning.main" sx={{ fontSize: '1.25rem' }}>
-                          ${(activeTab === 1 ? pacientesFiltradosDeudas : pacientesFiltradosPagados)
-                            .reduce((sum, p) => sum + (activeTab === 1 ? p.totalDeuda : p.totalPagado), 0)
-                            .toFixed(0)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Total {activeTab === 1 ? 'adeudado' : 'pagado'}
-                        </Typography>
-                      </Paper>
-                    </Tooltip>
-                  </Grid>
-                  <Grid item xs={6} sm={3}>
-                    <Tooltip title="Total de servicios">
-                      <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'primary.50', borderRadius: 1.5 }}>
-                        <Typography variant="h6" fontWeight="700" color="primary.main" sx={{ fontSize: '1.25rem' }}>
-                          {(activeTab === 1 ? pacientesFiltradosDeudas : pacientesFiltradosPagados)
-                            .reduce((sum, p) => sum + (activeTab === 1 ? p.citasPendientes.length : p.citasPagadas.length), 0)}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          Servicios
-                        </Typography>
-                      </Paper>
-                    </Tooltip>
-                  </Grid>
-                </Grid>
-
-                {/* Lista de pacientes */}
-                {loading ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
-                    <CircularProgress size={32} />
-                  </Box>
-                ) : (
-                  <Box>
-                    {activeTab === 1 ? (
-                      pacientesFiltradosDeudas.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'success.50', borderRadius: 1.5 }}>
-                          <CheckCircle sx={{ fontSize: 40, color: 'success.main', mb: 1.5 }} />
-                          <Typography variant="h6" gutterBottom color="success.main" fontWeight="600" sx={{ fontSize: '1.1rem' }}>
-                            ¡Excelente!
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            No hay pacientes con deudas pendientes.
-                          </Typography>
-                        </Paper>
-                      ) : (
-                        <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
-                          {pacientesFiltradosDeudas.map((paciente) => renderPacienteCard(paciente, 'deudas'))}
-                        </Box>
-                      )
-                    ) : (
-                      pacientesFiltradosPagados.length === 0 ? (
-                        <Paper sx={{ p: 3, textAlign: 'center', bgcolor: 'grey.50', borderRadius: 1.5 }}>
-                          <PaidOutlined sx={{ fontSize: 40, color: 'text.secondary', mb: 1.5 }} />
-                          <Typography variant="h6" gutterBottom color="text.secondary" fontWeight="600" sx={{ fontSize: '1.1rem' }}>
-                            Sin pagos registrados
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Aún no hay pacientes con pagos completados.
-                          </Typography>
-                        </Paper>
-                      ) : (
-                        <Box sx={{ maxHeight: 500, overflowY: 'auto' }}>
-                          {pacientesFiltradosPagados.map((paciente) => renderPacienteCard(paciente, 'pagados'))}
-                        </Box>
-                      )
-                    )}
-                  </Box>
-                )}
-              </Box>
             )}
-          </Box>
-        </Paper>
+          </>
+        )}
+      </Paper>
+    </Box>
+  );
 
-        {/* Menu contextual para pagos - SIMPLIFICADO */}
-        <Menu
-          anchorEl={anchorEl}
-          open={Boolean(anchorEl)}
-          onClose={handleMenuClose}
-          PaperProps={{
-            sx: { minWidth: 160 }
-          }}
-        >
-          <MenuItem onClick={() => handleMenuAction('print')}>
-            <ListItemIcon><PrintOutlined sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Imprimir recibo" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuAction('download')}>
-            <ListItemIcon><GetApp sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Descargar PDF" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-          </MenuItem>
-          <MenuItem onClick={() => handleMenuAction('copy')}>
-            <ListItemIcon><FileCopy sx={{ fontSize: 18 }} /></ListItemIcon>
-            <ListItemText primary="Copiar comprobante" primaryTypographyProps={{ fontSize: '0.875rem' }} />
-          </MenuItem>
-        </Menu>
-      </Box>
-    );
-  };
-
-  // Renderizar procesamiento de pago (más compacto)
+  // Render de formulario de pago - SIMPLIFICADO SOLO EFECTIVO
   const renderProcesarPago = () => {
     const totales = calcularTotales();
 
     return (
-      <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Tooltip title="Volver a la lista">
-            <IconButton
-              onClick={() => setCurrentStep('selection')}
-              sx={{ mr: 1.5, bgcolor: 'grey.100', '&:hover': { bgcolor: 'grey.200' } }}
-              size="small"
-            >
-              <ArrowBack sx={{ fontSize: 20 }} />
-            </IconButton>
-          </Tooltip>
-          <Typography variant="h5" fontWeight="600" color="primary.main" sx={{ fontSize: '1.5rem' }}>
+      <Container maxWidth="md">
+        <Box sx={{ mb: 3 }}>
+          <Button
+            startIcon={<ArrowBack />}
+            onClick={() => setCurrentStep('selection')}
+            sx={{ mb: 2, color: colors.primary }}
+          >
+            Volver
+          </Button>
+          <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
             Procesar Pago
           </Typography>
         </Box>
 
-        <Grid container spacing={2}>
-          {/* Información del Paciente y Servicio */}
-          <Grid item xs={12}>
-            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '1rem' }}>
-                    <AccountCircle sx={{ mr: 1, fontSize: 18 }} />
-                    Paciente
+        <Stepper activeStep={1} alternativeLabel sx={{ mb: 4 }}>
+          <Step>
+            <StepLabel sx={{ '& .MuiStepLabel-label': { color: colors.textSecondary } }}>
+              Seleccionar Paciente
+            </StepLabel>
+          </Step>
+          <Step>
+            <StepLabel sx={{ '& .MuiStepLabel-label': { color: colors.text } }}>
+              Procesar Pago
+            </StepLabel>
+          </Step>
+          <Step>
+            <StepLabel sx={{ '& .MuiStepLabel-label': { color: colors.textSecondary } }}>
+              Confirmación
+            </StepLabel>
+          </Step>
+        </Stepper>
+
+        <Grid container spacing={3}>
+          {/* Información del paciente */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={0} sx={{ 
+              p: 3, 
+              border: `1px solid ${colors.cardBorder}`, 
+              borderRadius: 2,
+              bgcolor: colors.paper
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                Información del Paciente
+              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                <Avatar sx={{ bgcolor: colors.primary, mr: 2, width: 56, height: 56 }}>
+                  {selectedPaciente?.nombre.charAt(0)}
+                </Avatar>
+                <Box>
+                  <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+                    {selectedPaciente?.nombre} {selectedPaciente?.aPaterno}
                   </Typography>
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                    <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 40, height: 40, fontSize: '1rem' }}>
-                      {(selectedPaciente?.nombre || 'P').charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
-                        {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                        ID: {selectedPaciente?.id}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {selectedPaciente?.telefono && (
-                    <Typography variant="body2" color="text.secondary" display="block" sx={{ fontSize: '0.85rem' }}>
-                      Teléfono: {selectedPaciente.telefono}
-                    </Typography>
-                  )}
-                  {selectedPaciente?.email && (
-                    <Typography variant="body2" color="text.secondary" display="block" sx={{ fontSize: '0.85rem' }}>
-                      Email: {selectedPaciente.email}
-                    </Typography>
-                  )}
-                </Grid>
-
-                <Grid item xs={12} md={6}>
-                  <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, fontSize: '1rem' }}>
-                    <MedicalServices sx={{ mr: 1, fontSize: 18 }} />
-                    Servicio
+                  <Typography variant="body2" color={colors.textSecondary}>
+                    {selectedPaciente?.telefono}
                   </Typography>
-
-                  <Typography variant="subtitle1" fontWeight="600" color="primary.main" sx={{ mb: 1, fontSize: '1rem' }}>
-                    {selectedCita?.servicio_nombre || 'Servicio no especificado'}
+                  <Typography variant="body2" color={colors.textSecondary}>
+                    {selectedPaciente?.email}
                   </Typography>
-
-                  <Box sx={{ mb: 1.5 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                      Fecha: {selectedCita?.fecha_consulta ?
-                        new Date(selectedCita.fecha_consulta).toLocaleDateString('es-ES') : 'No disponible'
-                      }
-                    </Typography>
-                    {selectedCita?.odontologo_nombre && (
-                      <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.85rem' }}>
-                        Doctor: {selectedCita.odontologo_nombre}
-                      </Typography>
-                    )}
-                  </Box>
-
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Typography variant="h4" color="primary.main" fontWeight="700" sx={{ fontSize: '2rem' }}>
-                      ${(parseFloat(selectedCita?.precio_servicio) || 0).toFixed(2)}
-                    </Typography>
-                    <Chip label="Completada" color="success" size="small" />
-                  </Box>
-                </Grid>
-              </Grid>
-            </Paper>
+                </Box>
+              </Box>
+            </Card>
           </Grid>
 
-          {/* Formulario de Pago */}
-          <Grid item xs={12}>
-            <Paper elevation={0} sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1.5 }}>
-              <Typography variant="subtitle1" gutterBottom sx={{ display: 'flex', alignItems: 'center', fontWeight: 600, mb: 2, fontSize: '1rem' }}>
-                <Payment sx={{ mr: 1, fontSize: 18 }} />
-                Detalles del Pago
+          {/* Información del servicio */}
+          <Grid item xs={12} md={6}>
+            <Card elevation={0} sx={{ 
+              p: 3, 
+              border: `1px solid ${colors.cardBorder}`, 
+              borderRadius: 2,
+              bgcolor: colors.paper
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                Servicio a Cobrar
               </Typography>
+              <Typography variant="h5" fontWeight="bold" color={colors.primary} gutterBottom>
+                {selectedCita?.servicio_nombre}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary} gutterBottom>
+                <strong>Fecha:</strong> {new Date(selectedCita?.fecha_consulta).toLocaleDateString()}
+              </Typography>
+              <Typography variant="body2" color={colors.textSecondary} gutterBottom>
+                <strong>Doctor:</strong> {selectedCita?.odontologo_nombre}
+              </Typography>
+              <Typography variant="h3" color={colors.success} fontWeight="bold" sx={{ mt: 2 }}>
+                ${selectedCita?.precio_servicio.toLocaleString()}
+              </Typography>
+            </Card>
+          </Grid>
 
-              {/* Método de Pago */}
-              <Typography variant="body2" gutterBottom fontWeight="500" sx={{ mb: 1.5, fontSize: '0.875rem' }}>
+          {/* Formulario de pago - SOLO EFECTIVO */}
+          <Grid item xs={12}>
+            <Card elevation={0} sx={{ 
+              p: 3, 
+              border: `1px solid ${colors.cardBorder}`, 
+              borderRadius: 2,
+              bgcolor: colors.paper
+            }}>
+              <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
                 Método de Pago
               </Typography>
-
-              <Grid container spacing={1.5} sx={{ mb: 2 }}>
-                {[
-                  { key: 'Efectivo', icon: <AccountBalanceWallet />, color: '#4caf50' },
-                  { key: 'MercadoPago', icon: <CreditCard />, color: '#00b0ff' },
-                  { key: 'PayPal', icon: <AccountBalance />, color: '#0070ba' }
-                ].map((metodo) => (
-                  <Grid item xs={4} key={metodo.key}>
-                    <Tooltip title={`Pagar con ${metodo.key}`}>
-                      <Card
-                        variant={paymentData.metodo_pago === metodo.key ? "outlined" : "elevation"}
-                        sx={{
-                          cursor: 'pointer',
-                          borderColor: paymentData.metodo_pago === metodo.key ? metodo.color : 'transparent',
-                          borderWidth: paymentData.metodo_pago === metodo.key ? 2 : 1,
-                          bgcolor: paymentData.metodo_pago === metodo.key ? `${metodo.color}15` : 'background.paper',
-                          '&:hover': { boxShadow: 2 },
-                          borderRadius: 1.5
-                        }}
-                        onClick={() => setPaymentData(prev => ({ ...prev, metodo_pago: metodo.key }))}
-                      >
-                        <CardContent sx={{ textAlign: 'center', py: 1.5 }}>
-                          <Box sx={{ color: metodo.color, mb: 0.5, fontSize: 20 }}>
-                            {metodo.icon}
-                          </Box>
-                          <Typography variant="caption" fontWeight="600" sx={{ fontSize: '0.75rem' }}>
-                            {metodo.key}
-                          </Typography>
-                        </CardContent>
-                      </Card>
-                    </Tooltip>
-                  </Grid>
-                ))}
+              
+              {/* Solo mostrar método efectivo */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12}>
+                  <Card
+                    elevation={0}
+                    sx={{
+                      p: 3,
+                      textAlign: 'center',
+                      border: `2px solid ${colors.success}`,
+                      borderRadius: 2,
+                      bgcolor: `${colors.success}15`,
+                    }}
+                  >
+                    <AccountBalanceWallet sx={{ fontSize: 48, color: colors.success, mb: 2 }} />
+                    <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+                      Pago en Efectivo
+                    </Typography>
+                    <Typography variant="body2" color={colors.textSecondary}>
+                      El paciente paga con dinero en efectivo
+                    </Typography>
+                  </Card>
+                </Grid>
               </Grid>
 
-              {/* Campos específicos del método de pago */}
-              <Grid container spacing={2}>
-                {(paymentData.metodo_pago === 'MercadoPago' || paymentData.metodo_pago === 'PayPal') && (
-                  <Grid item xs={12} sm={6}>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      label="Email del Pagador *"
-                      type="email"
-                      value={paymentData.email_pagador}
-                      onChange={(e) => setPaymentData(prev => ({ ...prev, email_pagador: e.target.value }))}
-                      error={Boolean(formErrors.email_pagador)}
-                      helperText={formErrors.email_pagador}
-                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                      InputProps={{
-                        startAdornment: <InputAdornment position="start"><Email sx={{ fontSize: 18 }} /></InputAdornment>
-                      }}
-                    />
-                  </Grid>
-                )}
-
-                <Grid item xs={12} sm={6}>
+              {/* Campos del formulario */}
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    size="small"
-                    label={
-                      paymentData.metodo_pago === 'Efectivo' ?
-                        'Número de Recibo (Opcional)' :
-                        'Referencia/ID de Transacción *'
-                    }
+                    label="Número de Recibo (Opcional)"
                     value={paymentData.referencia}
                     onChange={(e) => setPaymentData(prev => ({ ...prev, referencia: e.target.value }))}
-                    error={Boolean(formErrors.referencia)}
-                    helperText={formErrors.referencia}
-                    placeholder={
-                      paymentData.metodo_pago === 'Efectivo' ? 'REC-001' :
-                        paymentData.metodo_pago === 'MercadoPago' ? 'MP-123456789' : 'TXN-ABC123DEF'
-                    }
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    placeholder="REC-001"
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        color: colors.text,
+                        backgroundColor: colors.inputBg
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: colors.cardBorder,
+                        },
+                        '&:hover fieldset': {
+                          borderColor: colors.primary,
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: colors.primary,
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: colors.textSecondary,
+                      },
+                    }}
                     InputProps={{
-                      startAdornment: <InputAdornment position="start"><ConfirmationNumber sx={{ fontSize: 18 }} /></InputAdornment>
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <ConfirmationNumber sx={{ color: colors.textSecondary }} />
+                        </InputAdornment>
+                      )
                     }}
                   />
                 </Grid>
-
-                <Grid item xs={12} sm={6}>
+                
+                <Grid item xs={12} md={6}>
                   <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
                     <DateTimePicker
                       label="Fecha y Hora del Pago"
                       value={paymentData.fecha_pago}
                       onChange={(date) => setPaymentData(prev => ({ ...prev, fecha_pago: date }))}
-                      renderInput={(params) => <TextField {...params} fullWidth size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }} />}
+                      renderInput={(params) => <TextField 
+                        {...params} 
+                        fullWidth 
+                        sx={{
+                          '& .MuiInputBase-root': {
+                            color: colors.text,
+                            backgroundColor: colors.inputBg
+                          },
+                          '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                              borderColor: colors.cardBorder,
+                            },
+                            '&:hover fieldset': {
+                              borderColor: colors.primary,
+                            },
+                            '&.Mui-focused fieldset': {
+                              borderColor: colors.primary,
+                            },
+                          },
+                          '& .MuiInputLabel-root': {
+                            color: colors.textSecondary,
+                          },
+                        }}
+                      />}
                     />
                   </LocalizationProvider>
                 </Grid>
-
-                <Grid item xs={12} sm={6}>
+                
+                <Grid item xs={12}>
                   <TextField
                     fullWidth
-                    size="small"
                     label="Notas (opcional)"
                     value={paymentData.notas}
                     onChange={(e) => setPaymentData(prev => ({ ...prev, notas: e.target.value }))}
-                    placeholder="Observaciones adicionales..."
-                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                    multiline
+                    rows={3}
+                    placeholder="Observaciones adicionales sobre el pago..."
+                    sx={{
+                      '& .MuiInputBase-root': {
+                        color: colors.text,
+                        backgroundColor: colors.inputBg
+                      },
+                      '& .MuiOutlinedInput-root': {
+                        '& fieldset': {
+                          borderColor: colors.cardBorder,
+                        },
+                        '&:hover fieldset': {
+                          borderColor: colors.primary,
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: colors.primary,
+                        },
+                      },
+                      '& .MuiInputLabel-root': {
+                        color: colors.textSecondary,
+                      },
+                    }}
                   />
                 </Grid>
               </Grid>
 
-              {/* 🆕 Sección especial para PayPal */}
-              {paymentData.metodo_pago === 'PayPal' && (
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Paper elevation={0} sx={{
-                    p: 2,
-                    bgcolor: 'primary.50',
-                    borderRadius: 1.5,
-                    border: '2px solid',
-                    borderColor: 'primary.main'
-                  }}>
-                    <Typography variant="subtitle2" gutterBottom fontWeight="600" sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      color: 'primary.main',
-                      mb: 2
-                    }}>
-                      <AccountBalance sx={{ mr: 1, fontSize: 18 }} />
-                      Pagar con PayPal
-                    </Typography>
+              {/* Resumen */}
+              <Card elevation={0} sx={{ 
+                p: 3, 
+                bgcolor: colors.cardBg, 
+                borderRadius: 2, 
+                mb: 3,
+                border: `1px solid ${colors.primary}`
+              }}>
+                <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                  Resumen del Pago
+                </Typography>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="h6" sx={{ color: colors.text }}>
+                    Total a Pagar:
+                  </Typography>
+                  <Typography variant="h4" color={colors.primary} fontWeight="bold">
+                    ${totales.total.toLocaleString()}
+                  </Typography>
+                </Box>
+              </Card>
 
-                    <Alert severity="info" sx={{ mb: 2 }}>
-                      <Typography variant="body2">
-                        <strong>Monto:</strong> ${totales.total.toFixed(2)} MXN (≈ ${(totales.total * 0.056).toFixed(2)} USD)
-                      </Typography>
-                      <Typography variant="caption" display="block">
-                        PayPal procesa en dólares estadounidenses
-                      </Typography>
-                    </Alert>
-
-                    <PayPalPayment
-                      amount={totales.total}
-                      pacienteId={selectedPaciente.id}
-                      citaId={selectedCita.id}
-                      concepto={`Pago por servicio: ${selectedCita.servicio_nombre}`}
-                      onSuccess={handlePayPalSuccess}
-                      onError={handlePayPalError}
-                      disabled={loading}
-                    />
-
-                    <Typography variant="caption" color="text.secondary" sx={{
-                      display: 'block',
-                      textAlign: 'center',
-                      mt: 1
-                    }}>
-                      Datos de prueba: sb-24ake43790735@business.example.com
-                    </Typography>
-                  </Paper>
-                </Grid>
-              )}
-
-              {/* 🆕 Instrucciones especiales para MercadoPago */}
-              {paymentData.metodo_pago === 'MercadoPago' && (
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Alert severity="info">
-                    <Typography variant="body2">
-                      <strong>Tarjeta de prueba:</strong> 4509 9535 6623 3704 | <strong>CVV:</strong> 123
-                    </Typography>
-                    <Typography variant="caption" display="block">
-                      Al procesar, se abrirá una nueva ventana con MercadoPago
-                    </Typography>
-                  </Alert>
-                </Grid>
-              )}
-
-              {/* Resumen de Totales */}
-              <Paper sx={{ mt: 2, p: 1.5, bgcolor: 'primary.50', borderRadius: 1.5 }}>
-                <Typography variant="subtitle2" gutterBottom fontWeight="600" sx={{ fontSize: '0.9rem' }}>Resumen del Pago</Typography>
-                <Grid container spacing={1} alignItems="center">
-                  <Grid item xs={8}>
-                    <Typography variant="body2" fontWeight="500" sx={{ fontSize: '0.875rem' }}>Total a Pagar:</Typography>
-                  </Grid>
-                  <Grid item xs={4} sx={{ textAlign: 'right' }}>
-                    <Typography variant="h5" color="primary.main" fontWeight="700" sx={{ fontSize: '1.75rem' }}>
-                      ${totales.total.toFixed(2)}
-                    </Typography>
-                  </Grid>
-                </Grid>
-              </Paper>
-
-              {/* 🆕 Botones de Acción Modificados */}
-              <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', mt: 2 }}>
-                <Tooltip title="Cancelar proceso">
-                  <Button
-                    variant="outlined"
-                    size="medium"
-                    onClick={handleCancelar}
-                    startIcon={<Cancel />}
-                    disabled={loading}
-                    sx={{ minWidth: 120, borderRadius: 1.5, fontSize: '0.875rem' }}
-                  >
-                    Cancelar
-                  </Button>
-                </Tooltip>
-
-                {/* Botón condicional según método de pago */}
-                {paymentData.metodo_pago === 'PayPal' ? (
-                  <Tooltip title="Use los botones de PayPal arriba">
-                    <Button
-                      variant="contained"
-                      size="medium"
-                      disabled={true}
-                      sx={{
-                        minWidth: 140,
-                        borderRadius: 1.5,
-                        fontSize: '0.875rem',
-                        bgcolor: 'grey.400'
-                      }}
-                    >
-                      Use PayPal Arriba
-                    </Button>
-                  </Tooltip>
-                ) : (
-                  <Tooltip title={
-                    paymentData.metodo_pago === 'MercadoPago'
-                      ? "Crear preferencia y abrir MercadoPago"
-                      : "Confirmar y procesar el pago"
-                  }>
-                    <Button
-                      variant="contained"
-                      size="medium"
-                      onClick={handleProcesarPago}
-                      disabled={loading}
-                      startIcon={loading ? <CircularProgress size={16} /> : <SaveAlt />}
-                      sx={{ minWidth: 140, borderRadius: 1.5, fontSize: '0.875rem' }}
-                    >
-                      {loading ? 'Procesando...' :
-                        paymentData.metodo_pago === 'MercadoPago' ? 'Pagar con MercadoPago' :
-                          'Procesar Pago'}
-                    </Button>
-                  </Tooltip>
-                )}
+              {/* Botones */}
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <Button
+                  variant="outlined"
+                  onClick={handleCancelar}
+                  disabled={loading}
+                  startIcon={<Cancel />}
+                  sx={{
+                    color: colors.textSecondary,
+                    borderColor: colors.textSecondary,
+                    '&:hover': {
+                      borderColor: colors.textSecondary,
+                      backgroundColor: colors.hover,
+                    },
+                  }}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleProcesarPago}
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={16} /> : <Payment />}
+                  sx={{
+                    backgroundColor: colors.primary,
+                    color: colors.paper,
+                    '&:hover': {
+                      backgroundColor: colors.primaryLight,
+                    },
+                  }}
+                >
+                  {loading ? 'Procesando...' : 'Procesar Pago'}
+                </Button>
               </Box>
-            </Paper>
+            </Card>
           </Grid>
         </Grid>
-      </Box>
+      </Container>
     );
   };
 
-  // Renderizar confirmación de éxito (más compacto)
+  // Render de confirmación de éxito
   const renderExito = () => (
-    <Box sx={{ textAlign: 'center', maxWidth: 500, mx: 'auto', py: 3 }}>
-      <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-      <Typography variant="h4" gutterBottom fontWeight="600" color="success.main" sx={{ fontSize: '1.75rem' }}>
-        ¡Pago Procesado Exitosamente!
-      </Typography>
-
-      <Typography variant="body1" gutterBottom color="text.secondary" sx={{ mb: 2.5, fontSize: '1rem' }}>
-        El pago ha sido registrado correctamente en el sistema
-      </Typography>
-
-      <Paper elevation={0} sx={{ p: 2.5, textAlign: 'left', borderRadius: 1.5, border: '1px solid', borderColor: 'success.200', bgcolor: 'success.50' }}>
-        <Typography variant="subtitle1" gutterBottom fontWeight="600" color="success.main" sx={{ fontSize: '1.1rem' }}>
-          Resumen de la Transacción
+    <Container maxWidth="sm">
+      <Box sx={{ textAlign: 'center', py: 4 }}>
+        <CheckCircle sx={{ fontSize: 80, color: colors.success, mb: 3 }} />
+        <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+          Pago Procesado Exitosamente
         </Typography>
-        <Divider sx={{ mb: 1.5 }} />
-
-        <Grid container spacing={1.5}>
-          <Grid item xs={6}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Paciente:</Typography>
-            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
-              {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
-            </Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Servicio:</Typography>
-            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>{selectedCita?.servicio_nombre}</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Método de Pago:</Typography>
-            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>{paymentData.metodo_pago}</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Fecha:</Typography>
-            <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
-              {paymentData.fecha_pago.toLocaleDateString('es-ES')}
-            </Typography>
-          </Grid>
-          <Grid item xs={12}>
-            <Box sx={{ textAlign: 'center', mt: 1.5, p: 1.5, bgcolor: 'white', borderRadius: 1, border: '2px solid', borderColor: 'success.main' }}>
-              <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>Monto Total Pagado</Typography>
-              <Typography variant="h3" color="success.main" fontWeight="700" sx={{ fontSize: '2rem' }}>
-                ${calcularTotales().total.toFixed(2)}
+        <Typography variant="body1" color={colors.textSecondary} gutterBottom>
+          El pago ha sido registrado correctamente en el sistema
+        </Typography>
+        
+        <Card elevation={0} sx={{ 
+          p: 3, 
+          mt: 3, 
+          border: `1px solid ${colors.cardBorder}`, 
+          borderRadius: 2,
+          bgcolor: colors.paper
+        }}>
+          <Typography variant="h6" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+            Resumen de la Transacción
+          </Typography>
+          <Divider sx={{ mb: 2, borderColor: colors.cardBorder }} />
+          <Grid container spacing={2}>
+            <Grid item xs={6}>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Paciente:
               </Typography>
-            </Box>
+              <Typography variant="body1" fontWeight="bold" sx={{ color: colors.text }}>
+                {selectedPaciente?.nombre} {selectedPaciente?.aPaterno}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Servicio:
+              </Typography>
+              <Typography variant="body1" fontWeight="bold" sx={{ color: colors.text }}>
+                {selectedCita?.servicio_nombre}
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Método:
+              </Typography>
+              <Typography variant="body1" fontWeight="bold" sx={{ color: colors.text }}>
+                Efectivo
+              </Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body2" color={colors.textSecondary}>
+                Monto:
+              </Typography>
+              <Typography variant="h6" fontWeight="bold" color={colors.success}>
+                ${calcularTotales().total.toLocaleString()}
+              </Typography>
+            </Grid>
           </Grid>
-        </Grid>
-      </Paper>
-
-      <Stack direction="row" spacing={2} justifyContent="center" sx={{ mt: 3 }}>
-        <Tooltip title="Registrar otro pago">
-          <Button
-            variant="contained"
-            size="medium"
+        </Card>
+        
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
+          <Button 
+            variant="outlined" 
             onClick={resetForm}
-            startIcon={<Payment />}
-            sx={{ borderRadius: 1.5, px: 3, fontSize: '0.875rem' }}
+            startIcon={<Add />}
+            sx={{
+              color: colors.primary,
+              borderColor: colors.primary,
+              '&:hover': {
+                borderColor: colors.primary,
+                backgroundColor: colors.hover,
+              },
+            }}
           >
-            Otro Pago
+            Nuevo Pago
           </Button>
-        </Tooltip>
-
-        <Tooltip title="Imprimir comprobante">
-          <Button
-            variant="outlined"
-            size="medium"
+          <Button 
+            variant="contained" 
             startIcon={<PrintOutlined />}
-            sx={{ borderRadius: 1.5, px: 3, fontSize: '0.875rem' }}
+            sx={{
+              backgroundColor: colors.primary,
+              color: colors.paper,
+              '&:hover': {
+                backgroundColor: colors.primaryLight,
+              },
+            }}
           >
-            Imprimir
+            Imprimir Recibo
           </Button>
-        </Tooltip>
-      </Stack>
-    </Box>
+        </Box>
+      </Box>
+    </Container>
   );
 
   return (
-    <Box sx={{ bgcolor: 'grey.50', minHeight: '100vh', py: 2 }}>
-      <Paper elevation={0} sx={{ p: 2.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
-        {/* Header compacto */}
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5 }}>
-          <PaymentsTwoTone sx={{ mr: 1.5, fontSize: 28, color: 'primary.main' }} />
-          <Box>
-            <Typography variant="h4" fontWeight="600" color="primary.main" sx={{ fontSize: '1.75rem' }}>
-              Gestión de Finanzas
-            </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{ fontSize: '0.875rem' }}>
-              Sistema integral de pagos
-            </Typography>
-          </Box>
+    <Container maxWidth="xl" sx={{ py: 3, bgcolor: colors.background, minHeight: '100vh' }}>
+      {loading && <LinearProgress sx={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 9999, '& .MuiLinearProgress-bar': { backgroundColor: colors.primary } }} />}
+      
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h3" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+          Gestión de Finanzas
+        </Typography>
+        <Typography variant="h6" color={colors.textSecondary}>
+          Sistema de pagos y cobros
+        </Typography>
+      </Box>
+
+      {/* Contenido principal */}
+      <Fade in={true} timeout={300}>
+        <Box>
+          {currentStep === 'selection' && (
+            <>
+              {renderEstadisticas()}
+              {renderPacientesList()}
+            </>
+          )}
+          
+          {currentStep === 'payment' && renderProcesarPago()}
+          
+          {currentStep === 'success' && renderExito()}
         </Box>
+      </Fade>
 
-        <Divider sx={{ mb: 2.5 }} />
-
-        {/* Contenido según paso actual */}
-        <Fade in={true} timeout={300}>
-          <Box>
-            {currentStep === 'selection' && renderSeleccionPacientes()}
-            {currentStep === 'payment' && renderProcesarPago()}
-            {currentStep === 'success' && renderExito()}
+      {/* Diálogo de confirmación */}
+      <Dialog open={showConfirmDialog} onClose={() => setShowConfirmDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+            Confirmar Pago
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Confirme que desea procesar este pago
+          </Alert>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="body1" gutterBottom sx={{ color: colors.text }}>
+              <strong>Paciente:</strong> {selectedPaciente?.nombre} {selectedPaciente?.aPaterno}
+            </Typography>
+            <Typography variant="body1" gutterBottom sx={{ color: colors.text }}>
+              <strong>Servicio:</strong> {selectedCita?.servicio_nombre}
+            </Typography>
+            <Typography variant="body1" gutterBottom sx={{ color: colors.text }}>
+              <strong>Método:</strong> Efectivo
+            </Typography>
+            <Typography variant="h6" color={colors.primary} fontWeight="bold">
+              <strong>Total:</strong> ${calcularTotales().total.toLocaleString()}
+            </Typography>
           </Box>
-        </Fade>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowConfirmDialog(false)} variant="outlined" sx={{ color: colors.textSecondary, borderColor: colors.textSecondary }}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={procesarPagoConfirmado} 
+            variant="contained" 
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={16} /> : <CheckCircle />}
+            sx={{
+              backgroundColor: colors.primary,
+              color: colors.paper,
+              '&:hover': {
+                backgroundColor: colors.primaryLight,
+              },
+            }}
+          >
+            {loading ? 'Procesando...' : 'Confirmar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-        {/* Diálogo de detalles de pago */}
-        <Dialog
-          open={showPaymentDetails}
-          onClose={() => setShowPaymentDetails(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: { borderRadius: 2 }
-          }}
-        >
-          <DialogTitle sx={{ pb: 1 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Typography variant="h6" fontWeight="600" sx={{ display: 'flex', alignItems: 'center' }}>
-                <Info sx={{ mr: 1, color: 'primary.main' }} />
-                Detalles del Pago
-              </Typography>
-              <IconButton onClick={() => setShowPaymentDetails(false)} size="small">
-                <Close />
-              </IconButton>
-            </Box>
-          </DialogTitle>
-          <DialogContent>
-            {selectedPaymentDetails && (
-              <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5 }}>
-                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
-                      Información del Paciente
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Nombre:</strong> {`${selectedPaymentDetails.paciente.nombre} ${selectedPaymentDetails.paciente.apellido_paterno}`.trim()}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Teléfono:</strong> {selectedPaymentDetails.paciente.telefono || 'No disponible'}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Email:</strong> {selectedPaymentDetails.paciente.correo || 'No disponible'}
-                    </Typography>
-                  </Paper>
-                </Grid>
+      {/* Diálogo de cancelación */}
+      <Dialog open={showCancelDialog} onClose={() => setShowCancelDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+            Confirmar Cancelación
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            ¿Desea cancelar el proceso de pago?
+          </Alert>
+          <Typography variant="body1" sx={{ color: colors.text }}>
+            Se perderán todos los datos ingresados en el formulario.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowCancelDialog(false)} variant="outlined" sx={{ color: colors.textSecondary, borderColor: colors.textSecondary }}>
+            Continuar
+          </Button>
+          <Button onClick={confirmCancel} color="error" variant="contained">
+            Cancelar Proceso
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-                <Grid item xs={12} sm={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1.5 }}>
-                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
-                      Servicio Pagado
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Servicio:</strong> {selectedPaymentDetails.cita.servicio_nombre}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Fecha de servicio:</strong> {new Date(selectedPaymentDetails.cita.fecha_consulta).toLocaleDateString('es-ES')}
-                    </Typography>
-                    <Typography variant="body2">
-                      <strong>Doctor:</strong> {selectedPaymentDetails.cita.odontologo_nombre}
-                    </Typography>
-                  </Paper>
-                </Grid>
-
-                <Grid item xs={12}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1.5 }}>
-                    <Typography variant="subtitle2" gutterBottom fontWeight="600">
-                      Información del Pago
-                    </Typography>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2">
-                          <strong>Monto:</strong> ${parseFloat(selectedPaymentDetails.pago.total).toFixed(2)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2">
-                          <strong>Método:</strong> {selectedPaymentDetails.pago.metodo_pago}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2">
-                          <strong>Fecha:</strong> {new Date(selectedPaymentDetails.pago.fecha_pago).toLocaleDateString('es-ES')}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="body2">
-                          <strong>Estado:</strong> {selectedPaymentDetails.pago.estado}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Typography variant="body2">
-                          <strong>Comprobante:</strong> {selectedPaymentDetails.pago.comprobante}
-                        </Typography>
-                      </Grid>
-                      {selectedPaymentDetails.pago.notas && (
-                        <Grid item xs={12}>
-                          <Typography variant="body2">
-                            <strong>Notas:</strong> {selectedPaymentDetails.pago.notas}
-                          </Typography>
-                        </Grid>
-                      )}
-                    </Grid>
-                  </Paper>
-                </Grid>
+      {/* Diálogo de detalles de pago */}
+      <Dialog
+        open={showPaymentDetails}
+        onClose={() => setShowPaymentDetails(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          <Typography variant="h6" fontWeight="bold" sx={{ color: colors.text }}>
+            Detalles del Pago
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {selectedPaymentDetails && (
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={6}>
+                <Card elevation={0} sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                    Información del Paciente
+                  </Typography>
+                  <Typography variant="body2" gutterBottom sx={{ color: colors.text }}>
+                    <strong>Nombre:</strong> {`${selectedPaymentDetails.paciente.nombre} ${selectedPaymentDetails.paciente.apellido_paterno}`.trim()}
+                  </Typography>
+                  <Typography variant="body2" gutterBottom sx={{ color: colors.text }}>
+                    <strong>Teléfono:</strong> {selectedPaymentDetails.paciente.telefono || 'No disponible'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.text }}>
+                    <strong>Email:</strong> {selectedPaymentDetails.paciente.correo || 'No disponible'}
+                  </Typography>
+                </Card>
               </Grid>
-            )}
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setShowPaymentDetails(false)} variant="outlined">
-              Cerrar
-            </Button>
-            <Button startIcon={<PrintOutlined />} variant="contained">
-              Imprimir
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Diálogo de cancelación */}
-        <Dialog open={showCancelDialog} onClose={() => setShowCancelDialog(false)} maxWidth="sm" fullWidth>
-          <DialogTitle>
-            <Typography variant="h6" fontWeight="600">Confirmar Cancelación</Typography>
-          </DialogTitle>
-          <DialogContent>
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              ¿Desea cancelar el proceso de pago?
-            </Alert>
-            <Typography variant="body1">
-              Se perderán todos los datos ingresados en el formulario.
-            </Typography>
-          </DialogContent>
-          <DialogActions sx={{ p: 2 }}>
-            <Button onClick={() => setShowCancelDialog(false)} variant="outlined">
-              Continuar con el Pago
-            </Button>
-            <Button onClick={confirmCancel} color="error" variant="contained">
-              Cancelar Proceso
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Diálogo de Confirmación de Pago */}
-        <Dialog
-          open={showConfirmDialog}
-          onClose={() => setShowConfirmDialog(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 2,
-              overflow: 'hidden'
-            }
-          }}
-        >
-          {/* Header */}
-          <Box sx={{
-            background: 'linear-gradient(135deg, #1976d2 0%, #42a5f5 100%)',
-            color: 'white',
-            p: 2.5,
-            textAlign: 'center'
-          }}>
-            <CheckCircle sx={{ fontSize: 36, mb: 1, opacity: 0.9 }} />
-            <Typography variant="h5" fontWeight="600" sx={{ fontSize: '1.5rem' }}>
-              Confirmar Pago
-            </Typography>
-            <Typography variant="body1" sx={{ opacity: 0.9, mt: 0.5, fontSize: '0.9rem' }}>
-              Revise los detalles antes de procesar
-            </Typography>
-          </Box>
-
-          <DialogContent sx={{ p: 0 }}>
-            {/* Monto destacado */}
-            <Box sx={{
-              textAlign: 'center',
-              py: 2.5,
-              bgcolor: 'grey.50',
-              borderBottom: '1px solid',
-              borderColor: 'divider'
-            }}>
-              <Typography variant="h2" color="primary.main" fontWeight="700" sx={{ mb: 1, fontSize: '3rem' }}>
-                ${calcularTotales().total.toFixed(2)}
-              </Typography>
-              <Chip
-                label={paymentData.metodo_pago}
-                color="primary"
-                size="large"
-                sx={{ fontWeight: 600, fontSize: '0.9rem' }}
-              />
-            </Box>
-
-            {/* Información detallada compacta */}
-            <Box sx={{ p: 2.5 }}>
-              <Grid container spacing={2}>
-                {/* Paciente */}
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'grey.50', borderRadius: 1.5, height: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 32, height: 32 }}>
-                        <Person sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
-                        Paciente
-                      </Typography>
-                    </Box>
-
-                    <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 1, fontSize: '1rem' }}>
-                      {`${selectedPaciente?.nombre || ''} ${selectedPaciente?.aPaterno || ''}`.trim()}
-                    </Typography>
-
-                    <Stack spacing={0.5}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <ConfirmationNumber sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          ID: {selectedPaciente?.id}
-                        </Typography>
-                      </Box>
-
-                      {selectedPaciente?.telefono && (
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Phone sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            {selectedPaciente.telefono}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      {selectedPaciente?.email && (
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <Email sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            {selectedPaciente.email}
-                          </Typography>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Paper>
-                </Grid>
-
-                {/* Servicio */}
-                <Grid item xs={12} md={6}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'success.50', borderRadius: 1.5, height: '100%' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                      <Avatar sx={{ bgcolor: 'success.main', mr: 1.5, width: 32, height: 32 }}>
-                        <MedicalServices sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
-                        Servicio
-                      </Typography>
-                    </Box>
-
-                    <Typography variant="subtitle1" fontWeight="600" sx={{ mb: 1, fontSize: '1rem' }}>
-                      {selectedCita?.servicio_nombre}
-                    </Typography>
-
-                    <Stack spacing={0.5}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <CalendarToday sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                          {selectedCita?.fecha_consulta ?
-                            new Date(selectedCita.fecha_consulta).toLocaleDateString('es-ES') : 'No disponible'
-                          }
-                        </Typography>
-                      </Box>
-
-                      {selectedCita?.odontologo_nombre && (
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <AccountCircle sx={{ fontSize: 14, mr: 0.5, color: 'text.secondary' }} />
-                          <Typography variant="caption" color="text.secondary" sx={{ fontSize: '0.75rem' }}>
-                            Dr. {selectedCita.odontologo_nombre}
-                          </Typography>
-                        </Box>
-                      )}
-
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <MonetizationOn sx={{ fontSize: 14, mr: 0.5, color: 'success.main' }} />
-                        <Typography variant="body2" color="success.main" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
-                          ${(parseFloat(selectedCita?.precio_servicio) || 0).toFixed(2)}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </Paper>
-                </Grid>
-
-                {/* Detalles del pago */}
-                <Grid item xs={12}>
-                  <Paper elevation={0} sx={{ p: 2, bgcolor: 'primary.50', borderRadius: 1.5, border: '1px solid', borderColor: 'primary.200' }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-                      <Avatar sx={{ bgcolor: 'primary.main', mr: 1.5, width: 32, height: 32 }}>
-                        <Payment sx={{ fontSize: 18 }} />
-                      </Avatar>
-                      <Typography variant="subtitle1" fontWeight="600" sx={{ fontSize: '1rem' }}>
-                        Detalles del Pago
-                      </Typography>
-                    </Box>
-
-                    <Grid container spacing={1.5}>
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
-                          Método
-                        </Typography>
-                        <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
-                          {paymentData.metodo_pago}
-                        </Typography>
-                      </Grid>
-
-                      <Grid item xs={6} sm={3}>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
-                          Fecha
-                        </Typography>
-                        <Typography variant="body2" fontWeight="600" sx={{ fontSize: '0.875rem' }}>
-                          {paymentData.fecha_pago.toLocaleDateString('es-ES')}
-                        </Typography>
-                      </Grid>
-
-                      {paymentData.referencia && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
-                            Referencia
-                          </Typography>
-                          <Typography variant="body2" fontWeight="600" sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '0.875rem'
-                          }}>
-                            {paymentData.referencia}
-                          </Typography>
-                        </Grid>
-                      )}
-
-                      {paymentData.email_pagador && (
-                        <Grid item xs={6} sm={3}>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
-                            Email
-                          </Typography>
-                          <Typography variant="body2" fontWeight="600" sx={{
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            fontSize: '0.875rem'
-                          }}>
-                            {paymentData.email_pagador}
-                          </Typography>
-                        </Grid>
-                      )}
-                    </Grid>
-
-                    {paymentData.notas && (
-                      <Box sx={{ mt: 1.5, p: 1.5, bgcolor: 'white', borderRadius: 1 }}>
-                        <Typography variant="caption" color="text.secondary" display="block" sx={{ fontSize: '0.75rem' }}>
-                          Notas
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontSize: '0.875rem' }}>
-                          {paymentData.notas}
-                        </Typography>
-                      </Box>
-                    )}
-                  </Paper>
-                </Grid>
+              <Grid item xs={12} md={6}>
+                <Card elevation={0} sx={{ p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
+                  <Typography variant="subtitle1" gutterBottom fontWeight="bold" sx={{ color: colors.text }}>
+                    Información del Pago
+                  </Typography>
+                  <Typography variant="body2" gutterBottom sx={{ color: colors.text }}>
+                    <strong>Monto:</strong> ${parseFloat(selectedPaymentDetails.pago.total).toFixed(2)}
+                  </Typography>
+                  <Typography variant="body2" gutterBottom sx={{ color: colors.text }}>
+                    <strong>Método:</strong> {selectedPaymentDetails.pago.metodo_pago}
+                  </Typography>
+                  <Typography variant="body2" gutterBottom sx={{ color: colors.text }}>
+                    <strong>Fecha:</strong> {new Date(selectedPaymentDetails.pago.fecha_pago).toLocaleDateString('es-ES')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: colors.text }}>
+                    <strong>Estado:</strong> {selectedPaymentDetails.pago.estado}
+                  </Typography>
+                </Card>
               </Grid>
-            </Box>
-          </DialogContent>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowPaymentDetails(false)} variant="outlined" sx={{ color: colors.textSecondary, borderColor: colors.textSecondary }}>
+            Cerrar
+          </Button>
+          <Button startIcon={<PrintOutlined />} variant="contained" sx={{ backgroundColor: colors.primary, color: colors.paper }}>
+            Imprimir
+          </Button>
+        </DialogActions>
+      </Dialog>
 
-          {/* Footer */}
-          <Box sx={{
-            p: 2.5,
-            bgcolor: 'grey.50',
-            borderTop: '1px solid',
-            borderColor: 'divider'
-          }}>
-            <Stack direction="row" spacing={1.5} justifyContent="center">
-              <Button
-                onClick={() => setShowConfirmDialog(false)}
-                variant="outlined"
-                size="large"
-                disabled={loading}
-                sx={{
-                  minWidth: 140,
-                  borderRadius: 1.5,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.875rem'
-                }}
-              >
-                Revisar Datos
-              </Button>
+      {/* Menu contextual para pagos */}
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          sx: {
+            bgcolor: colors.paper,
+            border: `1px solid ${colors.cardBorder}`,
+          }
+        }}
+      >
+        <MenuItem onClick={() => handleMenuAction('print')}>
+          <ListItemIcon><PrintOutlined sx={{ color: colors.textSecondary }} /></ListItemIcon>
+          <ListItemText primary="Imprimir recibo" primaryTypographyProps={{ color: colors.text }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleMenuAction('download')}>
+          <ListItemIcon><GetApp sx={{ color: colors.textSecondary }} /></ListItemIcon>
+          <ListItemText primary="Descargar PDF" primaryTypographyProps={{ color: colors.text }} />
+        </MenuItem>
+        <MenuItem onClick={() => handleMenuAction('copy')}>
+          <ListItemIcon><FileCopy sx={{ color: colors.textSecondary }} /></ListItemIcon>
+          <ListItemText primary="Copiar comprobante" primaryTypographyProps={{ color: colors.text }} />
+        </MenuItem>
+      </Menu>
 
-              <Button
-                onClick={procesarPagoConfirmado}
-                variant="contained"
-                size="large"
-                disabled={loading}
-                startIcon={loading ? <CircularProgress size={20} /> : <CheckCircle />}
-                sx={{
-                  minWidth: 160,
-                  borderRadius: 1.5,
-                  textTransform: 'none',
-                  fontWeight: 600,
-                  fontSize: '0.875rem'
-                }}
-              >
-                {loading ? 'Procesando...' : 'Confirmar Pago'}
-              </Button>
-            </Stack>
-          </Box>
-        </Dialog>
-
-        {/* Notificaciones */}
-        <Notificaciones
-          open={showNotification}
-          message={notificationMessage}
-          type={notificationType}
-          handleClose={handleCloseNotification}
-        />
-      </Paper>
-    </Box>
+      {/* Notificaciones */}
+      <Notificaciones
+        open={showNotification}
+        message={notificationMessage}
+        type={notificationType}
+        handleClose={handleCloseNotification}
+      />
+    </Container>
   );
 };
 

@@ -600,7 +600,7 @@ const ServiceDetailsDialog = React.memo(({
       preparation: [],
       aftercare: []
     };
-    
+
     // Normalizar el servicio para evitar nulls
     return {
       ...service,
@@ -2080,7 +2080,8 @@ const ServicioForm = () => {
           </Typography>
 
           {/* Botones de acciones */}
-          <Box sx={{ display: 'flex', gap: 1 }}>
+
+          <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
             <Button
               variant="outlined"
               startIcon={<FilterAlt />}
@@ -2097,13 +2098,27 @@ const ServicioForm = () => {
               {filtersExpanded ? 'Ocultar filtros' : 'Filtros avanzados'}
             </Button>
 
+            <Button
+              variant="outlined"
+              startIcon={<MenuBook />}
+              onClick={() => setOpenCategoriesDialog(true)}
+              sx={{
+                color: colors.primary,
+                borderColor: colors.primary,
+                '&:hover': {
+                  borderColor: colors.primary,
+                  backgroundColor: colors.hover
+                }
+              }}
+            >
+              Categorías
+            </Button>
+
             {filterChips.length > 0 && (
               <Button
                 variant="text"
                 onClick={resetFilters}
-                sx={{
-                  color: colors.secondaryText
-                }}
+                sx={{ color: colors.secondaryText }}
               >
                 Limpiar filtros
               </Button>
@@ -2294,24 +2309,7 @@ const ServicioForm = () => {
           />
         </Suspense>
 
-        {/* Botón para gestionar categorías */}
-        <Tooltip title="Gestionar categorías">
-          <Fab
-            size="medium"
-            sx={{
-              position: 'fixed',
-              bottom: 32,
-              right: 32,
-              bgcolor: colors.primary,
-              '&:hover': {
-                bgcolor: alpha(colors.primary, 0.9)
-              }
-            }}
-            onClick={() => setOpenCategoriesDialog(true)}
-          >
-            <MenuBook />
-          </Fab>
-        </Tooltip>
+
       </Box>
     </Card>
   );

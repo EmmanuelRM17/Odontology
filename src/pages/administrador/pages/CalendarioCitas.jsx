@@ -191,7 +191,7 @@ const EventTooltip = styled(Paper)(({ theme }) => ({
 // Componente de carga mejorado que solo afecta al calendario
 const CalendarLoading = ({ loading, isDarkTheme }) => {
   if (!loading) return null;
-  
+
   return (
     <Box
       sx={{
@@ -210,13 +210,13 @@ const CalendarLoading = ({ loading, isDarkTheme }) => {
         backdropFilter: "blur(4px)"
       }}
     >
-      <CircularProgress 
-        size={60} 
-        thickness={4} 
-        sx={{ 
+      <CircularProgress
+        size={60}
+        thickness={4}
+        sx={{
           color: isDarkTheme ? "#90caf9" : "#1976d2",
-          mb: 2 
-        }} 
+          mb: 2
+        }}
       />
       <Typography
         variant="h6"
@@ -588,8 +588,8 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
           </Box>
         </Grid>
 
-{/* Fila 2: Filtros avanzados */}
-<Grid item xs={12}>
+        {/* Fila 2: Filtros avanzados */}
+        <Grid item xs={12}>
           <Box
             sx={{
               display: 'flex',
@@ -600,18 +600,18 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
             }}
           >
             {/* Búsqueda de paciente con mejor diseño */}
-            <Box sx={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              width: { xs: '100%', sm: 'auto' }, 
+            <Box sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              width: { xs: '100%', sm: 'auto' },
               flex: { xs: '1 1 100%', sm: '1 1 250px', md: '0 1 280px' },
               gap: 0.5
             }}>
               <Typography variant="caption" sx={{ fontWeight: 500, ml: 1, color: isDarkTheme ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.6)' }}>
                 Buscar paciente
               </Typography>
-              <Box sx={{ 
-                display: 'flex', 
+              <Box sx={{
+                display: 'flex',
                 alignItems: 'center',
                 border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
                 borderRadius: '8px',
@@ -663,10 +663,10 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
 
             {/* Selector de paciente (Nuevo) con mejor diseño */}
             {pacientes && pacientes.length > 0 && (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                width: { xs: '100%', sm: 'auto' }, 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: { xs: '100%', sm: 'auto' },
                 flex: { xs: '1 1 100%', sm: '1 1 200px' },
                 gap: 0.5
               }}>
@@ -677,12 +677,12 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   value={selectedPaciente}
                   onChange={(e) => onPacienteChange(e.target.value)}
                   displayEmpty
-                  sx={{ 
+                  sx={{
                     height: '42px',
                     borderRadius: '8px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    '& .MuiSelect-select': { 
-                      display: 'flex', 
+                    '& .MuiSelect-select': {
+                      display: 'flex',
                       alignItems: 'center',
                       pl: 2,
                       py: 1.3,
@@ -697,7 +697,7 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   }}
                   MenuProps={{
                     PaperProps: {
-                      sx: { 
+                      sx: {
                         bgcolor: isDarkTheme ? '#1e3a5c' : '#fff',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         borderRadius: '8px',
@@ -726,10 +726,10 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
 
             {/* Selector de odontólogo con mejor diseño */}
             {odontologos && odontologos.length > 0 && (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                width: { xs: '100%', sm: 'auto' }, 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: { xs: '100%', sm: 'auto' },
                 flex: { xs: '1 1 100%', sm: '1 1 200px' },
                 gap: 0.5
               }}>
@@ -740,12 +740,12 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   value={selectedOdontologo}
                   onChange={(e) => onOdontologoChange(e.target.value)}
                   displayEmpty
-                  sx={{ 
+                  sx={{
                     height: '42px',
                     borderRadius: '8px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    '& .MuiSelect-select': { 
-                      display: 'flex', 
+                    '& .MuiSelect-select': {
+                      display: 'flex',
                       alignItems: 'center',
                       pl: 2,
                       py: 1.3,
@@ -760,7 +760,7 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   }}
                   MenuProps={{
                     PaperProps: {
-                      sx: { 
+                      sx: {
                         bgcolor: isDarkTheme ? '#1e3a5c' : '#fff',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         borderRadius: '8px',
@@ -789,10 +789,10 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
 
             {/* Selector de estado con mejor diseño */}
             {estados && estados.length > 0 && (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                width: { xs: '100%', sm: 'auto' }, 
+              <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                width: { xs: '100%', sm: 'auto' },
                 flex: { xs: '1 1 100%', sm: '1 1 200px' },
                 gap: 0.5
               }}>
@@ -803,16 +803,16 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   value={selectedEstado}
                   onChange={(e) => onEstadoChange(e.target.value)}
                   displayEmpty
-                  sx={{ 
+                  sx={{
                     height: '42px',
                     borderRadius: '8px',
                     boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                    '& .MuiSelect-select': { 
-                      display: 'flex', 
+                    '& .MuiSelect-select': {
+                      display: 'flex',
                       alignItems: 'center',
                       pl: 2,
                       py: 1.3,
-                      color: isDarkTheme ? '#fff' : 'inherit' 
+                      color: isDarkTheme ? '#fff' : 'inherit'
                     },
                     bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.04)' : 'rgba(255, 255, 255, 0.9)',
                     border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.15)'}`,
@@ -823,7 +823,7 @@ const CustomToolbar = ({ date, view, onView, onNavigate, isDarkTheme, onRefresh,
                   }}
                   MenuProps={{
                     PaperProps: {
-                      sx: { 
+                      sx: {
                         bgcolor: isDarkTheme ? '#1e3a5c' : '#fff',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                         borderRadius: '8px',
@@ -936,17 +936,17 @@ const CalendarioAgenda = () => {
   // Generar colores para pacientes
   const generatePatientColors = useCallback((patientIds) => {
     const colorScheme = [
-      "#2196F3", "#9C27B0", "#4CAF50", "#FFC107", "#FF5722", 
+      "#2196F3", "#9C27B0", "#4CAF50", "#FFC107", "#FF5722",
       "#03A9F4", "#673AB7", "#8BC34A", "#FFA000", "#FF7043",
-      "#00BCD4", "#7E57C2", "#66BB6A", "#FFB300", "#F4511E", 
+      "#00BCD4", "#7E57C2", "#66BB6A", "#FFB300", "#F4511E",
       "#0097A7", "#5E35B1", "#43A047", "#FB8C00", "#E64A19"
     ];
-    
+
     const patientColors = {};
     patientIds.forEach((id, index) => {
       patientColors[id] = colorScheme[index % colorScheme.length];
     });
-    
+
     return patientColors;
   }, []);
 
@@ -960,7 +960,7 @@ const CalendarioAgenda = () => {
       const tratamientosMap = {};
 
       data.forEach(tratamiento => {
-          tratamientosMap[tratamiento.id] = tratamiento;
+        tratamientosMap[tratamiento.id] = tratamiento;
       });
 
       setTratamientos(tratamientosMap);
@@ -982,7 +982,7 @@ const CalendarioAgenda = () => {
 
       const data = await response.json();
       const citasFiltradas = data.filter(cita => !cita.archivado);
-      
+
       // Agrupar las citas por tratamiento para verificar y asignar números
       const citasPorTratamiento = {};
 
@@ -1035,23 +1035,23 @@ const CalendarioAgenda = () => {
   // Función para obtener eventos
   const fetchEvents = useCallback(async () => {
     setLoading(true);
-    
+
     try {
       // Obtener datos de múltiples endpoints en paralelo
       const [tratamientosData, citasData] = await Promise.all([
         fetchTratamientos(),
         fetchCitas()
       ]);
-      
+
       if (!citasData || citasData.length === 0) {
         setLoading(false);
         return;
       }
-      
+
       // Extraer pacientes únicos
       const uniquePatients = [];
       const uniquePatientsIds = new Set();
-      
+
       citasData.forEach(cita => {
         if (cita.paciente_id && !uniquePatientsIds.has(cita.paciente_id)) {
           uniquePatientsIds.add(cita.paciente_id);
@@ -1063,16 +1063,16 @@ const CalendarioAgenda = () => {
           });
         }
       });
-      
+
       // Generar colores para los pacientes
       const patientColors = generatePatientColors(Array.from(uniquePatientsIds));
       setPacienteColors(patientColors);
       setPacientes(uniquePatients);
-      
+
       // Extraer odontólogos únicos
       const uniqueOdontologos = [];
       const uniqueOdontologosIds = new Set();
-      
+
       citasData.forEach(cita => {
         if (cita.odontologo_id && !uniqueOdontologosIds.has(cita.odontologo_id)) {
           uniqueOdontologosIds.add(cita.odontologo_id);
@@ -1082,9 +1082,9 @@ const CalendarioAgenda = () => {
           });
         }
       });
-      
+
       setOdontologos(uniqueOdontologos);
-      
+
       // Mapeo y formateo de los eventos
       const formattedEvents = citasData.map((cita) => {
         const startDate = moment(cita.fecha_consulta).toDate();
@@ -1121,12 +1121,12 @@ const CalendarioAgenda = () => {
             title += ` (${numCitaTratamiento})`;
           }
         }
-        
+
         // Determinar el color según paciente (para identificar todas las citas de un mismo paciente)
         const pacienteColor = cita.paciente_id ? patientColors[cita.paciente_id] : null;
         // Color de la categoría del servicio (para diferenciar tipos de servicio)
         const categoriaColor = categoryColors[cita.categoria_servicio] || categoryColors.default;
-        
+
         return {
           id: cita.consulta_id,
           title: title,
@@ -1159,13 +1159,13 @@ const CalendarioAgenda = () => {
           fecha_solicitud: cita.fecha_solicitud
         };
       });
-      
+
       // Calcular estadísticas
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const tomorrow = new Date(today);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      
+
       const stats = {
         totalCitas: formattedEvents.length,
         citasPendientes: formattedEvents.filter(e => e.estado === 'Pendiente').length,
@@ -1174,12 +1174,12 @@ const CalendarioAgenda = () => {
         citasCompletadas: formattedEvents.filter(e => e.estado === 'Completada').length,
         preRegistros: formattedEvents.filter(e => e.estado === 'PRE-REGISTRO').length
       };
-      
+
       // Contar citas programadas para hoy
-      const citasHoy = formattedEvents.filter(event => 
+      const citasHoy = formattedEvents.filter(event =>
         event.start >= today && event.start < tomorrow
       ).length;
-      
+
       setTodayCitas(citasHoy);
       setEstadisticas(stats);
       setEvents(formattedEvents);
@@ -1286,7 +1286,7 @@ const CalendarioAgenda = () => {
     if (selectedEstado !== 'all') {
       filtered = filtered.filter(event => event.estado === selectedEstado);
     }
-    
+
     // Aplicar filtro adicional por paciente (si está seleccionado)
     if (selectedPaciente !== 'all') {
       filtered = filtered.filter(event => event.paciente_id === selectedPaciente);
@@ -1309,7 +1309,7 @@ const CalendarioAgenda = () => {
     if (selectedOdontologo !== 'all') {
       filtered = filtered.filter(event => event.odontologo_id === selectedOdontologo);
     }
-    
+
     // Aplicar filtro adicional por paciente (si está seleccionado)
     if (selectedPaciente !== 'all') {
       filtered = filtered.filter(event => event.paciente_id === selectedPaciente);
@@ -1332,7 +1332,7 @@ const CalendarioAgenda = () => {
     if (selectedOdontologo !== 'all') {
       filtered = filtered.filter(event => event.odontologo_id === selectedOdontologo);
     }
-    
+
     // Aplicar filtro adicional por estado (si está seleccionado)
     if (selectedEstado !== 'all') {
       filtered = filtered.filter(event => event.estado === selectedEstado);
@@ -1420,7 +1420,7 @@ const CalendarioAgenda = () => {
   const eventStyleGetter = useCallback((event) => {
     const statusColor = statusConfig[event.estado]?.color || categoryColors.default;
     const pacienteColor = event.pacienteColor || categoryColors.default;
-    
+
     // Determinar si hay más citas del mismo paciente
     const pacienteCitas = events.filter(e => e.paciente_id === event.paciente_id).length;
     const multiplesCitas = pacienteCitas > 1;
@@ -1494,7 +1494,7 @@ const CalendarioAgenda = () => {
       date.getFullYear() === today.getFullYear()
     ) {
       // Contar citas para el día de hoy
-      const citasHoy = events.filter(event => 
+      const citasHoy = events.filter(event =>
         new Date(event.start).getDate() === date.getDate() &&
         new Date(event.start).getMonth() === date.getMonth() &&
         new Date(event.start).getFullYear() === date.getFullYear()
@@ -1574,19 +1574,19 @@ const CalendarioAgenda = () => {
     dateCellWrapper: (props) => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      
-      const isToday = 
+
+      const isToday =
         props.value.getDate() === today.getDate() &&
         props.value.getMonth() === today.getMonth() &&
         props.value.getFullYear() === today.getFullYear();
-      
+
       // Contar citas para este día
-      const citasDia = events.filter(event => 
+      const citasDia = events.filter(event =>
         new Date(event.start).getDate() === props.value.getDate() &&
         new Date(event.start).getMonth() === props.value.getMonth() &&
         new Date(event.start).getFullYear() === props.value.getFullYear()
       ).length;
-      
+
       return (
         <div
           className={isToday ? "rbc-day-bg today-cell" : "rbc-day-bg"}
@@ -1596,7 +1596,7 @@ const CalendarioAgenda = () => {
           }}
         >
           {props.children}
-          
+
           {/* Indicador del día actual (modificado para no interferir con la fecha) */}
           {isToday && (
             <Tooltip title="Hoy">
@@ -1615,7 +1615,7 @@ const CalendarioAgenda = () => {
               />
             </Tooltip>
           )}
-          
+
           {/* Mostrar indicador de cantidad de citas si hay más de 0 */}
           {citasDia > 0 && (
             <Tooltip title={`${citasDia} citas programadas`}>
@@ -1689,7 +1689,7 @@ const CalendarioAgenda = () => {
               >
                 Odontología Carol - Panel de Administración
               </Typography>
-              
+
               {/* Indicador de citas para hoy */}
               <Box
                 sx={{
@@ -2430,26 +2430,26 @@ const CalendarioAgenda = () => {
             <Box sx={{ position: 'absolute', top: -15, right: -15, opacity: 0.1 }}>
               <TodayIcon sx={{ fontSize: 80, color: colors.todayHighlight }} />
             </Box>
-            
+
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.todayHighlight, mb: 1 }}>
               {moment().format('dddd, D [de] MMMM')}
             </Typography>
-            
+
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" sx={{ color: isDarkTheme ? '#fff' : '#333' }}>
                 Citas programadas:
               </Typography>
-              <Chip 
+              <Chip
                 label={todayCitas}
                 size="small"
-                sx={{ 
+                sx={{
                   fontWeight: 'bold',
                   bgcolor: colors.todayHighlight,
                   color: 'white'
                 }}
               />
             </Box>
-            
+
             {/* Botón para ver citas de hoy */}
             <Button
               size="small"
@@ -2459,7 +2459,7 @@ const CalendarioAgenda = () => {
                 applyFilter('today');
                 setIsDrawerOpen(false);
               }}
-              sx={{ 
+              sx={{
                 mt: 1,
                 borderColor: colors.todayHighlight,
                 color: colors.todayHighlight,
@@ -2635,17 +2635,17 @@ const CalendarioAgenda = () => {
                         </Typography>
                       </Box>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Chip 
-                          size="small" 
-                          label={pacienteCitas.length} 
-                          sx={{ 
-                            height: 20, 
-                            fontSize: '0.7rem', 
+                        <Chip
+                          size="small"
+                          label={pacienteCitas.length}
+                          sx={{
+                            height: 20,
+                            fontSize: '0.7rem',
                             bgcolor: isDarkTheme ? alpha(color, 0.2) : alpha(color, 0.1),
                             color: color,
                             fontWeight: 600,
                             border: `1px solid ${color}`
-                          }} 
+                          }}
                         />
                       </Box>
                     </Box>
@@ -2653,10 +2653,10 @@ const CalendarioAgenda = () => {
                 })
             )}
             {pacientes.filter(p => events.filter(e => e.paciente_id === p.id).length > 1).length > 5 && (
-              <Button 
-                size="small" 
-                fullWidth 
-                variant="text" 
+              <Button
+                size="small"
+                fullWidth
+                variant="text"
                 sx={{ mt: 1, textTransform: 'none' }}
                 onClick={() => {
                   setSelectedPaciente('all');
@@ -2806,7 +2806,7 @@ const CalendarioAgenda = () => {
       <Dialog
         open={openDialog}
         onClose={() => setOpenDialog(false)}
-        maxWidth="md"
+        maxWidth="lg"
         fullWidth
         PaperProps={{
           elevation: 5,
@@ -3078,13 +3078,13 @@ const CalendarioAgenda = () => {
                               </Grid>
                             )}
                           </Grid>
-                          
+
                           {/* Mostrar total de citas del paciente */}
                           {selectedCita.paciente_id && (
-                            <Box 
-                              sx={{ 
-                                display: 'flex', 
-                                alignItems: 'center', 
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
                                 mt: 1,
                                 bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
                                 borderRadius: 1,
@@ -3095,9 +3095,9 @@ const CalendarioAgenda = () => {
                               <Typography variant="body2" color="textSecondary" sx={{ mr: 0.5 }}>
                                 Total citas:
                               </Typography>
-                              <Chip 
-                                size="small" 
-                                label={events.filter(e => e.paciente_id === selectedCita.paciente_id).length} 
+                              <Chip
+                                size="small"
+                                label={events.filter(e => e.paciente_id === selectedCita.paciente_id).length}
                                 color="primary"
                                 sx={{ height: 20, fontSize: '0.7rem' }}
                               />
@@ -3140,13 +3140,13 @@ const CalendarioAgenda = () => {
                           {selectedCita.odontologo_nombre || 'No asignado'}
                         </Typography>
                       </Box>
-                      
+
                       {/* Mostrar total de citas del odontólogo */}
                       {selectedCita.odontologo_id && (
-                        <Box 
-                          sx={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
+                        <Box
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
                             mt: 1,
                             bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
                             borderRadius: 1,
@@ -3157,9 +3157,9 @@ const CalendarioAgenda = () => {
                           <Typography variant="caption" color="textSecondary" sx={{ mr: 0.5 }}>
                             Total citas:
                           </Typography>
-                          <Chip 
-                            size="small" 
-                            label={events.filter(e => e.odontologo_id === selectedCita.odontologo_id).length} 
+                          <Chip
+                            size="small"
+                            label={events.filter(e => e.odontologo_id === selectedCita.odontologo_id).length}
                             color="info"
                             sx={{ height: 20, fontSize: '0.7rem' }}
                           />
@@ -3211,7 +3211,7 @@ const CalendarioAgenda = () => {
                           {selectedCita.estado}
                         </Typography>
                       </Box>
-                      
+
                       {/* Fecha de solicitud */}
                       {selectedCita.fecha_solicitud && (
                         <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
@@ -3347,28 +3347,7 @@ const CalendarioAgenda = () => {
                           </Button>
                         )}
 
-                        {/* Si es completada mostrar otras opciones */}
-                        {selectedCita.estado === 'Completada' && (
-                          <Button
-                            variant="outlined"
-                            color="primary"
-                            startIcon={<DescriptionIcon />}
-                            fullWidth
-                            sx={{ textTransform: 'none' }}
-                          >
-                            Ver Historial Médico
-                          </Button>
-                        )}
 
-                        {/* Botón para editar información */}
-                        <Button
-                          variant="outlined"
-                          startIcon={<EditIcon />}
-                          fullWidth
-                          sx={{ textTransform: 'none' }}
-                        >
-                          Editar Información
-                        </Button>
                       </Box>
                     </Paper>
                   </Grid>
@@ -3418,7 +3397,7 @@ const CalendarioAgenda = () => {
                               {selectedCita.numero_cita_tratamiento || '1'} de {selectedCita.tratamientoInfo.total_citas_programadas || '?'}
                             </Typography>
                           </Box>
-                          
+
                           {/* Fechas de tratamiento */}
                           {selectedCita.tratamientoInfo.fecha_inicio && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
@@ -3430,7 +3409,7 @@ const CalendarioAgenda = () => {
                               </Typography>
                             </Box>
                           )}
-                          
+
                           {selectedCita.tratamientoInfo.fecha_estimada_fin && (
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                               <Typography variant="body2" color="textSecondary">
@@ -3441,7 +3420,7 @@ const CalendarioAgenda = () => {
                               </Typography>
                             </Box>
                           )}
-                          
+
                           {/* Progreso del tratamiento */}
                           <Box sx={{ mt: 1, mb: 2 }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
@@ -3449,15 +3428,15 @@ const CalendarioAgenda = () => {
                                 Progreso:
                               </Typography>
                               <Typography variant="body2" fontWeight={500} color="#4CAF50">
-                                {Math.round((selectedCita.tratamientoInfo.citas_completadas / 
-                                selectedCita.tratamientoInfo.total_citas_programadas) * 100)}%
+                                {Math.round((selectedCita.tratamientoInfo.citas_completadas /
+                                  selectedCita.tratamientoInfo.total_citas_programadas) * 100)}%
                               </Typography>
                             </Box>
                             <Box sx={{ width: '100%', bgcolor: 'rgba(0, 0, 0, 0.1)', borderRadius: 5, height: 8, overflow: 'hidden' }}>
-                              <Box 
-                                sx={{ 
-                                  width: `${Math.round((selectedCita.tratamientoInfo.citas_completadas / 
-                                  selectedCita.tratamientoInfo.total_citas_programadas) * 100)}%`,
+                              <Box
+                                sx={{
+                                  width: `${Math.round((selectedCita.tratamientoInfo.citas_completadas /
+                                    selectedCita.tratamientoInfo.total_citas_programadas) * 100)}%`,
                                   bgcolor: '#4CAF50',
                                   height: '100%'
                                 }}
@@ -3484,108 +3463,108 @@ const CalendarioAgenda = () => {
                       </Paper>
                     </Grid>
                   )}
-                  
+
                   {/* Otras citas del paciente */}
-                  {selectedCita.paciente_id && events.filter(e => 
-                    e.paciente_id === selectedCita.paciente_id && 
+                  {selectedCita.paciente_id && events.filter(e =>
+                    e.paciente_id === selectedCita.paciente_id &&
                     e.id !== selectedCita.id
                   ).length > 0 && (
-                    <Grid item xs={12}>
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          borderRadius: '8px',
-                          backgroundColor: isDarkTheme ? 'rgba(25, 118, 210, 0.1)' : 'rgba(25, 118, 210, 0.05)',
-                          border: `1px solid ${isDarkTheme ? 'rgba(25, 118, 210, 0.2)' : 'rgba(25, 118, 210, 0.1)'}`
-                        }}
-                      >
-                        <Typography
-                          variant="subtitle2"
-                          gutterBottom
+                      <Grid item xs={12}>
+                        <Paper
+                          elevation={0}
                           sx={{
-                            color: colors.primary,
-                            fontWeight: 600,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 0.5
+                            p: 2,
+                            borderRadius: '8px',
+                            backgroundColor: isDarkTheme ? 'rgba(25, 118, 210, 0.1)' : 'rgba(25, 118, 210, 0.05)',
+                            border: `1px solid ${isDarkTheme ? 'rgba(25, 118, 210, 0.2)' : 'rgba(25, 118, 210, 0.1)'}`
                           }}
                         >
-                          <DateRangeIcon fontSize="small" />
-                          Otras Citas del Paciente
-                        </Typography>
-                        
-                        <Box sx={{ mt: 1 }}>
-                          {events.filter(e => 
-                            e.paciente_id === selectedCita.paciente_id && 
-                            e.id !== selectedCita.id
-                          )
-                          .sort((a, b) => new Date(a.start) - new Date(b.start))
-                          .slice(0, 3)
-                          .map(cita => (
-                            <Box 
-                              key={cita.id}
-                              sx={{ 
-                                mb: 1, 
-                                p: 1, 
-                                borderRadius: 1,
-                                bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                cursor: 'pointer',
-                                '&:hover': { bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }
-                              }}
-                              onClick={() => handleSelectEvent(cita)}
-                            >
-                              <Box 
-                                sx={{ 
-                                  width: 4,
-                                  height: '100%',
-                                  bgcolor: statusConfig[cita.estado]?.color,
-                                  borderRadius: 2,
-                                  mr: 1
-                                }}
-                              />
-                              <Box sx={{ flexGrow: 1 }}>
-                                <Typography variant="caption" display="block" color="textSecondary">
-                                  {moment(cita.start).format('DD/MM/YYYY - HH:mm')}
-                                </Typography>
-                                <Typography variant="body2" noWrap>
-                                  {cita.title}
-                                </Typography>
-                              </Box>
-                              <StatusChip
-                                size="small"
-                                label={cita.estado}
-                                status={cita.estado}
-                                isDarkTheme={isDarkTheme}
-                                sx={{ ml: 1, height: 20 }}
-                              />
-                            </Box>
-                          ))}
-                          
-                          {events.filter(e => 
-                            e.paciente_id === selectedCita.paciente_id && 
-                            e.id !== selectedCita.id
-                          ).length > 3 && (
-                            <Button
-                              size="small"
-                              fullWidth
-                              variant="text"
-                              onClick={() => {
-                                setSelectedPaciente(selectedCita.paciente_id);
-                                setOpenDialog(false);
-                                setFilterActive(true);
-                              }}
-                              sx={{ mt: 1, textTransform: 'none' }}
-                            >
-                              Ver todas ({events.filter(e => e.paciente_id === selectedCita.paciente_id).length})
-                            </Button>
-                          )}
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  )}
+                          <Typography
+                            variant="subtitle2"
+                            gutterBottom
+                            sx={{
+                              color: colors.primary,
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 0.5
+                            }}
+                          >
+                            <DateRangeIcon fontSize="small" />
+                            Otras Citas del Paciente
+                          </Typography>
+
+                          <Box sx={{ mt: 1 }}>
+                            {events.filter(e =>
+                              e.paciente_id === selectedCita.paciente_id &&
+                              e.id !== selectedCita.id
+                            )
+                              .sort((a, b) => new Date(a.start) - new Date(b.start))
+                              .slice(0, 3)
+                              .map(cita => (
+                                <Box
+                                  key={cita.id}
+                                  sx={{
+                                    mb: 1,
+                                    p: 1,
+                                    borderRadius: 1,
+                                    bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    '&:hover': { bgcolor: isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)' }
+                                  }}
+                                  onClick={() => handleSelectEvent(cita)}
+                                >
+                                  <Box
+                                    sx={{
+                                      width: 4,
+                                      height: '100%',
+                                      bgcolor: statusConfig[cita.estado]?.color,
+                                      borderRadius: 2,
+                                      mr: 1
+                                    }}
+                                  />
+                                  <Box sx={{ flexGrow: 1 }}>
+                                    <Typography variant="caption" display="block" color="textSecondary">
+                                      {moment(cita.start).format('DD/MM/YYYY - HH:mm')}
+                                    </Typography>
+                                    <Typography variant="body2" noWrap>
+                                      {cita.title}
+                                    </Typography>
+                                  </Box>
+                                  <StatusChip
+                                    size="small"
+                                    label={cita.estado}
+                                    status={cita.estado}
+                                    isDarkTheme={isDarkTheme}
+                                    sx={{ ml: 1, height: 20 }}
+                                  />
+                                </Box>
+                              ))}
+
+                            {events.filter(e =>
+                              e.paciente_id === selectedCita.paciente_id &&
+                              e.id !== selectedCita.id
+                            ).length > 3 && (
+                                <Button
+                                  size="small"
+                                  fullWidth
+                                  variant="text"
+                                  onClick={() => {
+                                    setSelectedPaciente(selectedCita.paciente_id);
+                                    setOpenDialog(false);
+                                    setFilterActive(true);
+                                  }}
+                                  sx={{ mt: 1, textTransform: 'none' }}
+                                >
+                                  Ver todas ({events.filter(e => e.paciente_id === selectedCita.paciente_id).length})
+                                </Button>
+                              )}
+                          </Box>
+                        </Paper>
+                      </Grid>
+                    )}
                 </Grid>
               </Box>
             </Box>

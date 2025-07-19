@@ -129,27 +129,43 @@ const Citas = () => {
   ];
 
   // Cargar próxima cita
-  useEffect(() => {
-    const fetchProximaCita = async () => {
-      if (!pacienteId) return;
+useEffect(() => {
+  const fetchProximaCita = async () => {
+    if (!pacienteId) return;
 
-      try {
-        setProximaCitaLoading(true);
-        const response = await fetch(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteId}/proxima`);
+    try {
+      setProximaCitaLoading(true);
+      const response = await fetch(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteId}/proxima`);
+      
+      if (response.ok) {
+        const data = await response.json();
         
-        if (response.ok) {
-          const data = await response.json();
-          setProximaCita(data.tiene_proxima_cita ? data.cita : null);
+        // Validación adicional en frontend
+        if (data.tiene_proxima_cita && data.cita) {
+          const estadosValidos = ['Programada', 'Confirmada', 'En curso'];
+          const fechaCita = new Date(data.cita.fecha_completa);
+          const ahora = new Date();
+          
+          // Solo mostrar si está en estado válido y es futura
+          if (estadosValidos.includes(data.cita.estado) && fechaCita >= ahora) {
+            setProximaCita(data.cita);
+          } else {
+            setProximaCita(null);
+          }
+        } else {
+          setProximaCita(null);
         }
-      } catch (error) {
-        console.error('Error al cargar próxima cita:', error);
-      } finally {
-        setProximaCitaLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Error al cargar próxima cita:', error);
+      setProximaCita(null);
+    } finally {
+      setProximaCitaLoading(false);
+    }
+  };
 
-    fetchProximaCita();
-  }, [pacienteId, refreshTrigger]);
+  fetchProximaCita();
+}, [pacienteId, refreshTrigger]);
 
   // Cargar todas las citas
   useEffect(() => {

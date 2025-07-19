@@ -9,7 +9,7 @@ const ProtectedRoute = ({ children, requiredRole }) => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch('https://back-end-4803.onrender.com/api/users/checkAuth', {
+        const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
           method: 'GET',
           credentials: 'include',
         });
