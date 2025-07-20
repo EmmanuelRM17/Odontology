@@ -37,34 +37,31 @@ const InfoBar = () => {
     };
 
     fetchInfoData();
-    
-    // Opcional: refrescar cada cierto tiempo para mantener actualizado el horario
-    const intervalId = setInterval(fetchInfoData, 60000); // Cada minuto
-    
+    const intervalId = setInterval(fetchInfoData, 60000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // Determinar si está abierto ahora (lógica simple)
+  // Determinar si está abierto ahora
   const isOpenNow = () => {
     if (!infoData || !infoData.horarioHoy.estaAbierto) return false;
     
     const now = new Date();
     const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     
-    // Verificar si estamos en alguno de los rangos horarios
     return infoData.horarioHoy.horarios.some(horario => {
       const [horaInicio, horaFin] = horario.split(' - ');
       return currentTime >= horaInicio && currentTime <= horaFin;
     });
   };
 
-  // Estado de apertura
   const openStatus = infoData ? isOpenNow() : false;
 
   return (
     <Box
       sx={{
-        backgroundColor: isDarkTheme ? "#1E293B" : "#03427C", // Azul más oscuro para tema negro
+        background: isDarkTheme 
+          ? "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)"
+          : "linear-gradient(180deg, #1d4ed8 0%, #1e3a8a 100%)",
         color: "#FFFFFF",
         display: "flex",
         justifyContent: "center",
@@ -73,25 +70,60 @@ const InfoBar = () => {
         fontSize: "0.875rem",
         flexWrap: "wrap",
         gap: { xs: 2, sm: 3 },
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)"
+        boxShadow: isDarkTheme 
+          ? "0 4px 20px rgba(0,0,0,0.4)"
+          : "0 4px 20px rgba(30,64,175,0.3)",
+        position: "relative",
+        overflow: "hidden",
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: "-100%",
+          width: "100%",
+          height: "100%",
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)",
+          animation: "slideShine 3s ease-in-out infinite",
+          zIndex: 1
+        },
+        "& > *": {
+          position: "relative",
+          zIndex: 2
+        },
+        "@keyframes slideShine": {
+          "0%": { 
+            left: "-100%",
+            opacity: 0
+          },
+          "20%": {
+            opacity: 1
+          },
+          "80%": {
+            opacity: 1
+          },
+          "100%": { 
+            left: "100%",
+            opacity: 0
+          }
+        }
       }}
     >
       {/* 📍 Dirección */}
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaMapMarkerAlt
           style={{
-            color: isDarkTheme ? "#38BDF8" : "#4FD1C5" // Azul más brillante para tema oscuro
+            color: isDarkTheme ? "#22d3ee" : "#67e8f9"
           }}
           size={16}
         />
         {loading ? (
-          <Skeleton variant="text" width={150} sx={{ bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)' }} />
+          <Skeleton variant="text" width={150} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
         ) : error ? (
           <Typography
             sx={{
               fontFamily: '"Montserrat", sans-serif',
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              color: isDarkTheme ? "#FF9999" : "#FFCCCC"
+              color: "#fca5a5"
             }}
           >
             Error al cargar dirección
@@ -105,7 +137,7 @@ const InfoBar = () => {
                 letterSpacing: "0.3px",
                 fontWeight: 500,
                 '&:hover': {
-                  color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
+                  color: isDarkTheme ? "#67e8f9" : "#a7f3d0",
                   transition: "color 0.2s ease"
                 }
               }}
@@ -121,7 +153,7 @@ const InfoBar = () => {
           display: { xs: "none", sm: "block" },
           mx: 2,
           opacity: 0.4,
-          color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
+          color: isDarkTheme ? "#94a3b8" : "#e2e8f0"
         }}
       >
         |
@@ -131,18 +163,18 @@ const InfoBar = () => {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaClock
           style={{
-            color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
+            color: isDarkTheme ? "#a78bfa" : "#c4b5fd"
           }}
           size={14}
         />
         {loading ? (
-          <Skeleton variant="text" width={120} sx={{ bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)' }} />
+          <Skeleton variant="text" width={120} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
         ) : error ? (
           <Typography
             sx={{
               fontFamily: '"Montserrat", sans-serif',
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              color: isDarkTheme ? "#FF9999" : "#FFCCCC"
+              color: "#fca5a5"
             }}
           >
             Error al cargar horario
@@ -165,7 +197,7 @@ const InfoBar = () => {
                       width: 8, 
                       height: 8, 
                       borderRadius: '50%',
-                      bgcolor: openStatus ? '#4CAF50' : '#F44336'
+                      bgcolor: openStatus ? '#22c55e' : '#ef4444'
                     }} 
                   />
                   <Typography variant="caption">
@@ -189,14 +221,13 @@ const InfoBar = () => {
                 {infoData?.horarioGeneral || "Horario no disponible"}
               </Typography>
               
-              {/* Indicador visual de abierto/cerrado */}
               <Box 
                 sx={{ 
                   ml: 1,
                   width: 8, 
                   height: 8, 
                   borderRadius: '50%',
-                  bgcolor: openStatus ? '#4CAF50' : '#F44336'
+                  bgcolor: openStatus ? '#22c55e' : '#ef4444'
                 }} 
               />
             </Box>
@@ -209,7 +240,7 @@ const InfoBar = () => {
           display: { xs: "none", sm: "block" },
           mx: 2,
           opacity: 0.4,
-          color: isDarkTheme ? "#94A3B8" : "#FFFFFF"
+          color: isDarkTheme ? "#94a3b8" : "#e2e8f0"
         }}
       >
         |
@@ -219,18 +250,18 @@ const InfoBar = () => {
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaPhoneAlt
           style={{
-            color: isDarkTheme ? "#38BDF8" : "#4FD1C5"
+            color: isDarkTheme ? "#34d399" : "#6ee7b7"
           }}
           size={14}
         />
         {loading ? (
-          <Skeleton variant="text" width={90} sx={{ bgcolor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.2)' }} />
+          <Skeleton variant="text" width={90} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
         ) : error ? (
           <Typography
             sx={{
               fontFamily: '"Montserrat", sans-serif',
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              color: isDarkTheme ? "#FF9999" : "#FFCCCC"
+              color: "#fca5a5"
             }}
           >
             Error al cargar teléfono
@@ -241,12 +272,12 @@ const InfoBar = () => {
             href={`tel:${infoData?.telefono || ''}`}
             sx={{
               textDecoration: "none",
-              color: isDarkTheme ? "#38BDF8" : "#4FD1C5",
+              color: isDarkTheme ? "#34d399" : "#6ee7b7",
               fontWeight: "600",
               fontSize: { xs: "0.75rem", sm: "0.875rem" },
               transition: "all 0.3s ease",
               "&:hover": {
-                color: isDarkTheme ? "#7DD3FC" : "#B2F5EA",
+                color: isDarkTheme ? "#6ee7b7" : "#a7f3d0",
                 transform: "scale(1.03)"
               }
             }}

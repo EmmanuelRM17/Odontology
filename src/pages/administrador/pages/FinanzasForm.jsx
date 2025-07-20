@@ -657,36 +657,56 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
     }
   }, [mainActiveTab]);
 
-  const loadConfiguration = async () => {
-    try {
-      setConfigLoading(true);
-      const response = await axios.get('https://back-end-4803.onrender.com/api/Finanzas/config');
+const loadConfiguration = async () => {
+  try {
+    setConfigLoading(true);
+    const response = await axios.get('https://back-end-4803.onrender.com/api/Finanzas/config');
 
-      if (response.data) {
-        setConfig({
-          mercadopago: {
-            enabled: response.data.mercadopago_enabled || false,
-            access_token: response.data.mercadopago_access_token || '',
-            public_key: response.data.mercadopago_public_key || '',
-            webhook_url: response.data.mercadopago_webhook_url || '',
-            mode: response.data.mercadopago_mode || 'sandbox'
-          },
-          paypal: {
-            enabled: response.data.paypal_enabled || false,
-            client_id: response.data.paypal_client_id || '',
-            client_secret: response.data.paypal_client_secret || '',
-            webhook_url: response.data.paypal_webhook_url || '',
-            mode: response.data.paypal_mode || 'sandbox'
-          }
-        });
-      }
-    } catch (error) {
-      console.error('Error al cargar configuración:', error);
-      showNotif('Error al cargar la configuración', 'error');
-    } finally {
-      setConfigLoading(false);
+    console.log('Respuesta del backend:', response.data); // Debug
+
+    if (response.data) {
+      // CORRECCIÓN: Mapear correctamente la estructura del backend
+      const backendData = response.data;
+      
+      // Si viene en format response.data.config
+      const configData = backendData.config || backendData;
+      
+      setConfig({
+        mercadopago: {
+          enabled: configData.mercadopago?.enabled || false,
+          access_token: configData.mercadopago?.access_token || '',
+          public_key: configData.mercadopago?.public_key || '',
+          webhook_url: configData.mercadopago?.webhook_url || '',
+          mode: configData.mercadopago?.mode || 'sandbox'
+        },
+        paypal: {
+          enabled: configData.paypal?.enabled || false,
+          client_id: configData.paypal?.client_id || '',
+          client_secret: configData.paypal?.client_secret || '',
+          webhook_url: configData.paypal?.webhook_url || '',
+          mode: configData.paypal?.mode || 'sandbox'
+        }
+      });
+
+      console.log('Config establecida:', {
+        mercadopago: {
+          enabled: configData.mercadopago?.enabled || false,
+          access_token: configData.mercadopago?.access_token ? '***PRESENTE***' : 'VACÍO',
+          public_key: configData.mercadopago?.public_key ? '***PRESENTE***' : 'VACÍO'
+        },
+        paypal: {
+          enabled: configData.paypal?.enabled || false,
+          client_id: configData.paypal?.client_id ? '***PRESENTE***' : 'VACÍO'
+        }
+      }); // Debug
     }
-  };
+  } catch (error) {
+    console.error('Error al cargar configuración:', error);
+    showNotif('Error al cargar la configuración', 'error');
+  } finally {
+    setConfigLoading(false);
+  }
+};
 
   // Actualizar configuración específica
   const updateConfig = (provider, field, value) => {
@@ -700,33 +720,41 @@ const FinanzasForm = ({ idPago = null, onSave, onCancel }) => {
   };
 
   // Guardar configuración
-  const saveConfiguration = async () => {
-    try {
-      setSaving(true);
+const saveConfiguration = async () => {
+  try {
+    setSaving(true);
 
-      const configData = {
-        mercadopago_enabled: config.mercadopago.enabled,
-        mercadopago_access_token: config.mercadopago.access_token,
-        mercadopago_public_key: config.mercadopago.public_key,
-        mercadopago_webhook_url: config.mercadopago.webhook_url,
-        mercadopago_mode: config.mercadopago.mode,
-        paypal_enabled: config.paypal.enabled,
-        paypal_client_id: config.paypal.client_id,
-        paypal_client_secret: config.paypal.client_secret,
-        paypal_webhook_url: config.paypal.webhook_url,
-        paypal_mode: config.paypal.mode
-      };
+    // CORRECCIÓN: Enviar en el formato que espera el backend
+    const configData = {
+      config: {
+        mercadopago: {
+          enabled: config.mercadopago.enabled,
+          access_token: config.mercadopago.access_token,
+          public_key: config.mercadopago.public_key,
+          webhook_url: config.mercadopago.webhook_url,
+          mode: config.mercadopago.mode
+        },
+        paypal: {
+          enabled: config.paypal.enabled,
+          client_id: config.paypal.client_id,
+          client_secret: config.paypal.client_secret,
+          webhook_url: config.paypal.webhook_url,
+          mode: config.paypal.mode
+        }
+      }
+    };
 
-      await axios.put('https://back-end-4803.onrender.com/api/Finanzas/config', configData);
-      showNotif('Configuración guardada exitosamente', 'success');
-    } catch (error) {
-      console.error('Error al guardar configuración:', error);
-      showNotif('Error al guardar la configuración', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
+    console.log('Enviando configuración:', configData); // Debug
 
+    await axios.put('https://back-end-4803.onrender.com/api/Finanzas/config', configData);
+    showNotif('Configuración guardada exitosamente', 'success');
+  } catch (error) {
+    console.error('Error al guardar configuración:', error);
+    showNotif('Error al guardar la configuración', 'error');
+  } finally {
+    setSaving(false);
+  }
+};
   // Probar conexión
   const testConnection = async (provider) => {
     try {
