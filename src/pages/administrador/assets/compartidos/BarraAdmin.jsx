@@ -34,7 +34,8 @@ import {
   FaBars,
   FaQuestionCircle,
   FaChevronLeft,
-  FaChevronRight
+  FaChevronRight,
+  FaFileMedical
 } from 'react-icons/fa';
 
 // Iconos de Material Design
@@ -88,6 +89,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
         { icon: MdEvent, text: 'Gestión de Citas', path: '/Administrador/citas' },
         { icon: MdLocalHospital, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
         { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
+        { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Administrador/expedienteClinico' },
         { icon: MdSchedule, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
         { icon: MdCloudUpload, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
       ]
@@ -232,7 +234,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
 
   // Función para manejar el cierre de sesión
   const handleLogout = async () => {
-     clearAuthCache();
+    clearAuthCache();
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {

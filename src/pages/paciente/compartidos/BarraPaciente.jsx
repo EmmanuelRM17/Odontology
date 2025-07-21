@@ -66,6 +66,7 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 { icon: FaFileMedical, text: 'Historial Clínico', path: '/Paciente/historial' },
                 { icon: FaPills, text: 'Tratamientos', path: '/Paciente/tratamientos' },
                 { icon: FaWallet, text: 'Pagos', path: '/Paciente/pagos' },
+                { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Paciente/expediente' },
                 { icon: FaChartLine, text: 'Progreso', path: '/Paciente/progreso' }
             ]
         },

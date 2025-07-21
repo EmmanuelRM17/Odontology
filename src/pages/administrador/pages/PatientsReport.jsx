@@ -400,10 +400,23 @@ const PatientsReport = () => {
         const response = await axios.get('https://back-end-4803.onrender.com/api/reportes/pacientes');
 
         // Asegurarse de que la respuesta sea un array
-        const patientsData = Array.isArray(response.data.pacientes) ? response.data.pacientes : [];
+        const pacientes = response?.data?.pacientes;
 
-        setPatients(patientsData);
-        setFilteredPatients(patientsData);
+        if (Array.isArray(pacientes)) {
+          setPatients(pacientes);
+          setFilteredPatients(pacientes);
+        } else {
+          console.warn('La API no devolvió un arreglo en response.data.pacientes:', pacientes);
+          setPatients([]);
+          setFilteredPatients([]);
+          setNotification({
+            open: true,
+            message: 'La respuesta del servidor no es válida.',
+            type: 'error'
+          });
+        }
+
+
       } catch (error) {
         console.error('Error fetching patients:', error);
         setPatients([]);
@@ -614,7 +627,7 @@ const PatientsReport = () => {
   const renderCardView = () => {
     return (
       <Grid container spacing={2} sx={{ mt: 2 }}>
-        {filteredPatients.map((patient, index) => (
+        {Array.isArray(filteredPatients) && filteredPatients.map((patient, index) => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={patient.id || index}>
             <Card
               sx={{
@@ -958,78 +971,79 @@ const PatientsReport = () => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {Array.isArray(filteredPatients) && filteredPatients.map((patient, index) => (<TableRow key={index} sx={{
-              '&:hover': {
-                backgroundColor: colors.hover
-              },
-              transition: 'background-color 0.2s ease'
-            }}>
-              <TableCell sx={{ color: colors.text }}>{index + 1}</TableCell>
-              <TableCell sx={{ color: colors.text }}>
-                {`${patient.nombre || ''} ${patient.aPaterno || ''} ${patient.aMaterno || ''}`}
-              </TableCell>
-              <TableCell sx={{ color: colors.text }}>{patient.email || 'No disponible'}</TableCell>
-              <TableCell sx={{ color: colors.text }}>{patient.telefono || 'No disponible'}</TableCell>
-              <TableCell>
-                <Chip
-                  label={patient.estado || 'No definido'}
-                  sx={{
-                    backgroundColor: getStatusColor(patient.estado).bg,
-                    color: getStatusColor(patient.estado).text,
-                    border: `1px solid ${getStatusColor(patient.estado).border}`,
-                    fontWeight: '500',
-                    fontSize: '0.875rem',
-                    height: '28px',
-                    '&:hover': {
+            {Array.isArray(filteredPatients) && filteredPatients.map((patient, index) => (
+              <TableRow key={index} sx={{
+                '&:hover': {
+                  backgroundColor: colors.hover
+                },
+                transition: 'background-color 0.2s ease'
+              }}>
+                <TableCell sx={{ color: colors.text }}>{index + 1}</TableCell>
+                <TableCell sx={{ color: colors.text }}>
+                  {`${patient.nombre || ''} ${patient.aPaterno || ''} ${patient.aMaterno || ''}`}
+                </TableCell>
+                <TableCell sx={{ color: colors.text }}>{patient.email || 'No disponible'}</TableCell>
+                <TableCell sx={{ color: colors.text }}>{patient.telefono || 'No disponible'}</TableCell>
+                <TableCell>
+                  <Chip
+                    label={patient.estado || 'No definido'}
+                    sx={{
                       backgroundColor: getStatusColor(patient.estado).bg,
-                    }
-                  }}
-                />
-              </TableCell>
-              <TableCell sx={{ color: colors.text }}>
-                {patient.fecha_creacion ?
-                  format(new Date(patient.fecha_creacion), 'dd/MM/yyyy HH:mm', { locale: es })
-                  : 'No disponible'
-                }
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  <Tooltip title="Ver detalles" arrow>
-                    <IconButton
-                      onClick={() => handleOpenModal(patient)}
-                      sx={{
-                        backgroundColor: colors.primary,
-                        '&:hover': {
-                          backgroundColor: colors.hover,
-                        },
-                        padding: '8px',
-                        borderRadius: '50%',
-                      }}
-                    >
-                      <FaInfoCircle style={{ fontSize: '20px', color: 'white' }} />
-                    </IconButton>
-                  </Tooltip>
-
-                  {patient.estado === 'Activo' && (
-                    <Tooltip title="Dar de baja" arrow>
+                      color: getStatusColor(patient.estado).text,
+                      border: `1px solid ${getStatusColor(patient.estado).border}`,
+                      fontWeight: '500',
+                      fontSize: '0.875rem',
+                      height: '28px',
+                      '&:hover': {
+                        backgroundColor: getStatusColor(patient.estado).bg,
+                      }
+                    }}
+                  />
+                </TableCell>
+                <TableCell sx={{ color: colors.text }}>
+                  {patient.fecha_creacion ?
+                    format(new Date(patient.fecha_creacion), 'dd/MM/yyyy HH:mm', { locale: es })
+                    : 'No disponible'
+                  }
+                </TableCell>
+                <TableCell>
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Tooltip title="Ver detalles" arrow>
                       <IconButton
-                        onClick={() => handleStatusChange(patient)}
+                        onClick={() => handleOpenModal(patient)}
                         sx={{
-                          backgroundColor: '#f44336',
+                          backgroundColor: colors.primary,
                           '&:hover': {
-                            backgroundColor: '#d32f2f',
+                            backgroundColor: colors.hover,
                           },
                           padding: '8px',
                           borderRadius: '50%',
                         }}
                       >
-                        <FaTimes style={{ fontSize: '20px', color: 'white' }} />
+                        <FaInfoCircle style={{ fontSize: '20px', color: 'white' }} />
                       </IconButton>
                     </Tooltip>
-                  )}
-                </Box>
-              </TableCell>
-            </TableRow>
+
+                    {patient.estado === 'Activo' && (
+                      <Tooltip title="Dar de baja" arrow>
+                        <IconButton
+                          onClick={() => handleStatusChange(patient)}
+                          sx={{
+                            backgroundColor: '#f44336',
+                            '&:hover': {
+                              backgroundColor: '#d32f2f',
+                            },
+                            padding: '8px',
+                            borderRadius: '50%',
+                          }}
+                        >
+                          <FaTimes style={{ fontSize: '20px', color: 'white' }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                </TableCell>
+              </TableRow>
             ))}
           </TableBody>
         </Table>
