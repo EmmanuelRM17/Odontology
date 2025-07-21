@@ -48,6 +48,7 @@ import {
   MdSchedule,
   MdCloudUpload,
   MdShowChart,
+  MdAssessment,
   MdDescription,
   MdHistory,
   MdNotifications,
@@ -99,6 +100,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       title: 'Informes y Análisis',
       items: [
         { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
+        { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
         { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' }

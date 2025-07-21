@@ -54,7 +54,8 @@ import ImagenesForm from "./pages/administrador/pages/ImagenesForm";
 import FinanzasForm from "./pages/administrador/pages/FinanzasForm.jsx";
 import CalendarioCitas from "./pages/administrador/pages/CalendarioCitas";
 import Graficas from "./pages/administrador/pages/Graficas";
-import ModeracionServicios from "./pages/administrador/pages/resenyasModerar.jsx";
+import Predicciones from "./pages/administrador/pages/Predicciones";
+import ModeracionServicios from "./pages/administrador/pages/resenyasModerar";
 import AyudaAdmin from "./pages/paciente/pages/Ayuda";
 
 // Componentes empleado
@@ -122,6 +123,7 @@ function AppContent({ loading, forceLoading, isOnline }) {
         <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Imágenes" }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/finanzas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión Financiera" }]} /><FinanzasForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/Estadisticas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Estadísticas Operativas" }]} /><Graficas /></LayoutAdmin></PrivateRoute>} />
+        <Route path="/Administrador/predicciones" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Predicciones" }]} />< Predicciones/></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/CalendarioCita" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Calendario de Citas" }]} /><CalendarioCitas /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/Reseñas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Moderación de Reseñas" }]} /><ModeracionServicios /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/ayuda" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Ayuda" }]} /><AyudaAdmin /></LayoutAdmin></PrivateRoute>} />
