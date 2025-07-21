@@ -4,7 +4,7 @@ import {
     DialogContent, DialogTitle, FormControl, Grid, IconButton,
     InputAdornment, MenuItem, Paper, Select, Table,
     TableBody, TableCell, TableContainer, TableHead, TableRow,
-    TextField, Typography, Tooltip, Tabs, Tab, Alert, AlertTitle
+    TextField, Typography, Tooltip, Tabs, Tab, Alert, AlertTitle, Divider
 } from '@mui/material';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
@@ -61,7 +61,7 @@ const CitasForm = () => {
     const [tipoFilter, setTipoFilter] = useState('todos');
     const [viewMode, setViewMode] = useState('table');
     const [filteredCitas, setFilteredCitas] = useState([]);
-
+    const [showDoctorView, setShowDoctorView] = useState(false);
     // Estado para ordenamiento
     const [sortOrder, setSortOrder] = useState('asc');
     const [sortField, setSortField] = useState('fecha_consulta');
@@ -71,6 +71,7 @@ const CitasForm = () => {
 
     // Estado para almacenar la información de tratamientos
     const [tratamientos, setTratamientos] = useState({});
+
 
     useEffect(() => {
         fetchCitas();
@@ -112,8 +113,8 @@ const CitasForm = () => {
     // Función para cambiar el modo de vista
     const handleViewChange = (mode) => {
         setViewMode(mode);
+        setShowDoctorView(false);
     };
-
     // Función para cambiar el orden de clasificación
     const handleSortChange = (field) => {
         // Si hacemos clic en el mismo campo, invertimos el orden
@@ -124,35 +125,45 @@ const CitasForm = () => {
 
     // Función para ordenar las citas
     const sortCitas = (citas) => {
+        const ahora = new Date();
+        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
         return [...citas].sort((a, b) => {
-            // Primero ordenamos por estado (pendiente, confirmada, completada, cancelada)
-            const estadoA = getEstadoPrioridad(a.estado);
-            const estadoB = getEstadoPrioridad(b.estado);
+            const fechaA = new Date(a.fecha_consulta);
+            const fechaB = new Date(b.fecha_consulta);
 
-            if (estadoA !== estadoB) {
-                return estadoA - estadoB;
+            // Determinar si las citas son del pasado
+            const aEsPasado = fechaA < hoyInicio;
+            const bEsPasado = fechaB < hoyInicio;
+
+            // Si una es pasada y otra no, las futuras van primero
+            if (aEsPasado && !bEsPasado) return 1;
+            if (!aEsPasado && bEsPasado) return -1;
+
+            // Si ambas son del mismo tipo (pasadas o futuras)
+            if (aEsPasado && bEsPasado) {
+                // Para citas pasadas: más recientes primero
+                return fechaB - fechaA;
+            } else {
+                // Para citas futuras: más próximas primero
+                const estadoA = getEstadoPrioridad(a.estado);
+                const estadoB = getEstadoPrioridad(b.estado);
+
+                // Primero por estado, luego por fecha
+                if (estadoA !== estadoB) {
+                    return estadoA - estadoB;
+                }
+                return fechaA - fechaB;
             }
-
-            // Si los estados son iguales, ordenamos por fecha
-            if (sortField === 'fecha_consulta') {
-                const dateA = new Date(a.fecha_consulta);
-                const dateB = new Date(b.fecha_consulta);
-
-                // Si el orden es ascendente, las fechas más próximas van primero
-                return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-            }
-
-            return 0;
         });
     };
-
     // Función para obtener la prioridad del estado para ordenamiento
     const getEstadoPrioridad = (estado) => {
         switch (estado) {
+            case 'Confirmada':
+                return 1; // Prioridad más alta para hoy/futuras
             case 'Pendiente':
             case 'PRE-REGISTRO':
-                return 1; // Prioridad más alta
-            case 'Confirmada':
                 return 2;
             case 'Completada':
                 return 3;
@@ -163,20 +174,33 @@ const CitasForm = () => {
         }
     };
 
-    // Función para aplicar filtros
+    // Función para verificar si una cita es del pasado
+    const esCitaPasada = (fecha) => {
+        const ahora = new Date();
+        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        const fechaCita = new Date(fecha);
+        return fechaCita < hoyInicio;
+    };
+
     const applyFilters = () => {
         let filtered = citas.filter(cita => {
-            // Filtro por búsqueda (nombre, servicio u odontólogo)
             const matchesSearch =
                 searchQuery === '' ||
                 (cita.paciente_nombre && cita.paciente_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (cita.servicio_nombre && cita.servicio_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
                 (cita.odontologo_nombre && cita.odontologo_nombre.toLowerCase().includes(searchQuery.toLowerCase()));
 
-            // Filtro por estado
-            const matchesStatus = statusFilter === 'todos' || cita.estado === statusFilter;
+            // Filtro por estado mejorado
+            let matchesStatus = true;
+            if (statusFilter === 'hoy_futuras') {
+                matchesStatus = !esCitaPasada(cita.fecha_consulta);
+            } else if (statusFilter === 'pasadas') {
+                matchesStatus = esCitaPasada(cita.fecha_consulta) &&
+                    (cita.estado === 'Pendiente' || cita.estado === 'Confirmada');
+            } else if (statusFilter !== 'todos') {
+                matchesStatus = cita.estado === statusFilter;
+            }
 
-            // Filtro por tipo (tratamiento o consulta)
             const esTratamiento = isTratamiento(cita);
             const matchesTipo = tipoFilter === 'todos' ||
                 (tipoFilter === 'tratamiento' && esTratamiento) ||
@@ -185,9 +209,7 @@ const CitasForm = () => {
             return matchesSearch && matchesStatus && matchesTipo;
         });
 
-        // Aplicar ordenamiento
         filtered = sortCitas(filtered);
-
         setFilteredCitas(filtered);
     };
 
@@ -1492,6 +1514,582 @@ const CitasForm = () => {
         );
     };
 
+    // Vista profesional para odontólogo - citas del día y próximas
+    const renderDoctorView = () => {
+        const ahora = new Date();
+        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        const mañana = new Date(hoyInicio.getTime() + 24 * 60 * 60 * 1000);
+
+        // Citas de hoy ordenadas por hora
+        const citasHoy = filteredCitas.filter(cita => {
+            const fechaCita = new Date(cita.fecha_consulta);
+            return fechaCita >= hoyInicio && fechaCita < mañana;
+        }).sort((a, b) => new Date(a.fecha_consulta) - new Date(b.fecha_consulta));
+
+        // Próximas citas (siguientes 7 días)
+        const proximaSemana = new Date(hoyInicio.getTime() + 7 * 24 * 60 * 60 * 1000);
+        const citasProximas = filteredCitas.filter(cita => {
+            const fechaCita = new Date(cita.fecha_consulta);
+            return fechaCita >= mañana && fechaCita < proximaSemana;
+        }).slice(0, 8);
+
+        // Citas atrasadas
+        const citasAtrasadas = filteredCitas.filter(cita => {
+            const fechaCita = new Date(cita.fecha_consulta);
+            return fechaCita < hoyInicio && (cita.estado === 'Pendiente' || cita.estado === 'Confirmada');
+        }).slice(0, 4);
+
+        return (
+            <Box>
+                {/* Header profesional con estadísticas */}
+                <Paper
+                    elevation={0}
+                    sx={{
+                        p: 3,
+                        mb: 3,
+                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${alpha(colors.primary, 0.8)} 100%)`,
+                        borderRadius: '16px',
+                        color: 'white'
+                    }}
+                >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box>
+                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
+                                Panel de Agenda
+                            </Typography>
+                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                {new Date().toLocaleDateString('es-ES', {
+                                    weekday: 'long',
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                })}
+                            </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CalendarMonth sx={{ fontSize: 40, opacity: 0.8 }} />
+                        </Box>
+                    </Box>
+
+                    {/* Métricas rápidas */}
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={4}>
+                            <Box sx={{
+                                bgcolor: 'rgba(255,255,255,0.15)',
+                                p: 2,
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(10px)'
+                            }}>
+                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                    {citasHoy.length}
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                    Citas de Hoy
+                                </Typography>
+                            </Box>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <Box sx={{
+                                bgcolor: 'rgba(255,255,255,0.15)',
+                                p: 2,
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(10px)'
+                            }}>
+                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                    {citasProximas.length}
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                    Esta Semana
+                                </Typography>
+                            </Box>
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                            <Box sx={{
+                                bgcolor: citasAtrasadas.length > 0 ? 'rgba(255,152,0,0.2)' : 'rgba(76,175,80,0.2)',
+                                p: 2,
+                                borderRadius: '12px',
+                                backdropFilter: 'blur(10px)'
+                            }}>
+                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
+                                    {citasAtrasadas.length}
+                                </Typography>
+                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                    Pendientes
+                                </Typography>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Paper>
+
+                <Grid container spacing={3}>
+                    {/* Sección: Citas de Hoy */}
+                    <Grid item xs={12} lg={6}>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                height: '600px',
+                                borderRadius: '16px',
+                                border: `1px solid ${colors.divider}`,
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {/* Header de sección */}
+                            <Box sx={{
+                                p: 2.5,
+                                borderBottom: `1px solid ${colors.divider}`,
+                                bgcolor: alpha(colors.primary, 0.05)
+                            }}>
+                                <Typography variant="h6" sx={{
+                                    color: colors.primary,
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    <Event sx={{ mr: 1.5, fontSize: 24 }} />
+                                    Citas de Hoy
+                                    <Chip
+                                        label={citasHoy.length}
+                                        size="small"
+                                        sx={{
+                                            ml: 2,
+                                            bgcolor: colors.primary,
+                                            color: 'white',
+                                            fontWeight: 'bold'
+                                        }}
+                                    />
+                                </Typography>
+                            </Box>
+
+                            {/* Contenido scrolleable */}
+                            <Box sx={{ height: 'calc(100% - 73px)', overflow: 'auto', p: 1.5 }}>
+                                {citasHoy.length > 0 ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        {citasHoy.map((cita, index) => renderCitaCardProfesional(cita, index, 'hoy'))}
+                                    </Box>
+                                ) : (
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '100%',
+                                        color: colors.secondaryText
+                                    }}>
+                                        <CalendarMonth sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
+                                            Sin citas programadas
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            No hay citas programadas para hoy
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        </Paper>
+                    </Grid>
+
+                    {/* Sección: Próximas Citas */}
+                    <Grid item xs={12} lg={6}>
+                        <Paper
+                            elevation={0}
+                            sx={{
+                                height: '600px',
+                                borderRadius: '16px',
+                                border: `1px solid ${colors.divider}`,
+                                overflow: 'hidden'
+                            }}
+                        >
+                            {/* Header de sección */}
+                            <Box sx={{
+                                p: 2.5,
+                                borderBottom: `1px solid ${colors.divider}`,
+                                bgcolor: alpha('#2196F3', 0.05)
+                            }}>
+                                <Typography variant="h6" sx={{
+                                    color: '#2196F3',
+                                    fontWeight: 600,
+                                    display: 'flex',
+                                    alignItems: 'center'
+                                }}>
+                                    <CalendarMonth sx={{ mr: 1.5, fontSize: 24 }} />
+                                    Próximas Citas
+                                    <Chip
+                                        label={citasProximas.length}
+                                        size="small"
+                                        sx={{
+                                            ml: 2,
+                                            bgcolor: '#2196F3',
+                                            color: 'white',
+                                            fontWeight: 'bold'
+                                        }}
+                                    />
+                                </Typography>
+                            </Box>
+
+                            {/* Contenido scrolleable */}
+                            <Box sx={{ height: 'calc(100% - 73px)', overflow: 'auto', p: 1.5 }}>
+                                {citasProximas.length > 0 ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        {citasProximas.map((cita, index) => renderCitaCardProfesional(cita, index, 'proximas'))}
+                                    </Box>
+                                ) : (
+                                    <Box sx={{
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        height: '100%',
+                                        color: colors.secondaryText
+                                    }}>
+                                        <Event sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
+                                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
+                                            Agenda libre
+                                        </Typography>
+                                        <Typography variant="body2">
+                                            No hay citas próximas programadas
+                                        </Typography>
+                                    </Box>
+                                )}
+                            </Box>
+                        </Paper>
+                    </Grid>
+
+                    {/* Sección: Citas Pendientes (solo si existen) */}
+                    {citasAtrasadas.length > 0 && (
+                        <Grid item xs={12}>
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    borderRadius: '16px',
+                                    border: '1px solid #ff9800',
+                                    bgcolor: alpha('#ff9800', 0.02)
+                                }}
+                            >
+                                <Box sx={{
+                                    p: 2.5,
+                                    borderBottom: '1px solid #ff9800',
+                                    bgcolor: alpha('#ff9800', 0.08)
+                                }}>
+                                    <Typography variant="h6" sx={{
+                                        color: '#ff9800',
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center'
+                                    }}>
+                                        <PersonOff sx={{ mr: 1.5, fontSize: 24 }} />
+                                        Citas Pendientes de Reagendar
+                                        <Chip
+                                            label={citasAtrasadas.length}
+                                            size="small"
+                                            sx={{
+                                                ml: 2,
+                                                bgcolor: '#ff9800',
+                                                color: 'white',
+                                                fontWeight: 'bold'
+                                            }}
+                                        />
+                                    </Typography>
+                                    <Typography variant="body2" sx={{ color: '#e65100', mt: 0.5 }}>
+                                        Estas citas requieren reagendamiento o seguimiento
+                                    </Typography>
+                                </Box>
+
+                                <Box sx={{ p: 2 }}>
+                                    <Grid container spacing={2}>
+                                        {citasAtrasadas.map((cita, index) => (
+                                            <Grid item xs={12} sm={6} md={3} key={cita.consulta_id || index}>
+                                                {renderCitaCardProfesional(cita, index, 'atrasadas')}
+                                            </Grid>
+                                        ))}
+                                    </Grid>
+                                </Box>
+                            </Paper>
+                        </Grid>
+                    )}
+                </Grid>
+            </Box>
+        );
+    };
+
+    // Función para renderizar tarjetas profesionales
+    const renderCitaCardProfesional = (cita, index, tipo) => {
+        const esTratamiento = isTratamiento(cita);
+        const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
+        const fechaCita = new Date(cita.fecha_consulta);
+        const esHoy = tipo === 'hoy';
+        const esAtrasada = tipo === 'atrasadas';
+
+        return (
+            <Card
+                key={cita.consulta_id || index}
+                elevation={0}
+                sx={{
+                    border: esHoy ? `2px solid ${colors.primary}` :
+                        esAtrasada ? '1px solid #ff9800' : `1px solid ${colors.divider}`,
+                    borderRadius: '12px',
+                    bgcolor: esAtrasada ? alpha('#ff9800', 0.02) : colors.paper,
+                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: `0 8px 24px ${alpha(colors.primary, 0.15)}`,
+                        borderColor: colors.primary
+                    }
+                }}
+            >
+                <CardContent sx={{ p: 2.5 }}>
+                    {/* Header de la tarjeta */}
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Avatar
+                                sx={{
+                                    bgcolor: avatarColor,
+                                    width: 38,
+                                    height: 38,
+                                    mr: 1.5,
+                                    fontSize: '1rem',
+                                    fontWeight: 600,
+                                    border: `2px solid ${alpha(avatarColor, 0.2)}`
+                                }}
+                            >
+                                {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                            </Avatar>
+                            <Box>
+                                <Typography variant="subtitle1" sx={{
+                                    fontWeight: 600,
+                                    lineHeight: 1.2,
+                                    color: colors.text
+                                }}>
+                                    {cita.paciente_nombre} {cita.paciente_apellido_paterno}
+                                </Typography>
+                                <Typography variant="body2" sx={{
+                                    color: colors.secondaryText,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5
+                                }}>
+                                    <Event sx={{ fontSize: 14 }} />
+                                    {esHoy ?
+                                        fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) :
+                                        fechaCita.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) +
+                                        ' - ' + fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                                    }
+                                </Typography>
+                            </Box>
+                        </Box>
+
+                        <Chip
+                            label={cita.estado}
+                            size="small"
+                            sx={{
+                                bgcolor: getStatusColor(cita.estado),
+                                color: 'white',
+                                fontWeight: 600,
+                                fontSize: '0.75rem',
+                                height: '24px',
+                                boxShadow: `0 2px 4px ${alpha(getStatusColor(cita.estado), 0.3)}`
+                            }}
+                        />
+                    </Box>
+
+                    {/* Información del servicio */}
+                    <Box sx={{ mb: 2.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                            {esTratamiento ? (
+                                <MedicalServices sx={{
+                                    color: colors.tratamiento,
+                                    fontSize: 18,
+                                    mr: 1,
+                                    p: 0.5,
+                                    bgcolor: alpha(colors.tratamiento, 0.1),
+                                    borderRadius: 1
+                                }} />
+                            ) : (
+                                <LocalHospital sx={{
+                                    color: colors.consulta,
+                                    fontSize: 18,
+                                    mr: 1,
+                                    p: 0.5,
+                                    bgcolor: alpha(colors.consulta, 0.1),
+                                    borderRadius: 1
+                                }} />
+                            )}
+                            <Typography variant="body2" sx={{
+                                fontWeight: 500,
+                                color: colors.text,
+                                flex: 1
+                            }}>
+                                {cita.servicio_nombre}
+                            </Typography>
+                        </Box>
+
+                        {esTratamiento && (
+                            <Typography variant="caption" sx={{
+                                color: colors.tratamiento,
+                                ml: 4.5,
+                                fontWeight: 500
+                            }}>
+                                Tratamiento - Cita {getNumeroCitaTratamiento(cita)}
+                            </Typography>
+                        )}
+                    </Box>
+
+                    {/* Acciones */}
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => handleViewDetails(cita)}
+                            sx={{
+                                bgcolor: colors.details,
+                                color: 'white',
+                                width: 32,
+                                height: 32,
+                                '&:hover': {
+                                    bgcolor: '#0277bd',
+                                    transform: 'scale(1.05)'
+                                },
+                                transition: 'all 0.2s ease'
+                            }}
+                        >
+                            <Visibility fontSize="small" />
+                        </IconButton>
+
+                        {renderStateActionButtons(cita)}
+
+                        {canCancelAppointment(cita) && (
+                            <IconButton
+                                size="small"
+                                onClick={() => handleCancelAppointment(cita)}
+                                sx={{
+                                    bgcolor: colors.cancel,
+                                    color: 'white',
+                                    width: 32,
+                                    height: 32,
+                                    '&:hover': {
+                                        bgcolor: '#c62828',
+                                        transform: 'scale(1.05)'
+                                    },
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                <Close fontSize="small" />
+                            </IconButton>
+                        )}
+                    </Box>
+                </CardContent>
+            </Card>
+        );
+    };
+
+    // Función helper para renderizar cada tarjeta de cita
+    const renderCitaCard = (cita, index, tipo) => {
+        const esTratamiento = isTratamiento(cita);
+        const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
+        const fechaCita = new Date(cita.fecha_consulta);
+        const esHoy = tipo === 'hoy';
+        const esAtrasada = tipo === 'atrasadas';
+
+        return (
+            <Card
+                key={cita.consulta_id || index}
+                sx={{
+                    mb: 2,
+                    border: esHoy ? `2px solid ${colors.primary}` : 'none',
+                    bgcolor: esAtrasada ? alpha('#ff9800', 0.05) : colors.paper,
+                    '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 3
+                    },
+                    transition: 'all 0.2s ease'
+                }}
+            >
+                <CardContent sx={{ p: 2 }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <Avatar
+                                sx={{
+                                    bgcolor: avatarColor,
+                                    width: 35,
+                                    height: 35,
+                                    mr: 1.5,
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                            </Avatar>
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
+                                    {cita.paciente_nombre} {cita.paciente_apellido_paterno}
+                                </Typography>
+                                <Typography variant="caption" color={colors.secondaryText}>
+                                    {fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                                </Typography>
+                            </Box>
+                        </Box>
+                        <Chip
+                            label={cita.estado}
+                            size="small"
+                            sx={{
+                                bgcolor: getStatusColor(cita.estado),
+                                color: 'white',
+                                fontSize: '0.7rem'
+                            }}
+                        />
+                    </Box>
+
+                    <Box sx={{ mb: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 'medium', display: 'flex', alignItems: 'center' }}>
+                            {esTratamiento ? (
+                                <MedicalServices sx={{ fontSize: 16, mr: 0.5, color: colors.tratamiento }} />
+                            ) : (
+                                <LocalHospital sx={{ fontSize: 16, mr: 0.5, color: colors.consulta }} />
+                            )}
+                            {cita.servicio_nombre}
+                        </Typography>
+                        {esTratamiento && (
+                            <Typography variant="caption" color={colors.tratamiento}>
+                                Cita {getNumeroCitaTratamiento(cita)} del tratamiento
+                            </Typography>
+                        )}
+                    </Box>
+
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 1 }}>
+                        <IconButton
+                            size="small"
+                            onClick={() => handleViewDetails(cita)}
+                            sx={{
+                                bgcolor: colors.details,
+                                color: 'white',
+                                width: 28,
+                                height: 28,
+                                '&:hover': { bgcolor: '#0277bd' }
+                            }}
+                        >
+                            <Visibility fontSize="small" />
+                        </IconButton>
+
+                        {renderStateActionButtons(cita)}
+
+                        {canCancelAppointment(cita) && (
+                            <IconButton
+                                size="small"
+                                onClick={() => handleCancelAppointment(cita)}
+                                sx={{
+                                    bgcolor: colors.cancel,
+                                    color: 'white',
+                                    width: 28,
+                                    height: 28,
+                                    '&:hover': { bgcolor: '#c62828' }
+                                }}
+                            >
+                                <Close fontSize="small" />
+                            </IconButton>
+                        )}
+                    </Box>
+                </CardContent>
+            </Card>
+        );
+    };
+
     return (
         <Card
             sx={{
@@ -1527,6 +2125,27 @@ const CitasForm = () => {
                     </Box>
 
                     <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                            variant={showDoctorView ? "contained" : "outlined"}
+                            onClick={() => {
+                                setShowDoctorView(!showDoctorView);
+                                if (!showDoctorView) {
+                                    // Si vamos a mostrar doctor view, desactivar otros modos
+                                    setViewMode('');
+                                }
+                            }}
+                            startIcon={<HealthAndSafety />}
+                            sx={{
+                                color: showDoctorView ? 'white' : colors.text,
+                                backgroundColor: showDoctorView ? colors.primary : 'transparent',
+                                borderColor: colors.primary,
+                                '&:hover': {
+                                    backgroundColor: showDoctorView ? colors.primary : alpha(colors.primary, 0.1)
+                                }
+                            }}
+                        >
+                            Mi Agenda
+                        </Button>
                         <Tooltip title="Vista de tabla">
                             <IconButton
                                 onClick={() => handleViewChange('table')}
@@ -1624,6 +2243,9 @@ const CitasForm = () => {
                                     }}
                                 >
                                     <MenuItem value="todos">Todos</MenuItem>
+                                    <MenuItem value="hoy_futuras">Hoy y Futuras</MenuItem>
+                                    <MenuItem value="pasadas">Pasadas (No asistió)</MenuItem>
+                                    <Divider />
                                     <MenuItem value="PRE-REGISTRO">Pre-Registro</MenuItem>
                                     <MenuItem value="Pendiente">Pendiente</MenuItem>
                                     <MenuItem value="Confirmada">Confirmada</MenuItem>
@@ -1730,9 +2352,15 @@ const CitasForm = () => {
                 </Box>
 
                 {/* Renderizar vista según el modo seleccionado */}
-                {viewMode === 'table' && renderTableView()}
-                {viewMode === 'grid' && renderGridView()}
-                {viewMode === 'compact' && renderCompactView()}
+                {showDoctorView ? (
+                    renderDoctorView()
+                ) : (
+                    <>
+                        {viewMode === 'table' && renderTableView()}
+                        {viewMode === 'grid' && renderGridView()}
+                        {viewMode === 'compact' && renderCompactView()}
+                    </>
+                )}
             </Box>
 
             {/* Diálogo de detalles de la cita */}
