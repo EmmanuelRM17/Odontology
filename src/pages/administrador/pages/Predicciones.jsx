@@ -7,7 +7,7 @@ import {
 import { useTheme, alpha } from '@mui/material/styles';
 import {
     PsychologyRounded, Visibility, Search, Assessment, Person, Schedule, Email,
-    TrendingUp, TrendingDown, WarningRounded, CheckCircleOutlined, InfoOutlined,
+    TrendingUp, TrendingDown, WarningRounded, ErrorRounded, CheckCircleOutlined, InfoOutlined,
     Close, Refresh, CalendarToday, CalendarViewWeek, DateRange, Send, ViewList
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
@@ -16,16 +16,17 @@ import Notificaciones from '../../../components/Layout/Notificaciones';
 // Función para obtener el color según el nivel de riesgo
 const getRiskColor = (riskLevel, isDarkTheme) => {
     const colors = {
-        alto: isDarkTheme ? '#ef4444' : '#dc2626',
-        medio: isDarkTheme ? '#f59e0b' : '#d97706',
-        bajo: isDarkTheme ? '#10b981' : '#059669'
+        muy_alto: isDarkTheme ? '#dc143c' : '#b91c1c',  // Rojo más intenso
+        alto: isDarkTheme ? '#ef4444' : '#dc2626',       // Rojo  
+        medio: isDarkTheme ? '#f59e0b' : '#d97706',      // Amarillo
+        bajo: isDarkTheme ? '#10b981' : '#059669'        // Verde
     };
     return colors[riskLevel] || colors.bajo;
 };
-
 // Función para obtener el icono según el nivel de riesgo
 const getRiskIcon = (riskLevel) => {
     switch (riskLevel) {
+        case 'muy_alto': return <ErrorRounded />;        // Icono más crítico
         case 'alto': return <WarningRounded />;
         case 'medio': return <InfoOutlined />;
         case 'bajo': return <CheckCircleOutlined />;
@@ -387,7 +388,7 @@ const PrediccionesNoShow = () => {
         const resultado = resultados[cita.consulta_id];
         const isLoading = loadingPred[cita.consulta_id];
         const tienePrediccion = !!resultado;
-        const esAltoRiesgo = resultado && resultado.risk_level === 'alto';
+        const esAltoRiesgo = resultado && (resultado.risk_level === 'alto' || resultado.risk_level === 'muy_alto');
 
         return (
             <Card key={cita.consulta_id} sx={{
