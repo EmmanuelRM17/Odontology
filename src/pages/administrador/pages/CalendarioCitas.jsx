@@ -4,11 +4,11 @@ import moment from "moment";
 import "moment/locale/es";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import {
-  Container, Box, Card, Typography, CircularProgress, Dialog,
+  Container, Box, Card, Typography, CircularProgress, Dialog, DialogTitle,
   IconButton, Tooltip, Chip, Menu, MenuItem, Badge, Paper,
   Fade, Grid, Avatar, Divider, Button, useMediaQuery,
-  FormControl, InputLabel, Select, OutlinedInput, Tabs, Tab,
-  TextField, Autocomplete, SwipeableDrawer, ListItemIcon, ListItemText,
+  FormControl, InputLabel, Select, OutlinedInput, Tabs, Tab, DialogContent, Alert, AlertTitle,
+  TextField, Autocomplete, SwipeableDrawer, ListItemIcon, ListItemText, DialogActions,
   Link, Skeleton, Backdrop, InputBase
 } from "@mui/material";
 import {
@@ -905,6 +905,17 @@ const CalendarioAgenda = () => {
   const [selectedPaciente, setSelectedPaciente] = useState('all');
   const [tratamientos, setTratamientos] = useState({});
   const [pacienteColors, setPacienteColors] = useState({});
+  // Estados para cancelación de citas (copiados de CitasForm)
+  const [openCancelDialog, setOpenCancelDialog] = useState(false);
+  const [citaToCancel, setCitaToCancel] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
+
+  // Estados para confirmar cita (copiados de CitasForm)
+  const [openConfirmCitaDialog, setOpenConfirmCitaDialog] = useState(false);
+  const [citaToConfirm, setCitaToConfirm] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
+  const [isConfirming, setIsConfirming] = useState(false);
   const [estadisticas, setEstadisticas] = useState({
     totalCitas: 0,
     citasPendientes: 0,
@@ -1031,6 +1042,181 @@ const CalendarioAgenda = () => {
       return [];
     }
   }, []);
+
+  // Función para verificar si una cita puede ser confirmada directamente (copiada de CitasForm)
+  const canConfirmAppointment = (cita) => {
+    // Si es una consulta normal (no es tratamiento), siempre se puede confirmar
+    if (!cita.esTratamiento) {
+      return true;
+    }
+
+    // Si es un tratamiento, verificar estado del tratamiento
+    const tratamiento = tratamientos[cita.tratamiento_id];
+    return tratamiento && tratamiento.estado === 'Activo';
+  };
+
+  // Verificar si una cita se puede cancelar (copiada de CitasForm)
+  const canCancelAppointment = (cita) => {
+    // Primero verificar si está en un estado que permita cancelación
+    const estadoPermiteCancelar = cita.estado === 'PRE-REGISTRO' || cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+
+    if (!estadoPermiteCancelar) {
+      return false;
+    }
+
+    // Si es una consulta normal (no es tratamiento), siempre se puede cancelar
+    if (!cita.esTratamiento) {
+      return true;
+    }
+
+    // Si es un tratamiento, verificar estado del tratamiento
+    const tratamiento = tratamientos[cita.tratamiento_id];
+    return tratamiento && tratamiento.estado === 'Activo';
+  };
+
+  // Función para verificar si se puede cambiar a un estado específico (copiada de CitasForm)
+  const canChangeToState = (currentState, newState) => {
+    switch (currentState) {
+      case 'PRE-REGISTRO':
+        return newState === 'Confirmada' || newState === 'Cancelada';
+      case 'Pendiente':
+        return newState === 'Confirmada' || newState === 'Cancelada';
+      case 'Confirmada':
+        return newState === 'Completada' || newState === 'Cancelada';
+      case 'Completada':
+        return false; // No se puede cambiar desde Completada
+      case 'Cancelada':
+        return false; // No se puede cambiar desde Cancelada
+      default:
+        return false;
+    }
+  };
+
+  // Función genérica para cambiar el estado de una cita (copiada de CitasForm)
+  const handleChangeState = async (cita, newState, message = '') => {
+    if (!cita || !canChangeToState(cita.estado, newState)) {
+      setNotificationMessage(`No se puede cambiar de "${cita?.estado}" a "${newState}"`);
+      setNotificationType('error');
+      setOpenNotification(true);
+      return;
+    }
+
+    // Verificación adicional para confirmar citas de tratamientos
+    if (newState === 'Confirmada' && cita.tratamiento_id && !canConfirmAppointment(cita)) {
+      setNotificationMessage('Las citas de tratamientos en estado "Pre-Registro" o "Pendiente" deben activarse desde la gestión de tratamientos.');
+      setNotificationType('warning');
+      setOpenNotification(true);
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://back-end-4803.onrender.com/api/citas/updateStatus/${cita.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          estado: newState,
+          mensaje: message // Agregar mensaje para notificación si existe
+        }),
+      });
+
+      if (!response.ok) throw new Error("Error al actualizar el estado");
+
+      setNotificationMessage(`La cita ha sido actualizada a estado ${newState}.`);
+      setNotificationType('success');
+      setOpenNotification(true);
+
+      fetchEvents(); // Recargar eventos
+
+    } catch (error) {
+      console.error("Error al actualizar el estado:", error);
+      setNotificationMessage("Hubo un error al actualizar el estado de la cita.");
+      setNotificationType('error');
+      setOpenNotification(true);
+    }
+  };
+
+  // Funciones específicas para cada cambio de estado (copiadas de CitasForm)
+  const confirmCita = (cita) => {
+    // Verificar nuevamente si la cita puede ser confirmada
+    if (!canConfirmAppointment(cita)) {
+      setNotificationMessage('Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos.');
+      setNotificationType('warning');
+      setOpenNotification(true);
+      return;
+    }
+
+    setCitaToConfirm(cita);
+    setConfirmMessage('');
+    setOpenConfirmCitaDialog(true);
+  };
+
+  const processConfirmCita = async () => {
+    setIsConfirming(true);
+    await handleChangeState(citaToConfirm, 'Confirmada', confirmMessage);
+    setOpenConfirmCitaDialog(false);
+    setCitaToConfirm(null);
+    setIsConfirming(false);
+  };
+
+  // Función para abrir el diálogo de cancelación (copiada de CitasForm)
+  const handleCancelAppointment = (cita) => {
+    // Verificar si se puede cancelar según las reglas actualizadas
+    if (!canCancelAppointment(cita)) {
+      let mensaje = `No se puede cancelar una cita en estado "${cita.estado}"`;
+
+      // Si es un tratamiento no activado
+      if (cita.esTratamiento && tratamientos[cita.tratamiento_id] && tratamientos[cita.tratamiento_id].estado !== 'Activo') {
+        mensaje = 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos antes de poder ser cancelada.';
+      }
+
+      setNotificationMessage(mensaje);
+      setNotificationType('warning');
+      setOpenNotification(true);
+      return;
+    }
+
+    setCitaToCancel(cita);
+    setOpenCancelDialog(true);
+    setCancelReason(''); // Reiniciar el motivo de cancelación
+  };
+
+  // Función para procesar la cancelación con el motivo (copiada de CitasForm)
+  const processCancelAppointment = async () => {
+    if (!citaToCancel) return;
+
+    setIsCancelling(true);
+    try {
+      const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${citaToCancel.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          motivo: cancelReason
+        }),
+      });
+
+      if (!response.ok) throw new Error("Error al cancelar la cita");
+
+      setNotificationMessage('La cita ha sido cancelada. Se notificará al paciente.');
+      setNotificationType('warning');
+      setOpenNotification(true);
+
+      setOpenCancelDialog(false);
+      setCitaToCancel(null);
+      fetchEvents(); // Vuelve a cargar la lista de eventos para actualizar el estado
+
+    } catch (error) {
+      console.error("Error al cancelar la cita:", error);
+      setNotificationMessage("Hubo un error al cancelar la cita.");
+      setNotificationType('error');
+      setOpenNotification(true);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
 
   // Función para obtener eventos
   const fetchEvents = useCallback(async () => {
@@ -3285,7 +3471,6 @@ const CalendarioAgenda = () => {
                           }
                         }}
                       >
-                        {/* Mostrar diferentes botones según el estado */}
                         {selectedCita.estado === 'Pendiente' && (
                           <>
                             <Button
@@ -3294,6 +3479,7 @@ const CalendarioAgenda = () => {
                               startIcon={<CheckIcon />}
                               fullWidth
                               sx={{ textTransform: 'none' }}
+                              onClick={() => confirmCita(selectedCita)}
                             >
                               Confirmar Cita
                             </Button>
@@ -3304,22 +3490,24 @@ const CalendarioAgenda = () => {
                               startIcon={<CancelIcon />}
                               fullWidth
                               sx={{ textTransform: 'none' }}
+                              onClick={() => handleCancelAppointment(selectedCita)}
                             >
                               Cancelar Cita
                             </Button>
                           </>
                         )}
 
-                        {selectedCita.estado === 'Confirmada' && (
+                        {selectedCita.estado === 'PRE-REGISTRO' && (
                           <>
                             <Button
                               variant="contained"
-                              color="success"
-                              startIcon={<AssignmentIcon />}
+                              color="primary"
+                              startIcon={<CheckIcon />}
                               fullWidth
                               sx={{ textTransform: 'none' }}
+                              onClick={() => confirmCita(selectedCita)}
                             >
-                              Marcar como Completada
+                              Confirmar Cita
                             </Button>
 
                             <Button
@@ -3328,26 +3516,39 @@ const CalendarioAgenda = () => {
                               startIcon={<CancelIcon />}
                               fullWidth
                               sx={{ textTransform: 'none' }}
+                              onClick={() => handleCancelAppointment(selectedCita)}
                             >
                               Cancelar Cita
                             </Button>
                           </>
                         )}
 
-                        {/* Botón para reagendar */}
-                        {['Pendiente', 'Confirmada'].includes(selectedCita.estado) && (
+                        {selectedCita.estado === 'Confirmada' && (
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            startIcon={<CancelIcon />}
+                            fullWidth
+                            sx={{ textTransform: 'none' }}
+                            onClick={() => handleCancelAppointment(selectedCita)}
+                          >
+                            Cancelar Cita
+                          </Button>
+                        )}
+
+                        {/* Botón para reagendar - Solo para estados que lo permitan */}
+                        {['Pendiente', 'Confirmada', 'PRE-REGISTRO'].includes(selectedCita.estado) && (
                           <Button
                             variant="outlined"
                             color="primary"
                             startIcon={<DateRangeIcon />}
                             fullWidth
                             sx={{ textTransform: 'none' }}
+                            disabled
                           >
                             Reprogramar Cita
                           </Button>
                         )}
-
-
                       </Box>
                     </Paper>
                   </Grid>
@@ -3578,6 +3779,193 @@ const CalendarioAgenda = () => {
             </Typography>
           </Box>
         )}
+      </Dialog>
+      {/* Diálogo de confirmación de cita - copiado exacto de CitasForm */}
+      <Dialog
+        open={openConfirmCitaDialog}
+        onClose={() => !isConfirming && setOpenConfirmCitaDialog(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: colors.cardBackground,
+            color: colors.text,
+            maxWidth: '600px',
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            color: '#388e3c',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            borderBottom: `1px solid ${colors.border}`
+          }}
+        >
+          <CheckIcon sx={{ color: '#388e3c' }} />
+          Confirmar Cita
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            ¿Confirmar la cita #{citaToConfirm?.id}?
+          </Typography>
+
+          {citaToConfirm && (
+            <Box sx={{ mt: 2 }}>
+              <Typography><strong>Paciente:</strong> {citaToConfirm.paciente_nombre}</Typography>
+              <Typography><strong>Servicio:</strong> {citaToConfirm.title}</Typography>
+              <Typography><strong>Fecha:</strong> {moment(citaToConfirm.start).format('DD/MM/YYYY HH:mm')}</Typography>
+              <Typography><strong>Odontólogo:</strong> {citaToConfirm.odontologo_nombre}</Typography>
+            </Box>
+          )}
+
+          <TextField
+            label="Mensaje para el paciente (opcional)"
+            placeholder="Añada algún mensaje o indicación para el paciente..."
+            multiline
+            rows={3}
+            fullWidth
+            value={confirmMessage}
+            onChange={(e) => setConfirmMessage(e.target.value)}
+            margin="normal"
+            variant="outlined"
+            helperText="Este mensaje se enviará al paciente como confirmación"
+            sx={{ mt: 3 }}
+          />
+
+          <Alert
+            severity="info"
+            sx={{ mt: 2 }}
+          >
+            <AlertTitle>Información</AlertTitle>
+            Esta acción cambiará el estado de la cita a "Confirmada" y notificará al paciente.
+          </Alert>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+          <Button
+            onClick={() => setOpenConfirmCitaDialog(false)}
+            disabled={isConfirming}
+            sx={{
+              color: colors.secondary,
+              '&:hover': {
+                backgroundColor: alpha(colors.secondary, 0.1)
+              }
+            }}
+          >
+            Volver
+          </Button>
+          <Button
+            variant="contained"
+            onClick={processConfirmCita}
+            disabled={isConfirming}
+            sx={{
+              bgcolor: '#4caf50',
+              '&:hover': { bgcolor: '#388e3c' },
+              '&:disabled': { bgcolor: alpha('#4caf50', 0.5) }
+            }}
+          >
+            {isConfirming ? 'Procesando...' : 'Confirmar Cita'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo de cancelación de cita - copiado exacto de CitasForm */}
+      <Dialog
+        open={openCancelDialog}
+        onClose={() => !isCancelling && setOpenCancelDialog(false)}
+        PaperProps={{
+          sx: {
+            backgroundColor: colors.cardBackground,
+            color: colors.text,
+            maxWidth: '600px',
+            width: '100%'
+          }
+        }}
+      >
+        <DialogTitle
+          sx={{
+            color: '#d32f2f',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1,
+            borderBottom: `1px solid ${colors.border}`
+          }}
+        >
+          <CancelIcon sx={{ color: '#d32f2f' }} />
+          Confirmar Cancelación de Cita
+        </DialogTitle>
+
+        <DialogContent sx={{ mt: 2 }}>
+          <Typography variant="h6" sx={{ fontWeight: 500 }}>
+            ¿Estás seguro de que deseas cancelar la cita #{citaToCancel?.id}?
+          </Typography>
+
+          {citaToCancel && (
+            <Box sx={{ mt: 2 }}>
+              <Typography><strong>Paciente:</strong> {citaToCancel.paciente_nombre}</Typography>
+              <Typography><strong>Servicio:</strong> {citaToCancel.title}</Typography>
+              <Typography><strong>Fecha:</strong> {moment(citaToCancel.start).format('DD/MM/YYYY HH:mm')}</Typography>
+              <Typography><strong>Odontólogo:</strong> {citaToCancel.odontologo_nombre}</Typography>
+            </Box>
+          )}
+
+          <TextField
+            label="Motivo de la cancelación"
+            placeholder="Indique el motivo por el cual se cancela la cita..."
+            multiline
+            rows={3}
+            fullWidth
+            value={cancelReason}
+            onChange={(e) => setCancelReason(e.target.value)}
+            margin="normal"
+            variant="outlined"
+            required
+            helperText="Este mensaje será enviado al paciente como notificación"
+            sx={{ mt: 3 }}
+          />
+
+          <Alert
+            severity="warning"
+            sx={{
+              mt: 2,
+              '& .MuiAlert-icon': {
+                color: '#d32f2f'
+              }
+            }}
+          >
+            <AlertTitle>Importante</AlertTitle>
+            Esta acción cambiará el estado de la cita a "Cancelada" y enviará una notificación al paciente.
+          </Alert>
+        </DialogContent>
+
+        <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.border}` }}>
+          <Button
+            onClick={() => setOpenCancelDialog(false)}
+            disabled={isCancelling}
+            sx={{
+              color: colors.secondary,
+              '&:hover': {
+                backgroundColor: alpha(colors.secondary, 0.1)
+              }
+            }}
+          >
+            Volver
+          </Button>
+          <Button
+            variant="contained"
+            onClick={processCancelAppointment}
+            disabled={isCancelling || !cancelReason.trim()}
+            sx={{
+              bgcolor: '#f44336',
+              '&:hover': { bgcolor: '#c62828' },
+              '&:disabled': { bgcolor: alpha('#f44336', 0.5) }
+            }}
+          >
+            {isCancelling ? 'Procesando...' : 'Confirmar Cancelación'}
+          </Button>
+        </DialogActions>
       </Dialog>
     </>
   );
