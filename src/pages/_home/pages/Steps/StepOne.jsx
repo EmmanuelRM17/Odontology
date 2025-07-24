@@ -22,7 +22,10 @@ import {
     Select,
     FormHelperText,
     Divider,
-    CircularProgress
+    CircularProgress,
+    Card,           // ← AGREGAR
+    CardContent,    // ← AGREGAR
+    Chip
 } from '@mui/material';
 
 import {
@@ -82,6 +85,8 @@ const StepOne = ({
     const [emailError, setEmailError] = useState('');
     const [loading, setLoading] = useState(false);
     const [openAppointmentDialog, setOpenAppointmentDialog] = useState(false);
+    const [citasEncontradas, setCitasEncontradas] = useState([]);
+    const [openAppointmentResultsDialog, setOpenAppointmentResultsDialog] = useState(false);
 
     useEffect(() => {
         const fetchServices = async () => {
@@ -118,6 +123,21 @@ const StepOne = ({
             }
         }
     }, [formData.servicio, availableServices]);
+
+    const getStatusColor = (estado) => {
+        switch (estado?.toLowerCase()) {
+            case 'pendiente':
+                return '#ff9800';
+            case 'completada':
+                return '#4caf50';
+            case 'cancelada':
+                return '#f44336';
+            case 'en progreso':
+                return '#2196f3';
+            default:
+                return '#9e9e9e';
+        }
+    };
 
     // Modifica esta función en StepOne.jsx
     const checkPatientExists = async (email) => {
@@ -172,6 +192,58 @@ const StepOne = ({
                 type: 'error',
             });
             onFormDataChange({ pacienteExistente: false, paciente_id: null }); // Aseguramos que paciente_id sea null
+        } finally {
+            setLoading(false);
+        }
+    };
+
+
+    // Función para buscar citas por correo - Agregar esta función en StepOne.jsx
+    const checkAppointmentsByEmail = async (email) => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`https://back-end-4803.onrender.com/api/citas/all`);
+
+            if (response.data && response.data.length > 0) {
+                // Filtrar citas que coincidan con el correo y no estén archivadas
+                const citasDelPaciente = response.data.filter(cita =>
+                    cita.paciente_correo &&
+                    cita.paciente_correo.toLowerCase() === email.toLowerCase() &&
+                    !cita.archivado
+                );
+
+                if (citasDelPaciente.length > 0) {
+                    // Mostrar las citas encontradas
+                    setCitasEncontradas(citasDelPaciente);
+                    setOpenAppointmentResultsDialog(true);
+                    setOpenAppointmentDialog(false);
+
+                    setNotification({
+                        open: true,
+                        message: `Se encontraron ${citasDelPaciente.length} cita(s) asociada(s) a este correo.`,
+                        type: 'success',
+                    });
+                } else {
+                    setNotification({
+                        open: true,
+                        message: 'No se encontraron citas asociadas a este correo electrónico.',
+                        type: 'warning',
+                    });
+                }
+            } else {
+                setNotification({
+                    open: true,
+                    message: 'No se encontraron citas en el sistema.',
+                    type: 'info',
+                });
+            }
+        } catch (error) {
+            console.error('Error al buscar citas:', error);
+            setNotification({
+                open: true,
+                message: 'Error al buscar las citas. Inténtalo de nuevo.',
+                type: 'error',
+            });
         } finally {
             setLoading(false);
         }
@@ -458,19 +530,24 @@ const StepOne = ({
                 >
                     Por favor, complete el formulario con sus datos personales para reservar su cita médica de manera rápida y segura.
                 </Typography>
-
                 <Paper
                     elevation={0}
                     sx={{
                         p: 2,
-                        bgcolor: 'grey.50',
+                        bgcolor: colors.paperLight, // Usar color personalizado del proyecto
                         borderRadius: 3,
                         mb: 3,
-                        boxShadow: '0 6px 18px rgba(0,0,0,0.08)',
+                        boxShadow: isDarkTheme
+                            ? '0 6px 18px rgba(0,0,0,0.25)'
+                            : '0 6px 18px rgba(0,0,0,0.08)',
                         borderLeft: '5px solid',
-                        borderColor: 'primary.main',
+                        borderColor: colors.primary, // Usar color personalizado
                         transition: 'transform 0.2s ease-in-out',
-                        '&:hover': { transform: 'translateY(-2px)' }
+                        border: `1px solid ${colors.border}`, // Añadir borde para tema oscuro
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            backgroundColor: colors.hover // Color hover personalizado
+                        }
                     }}
                 >
                     <Box
@@ -484,12 +561,19 @@ const StepOne = ({
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                <HelpOutlineIcon color="primary" sx={{ fontSize: 24 }} />
+                                <HelpOutlineIcon
+                                    sx={{
+                                        fontSize: 24,
+                                        color: colors.primary // Usar color personalizado
+                                    }}
+                                />
                                 <Typography
                                     variant="body1"
                                     fontWeight={600}
-                                    color="text.primary"
-                                    sx={{ letterSpacing: '0.01em' }}
+                                    sx={{
+                                        letterSpacing: '0.01em',
+                                        color: colors.text // Usar color personalizado
+                                    }}
                                 >
                                     ¿Paciente registrado o con cita?
                                 </Typography>
@@ -505,7 +589,6 @@ const StepOne = ({
                         >
                             <Button
                                 variant="contained"
-                                color="secondary"
                                 onClick={() => setOpenLoginDialog(true)}
                                 startIcon={<CheckCircleOutlineIcon sx={{ fontSize: 20 }} />}
                                 sx={{
@@ -515,16 +598,24 @@ const StepOne = ({
                                     py: 0.75,
                                     fontSize: '0.85rem',
                                     textTransform: 'none',
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    boxShadow: isDarkTheme
+                                        ? '0 2px 4px rgba(0,0,0,0.3)'
+                                        : '0 2px 4px rgba(0,0,0,0.1)',
                                     transition: 'all 0.3s ease',
-                                    '&:hover': { boxShadow: '0 4px 10px rgba(0,0,0,0.15)' }
+                                    backgroundColor: colors.primary,
+                                    color: '#ffffff',
+                                    '&:hover': {
+                                        boxShadow: isDarkTheme
+                                            ? '0 4px 10px rgba(0,0,0,0.4)'
+                                            : '0 4px 10px rgba(0,0,0,0.15)',
+                                        backgroundColor: colors.accent
+                                    }
                                 }}
                             >
                                 Soy paciente
                             </Button>
                             <Button
                                 variant="outlined"
-                                color="primary"
                                 onClick={() => setOpenAppointmentDialog(true)}
                                 startIcon={<CalendarTodayIcon sx={{ fontSize: 20 }} />}
                                 sx={{
@@ -535,11 +626,20 @@ const StepOne = ({
                                     fontSize: '0.85rem',
                                     textTransform: 'none',
                                     borderWidth: 2,
-                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                                    boxShadow: isDarkTheme
+                                        ? '0 2px 4px rgba(0,0,0,0.3)'
+                                        : '0 2px 4px rgba(0,0,0,0.1)',
                                     transition: 'all 0.3s ease',
+                                    color: colors.primary,
+                                    borderColor: colors.primary,
+                                    backgroundColor: 'transparent',
                                     '&:hover': {
                                         borderWidth: 2,
-                                        boxShadow: '0 4px 10px rgba(0,0,0,0.15)'
+                                        borderColor: colors.accent,
+                                        backgroundColor: colors.hover,
+                                        boxShadow: isDarkTheme
+                                            ? '0 4px 10px rgba(0,0,0,0.4)'
+                                            : '0 4px 10px rgba(0,0,0,0.15)'
                                     }
                                 }}
                             >
@@ -677,7 +777,8 @@ const StepOne = ({
                     PaperProps={{
                         sx: {
                             borderRadius: 3,
-                            p: 1
+                            p: 1,
+                            backgroundColor: colors.cardBg
                         }
                     }}
                 >
@@ -688,17 +789,18 @@ const StepOne = ({
                             gap: 1.5,
                             pb: 1,
                             borderBottom: '1px solid',
-                            borderColor: 'divider'
+                            borderColor: colors.border,
+                            color: colors.text
                         }}
                     >
-                        <CalendarTodayIcon color="primary" />
-                        <Typography variant="h6" color="primary.main" fontWeight="bold">
+                        <CalendarTodayIcon sx={{ color: colors.primary }} />
+                        <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 'bold' }}>
                             Verificar Cita
                         </Typography>
                     </DialogTitle>
 
                     <DialogContent sx={{ mt: 2, px: 3 }}>
-                        <Typography variant="body1" paragraph sx={{ mb: 3 }}>
+                        <Typography variant="body1" paragraph sx={{ mb: 3, color: colors.text }}>
                             Por favor, ingrese el correo electrónico asociado a su cita.
                         </Typography>
 
@@ -725,7 +827,20 @@ const StepOne = ({
                             sx={{
                                 mb: 2,
                                 '& .MuiOutlinedInput-root': {
-                                    borderRadius: 2
+                                    borderRadius: 2,
+                                    backgroundColor: colors.cardBg,
+                                    '& fieldset': {
+                                        borderColor: colors.border,
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: colors.primary,
+                                    },
+                                },
+                                '& .MuiInputLabel-root': {
+                                    color: colors.secondaryText,
+                                },
+                                '& .MuiInputBase-input': {
+                                    color: colors.text,
                                 }
                             }}
                         />
@@ -735,7 +850,12 @@ const StepOne = ({
                             icon={<InfoIcon />}
                             sx={{
                                 borderRadius: 2,
-                                mb: 2
+                                mb: 2,
+                                backgroundColor: colors.paperLight,
+                                color: colors.text,
+                                '& .MuiAlert-icon': {
+                                    color: colors.primary
+                                }
                             }}
                         >
                             Al verificar su correo, podremos localizar sus citas existentes.
@@ -750,7 +870,13 @@ const StepOne = ({
                             sx={{
                                 borderRadius: 6,
                                 textTransform: 'none',
-                                px: 2
+                                px: 2,
+                                color: colors.text,
+                                borderColor: colors.border,
+                                '&:hover': {
+                                    borderColor: colors.primary,
+                                    backgroundColor: colors.hover
+                                }
                             }}
                         >
                             Atrás
@@ -759,12 +885,16 @@ const StepOne = ({
                         <Button
                             variant="contained"
                             color="primary"
-                            startIcon={!loading && <VerifiedUserIcon />}
+                            startIcon={!loading && <EventAvailableIcon />}
                             onClick={() => {
-                                // Aquí deberías implementar la lógica para buscar citas
                                 if (validateEmail(email)) {
-                                    setLoading(true);
-                                    // Llamar a función para verificar cita
+                                    checkAppointmentsByEmail(email);
+                                } else {
+                                    setNotification({
+                                        open: true,
+                                        message: 'Por favor, ingrese un correo electrónico válido.',
+                                        type: 'error',
+                                    });
                                 }
                             }}
                             disabled={!email || !!emailError || loading}
@@ -773,10 +903,134 @@ const StepOne = ({
                                 textTransform: 'none',
                                 px: 3,
                                 fontWeight: 'bold',
-                                boxShadow: '0 3px 10px rgba(0,0,0,0.2)'
+                                boxShadow: '0 3px 10px rgba(0,0,0,0.2)',
+                                backgroundColor: colors.primary,
+                                '&:hover': {
+                                    backgroundColor: colors.accent
+                                }
                             }}
                         >
-                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Buscar Cita'}
+                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Buscar Citas'}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                <Dialog
+                    open={openAppointmentResultsDialog}
+                    onClose={() => setOpenAppointmentResultsDialog(false)}
+                    maxWidth="md"
+                    fullWidth
+                    PaperProps={{
+                        sx: {
+                            borderRadius: 3,
+                            p: 1,
+                            backgroundColor: colors.cardBg
+                        }
+                    }}
+                >
+                    <DialogTitle
+                        sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1.5,
+                            pb: 1,
+                            borderBottom: '1px solid',
+                            borderColor: colors.border,
+                            color: colors.text
+                        }}
+                    >
+                        <EventAvailableIcon sx={{ color: colors.primary }} />
+                        <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 'bold' }}>
+                            Sus Citas Programadas
+                        </Typography>
+                    </DialogTitle>
+
+                    <DialogContent sx={{ mt: 2, px: 3 }}>
+                        {citasEncontradas.length > 0 ? (
+                            <Box sx={{ maxHeight: '400px', overflowY: 'auto' }}>
+                                {citasEncontradas.map((cita, index) => (
+                                    <Card
+                                        key={cita.consulta_id || index}
+                                        sx={{
+                                            mb: 2,
+                                            backgroundColor: colors.paperLight,
+                                            border: `1px solid ${colors.border}`,
+                                            '&:hover': {
+                                                backgroundColor: colors.hover
+                                            }
+                                        }}
+                                    >
+                                        <CardContent>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                                <Chip
+                                                    label={cita.estado || 'Pendiente'}
+                                                    size="small"
+                                                    sx={{
+                                                        backgroundColor: getStatusColor(cita.estado),
+                                                        color: 'white',
+                                                        fontWeight: 'bold'
+                                                    }}
+                                                />
+                                                <Typography variant="h6" sx={{ color: colors.text, fontWeight: 'bold' }}>
+                                                    {cita.servicio_nombre || 'Consulta General'}
+                                                </Typography>
+                                            </Box>
+
+                                            <Typography variant="body2" sx={{ color: colors.secondaryText, mb: 1 }}>
+                                                <strong>Fecha:</strong> {new Date(cita.fecha_consulta).toLocaleDateString('es-ES', {
+                                                    weekday: 'long',
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric'
+                                                })}
+                                            </Typography>
+
+                                            <Typography variant="body2" sx={{ color: colors.secondaryText, mb: 1 }}>
+                                                <strong>Hora:</strong> {new Date(cita.fecha_consulta).toLocaleTimeString('es-ES', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </Typography>
+
+                                            <Typography variant="body2" sx={{ color: colors.secondaryText, mb: 1 }}>
+                                                <strong>Doctor:</strong> {cita.odontologo_nombre || 'Por asignar'}
+                                            </Typography>
+
+                                            {cita.notas && (
+                                                <Typography variant="body2" sx={{ color: colors.secondaryText, fontStyle: 'italic' }}>
+                                                    <strong>Notas:</strong> {cita.notas}
+                                                </Typography>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                ))}
+                            </Box>
+                        ) : (
+                            <Typography variant="body1" sx={{ textAlign: 'center', py: 3, color: colors.secondaryText }}>
+                                No se encontraron citas para este correo electrónico.
+                            </Typography>
+                        )}
+                    </DialogContent>
+
+                    <DialogActions sx={{ px: 3, pb: 3, pt: 1 }}>
+                        <Button
+                            variant="contained"
+                            onClick={() => {
+                                setOpenAppointmentResultsDialog(false);
+                                setEmail('');
+                                setCitasEncontradas([]);
+                            }}
+                            sx={{
+                                borderRadius: 6,
+                                textTransform: 'none',
+                                px: 3,
+                                backgroundColor: colors.primary,
+                                '&:hover': {
+                                    backgroundColor: colors.accent
+                                }
+                            }}
+                        >
+                            Cerrar
                         </Button>
                     </DialogActions>
                 </Dialog>

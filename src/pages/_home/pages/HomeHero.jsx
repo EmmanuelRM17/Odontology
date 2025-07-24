@@ -352,7 +352,7 @@ const ImageCarousel = React.memo(({
           position: 'absolute',
           top: 0,
           left: 0,
-          width: isMobile ? '100%' : '85%',
+          width: isMobile ? '100%' : '90%',
           height: isMobile ? '100%' : '75%',
           borderRadius: 4,
           transition: 'all 0.8s cubic-bezier(0.4, 0, 0.2, 1)',

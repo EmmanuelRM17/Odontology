@@ -1,19 +1,27 @@
 import { useState, useEffect } from 'react';
 
 // Importación manual de imágenes (más confiable)
-import img1 from '../assets/imagenes/img_1.jpg';
-import img2 from '../assets/imagenes/img_2.jpg';
-import img3 from '../assets/imagenes/img_3.jpg';
-import img4 from '../assets/imagenes/img_4.jpg';
-// Agregar más imágenes según necesites
+import img_1 from '../assets/imagenes/img_1.png';
+import img_2 from '../assets/imagenes/img_2.png';
+import img_3 from '../assets/imagenes/img_3.png';
+import img_4 from '../assets/imagenes/img_4.png';
+import img_5 from '../assets/imagenes/img_5.png';
+import img_6 from '../assets/imagenes/img_6.png';
+import img_7 from '../assets/imagenes/img_7.png';
+import img_8 from '../assets/imagenes/img_8.png';
+import img_9 from '../assets/imagenes/img_9.png';
 
 // Array de imágenes con orden garantizado
 const imageArray = [
-  img1,
-  img2, 
-  img3,
-  img4
-  // Agregar más imágenes aquí
+  img_1,
+  img_2, 
+  img_3,
+  img_4,
+  img_5,
+  img_6,
+  img_7,
+  img_8,
+  img_9
 ].filter(Boolean); // Filtra valores undefined/null
 
 // Función de precarga optimizada

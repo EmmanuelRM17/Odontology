@@ -34,6 +34,8 @@ import {
     Info as InfoIcon,
     CheckCircle as CheckCircleIcon,
     ArrowForward as ArrowForwardIcon,
+    AccessTime as AccessTimeIcon,
+    Event as EventIcon,
     LocalHospital,
     Spa,
     HealthAndSafety,
@@ -92,6 +94,22 @@ const Servicios = () => {
     useEffect(() => {
         window.scrollTo(0, 0);
     }, []);
+    const colors = {
+        background: isDarkTheme ? '#0A0A0A' : '#FAFBFC',
+        primary: isDarkTheme ? '#FFFFFF' : '#1A1A1A',
+        text: isDarkTheme ? '#F8FAFC' : '#1A202C',
+        secondary: isDarkTheme ? '#94A3B8' : '#64748B',
+        cardBg: isDarkTheme ? '#1A1A1A' : '#FFFFFF',
+        accent: isDarkTheme ? '#E2E8F0' : '#374151',
+        cardBorder: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        cardShadow: isDarkTheme
+            ? '0 4px 20px rgba(0,0,0,0.4)'
+            : '0 2px 12px rgba(0,0,0,0.08)',
+        divider: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+        highlight: isDarkTheme ? '#3B82F6' : '#2563EB',
+        neutral: isDarkTheme ? '#6B7280' : '#9CA3AF'
+    };
+
 
     // Tema personalizado con mejoras para modo oscuro
     const theme = createTheme({
@@ -943,43 +961,30 @@ const Servicios = () => {
                             </Grid>
 
                             {/* Servicio destacado */}
+
                             <Grid item xs={12} md={6}>
                                 {highlightedService && (
                                     <Zoom in timeout={1000}>
                                         <Card
-                                            elevation={4}
+                                            elevation={3}
                                             sx={{
-                                                height: '100%',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                position: 'relative',
-                                                boxShadow: isDarkTheme
-                                                    ? '0 10px 30px rgba(0,0,0,0.3)'
-                                                    : '0 10px 30px rgba(0,0,0,0.1)',
+                                                maxWidth: 400,
+                                                mx: 'auto',
                                                 borderRadius: '16px',
                                                 overflow: 'hidden',
-                                                transform: {
-                                                    xs: 'none',
-                                                    md: 'perspective(1000px) rotateY(-5deg) rotateX(5deg)'
-                                                },
+                                                backgroundColor: colors.cardBg,
+                                                border: `1px solid ${colors.border}`,
+                                                transition: 'all 0.3s ease',
                                                 '&:hover': {
-                                                    transform: {
-                                                        xs: 'translateY(-10px)',
-                                                        md: 'perspective(1000px) rotateY(0deg) rotateX(0deg) translateY(-10px)'
-                                                    }
-                                                },
-                                                transition: 'transform 0.5s ease',
-                                                backgroundColor: isDarkTheme
-                                                    ? alpha('#1E1E1E', 0.95)
-                                                    : theme.palette.background.paper,
-                                                border: isDarkTheme ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none'
+                                                    transform: 'translateY(-8px)',
+                                                    boxShadow: isDarkTheme
+                                                        ? '0 12px 30px rgba(0,0,0,0.4)'
+                                                        : '0 12px 30px rgba(0,0,0,0.15)',
+                                                }
                                             }}
                                         >
-                                            <Box sx={{
-                                                position: 'relative',
-                                                overflow: 'hidden',
-                                                height: { xs: 200, md: 250 }
-                                            }}>
+                                            {/* Imagen del servicio */}
+                                            <Box sx={{ position: 'relative', height: 200 }}>
                                                 <img
                                                     src={highlightedService.image_url || getPlaceholderImage(highlightedService.title)}
                                                     alt={highlightedService.title}
@@ -989,72 +994,108 @@ const Servicios = () => {
                                                         objectFit: 'cover'
                                                     }}
                                                 />
+
+                                                {/* Badge de categoría */}
+                                                <Chip
+                                                    label={highlightedService.category}
+                                                    size="small"
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 12,
+                                                        left: 12,
+                                                        backgroundColor: colors.cardBg,
+                                                        color: colors.text,
+                                                        fontWeight: 600,
+                                                        fontSize: '0.75rem',
+                                                        border: `1px solid ${colors.border}`,
+                                                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                                                    }}
+                                                />
                                             </Box>
 
-                                            <CardContent sx={{ p: 3, flexGrow: 1 }}>
-                                                <Typography
-                                                    variant="overline"
-                                                    color="primary"
-                                                    sx={{ fontWeight: 600 }}
-                                                >
-                                                    {highlightedService.category}
-                                                </Typography>
+                                            <CardContent sx={{ p: 3 }}>
+                                                {/* Título y Precio */}
+                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                                                    <Typography
+                                                        variant="h6"
+                                                        component="h3"
+                                                        sx={{
+                                                            fontWeight: 700,
+                                                            color: colors.text,
+                                                            lineHeight: 1.3,
+                                                            flex: 1,
+                                                            mr: 2
+                                                        }}
+                                                    >
+                                                        {highlightedService.title}
+                                                    </Typography>
 
+                                                    <Typography
+                                                        variant="h6"
+                                                        sx={{
+                                                            fontWeight: 700,
+                                                            color: colors.primary,
+                                                            fontSize: '1.25rem'
+                                                        }}
+                                                    >
+                                                        ${highlightedService.price || '500'}
+                                                    </Typography>
+                                                </Box>
+
+                                                {/* Descripción */}
                                                 <Typography
-                                                    variant="h5"
-                                                    component="h2"
+                                                    variant="body2"
                                                     sx={{
-                                                        fontWeight: 700,
-                                                        mb: 2,
-                                                        color: theme.palette.text.primary
+                                                        color: colors.secondaryText,
+                                                        mb: 3,
+                                                        lineHeight: 1.5,
+                                                        display: '-webkit-box',
+                                                        WebkitLineClamp: 3,
+                                                        WebkitBoxOrient: 'vertical',
+                                                        overflow: 'hidden'
                                                     }}
                                                 >
-                                                    {highlightedService.title}
+                                                    {highlightedService.description || 'Servicio dental profesional con tecnología moderna y atención personalizada para garantizar tu bienestar.'}
                                                 </Typography>
 
-                                                <Typography
-                                                    variant="body1"
-                                                    color="text.secondary"
-                                                    sx={{ mb: 3 }}
-                                                >
-                                                    {highlightedService.description && highlightedService.description.length > 120
-                                                        ? `${highlightedService.description.slice(0, 120)}...`
-                                                        : highlightedService.description}
-                                                </Typography>
-
+                                                {/* Botones */}
                                                 <Box sx={{ display: 'flex', gap: 2 }}>
                                                     <Button
-                                                        variant="contained"
+                                                        variant="outlined"
                                                         fullWidth
-                                                        onClick={() => {
-                                                            setHighlightedServiceDialogOpen(true);
-                                                        }}
+                                                        onClick={() => setHighlightedServiceDialogOpen(true)}
                                                         startIcon={<InfoIcon />}
                                                         sx={{
-                                                            backgroundColor: isDarkTheme ? theme.palette.primary.dark : theme.palette.primary.main,
+                                                            py: 1.2,
+                                                            borderRadius: '8px',
+                                                            fontWeight: 600,
+                                                            borderColor: colors.border,
+                                                            color: colors.text,
                                                             '&:hover': {
-                                                                backgroundColor: isDarkTheme ? theme.palette.primary.main : theme.palette.primary.dark,
+                                                                borderColor: colors.primary,
+                                                                backgroundColor: colors.hover,
                                                             }
                                                         }}
                                                     >
-                                                        Ver detalles
+                                                        Detalles
                                                     </Button>
 
                                                     <Button
-                                                        variant="outlined"
+                                                        variant="contained"
                                                         fullWidth
                                                         onClick={() => handleAgendarCita(highlightedService)}
                                                         startIcon={<CalendarMonthIcon />}
                                                         sx={{
-                                                            borderColor: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main,
-                                                            color: isDarkTheme ? theme.palette.primary.light : theme.palette.primary.main,
+                                                            py: 1.2,
+                                                            borderRadius: '8px',
+                                                            fontWeight: 600,
+                                                            backgroundColor: colors.primary,
                                                             '&:hover': {
-                                                                borderColor: theme.palette.primary.main,
-                                                                backgroundColor: isDarkTheme ? alpha(theme.palette.primary.main, 0.1) : alpha(theme.palette.primary.main, 0.05),
+                                                                backgroundColor: colors.accent,
                                                             }
                                                         }}
                                                     >
-                                                        Agendar cita
+                                                        Agendar
                                                     </Button>
                                                 </Box>
                                             </CardContent>

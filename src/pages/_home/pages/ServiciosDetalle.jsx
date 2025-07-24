@@ -1,4 +1,4 @@
-// Reemplaza tu componente ServicioDetalleDialog con esta versión minimalista
+// Componente ServicioDetalleDialog optimizado para espaciado dinámico
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import {
@@ -115,9 +115,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
             ? '0 4px 20px rgba(0,0,0,0.4)' 
             : '0 2px 12px rgba(0,0,0,0.08)',
         divider: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-        // Solo un color de acento discreto
         highlight: isDarkTheme ? '#3B82F6' : '#2563EB',
-        // Eliminamos todos los colores específicos por categoría
         neutral: isDarkTheme ? '#6B7280' : '#9CA3AF'
     };
 
@@ -312,37 +310,37 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
             sx={{
                 display: 'flex',
                 alignItems: 'center',
-                mb: 1.5,
-                pb: 1,
+                mb: 1, // OPTIMIZADO: Reducido de 1.5 a 1
+                pb: 0.5, // OPTIMIZADO: Reducido de 1 a 0.5
                 borderBottom: `1px solid ${colors.divider}`
             }}
         >
             <Box sx={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
+                width: 28, // OPTIMIZADO: Reducido de 32 a 28
+                height: 28, // OPTIMIZADO: Reducido de 32 a 28
+                borderRadius: '6px',
                 backgroundColor: colors.cardBg,
                 border: `1px solid ${colors.cardBorder}`,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                mr: 1.5,
+                mr: 1.2, // OPTIMIZADO: Reducido de 1.5 a 1.2
                 flexShrink: 0
             }}>
-                <Icon sx={{ fontSize: 16, color: colors.secondary }} />
+                <Icon sx={{ fontSize: 14, color: colors.secondary }} />
             </Box>
             <Box sx={{ flex: 1 }}>
                 <Typography variant="subtitle2" sx={{ 
                     color: colors.text, 
                     fontWeight: 600,
-                    fontSize: '0.9rem'
+                    fontSize: '0.85rem' // OPTIMIZADO: Reducido ligeramente
                 }}>
                     {title}
                 </Typography>
                 {!isMobile && (
                     <Typography variant="caption" sx={{ 
                         color: colors.secondary,
-                        fontSize: '0.75rem'
+                        fontSize: '0.7rem' // OPTIMIZADO: Reducido ligeramente
                     }}>
                         {description}
                     </Typography>
@@ -353,47 +351,47 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
 
     // Componente de Esqueleto para cargar - COMPACTO
     const SkeletonLoader = () => (
-        <Box sx={{ width: '100%', p: 1 }}>
-            <Grid container spacing={2}>
+        <Box sx={{ width: '100%', p: 0.5 }}> {/* OPTIMIZADO: Reducido padding */}
+            <Grid container spacing={1.5}> {/* OPTIMIZADO: Reducido spacing */}
                 <Grid item xs={12} md={4}>
                     <Skeleton 
                         variant="rectangular" 
-                        height={260}
+                        height={220} // OPTIMIZADO: Reducido de 260 a 220
                         sx={{ 
                             borderRadius: '8px',
-                            mb: 1.5,
+                            mb: 1,
                             bgcolor: isDarkTheme ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'
                         }} 
                     />
                 </Grid>
                 <Grid item xs={12} md={8}>
-                    <Skeleton variant="text" height={40} sx={{ mb: 1 }} />
-                    <Skeleton variant="text" height={24} sx={{ mb: 1 }} />
-                    <Skeleton variant="text" height={80} sx={{ mb: 2 }} />
-                    <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
-                        <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: '12px' }} />
-                        <Skeleton variant="rectangular" width={80} height={24} sx={{ borderRadius: '12px' }} />
+                    <Skeleton variant="text" height={32} sx={{ mb: 0.5 }} />  {/* OPTIMIZADO */}
+                    <Skeleton variant="text" height={20} sx={{ mb: 0.5 }} />  {/* OPTIMIZADO */}
+                    <Skeleton variant="text" height={60} sx={{ mb: 1.5 }} />  {/* OPTIMIZADO */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                        <Skeleton variant="rectangular" width={70} height={20} sx={{ borderRadius: '10px' }} />
+                        <Skeleton variant="rectangular" width={70} height={20} sx={{ borderRadius: '10px' }} />
                     </Box>
                 </Grid>
             </Grid>
 
-            <Grid container spacing={2} sx={{ mt: 2 }}>
+            <Grid container spacing={1.5} sx={{ mt: 1 }}> {/* OPTIMIZADO */}
                 {[1, 2, 3, 4].map((item) => (
                     <Grid item xs={12} sm={6} key={item}>
                         <Card sx={{ 
-                            height: 140,
+                            minHeight: 'auto', // OPTIMIZADO: Eliminada altura fija
                             borderRadius: '8px',
                             bgcolor: colors.cardBg,
                             border: `1px solid ${colors.cardBorder}`
                         }}>
-                            <CardContent sx={{ p: 1.5 }}>
-                                <Skeleton variant="text" height={28} sx={{ mb: 1 }} />
-                                <Stack spacing={0.5}>
+                            <CardContent sx={{ p: 1.2 }}> {/* OPTIMIZADO: Reducido padding */}
+                                <Skeleton variant="text" height={24} sx={{ mb: 0.5 }} />
+                                <Stack spacing={0.4}>
                                     {[1, 2].map(i => (
                                         <Skeleton 
                                             key={i}
                                             variant="text" 
-                                            height={16} 
+                                            height={14} 
                                             width={`${Math.floor(60 + Math.random() * 30)}%`}
                                         />
                                     ))}
@@ -411,18 +409,18 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         <Box
             sx={{
                 textAlign: 'center',
-                py: 4,
+                py: 3, // OPTIMIZADO: Reducido de 4 a 3
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 2
+                gap: 1.5 // OPTIMIZADO: Reducido de 2 a 1.5
             }}
         >
             <Box
                 sx={{
-                    width: 56,
-                    height: 56,
+                    width: 48, // OPTIMIZADO: Reducido de 56 a 48
+                    height: 48, // OPTIMIZADO: Reducido de 56 a 48
                     borderRadius: '50%',
                     backgroundColor: alpha('#EF4444', 0.1),
                     border: `1px solid ${alpha('#EF4444', 0.2)}`,
@@ -431,12 +429,12 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     justifyContent: 'center'
                 }}
             >
-                <Warning sx={{ fontSize: 28, color: '#EF4444' }} />
+                <Warning sx={{ fontSize: 24, color: '#EF4444' }} />
             </Box>
             <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600 }}>
                 No pudimos cargar el servicio
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 400 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 350 }}>
                 {message || 'Servicio no encontrado'}
             </Typography>
             <Button
@@ -447,7 +445,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     fetchService();
                 }}
                 sx={{ 
-                    mt: 1,
+                    mt: 0.5,
                     borderColor: colors.secondary,
                     color: colors.secondary,
                     '&:hover': {
@@ -466,19 +464,19 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         <Paper
             elevation={0}
             sx={{
-                p: 1.5,
+                p: 1, // OPTIMIZADO: Reducido de 1.5 a 1
                 borderRadius: '8px',
-                mb: 2,
+                mb: 1.2, // OPTIMIZADO: Reducido de 2 a 1.2
                 backgroundColor: colors.cardBg,
                 border: `1px solid ${colors.cardBorder}`,
                 display: 'flex',
                 alignItems: 'center',
-                gap: 1.5
+                gap: 1 // OPTIMIZADO: Reducido de 1.5 a 1
             }}
         >
             <Box sx={{
-                width: 32,
-                height: 32,
+                width: 28, // OPTIMIZADO: Reducido de 32 a 28
+                height: 28, // OPTIMIZADO: Reducido de 32 a 28
                 borderRadius: '6px',
                 backgroundColor: alpha(colors.highlight, 0.1),
                 border: `1px solid ${alpha(colors.highlight, 0.2)}`,
@@ -487,15 +485,15 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 justifyContent: 'center'
             }}>
                 {isTreatment ? 
-                    <MedicalServices sx={{ fontSize: 16, color: colors.highlight }} /> : 
-                    <Info sx={{ fontSize: 16, color: colors.highlight }} />
+                    <MedicalServices sx={{ fontSize: 14, color: colors.highlight }} /> : 
+                    <Info sx={{ fontSize: 14, color: colors.highlight }} />
                 }
             </Box>
             <Box>
-                <Typography variant="body2" sx={{ fontWeight: 600, color: colors.text, fontSize: '0.875rem' }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: colors.text, fontSize: '0.8rem' }}>
                     {isTreatment ? 'Tratamiento Dental' : 'Servicio Regular'}
                 </Typography>
-                <Typography variant="caption" sx={{ color: colors.secondary, fontSize: '0.75rem' }}>
+                <Typography variant="caption" sx={{ color: colors.secondary, fontSize: '0.7rem' }}>
                     {isTreatment && sessionCount > 1 
                         ? `Requiere aproximadamente ${sessionCount} citas`
                         : 'Se realiza en una única sesión'}
@@ -504,14 +502,15 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         </Paper>
     );
 
-    // Componente de sección de información - MINIMALISTA
+    // Componente de sección de información - OPTIMIZADO
     const InfoSection = ({ section, index }) => (
         <Grid item xs={12} sm={6} key={section.title}>
             <Fade in={isVisible} timeout={300 + section.delay}>
                 <Card
                     sx={{
                         backgroundColor: colors.cardBg,
-                        height: { xs: 'auto', sm: 260 },
+                        // OPTIMIZADO: Eliminada altura fija para ajuste dinámico
+                        minHeight: 'auto',
                         borderRadius: '8px',
                         boxShadow: colors.cardShadow,
                         border: `1px solid ${colors.cardBorder}`,
@@ -524,7 +523,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         }
                     }}
                 >
-                    <CardContent sx={{ p: 2 }}>
+                    <CardContent sx={{ p: 1.3 }}> {/* OPTIMIZADO: Reducido de 2 a 1.3 */}
                         <SectionHeader
                             icon={section.icon}
                             title={section.title}
@@ -533,8 +532,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         <List
                             sx={{
                                 mt: 0.5,
-                                maxHeight: { xs: 180, sm: 160 },
-                                overflow: 'auto',
+                                // OPTIMIZADO: Eliminadas restricciones de altura
+                                overflow: 'visible',
                                 scrollbarWidth: 'thin',
                                 '&::-webkit-scrollbar': { width: '4px' },
                                 '&::-webkit-scrollbar-track': {
@@ -555,20 +554,20 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                         alignItems="flex-start"
                                         sx={{
                                             px: 0,
-                                            py: 0.5,
+                                            py: 0.3, // OPTIMIZADO: Reducido de 0.5 a 0.3
                                             borderRadius: '4px',
-                                            mb: 0.25,
+                                            mb: 0.2, // OPTIMIZADO: Reducido ligeramente
                                             transition: 'all 0.2s ease',
                                             '&:hover': {
                                                 bgcolor: alpha(colors.highlight, 0.05)
                                             }
                                         }}
                                     >
-                                        <ListItemIcon sx={{ minWidth: 24 }}>
+                                        <ListItemIcon sx={{ minWidth: 20 }}> {/* OPTIMIZADO: Reducido */}
                                             <Box
                                                 sx={{
-                                                    width: 4,
-                                                    height: 4,
+                                                    width: 3,
+                                                    height: 3,
                                                     borderRadius: '50%',
                                                     backgroundColor: colors.secondary,
                                                     mt: 1
@@ -581,8 +580,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                                 color: colors.text,
                                                 my: 0,
                                                 '& .MuiListItemText-primary': {
-                                                    fontSize: '0.875rem',
-                                                    lineHeight: 1.4
+                                                    fontSize: '0.8rem', // OPTIMIZADO: Reducido ligeramente
+                                                    lineHeight: 1.3
                                                 }
                                             }}
                                         />
@@ -591,10 +590,11 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             ) : (
                                 <Typography variant="body2" sx={{ 
                                     color: colors.secondary, 
-                                    py: 2, 
+                                    py: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                                     px: 1, 
                                     fontStyle: 'italic',
-                                    textAlign: 'center'
+                                    textAlign: 'center',
+                                    fontSize: '0.8rem'
                                 }}>
                                     No hay información disponible
                                 </Typography>
@@ -606,7 +606,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         </Grid>
     );
 
-    // Componente de imagen ampliable - MINIMALISTA
+    // Componente de imagen ampliable - OPTIMIZADO
     const ZoomableImage = ({ src, alt }) => {
         return (
             <Box sx={{ position: 'relative' }}>
@@ -616,7 +616,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         position: 'relative',
                         overflow: 'hidden',
                         cursor: 'pointer',
-                        minHeight: 200,
+                        minHeight: 160, // OPTIMIZADO: Reducido de 200 a 160
                         borderRadius: '8px',
                         transition: 'all 0.2s ease',
                         backgroundColor: colors.cardBg
@@ -679,7 +679,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             }
                         }}
                     >
-                        <ZoomIn sx={{ color: 'white', fontSize: 24 }} />
+                        <ZoomIn sx={{ color: 'white', fontSize: 20 }} />
                     </Box>
                 </Box>
 
@@ -755,7 +755,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         );
     };
 
-    // Componente para opciones de compartir - MINIMALISTA
+    // Componente para opciones de compartir - OPTIMIZADO
     const ShareOptions = () => (
         <Grow in={showShareOptions}>
             <Box sx={{ 
@@ -766,19 +766,20 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 zIndex: 100,
                 boxShadow: colors.cardShadow,
                 borderRadius: isMobile ? '12px 12px 0 0' : '8px',
-                p: 2,
+                p: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                 bgcolor: colors.cardBg,
                 border: `1px solid ${colors.cardBorder}`
             }}>
                 <Typography variant="subtitle2" sx={{ 
                     fontWeight: 600, 
                     color: colors.text,
-                    mb: 1.5
+                    mb: 1.2, // OPTIMIZADO: Reducido de 1.5 a 1.2
+                    fontSize: '0.85rem'
                 }}>
                     Compartir servicio
                 </Typography>
             
-                <Grid container spacing={1.5}>
+                <Grid container spacing={1.2}> {/* OPTIMIZADO: Reducido spacing */}
                     <Grid item xs={4}>
                         <Button
                             variant="outlined"
@@ -794,7 +795,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     bgcolor: alpha(colors.secondary, 0.05)
                                 },
                                 textTransform: 'none',
-                                py: 1
+                                py: 0.8, // OPTIMIZADO: Reducido ligeramente
+                                fontSize: '0.75rem'
                             }}
                         >
                             WhatsApp
@@ -816,7 +818,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     bgcolor: alpha(colors.secondary, 0.05)
                                 },
                                 textTransform: 'none',
-                                py: 1
+                                py: 0.8,
+                                fontSize: '0.75rem'
                             }}
                         >
                             Email
@@ -838,7 +841,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     bgcolor: alpha(colors.secondary, 0.05)
                                 },
                                 textTransform: 'none',
-                                py: 1
+                                py: 0.8,
+                                fontSize: '0.75rem'
                             }}
                         >
                             Copiar
@@ -853,7 +857,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         size="small"
                         onClick={() => setShowShareOptions(false)}
                         sx={{ 
-                            mt: 1.5, 
+                            mt: 1.2, 
                             color: colors.secondary,
                             '&:hover': {
                                 bgcolor: alpha(colors.secondary, 0.05)
@@ -867,7 +871,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         </Grow>
     );
 
-    // Contenido del diálogo
+    // Contenido del diálogo - OPTIMIZADO
     const dialogContent = () => {
         if (loading) {
             return <SkeletonLoader />;
@@ -881,9 +885,9 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         const sessionCount = service.citasEstimadas || 1;
 
         return (
-            <Box sx={{ p: 1 }}>
+            <Box sx={{ p: 0.5 }}> {/* OPTIMIZADO: Reducido de 1 a 0.5 */}
                 {/* Header Section minimalista */}
-                <Grid container spacing={2}>
+                <Grid container spacing={1.5}> {/* OPTIMIZADO: Reducido de 2 a 1.5 */}
                     {/* Columna de la imagen */}
                     <Grid item xs={12} md={4}>
                         <Card
@@ -903,8 +907,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             <Box
                                 sx={{
                                     position: 'absolute',
-                                    top: 12,
-                                    left: 12,
+                                    top: 10, // OPTIMIZADO: Reducido de 12 a 10
+                                    left: 10, // OPTIMIZADO: Reducido de 12 a 10
                                     zIndex: 5,
                                 }}
                             >
@@ -915,13 +919,13 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                         backgroundColor: alpha(colors.text, 0.9),
                                         color: colors.background,
                                         fontWeight: 500,
-                                        fontSize: '0.7rem',
+                                        fontSize: '0.65rem', // OPTIMIZADO: Reducido ligeramente
                                         backdropFilter: 'blur(4px)'
                                     }}
                                 />
                             </Box>
 
-                            <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 200 }}>
+                            <Box sx={{ position: 'relative', flexGrow: 1, minHeight: 160 }}> {/* OPTIMIZADO */}
                                 <ZoomableImage 
                                     src={service.image_url || `https://source.unsplash.com/featured/?dental,${service.title.replace(' ', ',')}`} 
                                     alt={service.title}
@@ -930,21 +934,21 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
 
                             {/* Barra inferior minimalista */}
                             <Box sx={{ 
-                                p: 1.5,
+                                p: 1.2, // OPTIMIZADO: Reducido de 1.5 a 1.2
                                 borderTop: `1px solid ${colors.divider}`,
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center'
                             }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}> {/* OPTIMIZADO */}
                                     <LocalHospital sx={{ 
                                         color: colors.secondary, 
-                                        fontSize: 16
+                                        fontSize: 14 // OPTIMIZADO: Reducido de 16 a 14
                                     }} />
                                     <Typography variant="caption" sx={{ 
                                         color: colors.text, 
                                         fontWeight: 500,
-                                        fontSize: '0.75rem'
+                                        fontSize: '0.7rem' // OPTIMIZADO: Reducido ligeramente
                                     }}>
                                         {isTreatment ? 'Tratamiento' : 'Servicio'}
                                     </Typography>
@@ -953,7 +957,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 {isTreatment && sessionCount > 1 && (
                                     <Typography variant="caption" sx={{ 
                                         color: colors.secondary,
-                                        fontSize: '0.75rem'
+                                        fontSize: '0.7rem'
                                     }}>
                                         {sessionCount} citas
                                     </Typography>
@@ -969,7 +973,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             sx={{
                                 backgroundColor: colors.cardBg,
                                 borderRadius: '8px',
-                                p: 2,
+                                p: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                                 height: '100%',
                                 border: `1px solid ${colors.cardBorder}`,
                                 display: 'flex',
@@ -982,7 +986,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 sx={{
                                     color: colors.text,
                                     fontWeight: 600,
-                                    mb: 1.5,
+                                    mb: 1.2, // OPTIMIZADO: Reducido de 1.5 a 1.2
                                     lineHeight: 1.3
                                 }}
                             >
@@ -1000,22 +1004,22 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                 variant="body2"
                                 sx={{
                                     color: colors.secondary,
-                                    mb: 2,
-                                    lineHeight: 1.5,
+                                    mb: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
+                                    lineHeight: 1.4, // OPTIMIZADO: Ligeramente más compacto
                                     flexGrow: 1
                                 }}
                             >
                                 {service.description}
                             </Typography>
 
-                            <Divider sx={{ mb: 2, borderColor: colors.divider }} />
+                            <Divider sx={{ mb: 1.5, borderColor: colors.divider }} /> {/* OPTIMIZADO */}
 
                             {/* Chips minimalistas */}
                             <Box sx={{
                                 display: 'flex',
                                 flexWrap: 'wrap',
-                                gap: 1,
-                                mb: 1
+                                gap: 0.8, // OPTIMIZADO: Reducido de 1 a 0.8
+                                mb: 0.5
                             }}>
                                 <Chip
                                     icon={<Timer />}
@@ -1025,10 +1029,10 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     sx={{
                                         borderColor: colors.cardBorder,
                                         color: colors.text,
-                                        fontSize: '0.75rem',
+                                        fontSize: '0.7rem', // OPTIMIZADO: Reducido ligeramente
                                         '& .MuiChip-icon': { 
                                             color: colors.secondary,
-                                            fontSize: 14
+                                            fontSize: 12 // OPTIMIZADO: Reducido de 14 a 12
                                         }
                                     }}
                                 />
@@ -1040,10 +1044,10 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     sx={{
                                         borderColor: colors.cardBorder,
                                         color: colors.text,
-                                        fontSize: '0.75rem',
+                                        fontSize: '0.7rem',
                                         '& .MuiChip-icon': { 
                                             color: colors.secondary,
-                                            fontSize: 14
+                                            fontSize: 12
                                         }
                                     }}
                                 />
@@ -1057,10 +1061,10 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                                     sx={{
                                         borderColor: colors.cardBorder,
                                         color: colors.text,
-                                        fontSize: '0.75rem',
+                                        fontSize: '0.7rem',
                                         '& .MuiChip-icon': { 
                                             color: colors.secondary,
-                                            fontSize: 14
+                                            fontSize: 12
                                         }
                                     }}
                                 />
@@ -1080,7 +1084,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         {
                             title: 'Qué incluye',
                             icon: Assignment,
-                            description: 'Procedimientos incluidos',
+                            description: 'Procedimientos incluidos',  
                             data: service.includes,
                             delay: 150
                         },
@@ -1106,7 +1110,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
         );
     };
     
-    // Botón para volver arriba
+    // Botón para volver arriba - OPTIMIZADO
     const ScrollTopButton = () => (
         <Zoom in={showScrollTop}>
             <Fab
@@ -1115,11 +1119,11 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 onClick={scrollToTop}
                 sx={{
                     position: 'absolute',
-                    bottom: 16,
-                    right: 16,
+                    bottom: 12, // OPTIMIZADO: Reducido de 16 a 12
+                    right: 12, // OPTIMIZADO: Reducido de 16 a 12
                     zIndex: 9,
-                    width: 40,
-                    height: 40,
+                    width: 36, // OPTIMIZADO: Reducido de 40 a 36
+                    height: 36, // OPTIMIZADO: Reducido de 40 a 36
                     bgcolor: colors.text,
                     color: colors.background,
                     '&:hover': {
@@ -1127,7 +1131,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     }
                 }}
             >
-                <KeyboardArrowUp sx={{ fontSize: 20 }} />
+                <KeyboardArrowUp sx={{ fontSize: 18 }} /> {/* OPTIMIZADO: Reducido de 20 a 18 */}
             </Fab>
         </Zoom>
     );
@@ -1144,7 +1148,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 }}
                 fullScreen={fullScreen}
                 fullWidth
-                maxWidth="lg"
+                maxWidth="md" // OPTIMIZADO: Cambiado de "lg" a "md"
                 scroll="paper"
                 TransitionComponent={Slide}
                 TransitionProps={{ direction: 'up' }}
@@ -1153,7 +1157,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         backgroundColor: colors.background,
                         borderRadius: { xs: 0, sm: '8px' },
                         overflow: 'hidden',
-                        maxWidth: fullScreen ? '100%' : '90%'
+                        maxWidth: fullScreen ? '100%' : '82%' // OPTIMIZADO: Reducido de 90% a 82%
                     }
                 }}
                 sx={{
@@ -1163,7 +1167,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                 <DialogTitle
                     sx={{
                         m: 0,
-                        p: 2,
+                        p: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                         bgcolor: colors.cardBg,
                         color: colors.text,
                         display: 'flex',
@@ -1173,8 +1177,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     }}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <Description sx={{ mr: 1, fontSize: 20, color: colors.secondary }} />
-                        <Typography variant="subtitle1" component="div" sx={{ fontWeight: 600 }}>
+                        <Description sx={{ mr: 1, fontSize: 18, color: colors.secondary }} /> {/* OPTIMIZADO */}
+                        <Typography variant="subtitle1" component="div" sx={{ fontWeight: 600, fontSize: '0.95rem' }}>
                             Detalles del Servicio
                         </Typography>
                     </Box>
@@ -1198,7 +1202,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     dividers
                     ref={dialogContentRef}
                     sx={{
-                        p: 1.5,
+                        p: 1, // OPTIMIZADO: Reducido de 1.5 a 1
                         backgroundColor: colors.background,
                         border: 'none',
                         borderTop: `1px solid ${colors.divider}`,
@@ -1225,8 +1229,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
 
                 <DialogActions
                     sx={{
-                        py: 1.5,
-                        px: 2,
+                        py: 1, // OPTIMIZADO: Reducido de 1.5 a 1
+                        px: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                         backgroundColor: colors.cardBg,
                         justifyContent: 'space-between',
                         flexWrap: 'wrap',
@@ -1264,7 +1268,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                             sx={{
                                 borderColor: colors.cardBorder,
                                 color: colors.secondary,
-                                px: 2,
+                                px: 1.5, // OPTIMIZADO: Reducido de 2 a 1.5
                                 borderRadius: '6px',
                                 textTransform: 'none',
                                 '&:hover': {
@@ -1286,8 +1290,8 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                         sx={{
                             backgroundColor: colors.text,
                             color: colors.background,
-                            px: 3,
-                            py: 1,
+                            px: 2.5, // OPTIMIZADO: Reducido de 3 a 2.5
+                            py: 0.8, // OPTIMIZADO: Reducido ligeramente
                             borderRadius: '6px',
                             textTransform: 'none',
                             fontWeight: 600,
@@ -1314,7 +1318,7 @@ const ServicioDetalleDialog = ({ open, onClose, servicioId, onAgendarCita, servi
                     PaperProps={{
                         sx: {
                             borderRadius: '12px 12px 0 0',
-                            maxHeight: '40vh',
+                            maxHeight: '35vh', // OPTIMIZADO: Reducido de 40vh a 35vh
                             bgcolor: colors.cardBg
                         }
                     }}
