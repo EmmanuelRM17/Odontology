@@ -34,6 +34,13 @@ import {
     Info as InfoIcon,
     CheckCircle as CheckCircleIcon,
     ArrowForward as ArrowForwardIcon,
+    LocalHospital,
+    Spa,
+    HealthAndSafety,
+    Build,
+    MedicalServices,
+    AccessTime,
+    Star
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
@@ -123,7 +130,7 @@ const Servicios = () => {
                     root: {
                         borderRadius: 16,
                         overflow: 'hidden',
-                        boxShadow: isDarkTheme 
+                        boxShadow: isDarkTheme
                             ? '0 4px 20px rgba(0,0,0,0.25)' // Sombra más suave en modo oscuro
                             : '0 2px 8px rgba(0,0,0,0.1)',
                     },
@@ -187,225 +194,509 @@ const Servicios = () => {
         }
     };
 
-    // Componente de tarjeta de servicio individual
-const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
-    const theme = useTheme();
-    const [dialogOpen, setDialogOpen] = useState(false);
-    const [isHovered, setIsHovered] = useState(false);
+    // Componente ServiceCard rediseñado - Estilo minimalista y profesional
+    const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
+        const theme = useTheme();
+        const [dialogOpen, setDialogOpen] = useState(false);
+        const [isHovered, setIsHovered] = useState(false);
+        const [imageLoaded, setImageLoaded] = useState(false);
+        const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-    const handleOpenDialog = () => {
-        setDialogOpen(true);
-    };
+        const handleOpenDialog = () => setDialogOpen(true);
+        const handleCloseDialog = () => setDialogOpen(false);
 
-    const handleCloseDialog = () => {
-        setDialogOpen(false);
-    };
+        // Formatear precio
+        const formattedPrice = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(parseFloat(service.price || 0));
 
-    // Obtener color según categoría con paleta más suave
-    const getCategoryColor = (category) => {
-        switch(category) {
-            case 'Preventivos': return isDarkTheme ? '#10B981' : '#059669';
-            case 'Estéticos': return isDarkTheme ? '#3B82F6' : '#2563EB';
-            case 'Restaurativos': return isDarkTheme ? '#F59E0B' : '#D97706';
-            default: return theme.palette.primary.main;
-        }
-    };
-
-    const categoryColor = getCategoryColor(service.category);
-
-    return (
-        <Fade in timeout={300 + index * 50}>
-            <Card
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                sx={{
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    transform: isHovered ? 'translateY(-8px)' : 'translateY(0)',
-                    backgroundColor: isDarkTheme 
-                        ? alpha('#1E293B', 0.95) // Fondo menos oscuro
-                        : theme.palette.background.paper,
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    position: 'relative',
-                    boxShadow: isHovered
-                        ? isDarkTheme
-                            ? `0 12px 20px -10px ${alpha(categoryColor, 0.3)}, 0 4px 20px 0px rgba(0,0,0,0.15)`
-                            : `0 12px 20px -10px ${alpha(categoryColor, 0.4)}, 0 4px 20px 0px rgba(0,0,0,0.1)`
-                        : theme.shadows[2],
-                    border: isDarkTheme ? `1px solid ${alpha('#94A3B8', 0.1)}` : 'none'
-                }}
-            >
-                {/* Contenedor de imagen con aspect ratio mejorado */}
-                <Box sx={{
-                    position: 'relative',
-                    overflow: 'hidden',
-                    aspectRatio: '16/10', // Aspect ratio más equilibrado
-                    minHeight: '180px', // Altura mínima más pequeña
-                    maxHeight: '220px', // Altura máxima controlada
-                    borderBottom: `3px solid ${categoryColor}`
-                }}>
-                    <img
-                        src={service.image_url
-                            ? service.image_url.includes('cloudinary')
-                                ? service.image_url.replace('/upload/', '/upload/w_400,h_250,c_fill,q_auto,f_auto/') // Dimensiones más equilibradas
-                                : service.image_url
-                            : getPlaceholderImage(service.title)
+        return (
+            <Fade in timeout={200 + index * 50}>
+                <Paper
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    elevation={0}
+                    sx={{
+                        height: '100%',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        borderRadius: '16px',
+                        overflow: 'hidden',
+                        backgroundColor: isDarkTheme ? '#1A1A1A' : '#FFFFFF',
+                        border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                        transform: isHovered ? 'translateY(-4px)' : 'translateY(0)',
+                        boxShadow: isHovered
+                            ? isDarkTheme
+                                ? '0 12px 40px rgba(0,0,0,0.4)'
+                                : '0 8px 32px rgba(0,0,0,0.08)'
+                            : isDarkTheme
+                                ? '0 2px 8px rgba(0,0,0,0.2)'
+                                : '0 1px 4px rgba(0,0,0,0.04)',
+                        '&:hover': {
+                            '& .service-image': {
+                                transform: 'scale(1.02)'
+                            }
                         }
-                        alt={service.title}
-                        onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = getPlaceholderImage(service.title);
-                        }}
-                        style={{
-                            height: '100%',
-                            width: '100%',
-                            objectFit: 'cover',
-                            objectPosition: 'center', // Centrar la imagen
-                            display: 'block',
-                            transition: 'transform 0.5s ease',
-                            transform: isHovered ? 'scale(1.05)' : 'scale(1)'
-                        }}
-                    />
+                    }}
+                >
+                    {/* Imagen minimalista */}
+                    <Box sx={{
+                        position: 'relative',
+                        height: { xs: 200, sm: 220 },
+                        overflow: 'hidden',
+                        backgroundColor: isDarkTheme ? '#262626' : '#F8FAFB'
+                    }}>
+                        {!imageLoaded && (
+                            <Skeleton
+                                variant="rectangular"
+                                width="100%"
+                                height="100%"
+                                animation="wave"
+                                sx={{
+                                    bgcolor: isDarkTheme ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)',
+                                }}
+                            />
+                        )}
 
-                    {/* Categoría con estilo mejorado */}
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: 12,
-                            left: 12,
-                            bgcolor: isDarkTheme ? 'rgba(30, 41, 59, 0.9)' : 'rgba(255,255,255,0.95)',
-                            color: categoryColor,
-                            py: 0.5,
-                            px: 1.5,
-                            borderRadius: '20px',
-                            fontWeight: 600,
-                            fontSize: '0.75rem',
-                            boxShadow: isDarkTheme 
-                                ? '0 2px 8px rgba(0,0,0,0.3)' 
-                                : '0 2px 4px rgba(0,0,0,0.1)',
-                            backdropFilter: 'blur(10px)'
-                        }}
-                    >
-                        {service.category || 'General'}
-                    </Box>
-
-                    {/* Gradiente más suave */}
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: '25%',
-                            background: isDarkTheme 
-                                ? 'linear-gradient(to top, rgba(30,41,59,0.6), rgba(30,41,59,0))'
-                                : 'linear-gradient(to top, rgba(0,0,0,0.4), rgba(0,0,0,0))',
-                        }}
-                    />
-                </Box>
-
-                <CardContent sx={{
-                    flexGrow: 1,
-                    p: 3,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between'
-                }}>
-                    <Box>
-                        <Typography
-                            variant="h6"
-                            component="h2"
+                        <Box
+                            component="img"
+                            className="service-image"
+                            src={service.image_url ?
+                                (service.image_url.includes('cloudinary')
+                                    ? service.image_url.replace('/upload/', '/upload/w_400,h_300,c_fill,q_auto,f_auto/')
+                                    : service.image_url)
+                                : getPlaceholderImage(service.title)
+                            }
+                            alt={service.title}
+                            onLoad={() => setImageLoaded(true)}
+                            onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = getPlaceholderImage(service.title);
+                            }}
                             sx={{
-                                fontWeight: 600,
-                                mb: 1,
-                                color: theme.palette.text.primary,
-                                fontSize: '1.1rem',
-                                lineHeight: 1.3,
-                                height: '2.8rem',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical'
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'transform 0.4s ease',
+                                opacity: imageLoaded ? 1 : 0,
+                                filter: isDarkTheme ? 'brightness(0.9)' : 'brightness(1)'
+                            }}
+                        />
+
+                        {/* Badge de categoría minimalista */}
+                        <Box
+                            sx={{
+                                position: 'absolute',
+                                top: 16,
+                                left: 16,
+                                px: 1.5,
+                                py: 0.5,
+                                borderRadius: '8px',
+                                backgroundColor: isDarkTheme
+                                    ? 'rgba(255,255,255,0.9)'
+                                    : 'rgba(255,255,255,0.95)',
+                                backdropFilter: 'blur(8px)',
+                                border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'}`
                             }}
                         >
-                            {service.title}
-                        </Typography>
+                            <Typography
+                                variant="caption"
+                                sx={{
+                                    fontWeight: 600,
+                                    color: isDarkTheme ? '#1A1A1A' : '#374151',
+                                    fontSize: '0.75rem',
+                                    letterSpacing: '0.5px'
+                                }}
+                            >
+                                {service.category || 'General'}
+                            </Typography>
+                        </Box>
 
+                        {/* Indicador de tratamiento discreto */}
+                        {service.tratamiento === 1 && (
+                            <Box
+                                sx={{
+                                    position: 'absolute',
+                                    top: 16,
+                                    right: 16,
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: '50%',
+                                    backgroundColor: '#10B981',
+                                    border: '2px solid white',
+                                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                                }}
+                            />
+                        )}
+                    </Box>
+
+                    {/* Contenido principal */}
+                    <Box sx={{
+                        flexGrow: 1,
+                        p: { xs: 2.5, sm: 3 },
+                        display: 'flex',
+                        flexDirection: 'column'
+                    }}>
+                        {/* Header con título y precio */}
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'flex-start',
+                            mb: 1.5
+                        }}>
+                            <Typography
+                                variant="h6"
+                                component="h3"
+                                sx={{
+                                    fontWeight: 600,
+                                    fontSize: { xs: '1.1rem', sm: '1.2rem' },
+                                    lineHeight: 1.3,
+                                    color: theme.palette.text.primary,
+                                    flex: 1,
+                                    mr: 2,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden'
+                                }}
+                            >
+                                {service.title}
+                            </Typography>
+
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    fontWeight: 700,
+                                    fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                                    color: theme.palette.text.primary,
+                                    flexShrink: 0
+                                }}
+                            >
+                                {formattedPrice}
+                            </Typography>
+                        </Box>
+
+                        {/* Descripción */}
                         <Typography
                             variant="body2"
                             color="text.secondary"
                             sx={{
-                                mb: 2,
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 3,
-                                WebkitBoxOrient: 'vertical',
                                 lineHeight: 1.5,
-                                minHeight: '4.5rem'
+                                mb: 2,
+                                display: '-webkit-box',
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: 'vertical',
+                                overflow: 'hidden'
                             }}
                         >
                             {service.description && service.description.includes('.')
                                 ? service.description.split('.')[0] + '.'
                                 : service.description}
                         </Typography>
+
+                        {/* Información de duración minimalista */}
+                        <Box sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 2,
+                            mb: 3,
+                            p: 1.5,
+                            backgroundColor: isDarkTheme
+                                ? 'rgba(255,255,255,0.02)'
+                                : 'rgba(0,0,0,0.02)',
+                            borderRadius: '12px',
+                            border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.04)'}`
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                                <AccessTime sx={{
+                                    fontSize: 16,
+                                    color: theme.palette.text.secondary
+                                }} />
+                                <Typography
+                                    variant="body2"
+                                    color="text.secondary"
+                                    sx={{ fontSize: '0.875rem', fontWeight: 500 }}
+                                >
+                                    {service.duration || 'Duración variable'}
+                                </Typography>
+                            </Box>
+
+                            {service.citasEstimadas && (
+                                <>
+                                    <Divider orientation="vertical" flexItem sx={{ height: 16 }} />
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ fontSize: '0.875rem' }}
+                                    >
+                                        {service.citasEstimadas} cita{service.citasEstimadas > 1 ? 's' : ''}
+                                    </Typography>
+                                </>
+                            )}
+                        </Box>
+
+                        {/* Botones minimalistas */}
+                        <Box sx={{
+                            display: 'flex',
+                            gap: 1.5,
+                            mt: 'auto'
+                        }}>
+                            <Button
+                                variant="text"
+                                startIcon={<InfoIcon sx={{ fontSize: 18 }} />}
+                                onClick={handleOpenDialog}
+                                sx={{
+                                    flex: 1,
+                                    borderRadius: '12px',
+                                    py: 1.25,
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    color: theme.palette.text.secondary,
+                                    backgroundColor: 'transparent',
+                                    border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
+                                    '&:hover': {
+                                        backgroundColor: isDarkTheme
+                                            ? 'rgba(255,255,255,0.04)'
+                                            : 'rgba(0,0,0,0.04)',
+                                        borderColor: isDarkTheme
+                                            ? 'rgba(255,255,255,0.2)'
+                                            : 'rgba(0,0,0,0.12)'
+                                    },
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Detalles
+                            </Button>
+
+                            <Button
+                                variant="contained"
+                                startIcon={<CalendarMonthIcon sx={{ fontSize: 18 }} />}
+                                onClick={() => handleAgendarCita(service)}
+                                sx={{
+                                    flex: 1,
+                                    borderRadius: '12px',
+                                    py: 1.25,
+                                    fontWeight: 600,
+                                    fontSize: '0.875rem',
+                                    backgroundColor: theme.palette.text.primary,
+                                    color: theme.palette.background.paper,
+                                    boxShadow: 'none',
+                                    '&:hover': {
+                                        backgroundColor: alpha(theme.palette.text.primary, 0.9),
+                                        boxShadow: `0 4px 16px ${alpha(theme.palette.text.primary, 0.2)}`,
+                                        transform: 'translateY(-1px)'
+                                    },
+                                    transition: 'all 0.2s ease'
+                                }}
+                            >
+                                Agendar
+                            </Button>
+                        </Box>
                     </Box>
-                    
-                    <Box sx={{ p: 0, pt: 0, mt: 'auto', display: 'flex', gap: 1 }}>
-                        <Button
-                            variant="outlined"
-                            startIcon={<InfoIcon />}
-                            onClick={handleOpenDialog}
-                            sx={{
-                                flex: 1,
-                                borderRadius: '50px',
-                                py: 1,
-                                borderColor: categoryColor,
-                                color: categoryColor,
-                                '&:hover': {
-                                    borderColor: categoryColor,
-                                    backgroundColor: alpha(categoryColor, 0.05),
-                                }
-                            }}
-                        >
-                            Detalles
-                        </Button>
 
-                        <Button
-                            variant="contained"
-                            startIcon={<CalendarMonthIcon />}
-                            onClick={() => handleAgendarCita(service)}
+                    {/* Diálogo de detalles */}
+                    <ServicioDetalleDialog
+                        open={dialogOpen}
+                        onClose={handleCloseDialog}
+                        servicioId={service.id}
+                        onAgendarCita={(service) => handleAgendarCita(service)}
+                    />
+                </Paper>
+            </Fade>
+        );
+    };
+
+    // ALTERNATIVA: Diseño tipo lista horizontal (opcional)
+    const ServiceListItem = ({ service, index, handleAgendarCita, isDarkTheme }) => {
+        const theme = useTheme();
+        const [dialogOpen, setDialogOpen] = useState(false);
+        const [isHovered, setIsHovered] = useState(false);
+        const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
+        const formattedPrice = new Intl.NumberFormat('es-MX', {
+            style: 'currency',
+            currency: 'MXN',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(parseFloat(service.price || 0));
+
+        if (isMobile) {
+            // En móvil usar el diseño de card
+            return <ServiceCard service={service} index={index} handleAgendarCita={handleAgendarCita} isDarkTheme={isDarkTheme} />;
+        }
+
+        return (
+            <Fade in timeout={200 + index * 50}>
+                <Paper
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    elevation={0}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        p: 0,
+                        borderRadius: '16px',
+                        backgroundColor: isDarkTheme ? '#1A1A1A' : '#FFFFFF',
+                        border: `1px solid ${isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)'}`,
+                        transition: 'all 0.3s ease',
+                        transform: isHovered ? 'translateX(8px)' : 'translateX(0)',
+                        boxShadow: isHovered
+                            ? isDarkTheme ? '0 8px 32px rgba(0,0,0,0.3)' : '0 4px 20px rgba(0,0,0,0.06)'
+                            : 'none',
+                        overflow: 'hidden',
+                        minHeight: 120,
+                        mb: 2
+                    }}
+                >
+                    {/* Imagen lateral */}
+                    <Box sx={{
+                        width: 120,
+                        height: 120,
+                        position: 'relative',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        backgroundColor: isDarkTheme ? '#262626' : '#F8FAFB'
+                    }}>
+                        <Box
+                            component="img"
+                            src={service.image_url || getPlaceholderImage(service.title)}
+                            alt={service.title}
                             sx={{
-                                flex: 1,
-                                borderRadius: '50px',
-                                py: 1,
-                                background: categoryColor,
-                                '&:hover': {
-                                    background: alpha(categoryColor, 0.9),
-                                    boxShadow: `0 4px 8px ${alpha(categoryColor, 0.4)}`
-                                }
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                transition: 'transform 0.3s ease',
+                                transform: isHovered ? 'scale(1.05)' : 'scale(1)'
                             }}
-                        >
-                            Agendar
-                        </Button>
+                        />
                     </Box>
-                </CardContent>
 
-                <ServicioDetalleDialog
-                    open={dialogOpen}
-                    onClose={handleCloseDialog}
-                    servicioId={service.id}
-                    onAgendarCita={(service) => handleAgendarCita(service)}
-                />
-            </Card>
-        </Fade>
-    );
-};
+                    {/* Contenido */}
+                    <Box sx={{
+                        flex: 1,
+                        p: 3,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between'
+                    }}>
+                        <Box sx={{ flex: 1, mr: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        fontWeight: 600,
+                                        fontSize: '1.1rem',
+                                        color: theme.palette.text.primary
+                                    }}
+                                >
+                                    {service.title}
+                                </Typography>
+                                <Chip
+                                    label={service.category}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                        fontSize: '0.7rem',
+                                        height: 20,
+                                        borderColor: 'transparent',
+                                        backgroundColor: isDarkTheme
+                                            ? 'rgba(255,255,255,0.08)'
+                                            : 'rgba(0,0,0,0.04)',
+                                        color: theme.palette.text.secondary
+                                    }}
+                                />
+                            </Box>
 
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{
+                                    lineHeight: 1.4,
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                    overflow: 'hidden',
+                                    mb: 1
+                                }}
+                            >
+                                {service.description}
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                color="text.secondary"
+                                sx={{ fontSize: '0.8rem' }}
+                            >
+                                {service.duration} {service.citasEstimadas && `• ${service.citasEstimadas} citas`}
+                            </Typography>
+                        </Box>
+
+                        {/* Precio y acciones */}
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-end',
+                            gap: 1.5
+                        }}>
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    fontWeight: 700,
+                                    color: theme.palette.text.primary
+                                }}
+                            >
+                                {formattedPrice}
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Button
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => setDialogOpen(true)}
+                                    sx={{
+                                        borderRadius: '8px',
+                                        minWidth: 'auto',
+                                        px: 2,
+                                        color: theme.palette.text.secondary
+                                    }}
+                                >
+                                    Detalles
+                                </Button>
+                                <Button
+                                    size="small"
+                                    variant="contained"
+                                    onClick={() => handleAgendarCita(service)}
+                                    sx={{
+                                        borderRadius: '8px',
+                                        backgroundColor: theme.palette.text.primary,
+                                        color: theme.palette.background.paper,
+                                        boxShadow: 'none',
+                                        '&:hover': {
+                                            backgroundColor: alpha(theme.palette.text.primary, 0.9),
+                                            boxShadow: 'none'
+                                        }
+                                    }}
+                                >
+                                    Agendar
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Box>
+
+                    <ServicioDetalleDialog
+                        open={dialogOpen}
+                        onClose={() => setDialogOpen(false)}
+                        servicioId={service.id}
+                        onAgendarCita={handleAgendarCita}
+                    />
+                </Paper>
+            </Fade>
+        );
+    };
     // Componente de esqueleto de carga mejorado para el tema oscuro
     const ServicesLoadingSkeleton = () => {
         const theme = useTheme();
@@ -431,9 +722,9 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                 }}
                             >
                                 {/* Imagen de esqueleto */}
-                                <Skeleton 
-                                    variant="rectangular" 
-                                    height={200} 
+                                <Skeleton
+                                    variant="rectangular"
+                                    height={200}
                                     animation="wave"
                                     sx={{
                                         bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)',
@@ -450,38 +741,38 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                 }}>
                                     {/* Título y descripción */}
                                     <Box>
-                                        <Skeleton 
-                                            variant="text" 
-                                            height={28} 
-                                            width="80%" 
+                                        <Skeleton
+                                            variant="text"
+                                            height={28}
+                                            width="80%"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 mb: 1,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Skeleton 
-                                            variant="text" 
+                                        <Skeleton
+                                            variant="text"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 mb: 0.5,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Skeleton 
-                                            variant="text" 
-                                            width="90%" 
+                                        <Skeleton
+                                            variant="text"
+                                            width="90%"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 mb: 0.5,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Skeleton 
-                                            variant="text" 
-                                            width="70%" 
+                                        <Skeleton
+                                            variant="text"
+                                            width="70%"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 mb: 2,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
@@ -490,22 +781,22 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
 
                                     {/* Botones de esqueleto */}
                                     <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-                                        <Skeleton 
-                                            variant="rectangular" 
-                                            height={40} 
-                                            width="50%" 
+                                        <Skeleton
+                                            variant="rectangular"
+                                            height={40}
+                                            width="50%"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 borderRadius: 25,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
                                         />
-                                        <Skeleton 
-                                            variant="rectangular" 
-                                            height={40} 
-                                            width="50%" 
+                                        <Skeleton
+                                            variant="rectangular"
+                                            height={40}
+                                            width="50%"
                                             animation="wave"
-                                            sx={{ 
+                                            sx={{
                                                 borderRadius: 25,
                                                 bgcolor: isDarkTheme ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'
                                             }}
@@ -650,7 +941,7 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                     ))}
                                 </Box>
                             </Grid>
-                            
+
                             {/* Servicio destacado */}
                             <Grid item xs={12} md={6}>
                                 {highlightedService && (
@@ -662,7 +953,7 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                                 display: 'flex',
                                                 flexDirection: 'column',
                                                 position: 'relative',
-                                                boxShadow: isDarkTheme 
+                                                boxShadow: isDarkTheme
                                                     ? '0 10px 30px rgba(0,0,0,0.3)'
                                                     : '0 10px 30px rgba(0,0,0,0.1)',
                                                 borderRadius: '16px',
@@ -678,7 +969,7 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                                     }
                                                 },
                                                 transition: 'transform 0.5s ease',
-                                                backgroundColor: isDarkTheme 
+                                                backgroundColor: isDarkTheme
                                                     ? alpha('#1E1E1E', 0.95)
                                                     : theme.palette.background.paper,
                                                 border: isDarkTheme ? `1px solid ${alpha(theme.palette.divider, 0.1)}` : 'none'
@@ -792,7 +1083,7 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                         textAlign: 'center',
                         mb: 5
                     }}>
-                        <Divider sx={{ 
+                        <Divider sx={{
                             mb: 6,
                             '&::before, &::after': {
                                 borderColor: isDarkTheme ? alpha(theme.palette.divider, 0.3) : alpha(theme.palette.divider, 0.5),
@@ -840,8 +1131,8 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                 }}
                             >
                                 <InputBase
-                                    sx={{ 
-                                        ml: 2, 
+                                    sx={{
+                                        ml: 2,
                                         flex: 1,
                                         color: theme.palette.text.primary
                                     }}
@@ -896,13 +1187,13 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                         selected={category === selectedCategory}
                                         sx={{
                                             '&.Mui-selected': {
-                                                backgroundColor: isDarkTheme 
-                                                    ? alpha(theme.palette.primary.main, 0.2) 
+                                                backgroundColor: isDarkTheme
+                                                    ? alpha(theme.palette.primary.main, 0.2)
                                                     : alpha(theme.palette.primary.main, 0.1),
                                             },
                                             '&:hover': {
-                                                backgroundColor: isDarkTheme 
-                                                    ? alpha(theme.palette.primary.main, 0.15) 
+                                                backgroundColor: isDarkTheme
+                                                    ? alpha(theme.palette.primary.main, 0.15)
                                                     : alpha(theme.palette.primary.main, 0.05),
                                             }
                                         }}
@@ -975,12 +1266,12 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                     </Grid>
                                 ))}
                             </Grid>
-                            
+
                             {/* Botón para volver arriba - visible después de scroll */}
                             <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
                                 <Button
                                     variant="contained"
-                                    onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
                                     sx={{
                                         borderRadius: '50px',
                                         px: 4,
@@ -988,16 +1279,16 @@ const ServiceCard = ({ service, index, handleAgendarCita, isDarkTheme }) => {
                                         background: isDarkTheme
                                             ? 'linear-gradient(90deg, #4A9FDC, #78C1F5)'
                                             : 'linear-gradient(90deg, #4984B8, #6FA9DB)',
-                                        boxShadow: isDarkTheme 
-                                            ? '0 4px 15px rgba(74, 159, 220, 0.3)' 
+                                        boxShadow: isDarkTheme
+                                            ? '0 4px 15px rgba(74, 159, 220, 0.3)'
                                             : '0 4px 15px rgba(73, 132, 184, 0.3)',
                                         '&:hover': {
                                             background: isDarkTheme
                                                 ? 'linear-gradient(90deg, #78C1F5, #4A9FDC)'
                                                 : 'linear-gradient(90deg, #6FA9DB, #4984B8)',
                                             transform: 'translateY(-2px)',
-                                            boxShadow: isDarkTheme 
-                                                ? '0 6px 20px rgba(74, 159, 220, 0.4)' 
+                                            boxShadow: isDarkTheme
+                                                ? '0 6px 20px rgba(74, 159, 220, 0.4)'
                                                 : '0 6px 20px rgba(73, 132, 184, 0.4)',
                                         }
                                     }}
