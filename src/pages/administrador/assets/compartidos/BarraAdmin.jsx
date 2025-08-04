@@ -51,6 +51,7 @@ import {
   MdAssessment,
   MdDescription,
   MdHistory,
+  MdGroupWork,
   MdNotifications,
   MdRateReview,
   MdSettings,
@@ -103,7 +104,8 @@ const BarraAdmin = ({ onDrawerChange }) => {
         { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
-        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' }
+        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' },
+        { icon: MdGroupWork, text: 'Segmentación de Pacientes', path: '/Administrador/Clostering' }
       ]
     },
     {

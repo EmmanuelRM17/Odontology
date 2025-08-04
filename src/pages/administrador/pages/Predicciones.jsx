@@ -13,23 +13,20 @@ import {
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 
-// Función para obtener el color según el nivel de riesgo
+// Función para obtener el color según el nivel de riesgo BINARIO
 const getRiskColor = (riskLevel, isDarkTheme) => {
     const colors = {
-        muy_alto: isDarkTheme ? '#dc143c' : '#b91c1c',  // Rojo más intenso
-        alto: isDarkTheme ? '#ef4444' : '#dc2626',       // Rojo  
-        medio: isDarkTheme ? '#f59e0b' : '#d97706',      // Amarillo
-        bajo: isDarkTheme ? '#10b981' : '#059669'        // Verde
+        ALTO: isDarkTheme ? '#ef4444' : '#dc2626',       // Rojo para alto riesgo
+        BAJO: isDarkTheme ? '#10b981' : '#059669'        // Verde para bajo riesgo
     };
-    return colors[riskLevel] || colors.bajo;
+    return colors[riskLevel] || colors.BAJO;
 };
-// Función para obtener el icono según el nivel de riesgo
+
+// Función para obtener el icono según el nivel de riesgo BINARIO
 const getRiskIcon = (riskLevel) => {
     switch (riskLevel) {
-        case 'muy_alto': return <ErrorRounded />;        // Icono más crítico
-        case 'alto': return <WarningRounded />;
-        case 'medio': return <InfoOutlined />;
-        case 'bajo': return <CheckCircleOutlined />;
+        case 'ALTO': return <WarningRounded />;
+        case 'BAJO': return <CheckCircleOutlined />;
         default: return <InfoOutlined />;
     }
 };
@@ -49,7 +46,7 @@ const PrediccionesNoShow = () => {
     // Estados para filtros y búsqueda
     const [searchQuery, setSearchQuery] = useState('');
     const [servicioFilter, setServicioFilter] = useState('todos');
-    const [periodoFilter, setPeriodoFilter] = useState('hoy'); // hoy, semana, mes, todos
+    const [periodoFilter, setPeriodoFilter] = useState('hoy');
     const [tabValue, setTabValue] = useState(0);
 
     // Estados para el modal de detalles
@@ -200,30 +197,42 @@ const PrediccionesNoShow = () => {
         }
     };
 
-    // Manejar predicción individual
+    // Manejar predicción individual - CORREGIDO para clasificación binaria
     const handlePredict = async (cita) => {
-        const id = cita.consulta_id;
+        const id = cita.consulta_id || cita.id;
         setLoadingPred(prev => ({ ...prev, [id]: true }));
 
+        // Mapeo COMPLETO con todos los campos necesarios
         const payload = {
-            paciente_id: cita.paciente_id,
-            fecha_solicitud: cita.fecha_solicitud,
+            // IDs
+            cita_id: cita.consulta_id || cita.id,
+            paciente_id: cita.paciente_id, // Puede ser null para no registrados
+
+            // Fechas
             fecha_consulta: cita.fecha_consulta,
-            paciente_fecha_nacimiento: cita.paciente_fecha_nacimiento,
-            paciente_genero: cita.paciente_genero,
-            paciente_alergias: cita.paciente_alergias,
-            paciente_registro_completo: cita.paciente_registro_completo || true,
-            paciente_verificado: cita.paciente_verificado || true,
-            categoria_servicio: cita.categoria_servicio,
-            precio_servicio: cita.precio_servicio,
-            duracion: cita.duracion || 30,
-            estado_pago: cita.estado_pago,
-            tratamiento_pendiente: cita.tratamiento_pendiente || false,
-            total_citas_historicas: cita.total_citas_historicas || 1,
-            total_no_shows_historicas: cita.total_no_shows_historicas || 0,
-            pct_no_show_historico: cita.pct_no_show_historico || 0.0,
-            dias_desde_ultima_cita: cita.dias_desde_ultima_cita || 0
+            fecha_solicitud: cita.fecha_solicitud || cita.fecha_consulta,
+
+            // Datos del paciente usando los campos correctos del debugger
+            paciente_genero: cita.paciente_genero || 'Femenino', // ✅ Campo correcto
+            paciente_fecha_nacimiento: cita.paciente_fecha_nacimiento, // ✅ Campo correcto
+            paciente_alergias: false, // Por defecto false para no registrados
+
+            // Datos adicionales del paciente para historial
+            correo: cita.paciente_correo, // ✅ Campo correcto
+            telefono: cita.paciente_telefono, // ✅ Campo correcto
+            nombre: cita.paciente_nombre, // ✅ Campo correcto
+
+            // Datos del servicio
+            categoria_servicio: cita.categoria_servicio || 'General',
+            precio_servicio: parseFloat(cita.precio_servicio || 600),
+            duracion: parseInt(cita.duracion || 30),
+
+            // Estado y pago
+            estado_pago: cita.estado_pago || 'Pendiente',
+            tratamiento_pendiente: Boolean(cita.tratamiento_pendiente || cita.es_tratamiento),
         };
+
+        console.log(JSON.stringify(payload, null, 2));
 
         try {
             const res = await fetch('https://back-end-4803.onrender.com/api/ml/predict-no-show', {
@@ -232,18 +241,25 @@ const PrediccionesNoShow = () => {
                 body: JSON.stringify(payload)
             });
 
-            if (!res.ok) throw new Error('Error en la predicción');
+            console.log("Status de respuesta:", res.status);
+
+            if (!res.ok) {
+                const errorResponse = await res.json();
+                console.error("Error del servidor:", errorResponse);
+                throw new Error(errorResponse.error || `Error ${res.status}`);
+            }
 
             const json = await res.json();
+            console.log("Respuesta exitosa:", json);
 
             if (json.success && json.prediction) {
                 setResultados(prev => ({ ...prev, [id]: json.prediction }));
 
-                const riskText = json.prediction.risk_level === 'alto' ? 'Alto Riesgo' :
-                    json.prediction.risk_level === 'medio' ? 'Riesgo Medio' : 'Bajo Riesgo';
-                setNotificationMessage(`Predicción completada: ${riskText} (${(json.prediction.probability * 100).toFixed(1)}%)`);
-                setNotificationType(json.prediction.risk_level === 'alto' ? 'warning' :
-                    json.prediction.risk_level === 'medio' ? 'info' : 'success');
+                // ✅ NOTIFICACIÓN SIN PROBABILIDADES - SOLO RESULTADO BINARIO
+                const riskText = json.prediction.will_no_show ? 'NO asistirá' : 'SÍ asistirá';
+
+                setNotificationMessage(`Predicción: ${riskText}`);
+                setNotificationType(json.prediction.will_no_show ? 'warning' : 'success');
                 setOpenNotification(true);
             } else {
                 console.error('Error en respuesta de predicción:', json.error);
@@ -252,8 +268,8 @@ const PrediccionesNoShow = () => {
                 setOpenNotification(true);
             }
         } catch (error) {
-            console.error('Error en predicción:', error);
-            setNotificationMessage('Error de conexión al realizar la predicción');
+            console.error('Error completo en predicción:', error);
+            setNotificationMessage(`Error de conexión: ${error.message}`);
             setNotificationType('error');
             setOpenNotification(true);
         } finally {
@@ -314,7 +330,7 @@ const PrediccionesNoShow = () => {
     // Abrir diálogo de envío de email (solo para alto riesgo)
     const handleOpenEmailDialog = (cita) => {
         const resultado = resultados[cita.consulta_id];
-        if (!resultado || resultado.risk_level !== 'alto') {
+        if (!resultado || !resultado.will_no_show) {
             setNotificationMessage('El envío de recordatorio solo está disponible para citas de alto riesgo');
             setNotificationType('info');
             setOpenNotification(true);
@@ -322,10 +338,17 @@ const PrediccionesNoShow = () => {
         }
 
         setSelectedCita(cita);
-        setEmailMessage(`Estimado/a ${cita.paciente_nombre},\n\nLe recordamos que tiene una cita programada para el ${new Date(cita.fecha_consulta).toLocaleDateString('es-ES')} a las ${new Date(cita.fecha_consulta).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.\n\nDado que detectamos un alto riesgo de inasistencia, le pedimos confirme su asistencia llamando al consultorio.\n\nSaludos cordiales,\nClínica Dental`);
+        // ✅ MENSAJE SIN PROBABILIDADES
+        setEmailMessage(`Estimado/a ${cita.paciente_nombre},
+
+Le recordamos que tiene una cita programada para el ${new Date(cita.fecha_consulta).toLocaleDateString('es-ES')} a las ${new Date(cita.fecha_consulta).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}.
+
+Nuestro sistema ha identificado esta cita como de alto riesgo de inasistencia, por lo que le pedimos confirme su asistencia llamando al consultorio.
+
+Saludos cordiales,
+Clínica Dental`);
         setEmailDialogOpen(true);
     };
-
     // Enviar email de recordatorio
     const handleSendEmail = async () => {
         if (!selectedCita || !emailMessage.trim()) return;
@@ -383,12 +406,12 @@ const PrediccionesNoShow = () => {
         return edad;
     };
 
-    // Renderizar tarjetas de citas en formato agenda
+    // Renderizar tarjetas de citas en formato agenda - CORREGIDO
     const renderCitaCard = (cita, index) => {
         const resultado = resultados[cita.consulta_id];
         const isLoading = loadingPred[cita.consulta_id];
         const tienePrediccion = !!resultado;
-        const esAltoRiesgo = resultado && (resultado.risk_level === 'alto' || resultado.risk_level === 'muy_alto');
+        const esAltoRiesgo = resultado && resultado.will_no_show;
 
         return (
             <Card key={cita.consulta_id} sx={{
@@ -444,7 +467,7 @@ const PrediccionesNoShow = () => {
                             />
                         </Grid>
 
-                        {/* Estado de la predicción */}
+                        {/* Estado de la predicción - CORREGIDO */}
                         <Grid item xs={12} sm={3}>
                             {isLoading ? (
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -454,7 +477,7 @@ const PrediccionesNoShow = () => {
                             ) : resultado ? (
                                 <Chip
                                     icon={getRiskIcon(resultado.risk_level)}
-                                    label={`${resultado.risk_level.charAt(0).toUpperCase() + resultado.risk_level.slice(1)} (${(resultado.probability * 100).toFixed(1)}%)`}
+                                    label={resultado.will_no_show ? 'NO Asistirá' : 'SÍ Asistirá'}
                                     sx={{
                                         backgroundColor: alpha(getRiskColor(resultado.risk_level, isDarkTheme), 0.2),
                                         color: getRiskColor(resultado.risk_level, isDarkTheme),
@@ -683,7 +706,7 @@ const PrediccionesNoShow = () => {
                     </Grid>
                 </Paper>
 
-                {/* Estadísticas rápidas */}
+                {/* Estadísticas rápidas - CORREGIDAS */}
                 <Grid container spacing={2} sx={{ mb: 3 }}>
                     <Grid item xs={12} sm={3}>
                         <Paper sx={{
@@ -718,30 +741,30 @@ const PrediccionesNoShow = () => {
                     <Grid item xs={12} sm={3}>
                         <Paper sx={{
                             p: 2,
-                            backgroundColor: alpha(colors.warning, 0.1),
-                            border: `1px solid ${alpha(colors.warning, 0.3)}`,
+                            backgroundColor: alpha(colors.error, 0.1),
+                            border: `1px solid ${alpha(colors.error, 0.3)}`,
                             borderRadius: '8px'
                         }}>
-                            <Typography variant="h6" sx={{ color: colors.warning, fontWeight: 600 }}>
-                                {Object.values(resultados).filter(r => r.risk_level === 'alto').length}
+                            <Typography variant="h6" sx={{ color: colors.error, fontWeight: 600 }}>
+                                {Object.values(resultados).filter(r => r.will_no_show).length}
                             </Typography>
                             <Typography variant="body2" sx={{ color: colors.text }}>
-                                Alto riesgo
+                                NO asistirán
                             </Typography>
                         </Paper>
                     </Grid>
                     <Grid item xs={12} sm={3}>
                         <Paper sx={{
                             p: 2,
-                            backgroundColor: alpha(colors.error, 0.1),
-                            border: `1px solid ${alpha(colors.error, 0.3)}`,
+                            backgroundColor: alpha(colors.success, 0.1),
+                            border: `1px solid ${alpha(colors.success, 0.3)}`,
                             borderRadius: '8px'
                         }}>
-                            <Typography variant="h6" sx={{ color: colors.error, fontWeight: 600 }}>
-                                {Object.values(resultados).filter(r => r.risk_level === 'alto').length}
+                            <Typography variant="h6" sx={{ color: colors.success, fontWeight: 600 }}>
+                                {Object.values(resultados).filter(r => !r.will_no_show).length}
                             </Typography>
                             <Typography variant="body2" sx={{ color: colors.text }}>
-                                Recordatorios enviados
+                                SÍ asistirán
                             </Typography>
                         </Paper>
                     </Grid>
@@ -769,7 +792,7 @@ const PrediccionesNoShow = () => {
                     )}
                 </Box>
 
-                {/* Modal de detalles con datos reales */}
+                {/* Modal de detalles con datos reales - CORREGIDO */}
                 <Dialog
                     open={detailsOpen}
                     onClose={() => setDetailsOpen(false)}
@@ -895,7 +918,7 @@ const PrediccionesNoShow = () => {
                                             </Paper>
                                         </Grid>
 
-                                        {/* Resultado de la Predicción */}
+                                        {/* Resultado de la Predicción - CORREGIDO para clasificación binaria */}
                                         <Grid item xs={12} md={6}>
                                             <Paper sx={{ p: 3, backgroundColor: colors.cardBackground, borderRadius: '12px' }}>
                                                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: colors.primary }}>
@@ -909,18 +932,17 @@ const PrediccionesNoShow = () => {
                                                         color: getRiskColor(resultados[selectedCita.consulta_id].risk_level, isDarkTheme),
                                                         fontWeight: 600
                                                     }}>
-                                                        Riesgo {resultados[selectedCita.consulta_id].risk_level.charAt(0).toUpperCase() +
-                                                            resultados[selectedCita.consulta_id].risk_level.slice(1)}
+                                                        {resultados[selectedCita.consulta_id].will_no_show ? 'NO Asistirá' : 'SÍ Asistirá'}
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    <strong>Probabilidad de no asistir:</strong> {(resultados[selectedCita.consulta_id].probability * 100).toFixed(1)}%
+                                                    <strong>Predicción del modelo:</strong> {resultados[selectedCita.consulta_id].will_no_show ? 'Inasistencia' : 'Asistencia'}
                                                 </Typography>
                                                 <Typography variant="body1" sx={{ mb: 1 }}>
-                                                    <strong>Confianza del modelo:</strong> 87.3%
+                                                    <strong>Clasificación binaria:</strong> {resultados[selectedCita.consulta_id].prediction_binary}
                                                 </Typography>
                                                 <Typography variant="body2" sx={{ color: colors.secondaryText }}>
-                                                    Análisis basado en {citaDetalles?.variables_analizadas || 18} variables predictivas
+                                                    Análisis basado en 16 variables predictivas del modelo RandomForest
                                                 </Typography>
                                             </Paper>
                                         </Grid>
@@ -1048,15 +1070,15 @@ const PrediccionesNoShow = () => {
                                             </Paper>
                                         </Grid>
 
-                                        {/* Recomendaciones basadas en el riesgo */}
+                                        {/* Recomendaciones basadas en el riesgo - CORREGIDO */}
                                         <Grid item xs={12}>
                                             <Paper sx={{ p: 3, backgroundColor: colors.cardBackground, borderRadius: '12px' }}>
                                                 <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, color: colors.primary }}>
                                                     Recomendaciones del Sistema
                                                 </Typography>
-                                                {resultados[selectedCita.consulta_id].risk_level === 'alto' && (
+                                                {resultados[selectedCita.consulta_id].will_no_show ? (
                                                     <Alert severity="error" sx={{ mb: 2 }}>
-                                                        <AlertTitle>🚨 Alto Riesgo de Inasistencia</AlertTitle>
+                                                        <AlertTitle>🚨 Alto Riesgo - Paciente NO Asistirá</AlertTitle>
                                                         <ul style={{ margin: 0, paddingLeft: '20px' }}>
                                                             <li>Contactar al paciente 48-72 horas antes de la cita</li>
                                                             <li>Confirmar asistencia vía llamada telefónica</li>
@@ -1065,24 +1087,13 @@ const PrediccionesNoShow = () => {
                                                             <li>Enviar recordatorio automático por email</li>
                                                         </ul>
                                                     </Alert>
-                                                )}
-                                                {resultados[selectedCita.consulta_id].risk_level === 'medio' && (
-                                                    <Alert severity="warning" sx={{ mb: 2 }}>
-                                                        <AlertTitle>⚠️ Riesgo Moderado</AlertTitle>
-                                                        <ul style={{ margin: 0, paddingLeft: '20px' }}>
-                                                            <li>Enviar recordatorio 24 horas antes</li>
-                                                            <li>Confirmar vía WhatsApp o SMS</li>
-                                                            <li>Tener backup de pacientes en lista de espera</li>
-                                                        </ul>
-                                                    </Alert>
-                                                )}
-                                                {resultados[selectedCita.consulta_id].risk_level === 'bajo' && (
+                                                ) : (
                                                     <Alert severity="success" sx={{ mb: 2 }}>
-                                                        <AlertTitle>✅ Bajo Riesgo</AlertTitle>
+                                                        <AlertTitle>✅ Bajo Riesgo - Paciente SÍ Asistirá</AlertTitle>
                                                         <ul style={{ margin: 0, paddingLeft: '20px' }}>
                                                             <li>Recordatorio estándar es suficiente</li>
                                                             <li>Alta probabilidad de asistencia</li>
-                                                            <li>Paciente confiable según historial</li>
+                                                            <li>Paciente confiable según el modelo</li>
                                                         </ul>
                                                     </Alert>
                                                 )}
@@ -1099,7 +1110,7 @@ const PrediccionesNoShow = () => {
                             variant="outlined"
                             onClick={() => handleOpenEmailDialog(selectedCita)}
                             startIcon={<Email />}
-                            disabled={!resultados[selectedCita?.consulta_id] || resultados[selectedCita?.consulta_id]?.risk_level !== 'alto'}
+                            disabled={!resultados[selectedCita?.consulta_id] || !resultados[selectedCita?.consulta_id]?.will_no_show}
                             sx={{
                                 color: colors.primary,
                                 borderColor: colors.primary,
@@ -1108,7 +1119,7 @@ const PrediccionesNoShow = () => {
                                 }
                             }}
                         >
-                            {resultados[selectedCita?.consulta_id]?.risk_level === 'alto' ?
+                            {resultados[selectedCita?.consulta_id]?.will_no_show ?
                                 'Enviar Recordatorio Urgente' :
                                 'Recordatorio (Solo Alto Riesgo)'
                             }
@@ -1126,7 +1137,7 @@ const PrediccionesNoShow = () => {
                     </DialogActions>
                 </Dialog>
 
-                {/* Modal para envío de email */}
+                {/* Modal para envío de email - CORREGIDO */}
                 <Dialog
                     open={emailDialogOpen}
                     onClose={() => setEmailDialogOpen(false)}
@@ -1162,7 +1173,7 @@ const PrediccionesNoShow = () => {
                         {selectedCita && (
                             <Box sx={{ py: 2 }}>
                                 <Alert severity="warning" sx={{ mb: 2 }}>
-                                    Esta cita tiene <strong>alto riesgo de inasistencia</strong>. Se recomienda contacto directo.
+                                    Esta cita tiene <strong>alto riesgo de inasistencia</strong> según el modelo de clasificación. Se recomienda contacto directo.
                                 </Alert>
 
                                 <Typography variant="body1" sx={{ mb: 2, color: colors.text }}>
@@ -1175,7 +1186,7 @@ const PrediccionesNoShow = () => {
                                     <strong>Cita:</strong> {formatFecha(selectedCita.fecha_consulta)}
                                 </Typography>
                                 <Typography variant="body2" sx={{ mb: 3, color: colors.secondaryText }}>
-                                    <strong>Probabilidad de inasistencia:</strong> {(resultados[selectedCita.consulta_id].probability * 100).toFixed(1)}%
+                                    <strong>Predicción:</strong> Probablemente NO asistirá
                                 </Typography>
 
                                 <TextField
