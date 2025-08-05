@@ -125,8 +125,32 @@ function AppContent({ loading, forceLoading, isOnline }) {
         <Route path="/Administrador/imagenes" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Imágenes" }]} /><ImagenesForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/finanzas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión Financiera" }]} /><FinanzasForm /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/Estadisticas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Estadísticas Operativas" }]} /><Graficas /></LayoutAdmin></PrivateRoute>} />
-        <Route path="/Administrador/predicciones" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Predicciones " }]} />< Predicciones/></LayoutAdmin></PrivateRoute>} />
-        <Route path="/Administrador/Clostering" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "clostering" }]} />< Clostering/></LayoutAdmin></PrivateRoute>} />
+        <Route
+          path="/Administrador/predicciones"
+          element={
+            <LayoutAdmin>
+              <Breadcrumbs paths={[
+                { name: "Inicio", path: "/Administrador/principal" },
+                { name: "Predicciones " }
+              ]} />
+              <Predicciones />
+            </LayoutAdmin>
+          }
+        />
+
+        <Route
+          path="/Administrador/Clostering"
+          element={
+            <LayoutAdmin>
+              <Breadcrumbs paths={[
+                { name: "Inicio", path: "/Administrador/principal" },
+                { name: "clostering" }
+              ]} />
+              <Clostering />
+            </LayoutAdmin>
+          }
+        />
+
         <Route path="/Administrador/CalendarioCita" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Calendario de Citas" }]} /><CalendarioCitas /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/Reseñas" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Moderación de Reseñas" }]} /><ModeracionServicios /></LayoutAdmin></PrivateRoute>} />
         <Route path="/Administrador/ayuda" element={<PrivateRoute><LayoutAdmin><Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Ayuda" }]} /><AyudaAdmin /></LayoutAdmin></PrivateRoute>} />

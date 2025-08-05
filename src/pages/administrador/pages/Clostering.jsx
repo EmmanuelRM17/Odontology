@@ -23,7 +23,6 @@ import {
   Tabs,
   Tab,
   IconButton,
-  Tooltip,
   Fade,
   Skeleton,
   ButtonGroup,
@@ -31,10 +30,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemAvatar,
   LinearProgress,
   Divider
 } from '@mui/material';
@@ -47,7 +42,6 @@ import {
   Psychology,
   Refresh,
   Download,
-  Visibility,
   PieChart as PieIcon,
   BarChart as BarIcon,
   ShowChart,
@@ -57,12 +51,13 @@ import {
   AccessTime,
   Close,
   Phone,
-  Email,
   Cake,
   LocalHospital,
   CheckCircle,
-  Schedule,
-  Analytics
+  Analytics,
+  ThumbUp,
+  Cancel,
+  HelpOutline
 } from '@mui/icons-material';
 import { 
   PieChart, 
@@ -81,16 +76,16 @@ import {
 } from 'recharts';
 import axios from 'axios';
 
-// Configuración de colores azules profesionales
+// Configuración de colores para los SEGMENTOS CORRECTOS
 const SEGMENT_COLORS = {
-  'VIP': '#1565C0',
-  'REGULARES': '#1976D2',
-  'PROBLEMÁTICOS': '#D32F2F',
-  'NO_CLASIFICADO': '#757575',
-  'ERROR': '#455A64'
+  'Cumplido': '#2E7D32',      // Verde - Buenos pacientes
+  'Problemático': '#D32F2F',   // Rojo - Pacientes problemáticos  
+  'Irregular': '#F57C00',      // Naranja - Comportamiento inconsistente
+  'NO_CLASIFICADO': '#757575', // Gris
+  'ERROR': '#455A64'           // Gris oscuro
 };
 
-const Clostering = () => {
+const Clustering = () => {
   const [tabValue, setTabValue] = useState(0);
   const [chartType, setChartType] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -98,28 +93,28 @@ const Clostering = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState('');
 
-  // Estados para filtros
+  // Estados para filtros ANTES de clasificación
   const [filterOptions, setFilterOptions] = useState(null);
-  const [filters, setFilters] = useState({
+  const [preFilters, setPreFilters] = useState({
     edad_min: 18,
     edad_max: 80,
     ubicaciones: [],
-    servicios: [],
-    gasto_min: 0,
-    gasto_max: 100000,
+    total_citas_min: 1,
     search: '',
     limit: 25
   });
 
-  // Estados para resultados y carga progresiva
-  const [patients, setPatients] = useState([]);
+  // Estados para filtros DESPUÉS de clasificación
+  const [postFilters, setPostFilters] = useState({
+    segmentos: [], // Para filtrar por segmento después de clasificar
+    showAll: true
+  });
+
+  // Estados para datos
+  const [allPatients, setAllPatients] = useState([]); // Todos los pacientes clasificados
+  const [filteredPatients, setFilteredPatients] = useState([]); // Pacientes filtrados para mostrar
   const [statistics, setStatistics] = useState(null);
   const [filtersExpanded, setFiltersExpanded] = useState(true);
-  
-  // Estados para carga progresiva
-  const [loadingProgress, setLoadingProgress] = useState([]);
-  const [completedCount, setCompletedCount] = useState(0);
-  const [totalToProcess, setTotalToProcess] = useState(0);
 
   // Estados para modal de detalles
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -133,6 +128,15 @@ const Clostering = () => {
   }, []);
 
   /**
+   * Efecto para filtrar pacientes después de clasificación
+   */
+  useEffect(() => {
+    if (allPatients.length > 0) {
+      filterClassifiedPatients();
+    }
+  }, [allPatients, postFilters]);
+
+  /**
    * Carga opciones disponibles para filtros
    */
   const loadFilterOptions = async () => {
@@ -141,12 +145,10 @@ const Clostering = () => {
       const response = await axios.get('https://back-end-4803.onrender.com/api/ml/filter-options');
       if (response.data.success) {
         setFilterOptions(response.data.options);
-        setFilters(prev => ({
+        setPreFilters(prev => ({
           ...prev,
           edad_min: Math.max(18, response.data.options.rangos.edad.min),
-          edad_max: Math.min(80, response.data.options.rangos.edad.max),
-          gasto_min: 0,
-          gasto_max: Math.ceil(response.data.options.rangos.gastos.max * 0.8)
+          edad_max: Math.min(80, response.data.options.rangos.edad.max)
         }));
       }
     } catch (err) {
@@ -158,92 +160,80 @@ const Clostering = () => {
   };
 
   /**
-   * Aplica filtros y obtiene pacientes segmentados con carga progresiva
+   * Aplica pre-filtros y clasifica pacientes
    */
-  const applyFilters = async () => {
+  const classifyPatients = async () => {
     // Validaciones
-    if (filters.limit < 5) {
+    if (preFilters.limit < 5) {
       setError('El límite mínimo es de 5 pacientes para obtener resultados significativos');
       return;
     }
 
-    if (filters.edad_min >= filters.edad_max) {
+    if (preFilters.edad_min >= preFilters.edad_max) {
       setError('El rango de edad mínima debe ser menor que la máxima');
       return;
     }
 
     setLoading(true);
     setError(null);
-    setPatients([]);
+    setAllPatients([]);
+    setFilteredPatients([]);
     setStatistics(null);
-    setLoadingProgress([]);
-    setCompletedCount(0);
-    setTotalToProcess(0);
 
     try {
-      const response = await axios.post('https://back-end-4803.onrender.com/api/ml/patients-segmentation', filters);
+      const response = await axios.post('https://back-end-4803.onrender.com/api/ml/patients-segmentation', preFilters);
       
       if (response.data.success) {
         const pacientes = response.data.data.pacientes;
         
         if (pacientes.length === 0) {
           setError('No se encontraron pacientes con los filtros aplicados. Intenta ampliar los criterios.');
-          setLoading(false);
           return;
         }
 
-        setTotalToProcess(pacientes.length);
-        
-        // Simular carga progresiva mostrando pacientes uno a uno
-        for (let i = 0; i < pacientes.length; i++) {
-          const patient = pacientes[i];
-          
-          // Agregar a la lista de "procesando"
-          setLoadingProgress(prev => [...prev, {
-            id: patient.paciente_id,
-            nombre: patient.nombre_completo,
-            status: 'processing'
-          }]);
-
-          // Simular tiempo de procesamiento
-          await new Promise(resolve => setTimeout(resolve, 200 + Math.random() * 300));
-          
-          // Marcar como completado y agregar a pacientes
-          setLoadingProgress(prev => prev.map(p => 
-            p.id === patient.paciente_id 
-              ? { ...p, status: 'completed' }
-              : p
-          ));
-          
-          setPatients(prev => [...prev, patient]);
-          setCompletedCount(i + 1);
-        }
-
+        setAllPatients(pacientes);
         setStatistics(response.data.data.estadisticas);
-        setSuccess(`${pacientes.length} pacientes segmentados exitosamente`);
+        setSuccess(`${pacientes.length} pacientes clasificados exitosamente`);
         setFiltersExpanded(false);
         
-        // Limpiar lista de progreso después de completar
-        setTimeout(() => {
-          setLoadingProgress([]);
-        }, 2000);
+        // Reset post-filters
+        setPostFilters({
+          segmentos: [],
+          showAll: true
+        });
         
       } else {
-        setError(response.data.error || 'Error en la segmentación');
+        setError(response.data.error || 'Error en la clasificación');
       }
     } catch (err) {
       const errorMsg = err.response?.data?.error || err.message || 'Error de conexión';
-      setError(`Error al segmentar pacientes: ${errorMsg}`);
+      setError(`Error al clasificar pacientes: ${errorMsg}`);
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Maneja cambios en filtros
+   * Filtra pacientes ya clasificados según filtros post-clasificación
    */
-  const handleFilterChange = (field, value) => {
-    setFilters(prev => {
+  const filterClassifiedPatients = () => {
+    let filtered = [...allPatients];
+
+    // Filtrar por segmentos seleccionados
+    if (postFilters.segmentos.length > 0) {
+      filtered = filtered.filter(patient => 
+        postFilters.segmentos.includes(patient.segmento)
+      );
+    }
+
+    setFilteredPatients(filtered);
+  };
+
+  /**
+   * Maneja cambios en pre-filtros
+   */
+  const handlePreFilterChange = (field, value) => {
+    setPreFilters(prev => {
       const newFilters = { ...prev, [field]: value };
       
       if (field === 'edad_min' && value >= prev.edad_max) {
@@ -258,17 +248,26 @@ const Clostering = () => {
   };
 
   /**
-   * Resetea filtros
+   * Maneja cambios en post-filtros
    */
-  const resetFilters = () => {
+  const handlePostFilterChange = (field, value) => {
+    setPostFilters(prev => ({
+      ...prev,
+      [field]: value,
+      showAll: field === 'segmentos' ? value.length === 0 : prev.showAll
+    }));
+  };
+
+  /**
+   * Resetea pre-filtros
+   */
+  const resetPreFilters = () => {
     if (filterOptions) {
-      setFilters({
+      setPreFilters({
         edad_min: Math.max(18, filterOptions.rangos.edad.min),
         edad_max: Math.min(65, filterOptions.rangos.edad.max),
         ubicaciones: [],
-        servicios: [],
-        gasto_min: 0,
-        gasto_max: Math.ceil(filterOptions.rangos.gastos.promedio * 3),
+        total_citas_min: 1,
         search: '',
         limit: 25
       });
@@ -276,28 +275,43 @@ const Clostering = () => {
   };
 
   /**
-   * Aplica filtros rápidos
+   * Aplica filtros rápidos de segmentación - CORREGIDOS
    */
-  const applyQuickFilter = (filterType) => {
+  const applySegmentFilter = (segmentos) => {
+    setPostFilters({
+      segmentos: Array.isArray(segmentos) ? segmentos : [segmentos],
+      showAll: segmentos.length === 0
+    });
+  };
+
+  /**
+   * Aplica filtros rápidos pre-clasificación
+   */
+  const applyQuickPreFilter = (filterType) => {
     if (!filterOptions) return;
 
     const quickFilters = {
-      'clientes-vip': {
-        limit: 15
-      },
       'nuevos-pacientes': {
         edad_min: 18,
         edad_max: 35,
+        total_citas_min: 1,
         limit: 20
       },
       'pacientes-frecuentes': {
+        total_citas_min: 5,
         limit: 30
+      },
+      'todos-pacientes': {
+        edad_min: Math.max(18, filterOptions.rangos.edad.min),
+        edad_max: Math.min(80, filterOptions.rangos.edad.max),
+        total_citas_min: 1,
+        limit: 50
       }
     };
 
     if (quickFilters[filterType]) {
-      setFilters(prev => ({ ...prev, ...quickFilters[filterType] }));
-      setTimeout(() => applyFilters(), 100);
+      setPreFilters(prev => ({ ...prev, ...quickFilters[filterType] }));
+      setTimeout(() => classifyPatients(), 100);
     }
   };
 
@@ -314,9 +328,9 @@ const Clostering = () => {
    */
   const renderSegmentChip = (segmento, size = 'small') => {
     const color = SEGMENT_COLORS[segmento] || '#757575';
-    const icon = segmento === 'VIP' ? <TrendingUp /> : 
-                 segmento === 'REGULARES' ? <Psychology /> : 
-                 segmento === 'PROBLEMÁTICOS' ? <Warning /> : <Person />;
+    const icon = segmento === 'Cumplido' ? <ThumbUp /> : 
+                 segmento === 'Irregular' ? <HelpOutline /> : 
+                 segmento === 'Problemático' ? <Warning /> : <Person />;
 
     return (
       <Chip
@@ -343,11 +357,11 @@ const Clostering = () => {
    * Exporta resultados a CSV
    */
   const exportToCSV = () => {
-    if (patients.length === 0) return;
+    if (filteredPatients.length === 0) return;
 
     const csvContent = [
-      ['ID', 'Nombre Completo', 'Edad', 'Género', 'Ubicación', 'Segmento', 'Cluster', 'Confianza', 'Total Citas'],
-      ...patients.map(p => [
+      ['ID', 'Nombre Completo', 'Edad', 'Género', 'Ubicación', 'Segmento', 'Cluster', 'Confianza', 'Total Citas', 'Tasa NoShow', 'Tasa Completion'],
+      ...filteredPatients.map(p => [
         p.paciente_id,
         `"${p.nombre_completo}"`,
         p.edad,
@@ -356,7 +370,9 @@ const Clostering = () => {
         p.segmento,
         p.cluster ?? 'N/A',
         p.confidence ? `${(p.confidence * 100).toFixed(1)}%` : 'N/A',
-        p.total_citas || 0
+        p.total_citas || 0,
+        p.tasa_noshow ? `${(p.tasa_noshow * 100).toFixed(1)}%` : 'N/A',
+        p.tasa_completion ? `${(p.tasa_completion * 100).toFixed(1)}%` : 'N/A'
       ])
     ].map(row => row.join(',')).join('\n');
 
@@ -401,9 +417,7 @@ const Clostering = () => {
   };
 
   const getScatterData = () => {
-    if (!patients || patients.length === 0) return [];
-    
-    return patients.map(patient => ({
+    return filteredPatients.map(patient => ({
       edad: patient.edad || 0,
       total_citas: patient.total_citas || 0,
       segmento: patient.segmento,
@@ -531,11 +545,11 @@ const Clostering = () => {
         <Box display="flex" alignItems="center" gap={2} mb={2}>
           <Analytics sx={{ fontSize: 48 }} />
           <Typography variant="h3" component="h1" fontWeight="bold">
-            Segmentación Inteligente
+            Segmentación por Comportamiento
           </Typography>
         </Box>
         <Typography variant="h6" sx={{ opacity: 0.9 }}>
-          Clasifica y analiza tus pacientes automáticamente usando machine learning
+          Clasifica pacientes automáticamente basado en tasa de asistencia, completación y pagos
         </Typography>
       </Paper>
 
@@ -568,65 +582,34 @@ const Clostering = () => {
         </Box>
       </Fade>
 
-      {/* Progreso de carga */}
-      {loading && loadingProgress.length > 0 && (
-        <Card sx={{ mb: 3, borderRadius: '20px' }}>
-          <CardContent>
-            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
-              <Typography variant="h6">
-                Procesando pacientes... ({completedCount}/{totalToProcess})
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                {Math.round((completedCount / totalToProcess) * 100)}%
-              </Typography>
-            </Box>
-            <LinearProgress 
-              variant="determinate" 
-              value={(completedCount / totalToProcess) * 100}
-              sx={{ mb: 2, borderRadius: '10px', height: '8px' }}
-            />
-            <List dense sx={{ maxHeight: '200px', overflow: 'auto' }}>
-              {loadingProgress.map((item) => (
-                <ListItem key={item.id}>
-                  <ListItemAvatar>
-                    {item.status === 'completed' ? (
-                      <CheckCircle color="success" />
-                    ) : (
-                      <CircularProgress size={24} />
-                    )}
-                  </ListItemAvatar>
-                  <ListItemText 
-                    primary={item.nombre}
-                    secondary={item.status === 'completed' ? 'Completado' : 'Procesando...'}
-                  />
-                </ListItem>
-              ))}
-            </List>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Filtros rápidos */}
+      {/* Filtros rápidos pre-clasificación */}
       <Card sx={{ mb: 3, borderRadius: '20px' }}>
         <CardContent>
           <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <FilterList color="primary" />
-            Filtros Rápidos
+            Filtros Rápidos de Clasificación
           </Typography>
           <ButtonGroup variant="outlined" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
             <Button 
               startIcon={<Person />}
-              onClick={() => applyQuickFilter('nuevos-pacientes')}
+              onClick={() => applyQuickPreFilter('nuevos-pacientes')}
               sx={{ borderRadius: '20px' }}
             >
               Nuevos Pacientes
             </Button>
             <Button 
               startIcon={<Group />}
-              onClick={() => applyQuickFilter('pacientes-frecuentes')}
+              onClick={() => applyQuickPreFilter('pacientes-frecuentes')}
               sx={{ borderRadius: '20px' }}
             >
-              Frecuentes
+              Pacientes Frecuentes
+            </Button>
+            <Button 
+              startIcon={<Analytics />}
+              onClick={() => applyQuickPreFilter('todos-pacientes')}
+              sx={{ borderRadius: '20px' }}
+            >
+              Todos los Pacientes
             </Button>
           </ButtonGroup>
         </CardContent>
@@ -641,10 +624,10 @@ const Clostering = () => {
         <AccordionSummary expandIcon={<ExpandMore />}>
           <Box display="flex" alignItems="center" gap={2} width="100%">
             <FilterList color="primary" />
-            <Typography variant="h6">Filtros Avanzados</Typography>
-            {patients.length > 0 && (
+            <Typography variant="h6">Filtros de Clasificación</Typography>
+            {allPatients.length > 0 && (
               <Chip 
-                label={`${patients.length} resultados`} 
+                label={`${allPatients.length} clasificados`} 
                 size="small" 
                 color="primary"
                 sx={{ borderRadius: '16px' }}
@@ -668,8 +651,8 @@ const Clostering = () => {
                 <TextField
                   fullWidth
                   label="Buscar por nombre, email o teléfono"
-                  value={filters.search}
-                  onChange={(e) => handleFilterChange('search', e.target.value)}
+                  value={preFilters.search}
+                  onChange={(e) => handlePreFilterChange('search', e.target.value)}
                   InputProps={{
                     startAdornment: <Search sx={{ mr: 1, color: 'text.secondary' }} />
                   }}
@@ -686,8 +669,8 @@ const Clostering = () => {
                 <FormControl fullWidth>
                   <InputLabel>Límite de resultados</InputLabel>
                   <Select
-                    value={filters.limit}
-                    onChange={(e) => handleFilterChange('limit', e.target.value)}
+                    value={preFilters.limit}
+                    onChange={(e) => handlePreFilterChange('limit', e.target.value)}
                     label="Límite de resultados"
                     sx={{ borderRadius: '16px' }}
                   >
@@ -704,13 +687,13 @@ const Clostering = () => {
                 <Grid item xs={12} md={6}>
                   <Typography gutterBottom sx={{ fontWeight: 'bold' }}>
                     <AccessTime sx={{ mr: 1, verticalAlign: 'middle' }} />
-                    Rango de Edad: {filters.edad_min} - {filters.edad_max} años
+                    Rango de Edad: {preFilters.edad_min} - {preFilters.edad_max} años
                   </Typography>
                   <Slider
-                    value={[filters.edad_min, filters.edad_max]}
+                    value={[preFilters.edad_min, preFilters.edad_max]}
                     onChange={(e, newValue) => {
-                      handleFilterChange('edad_min', newValue[0]);
-                      handleFilterChange('edad_max', newValue[1]);
+                      handlePreFilterChange('edad_min', newValue[0]);
+                      handlePreFilterChange('edad_max', newValue[1]);
                     }}
                     valueLabelDisplay="auto"
                     min={filterOptions.rangos.edad.min}
@@ -723,9 +706,30 @@ const Clostering = () => {
                 </Grid>
               )}
 
+              {/* Filtro de citas mínimas */}
+              <Grid item xs={12} md={6}>
+                <Typography gutterBottom sx={{ fontWeight: 'bold' }}>
+                  <LocalHospital sx={{ mr: 1, verticalAlign: 'middle' }} />
+                  Mínimo de citas: {preFilters.total_citas_min}
+                </Typography>
+                <Slider
+                  value={preFilters.total_citas_min}
+                  onChange={(e, newValue) => handlePreFilterChange('total_citas_min', newValue)}
+                  valueLabelDisplay="auto"
+                  min={1}
+                  max={20}
+                  marks={[
+                    { value: 1, label: '1' },
+                    { value: 5, label: '5' },
+                    { value: 10, label: '10' },
+                    { value: 20, label: '20+' }
+                  ]}
+                />
+              </Grid>
+
               {/* Filtro de ubicaciones */}
               {filterOptions && filterOptions.ubicaciones.length > 0 && (
-                <Grid item xs={12} md={6}>
+                <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>
                       <LocationOn sx={{ mr: 1, verticalAlign: 'middle' }} />
@@ -733,8 +737,8 @@ const Clostering = () => {
                     </InputLabel>
                     <Select
                       multiple
-                      value={filters.ubicaciones}
-                      onChange={(e) => handleFilterChange('ubicaciones', e.target.value)}
+                      value={preFilters.ubicaciones}
+                      onChange={(e) => handlePreFilterChange('ubicaciones', e.target.value)}
                       label="Ubicaciones"
                       sx={{ borderRadius: '16px' }}
                       renderValue={(selected) => (
@@ -766,21 +770,21 @@ const Clostering = () => {
                   <Button
                     variant="contained"
                     size="large"
-                    onClick={applyFilters}
+                    onClick={classifyPatients}
                     disabled={loading}
-                    startIcon={loading ? <CircularProgress size={20} /> : <Search />}
+                    startIcon={loading ? <CircularProgress size={20} /> : <Analytics />}
                     sx={{ 
                       borderRadius: '24px',
                       minWidth: '180px',
                       height: '48px'
                     }}
                   >
-                    {loading ? 'Segmentando...' : 'Aplicar Filtros'}
+                    {loading ? 'Clasificando...' : 'Clasificar Pacientes'}
                   </Button>
                   <Button
                     variant="outlined"
                     size="large"
-                    onClick={resetFilters}
+                    onClick={resetPreFilters}
                     startIcon={<Refresh />}
                     sx={{ 
                       borderRadius: '24px',
@@ -789,20 +793,6 @@ const Clostering = () => {
                   >
                     Limpiar
                   </Button>
-                  {patients.length > 0 && (
-                    <Button
-                      variant="outlined"
-                      size="large"
-                      onClick={exportToCSV}
-                      startIcon={<Download />}
-                      sx={{ 
-                        borderRadius: '24px',
-                        height: '48px'
-                      }}
-                    >
-                      Exportar CSV
-                    </Button>
-                  )}
                 </Box>
               </Grid>
             </Grid>
@@ -810,8 +800,98 @@ const Clostering = () => {
         </AccordionDetails>
       </Accordion>
 
+      {/* Progreso de clasificación */}
+      {loading && (
+        <Card sx={{ mb: 3, borderRadius: '20px' }}>
+          <CardContent>
+            <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+              <Typography variant="h6">
+                Clasificando pacientes con machine learning...
+              </Typography>
+              <CircularProgress size={24} />
+            </Box>
+            <LinearProgress 
+              sx={{ borderRadius: '10px', height: '8px' }}
+            />
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Analizando comportamiento de asistencia, completación y pagos
+            </Typography>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Filtros post-clasificación */}
+      {allPatients.length > 0 && (
+        <Card sx={{ mb: 3, borderRadius: '20px' }}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <FilterList color="primary" />
+              Filtrar por Segmento
+            </Typography>
+            <ButtonGroup variant="outlined" sx={{ mb: 2, flexWrap: 'wrap', gap: 1 }}>
+              <Button 
+                variant={postFilters.showAll ? 'contained' : 'outlined'}
+                startIcon={<Group />}
+                onClick={() => applySegmentFilter([])}
+                sx={{ borderRadius: '20px' }}
+              >
+                Todos ({allPatients.length})
+              </Button>
+              <Button 
+                variant={postFilters.segmentos.includes('Cumplido') ? 'contained' : 'outlined'}
+                startIcon={<ThumbUp />}
+                onClick={() => applySegmentFilter(['Cumplido'])}
+                sx={{ 
+                  borderRadius: '20px',
+                  ...(postFilters.segmentos.includes('Cumplido') && {
+                    bgcolor: SEGMENT_COLORS.Cumplido,
+                    '&:hover': { bgcolor: SEGMENT_COLORS.Cumplido }
+                  })
+                }}
+              >
+                Cumplidos ({statistics?.segmentos?.Cumplido || 0})
+              </Button>
+              <Button 
+                variant={postFilters.segmentos.includes('Irregular') ? 'contained' : 'outlined'}
+                startIcon={<HelpOutline />}
+                onClick={() => applySegmentFilter(['Irregular'])}
+                sx={{ 
+                  borderRadius: '20px',
+                  ...(postFilters.segmentos.includes('Irregular') && {
+                    bgcolor: SEGMENT_COLORS.Irregular,
+                    '&:hover': { bgcolor: SEGMENT_COLORS.Irregular }
+                  })
+                }}
+              >
+                Irregulares ({statistics?.segmentos?.Irregular || 0})
+              </Button>
+              <Button 
+                variant={postFilters.segmentos.includes('Problemático') ? 'contained' : 'outlined'}
+                startIcon={<Warning />}
+                onClick={() => applySegmentFilter(['Problemático'])}
+                sx={{ 
+                  borderRadius: '20px',
+                  ...(postFilters.segmentos.includes('Problemático') && {
+                    bgcolor: SEGMENT_COLORS.Problemático,
+                    '&:hover': { bgcolor: SEGMENT_COLORS.Problemático }
+                  })
+                }}
+              >
+                Problemáticos ({statistics?.segmentos?.Problemático || 0})
+              </Button>
+            </ButtonGroup>
+            
+            {filteredPatients.length !== allPatients.length && (
+              <Typography variant="body2" color="text.secondary">
+                Mostrando {filteredPatients.length} de {allPatients.length} pacientes clasificados
+              </Typography>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Resultados */}
-      {patients.length > 0 && (
+      {filteredPatients.length > 0 && (
         <Fade in={true}>
           <Box sx={{ mt: 3 }}>
             {/* Tabs */}
@@ -829,7 +909,7 @@ const Clostering = () => {
                 }}
               >
                 <Tab 
-                  label="Vista de Tarjetas" 
+                  label={`Vista de Tarjetas (${filteredPatients.length})`}
                   icon={<Group />}
                   iconPosition="start"
                 />
@@ -847,43 +927,43 @@ const Clostering = () => {
                 {/* Estadísticas rápidas */}
                 {statistics && (
                   <Grid container spacing={2} sx={{ mb: 4 }}>
-                    <Grid item xs={6} md={2.4}>
+                    <Grid item xs={6} md={3}>
                       <Paper 
                         elevation={2}
                         sx={{ 
                           p: 3, 
                           textAlign: 'center',
                           borderRadius: '20px',
-                          background: 'linear-gradient(135deg, #1565C0 0%, #1976D2 100%)',
+                          background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)',
                           color: 'white'
                         }}
                       >
-                        <TrendingUp sx={{ fontSize: 32, mb: 1 }} />
+                        <ThumbUp sx={{ fontSize: 32, mb: 1 }} />
                         <Typography variant="h4" fontWeight="bold">
-                          {statistics.segmentos.VIP || 0}
+                          {statistics.segmentos.Cumplido || 0}
                         </Typography>
-                        <Typography variant="caption">VIP</Typography>
+                        <Typography variant="caption">Cumplidos</Typography>
                       </Paper>
                     </Grid>
-                    <Grid item xs={6} md={2.4}>
+                    <Grid item xs={6} md={3}>
                       <Paper 
                         elevation={2}
                         sx={{ 
                           p: 3, 
                           textAlign: 'center',
                           borderRadius: '20px',
-                          background: 'linear-gradient(135deg, #1976D2 0%, #42A5F5 100%)',
+                          background: 'linear-gradient(135deg, #F57C00 0%, #FF9800 100%)',
                           color: 'white'
                         }}
                       >
-                        <Psychology sx={{ fontSize: 32, mb: 1 }} />
+                        <HelpOutline sx={{ fontSize: 32, mb: 1 }} />
                         <Typography variant="h4" fontWeight="bold">
-                          {statistics.segmentos.REGULARES || 0}
+                          {statistics.segmentos.Irregular || 0}
                         </Typography>
-                        <Typography variant="caption">Regulares</Typography>
+                        <Typography variant="caption">Irregulares</Typography>
                       </Paper>
                     </Grid>
-                    <Grid item xs={6} md={2.4}>
+                    <Grid item xs={6} md={3}>
                       <Paper 
                         elevation={2}
                         sx={{ 
@@ -896,37 +976,40 @@ const Clostering = () => {
                       >
                         <Warning sx={{ fontSize: 32, mb: 1 }} />
                         <Typography variant="h4" fontWeight="bold">
-                          {statistics.segmentos.PROBLEMÁTICOS || 0}
+                          {statistics.segmentos.Problemático || 0}
                         </Typography>
                         <Typography variant="caption">Problemáticos</Typography>
                       </Paper>
                     </Grid>
-                    <Grid item xs={6} md={2.4}>
+                    <Grid item xs={6} md={3}>
                       <Paper elevation={2} sx={{ p: 3, textAlign: 'center', borderRadius: '20px' }}>
                         <Group sx={{ fontSize: 32, mb: 1, color: '#1976d2' }} />
                         <Typography variant="h4" fontWeight="bold" color="primary">
                           {statistics.total_pacientes}
                         </Typography>
-                        <Typography variant="caption">Total Pacientes</Typography>
-                      </Paper>
-                    </Grid>
-                    <Grid item xs={6} md={2.4}>
-                      <Paper elevation={2} sx={{ p: 3, textAlign: 'center', borderRadius: '20px' }}>
-                        <AccessTime sx={{ fontSize: 32, mb: 1, color: '#1976D2' }} />
-                        <Typography variant="h4" fontWeight="bold" sx={{ color: '#1976D2' }}>
-                          {statistics.edad_promedio?.toFixed(0) || 0}
-                        </Typography>
-                        <Typography variant="caption">Edad Promedio</Typography>
+                        <Typography variant="caption">Total Clasificados</Typography>
                       </Paper>
                     </Grid>
                   </Grid>
                 )}
 
+                {/* Botón de exportar */}
+                <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={exportToCSV}
+                    startIcon={<Download />}
+                    sx={{ borderRadius: '20px' }}
+                  >
+                    Exportar CSV
+                  </Button>
+                </Box>
+
                 {/* Tarjetas de pacientes */}
                 <Grid container spacing={3}>
-                  {patients.map((patient, index) => (
+                  {filteredPatients.map((patient, index) => (
                     <Grid item xs={12} sm={6} lg={4} key={patient.paciente_id}>
-                      <Fade in={true} timeout={300 + index * 100}>
+                      <Fade in={true} timeout={300 + index * 50}>
                         <Card 
                           elevation={3}
                           sx={{ 
@@ -988,20 +1071,20 @@ const Clostering = () => {
                               </Grid>
                               <Grid item xs={6}>
                                 <Typography variant="body2" color="text.secondary" gutterBottom>
+                                  <CheckCircle sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
+                                  Tasa Asistencia
+                                </Typography>
+                                <Typography variant="body2" fontWeight="bold">
+                                  {patient.tasa_completion ? `${(patient.tasa_completion * 100).toFixed(1)}%` : 'N/A'}
+                                </Typography>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Typography variant="body2" color="text.secondary" gutterBottom>
                                   <Psychology sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
                                   Confianza
                                 </Typography>
                                 <Typography variant="body2" fontWeight="bold">
                                   {patient.confidence ? `${(patient.confidence * 100).toFixed(1)}%` : 'N/A'}
-                                </Typography>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Typography variant="body2" color="text.secondary" gutterBottom>
-                                  <Visibility sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'middle' }} />
-                                  Ver detalles
-                                </Typography>
-                                <Typography variant="body2" fontWeight="bold" color="primary">
-                                  Click aquí
                                 </Typography>
                               </Grid>
                             </Grid>
@@ -1056,10 +1139,10 @@ const Clostering = () => {
                 </Box>
 
                 {/* Contenedor del gráfico */}
-                <Card elevation={2} sx={{ borderRadius: '20px', overflow: 'hidden' }}>
+                <Card elevation={2} sx={{ borderRadius: '20px', overflow: 'hidden', mb: 3 }}>
                   <CardContent>
                     <Typography variant="h6" gutterBottom>
-                      {chartType === 0 && 'Distribución por Segmentos'}
+                      {chartType === 0 && 'Distribución por Tipo de Comportamiento'}
                       {chartType === 1 && 'Pacientes por Ubicación'}
                       {chartType === 2 && 'Edad vs Total de Citas por Segmento'}
                     </Typography>
@@ -1068,11 +1151,11 @@ const Clostering = () => {
                 </Card>
 
                 {/* Estadísticas detalladas */}
-                <Card elevation={2} sx={{ mt: 3, borderRadius: '20px' }}>
+                <Card elevation={2} sx={{ borderRadius: '20px' }}>
                   <CardContent>
                     <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <Analytics />
-                      Resumen Estadístico
+                      Resumen de Comportamiento
                     </Typography>
                     <Grid container spacing={3}>
                       <Grid item xs={6} md={3}>
@@ -1081,37 +1164,37 @@ const Clostering = () => {
                             {statistics.total_pacientes}
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Total de Pacientes
+                            Total Clasificados
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={6} md={3}>
                         <Box textAlign="center">
-                          <Typography variant="h3" color="primary" fontWeight="bold">
-                            {statistics.edad_promedio?.toFixed(0) || 0}
+                          <Typography variant="h3" color="success.main" fontWeight="bold">
+                            {((statistics.segmentos.Cumplido || 0) / statistics.total_pacientes * 100).toFixed(0)}%
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Edad Promedio
+                            Comportamiento Bueno
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={6} md={3}>
                         <Box textAlign="center">
-                          <Typography variant="h3" color="primary" fontWeight="bold">
-                            {Object.keys(statistics.ubicaciones || {}).length}
+                          <Typography variant="h3" color="warning.main" fontWeight="bold">
+                            {((statistics.segmentos.Irregular || 0) / statistics.total_pacientes * 100).toFixed(0)}%
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Ubicaciones Diferentes
+                            Comportamiento Irregular
                           </Typography>
                         </Box>
                       </Grid>
                       <Grid item xs={6} md={3}>
                         <Box textAlign="center">
-                          <Typography variant="h3" color="primary" fontWeight="bold">
-                            {((statistics.segmentos.VIP || 0) / statistics.total_pacientes * 100).toFixed(0)}%
+                          <Typography variant="h3" color="error.main" fontWeight="bold">
+                            {((statistics.segmentos.Problemático || 0) / statistics.total_pacientes * 100).toFixed(0)}%
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            Porcentaje VIP
+                            Requieren Atención
                           </Typography>
                         </Box>
                       </Grid>
@@ -1125,7 +1208,7 @@ const Clostering = () => {
       )}
 
       {/* Estado vacío */}
-      {!loading && patients.length === 0 && loadingProgress.length === 0 && (
+      {!loading && allPatients.length === 0 && (
         <Fade in={true}>
           <Paper 
             elevation={0}
@@ -1138,10 +1221,10 @@ const Clostering = () => {
           >
             <Psychology sx={{ fontSize: 80, color: '#1976D2', mb: 3 }} />
             <Typography variant="h4" color="primary" gutterBottom fontWeight="bold">
-              Comienza a segmentar
+              Comienza a clasificar pacientes
             </Typography>
             <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
-              Aplica filtros para encontrar y clasificar automáticamente tus pacientes
+              Aplica filtros para analizar automáticamente el comportamiento de tus pacientes
             </Typography>
             <Button
               variant="contained"
@@ -1241,11 +1324,11 @@ const Clostering = () => {
                 <Divider />
               </Grid>
 
-              {/* Información clínica */}
+              {/* Métricas de comportamiento */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LocalHospital />
-                  Información Clínica
+                  <Analytics />
+                  Métricas de Comportamiento
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={6} md={3}>
@@ -1258,23 +1341,27 @@ const Clostering = () => {
                   <Grid item xs={6} md={3}>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <CheckCircle color="action" />
-                      <Typography variant="body2" color="text.secondary">Completadas</Typography>
+                      <Typography variant="body2" color="text.secondary">Tasa Completación</Typography>
                     </Box>
-                    <Typography variant="h6">{selectedPatient.citas_completadas || 0}</Typography>
+                    <Typography variant="h6">
+                      {selectedPatient.tasa_completion ? `${(selectedPatient.tasa_completion * 100).toFixed(1)}%` : 'N/A'}
+                    </Typography>
                   </Grid>
                   <Grid item xs={6} md={3}>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <Warning color="action" />
-                      <Typography variant="body2" color="text.secondary">Canceladas</Typography>
+                      <Typography variant="body2" color="text.secondary">Tasa No-Show</Typography>
                     </Box>
-                    <Typography variant="h6">{selectedPatient.citas_canceladas || 0}</Typography>
+                    <Typography variant="h6">
+                      {selectedPatient.tasa_noshow ? `${(selectedPatient.tasa_noshow * 100).toFixed(1)}%` : 'N/A'}
+                    </Typography>
                   </Grid>
                   <Grid item xs={6} md={3}>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Schedule color="action" />
-                      <Typography variant="body2" color="text.secondary">Pendientes</Typography>
+                      <Cancel color="action" />
+                      <Typography variant="body2" color="text.secondary">Citas Canceladas</Typography>
                     </Box>
-                    <Typography variant="h6">{selectedPatient.citas_pendientes_pago || 0}</Typography>
+                    <Typography variant="h6">{selectedPatient.citas_canceladas || 0}</Typography>
                   </Grid>
                 </Grid>
               </Grid>
@@ -1283,21 +1370,28 @@ const Clostering = () => {
                 <Divider />
               </Grid>
 
-              {/* Información de segmentación */}
+              {/* Información de clasificación */}
               <Grid item xs={12}>
                 <Typography variant="h6" gutterBottom color="primary" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Analytics />
-                  Análisis de Segmentación
+                  <Psychology />
+                  Clasificación Automática
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={6} md={4}>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Psychology color="action" />
+                      <Group color="action" />
+                      <Typography variant="body2" color="text.secondary">Segmento</Typography>
+                    </Box>
+                    {renderSegmentChip(selectedPatient.segmento, 'medium')}
+                  </Grid>
+                  <Grid item xs={6} md={4}>
+                    <Box display="flex" alignItems="center" gap={1} mb={1}>
+                      <Analytics color="action" />
                       <Typography variant="body2" color="text.secondary">Cluster</Typography>
                     </Box>
                     <Typography variant="h6">{selectedPatient.cluster ?? 'N/A'}</Typography>
                   </Grid>
-                  <Grid item xs={6} md={4}>
+                  <Grid item xs={12} md={4}>
                     <Box display="flex" alignItems="center" gap={1} mb={1}>
                       <TrendingUp color="action" />
                       <Typography variant="body2" color="text.secondary">Confianza</Typography>
@@ -1306,34 +1400,27 @@ const Clostering = () => {
                       {selectedPatient.confidence ? `${(selectedPatient.confidence * 100).toFixed(1)}%` : 'N/A'}
                     </Typography>
                   </Grid>
-                  <Grid item xs={12} md={4}>
-                    <Box display="flex" alignItems="center" gap={1} mb={1}>
-                      <Group color="action" />
-                      <Typography variant="body2" color="text.secondary">Segmento</Typography>
-                    </Box>
-                    {renderSegmentChip(selectedPatient.segmento, 'medium')}
-                  </Grid>
                 </Grid>
               </Grid>
 
-              {/* Información adicional */}
-              {selectedPatient.alergias && (
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Alergias
-                  </Typography>
-                  <Typography variant="body1">{selectedPatient.alergias}</Typography>
-                </Grid>
-              )}
-
-              {selectedPatient.condiciones_medicas && (
-                <Grid item xs={12}>
-                  <Typography variant="h6" gutterBottom color="primary">
-                    Condiciones Médicas
-                  </Typography>
-                  <Typography variant="body1">{selectedPatient.condiciones_medicas}</Typography>
-                </Grid>
-              )}
+              {/* Interpretación del comportamiento */}
+              <Grid item xs={12}>
+                <Card sx={{ mt: 2, borderRadius: '16px', bgcolor: '#f8f9fa' }}>
+                  <CardContent>
+                    <Typography variant="h6" gutterBottom color="primary">
+                      Interpretación del Comportamiento
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedPatient.segmento === 'Cumplido' && 
+                        'Este paciente muestra un comportamiento excelente: asiste puntualmente a sus citas, completa sus tratamientos y mantiene sus pagos al día.'}
+                      {selectedPatient.segmento === 'Irregular' && 
+                        'Este paciente presenta un comportamiento inconsistente: puede tener buenas rachas alternadas con períodos problemáticos. Requiere seguimiento personalizado.'}
+                      {selectedPatient.segmento === 'Problemático' && 
+                        'Este paciente requiere atención especial: tiene tendencia a no asistir a las citas, cancelar con frecuencia o problemas con pagos. Se recomienda confirmación previa y seguimiento cercano.'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
           )}
         </DialogContent>
@@ -1361,4 +1448,4 @@ const Clostering = () => {
   );
 };
 
-export default Clostering;
+export default Clustering;
