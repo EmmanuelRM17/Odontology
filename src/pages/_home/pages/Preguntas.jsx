@@ -16,7 +16,7 @@ import {
   Chip,
   Paper,
   CircularProgress,
-  alpha, 
+  alpha,
   MenuItem,
   InputAdornment
 } from "@mui/material";
@@ -673,7 +673,7 @@ const FAQ = () => {
                 <li>Saliva (mantenlo en tu mejilla)</li>
               </ul>
             </li>
-            <li>Acude al dentista INMEDIATAMENTE (idealmente en los primeros 30 minutos)</li>
+            <li>Acude al dentista INMEDIAMENTE (idealmente en los primeros 30 minutos)</li>
           </ol>
           <p>El tiempo es crucial - cuanto más rápido recibas atención, mayores posibilidades de salvar el diente. Este es un caso de emergencia dental.</p>
         </>
@@ -802,20 +802,12 @@ const FAQ = () => {
     setLoadingFaqs(true);
 
     try {
-      // Simulamos la carga de preguntas
       await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Usamos las preguntas estáticas
       setFaqs(allFaqs);
-
-      // Seleccionar 6 preguntas aleatorias para mostrar inicialmente
       const shuffledFaqs = [...allFaqs].sort(() => 0.5 - Math.random());
       setFilteredFaqs(shuffledFaqs.slice(0, 6));
-
-      // Extraemos categorías únicas (solo las que existen en las preguntas)
       const uniqueCategories = ['Todas', ...new Set(allFaqs.map(faq => faq.categoria))].sort();
       setCategories(uniqueCategories);
-
     } catch (error) {
       console.error("Error al cargar preguntas:", error);
       showNotification("No se pudieron cargar las preguntas frecuentes", "error");
@@ -826,45 +818,31 @@ const FAQ = () => {
     }
   }, []);
 
-
-
   // Función para obtener nuevas preguntas aleatorias
   const getRandomFaqs = () => {
     let pool = activeCategory !== "Todas" 
       ? faqs.filter(faq => faq.categoria === activeCategory)
       : [...faqs];
-      
     const randomFaqs = pool.sort(() => 0.5 - Math.random()).slice(0, 6);
     setFilteredFaqs(randomFaqs);
-    
-    // Mostrar notificación de actualización
     showNotification("Se han cargado nuevas preguntas aleatorias", "info", 1500);
   };
 
   // Filtrar preguntas por búsqueda y categoría
   useEffect(() => {
     if (faqs.length === 0 || searchQuery === undefined) return;
-    
-    // Si hay búsqueda, filtrar por búsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       let result = faqs.filter(
         faq => faq.question.toLowerCase().includes(query)
       );
-      
-      // Filtrar por categoría también si no es "Todas"
       if (activeCategory !== "Todas") {
         result = result.filter(faq => faq.categoria === activeCategory);
       }
-      
       setFilteredFaqs(result);
-    } 
-    // Si no hay búsqueda pero hay categoría
-    else if (activeCategory !== "Todas") {
-      const categoryFaqs = faqs.filter(faq => faq.categoria === activeCategory);
-      setFilteredFaqs(categoryFaqs);
+    } else if (activeCategory !== "Todas") {
+      setFilteredFaqs(faqs.filter(faq => faq.categoria === activeCategory));
     }
-    // Si no hay búsqueda y categoría es "Todas", mantenemos las preguntas aleatorias iniciales
   }, [faqs, searchQuery, activeCategory]);
 
   // Cargar preguntas al montar el componente
@@ -910,7 +888,6 @@ const FAQ = () => {
         showNotification("Por favor ingrese un correo electrónico válido", "warning");
         return;
       }
-
       const response = await fetch(
         "https://back-end-4803.onrender.com/api/preguntas/verificar-correo",
         {
@@ -919,24 +896,19 @@ const FAQ = () => {
           body: JSON.stringify({ email: formData.email }),
         }
       );
-
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`);
       }
-
       const data = await response.json();
-
       setFormData(prev => ({
         ...prev,
         name: data.exists ? `${data.name} ${data.apellido_paterno}` : "",
         isRegistered: data.exists,
         paciente_id: data.exists ? data.paciente_id : null,
       }));
-
       if (data.exists) {
         showNotification("¿Qué duda tiene mi paciente?", "success");
       }
-
     } catch (error) {
       showNotification("Error al verificar el correo electrónico", "error");
     }
@@ -967,14 +939,9 @@ const FAQ = () => {
       if (!validateForm()) {
         return;
       }
-
-      // Simular envío
       await new Promise(resolve => setTimeout(resolve, 1000));
-
       showNotification("Su pregunta ha sido enviada. Responderemos a la brevedad posible.", "success", 5000);
       setOpenModal(false);
-
-      // Resetear formulario
       setFormData({
         email: "",
         name: "",
@@ -997,26 +964,20 @@ const FAQ = () => {
 
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
-    
-    // Si hay búsqueda, aplicar el filtro de categoría sobre los resultados de búsqueda
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       let searchResults = faqs.filter(
         faq => faq.question.toLowerCase().includes(query)
       );
-      
       if (category !== "Todas") {
         setFilteredFaqs(searchResults.filter(faq => faq.categoria === category));
       } else {
         setFilteredFaqs(searchResults);
       }
-    } 
-    // Si no hay búsqueda, mostrar todas las preguntas de esa categoría
-    else {
+    } else {
       if (category !== "Todas") {
         setFilteredFaqs(faqs.filter(faq => faq.categoria === category));
       }
-      // Si volvemos a "Todas", mantener las mismas preguntas aleatorias iniciales
     }
   };
 
@@ -1398,7 +1359,6 @@ const FAQ = () => {
         gap: 2,
         mb: 3
       }}>
-        {/* Search bar - Ocupa 60% del espacio en escritorio */}
         <Box sx={{
           flex: isMobile ? 1 : '0.6',
           width: isMobile ? '100%' : '60%'
@@ -1429,8 +1389,6 @@ const FAQ = () => {
             sx={styles.searchField}
           />
         </Box>
-
-        {/* Categories select - Ocupa 40% del espacio en escritorio */}
         <Box sx={{
           flex: isMobile ? 1 : '0.4',
           width: isMobile ? '100%' : '40%'
@@ -1503,7 +1461,6 @@ const FAQ = () => {
         overflow: 'hidden'
       }}
     >
-      {/* Decorative background icons */}
       <Box sx={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden', pointerEvents: 'none' }}>
         <LiveHelpIcon sx={{
           ...styles.decorativeIcon,
@@ -1534,22 +1491,14 @@ const FAQ = () => {
           transform: 'rotate(10deg)'
         }} />
       </Box>
-
-      {/* Header Section con buscador y categorías juntos */}
       <motion.div variants={itemVariants} style={{ width: '100%', maxWidth: '800px' }}>
         <Box sx={styles.header}>
           <Typography variant="h3" sx={styles.title}>
             Preguntas Frecuentes
           </Typography>
-
           <SearchAndCategories />
-
         </Box>
       </motion.div>
-
-      {/* Eliminamos el botón de "Mostrar otras preguntas" */}
-
-      {/* FAQs Section */}
       <Box sx={styles.faqContainer}>
         {loadingFaqs ? (
           <SkeletonFAQ />
@@ -1668,8 +1617,6 @@ const FAQ = () => {
           </motion.div>
         )}
       </Box>
-
-      {/* Ask Question Button */}
       {filteredFaqs.length > 0 && (
         <motion.div
           variants={itemVariants}
@@ -1687,8 +1634,6 @@ const FAQ = () => {
           </Button>
         </motion.div>
       )}
-
-      {/* Question Form Modal */}
       <Dialog
         open={openModal}
         onClose={() => setOpenModal(false)}
@@ -1718,7 +1663,6 @@ const FAQ = () => {
                   <CloseIcon />
                 </IconButton>
               </Box>
-
               <DialogContent sx={styles.modalContent}>
                 <Box component="form">
                   <TextField
@@ -1737,7 +1681,6 @@ const FAQ = () => {
                     }}
                     sx={styles.textField}
                   />
-
                   <TextField
                     name="name"
                     label="Nombre"
@@ -1753,7 +1696,6 @@ const FAQ = () => {
                     }}
                     sx={styles.textField}
                   />
-
                   <TextField
                     name="question"
                     label="Tu pregunta"
@@ -1765,7 +1707,6 @@ const FAQ = () => {
                     multiline
                     rows={4}
                   />
-
                   <Box sx={styles.captchaContainer}>
                     <CustomRecaptcha
                       onCaptchaChange={handleCaptchaChange}
@@ -1774,7 +1715,6 @@ const FAQ = () => {
                   </Box>
                 </Box>
               </DialogContent>
-
               <DialogActions sx={styles.dialogActions}>
                 <Button
                   onClick={() => setOpenModal(false)}
@@ -1815,8 +1755,6 @@ const FAQ = () => {
           )}
         </AnimatePresence>
       </Dialog>
-
-      {/* Notification Component */}
       <Notificaciones
         open={notification.open}
         message={notification.message}
