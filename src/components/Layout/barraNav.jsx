@@ -15,20 +15,18 @@ import {
   Skeleton,
   ListItemIcon,
   Divider,
-  Popover,
   MenuItem,
   Tooltip,
   Fade,
-  Collapse
+  Collapse,
+  Menu,
 } from '@mui/material';
 import {
   FaSignInAlt,
   FaCalendarAlt,
   FaHome,
   FaInfoCircle,
-  FaMapMarkerAlt,
   FaPhoneAlt,
-  FaClock,
   FaQuestionCircle,
   FaClipboardList
 } from 'react-icons/fa';
@@ -52,12 +50,25 @@ const BarraNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Estados para menús - optimizados para evitar re-renders
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState(false);
 
-  const handleMenuOpen = (event) => setMenuAnchorEl(event.currentTarget);
-  const handleMenuClose = () => setMenuAnchorEl(null);
-  const toggleMobileSubmenu = () => setMobileSubmenuOpen(!mobileSubmenuOpen);
+  // Memoizar handlers para evitar re-creación
+  const handleMenuOpen = useCallback((event) => {
+    setMenuAnchorEl(event.currentTarget);
+  }, []);
+
+  const handleMenuClose = useCallback(() => {
+    setMenuAnchorEl(null);
+  }, []);
+
+  const toggleMobileSubmenu = useCallback(() => {
+    setMobileSubmenuOpen(prev => !prev);
+  }, []);
+
+  // Estabilizar el estado del menú
+  const isMenuOpen = Boolean(menuAnchorEl);
 
   const fetchTitleAndLogo = useCallback(async (retries = 3) => {
     try {
@@ -89,15 +100,113 @@ const BarraNav = () => {
     fetchTitleAndLogo();
   }, [fetchTitleAndLogo]);
 
+  // Cerrar menús al cambiar de ruta - optimizado
   useEffect(() => {
     setMenuAnchorEl(null);
     setMobileSubmenuOpen(false);
-  }, [location]);
+  }, [location.pathname]); // Solo escuchar pathname
 
   const toggleDrawer = useCallback((open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) return;
     setDrawerOpen(open);
   }, []);
+
+  // Memoizar el menú explorar para desktop - CLAVE para evitar desmontaje
+  const explorarMenu = useMemo(() => (
+    <Menu
+      id="explorar-menu"
+      anchorEl={menuAnchorEl}
+      open={isMenuOpen}
+      onClose={handleMenuClose}
+      TransitionComponent={Fade}
+      transitionDuration={250}
+      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+      PaperProps={{
+        sx: {
+          borderRadius: '12px',
+          minWidth: '220px',
+          backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+          border: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+          paddingY: 1,
+          overflow: 'visible',
+          zIndex: 1300,
+          '&:before': {
+            content: '""',
+            display: 'block',
+            position: 'absolute',
+            top: -5,
+            left: 8,
+            transform: 'translateX(-50%) rotate(45deg)',
+            width: 10,
+            height: 10,
+            backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+            borderLeft: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+            borderTop: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+            zIndex: 0
+          }
+        }
+      }}
+    >
+      <MenuItem
+        onClick={() => { handleMenuClose(); navigate('/servicios'); }}
+        sx={{
+          py: 1.5,
+          px: 2.5,
+          borderRadius: '8px',
+          mx: 1,
+          my: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
+        }}
+      >
+        <FaClipboardList size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
+          Servicios
+        </Typography>
+      </MenuItem>
+      <MenuItem
+        onClick={() => { handleMenuClose(); navigate('/FAQ'); }}
+        sx={{
+          py: 1.5,
+          px: 2.5,
+          borderRadius: '8px',
+          mx: 1,
+          my: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
+        }}
+      >
+        <FaQuestionCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
+          Preguntas Frecuentes
+        </Typography>
+      </MenuItem>
+      <MenuItem
+        onClick={() => { handleMenuClose(); navigate('/about'); }}
+        sx={{
+          py: 1.5,
+          px: 2.5,
+          borderRadius: '8px',
+          mx: 1,
+          my: 0.5,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1.5,
+          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
+        }}
+      >
+        <FaInfoCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
+          Acerca de
+        </Typography>
+      </MenuItem>
+    </Menu>
+  ), [menuAnchorEl, isMenuOpen, handleMenuClose, navigate, isDarkTheme]);
 
   const drawerList = useMemo(() => (
     <Box
@@ -232,7 +341,7 @@ const BarraNav = () => {
                 aria-controls="explorar-menu"
                 aria-haspopup="true"
                 onClick={handleMenuOpen}
-                endIcon={menuAnchorEl ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                endIcon={isMenuOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
@@ -244,99 +353,7 @@ const BarraNav = () => {
               >
                 Explorar
               </Button>
-              <Popover
-                id="explorar-menu"
-                anchorEl={menuAnchorEl}
-                open={Boolean(menuAnchorEl)}
-                onClose={handleMenuClose}
-                TransitionComponent={Fade}
-                transitionDuration={250}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-                PaperProps={{
-                  sx: {
-                    mt: 1,
-                    borderRadius: '12px',
-                    minWidth: '220px',
-                    backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
-                    border: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-                    paddingY: 1,
-                    overflow: 'visible',
-                    zIndex: 2000,
-                    '&:before': {
-                      content: '""',
-                      display: 'block',
-                      position: 'absolute',
-                      top: -5,
-                      left: 8,
-                      transform: 'translateX(-50%) rotate(45deg)',
-                      width: 10,
-                      height: 10,
-                      backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
-                      borderLeft: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-                      borderTop: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-                      zIndex: 0
-                    }
-                  }
-                }}
-              >
-                <MenuItem
-                  onClick={() => { handleMenuClose(); navigate('/servicios'); }}
-                  sx={{
-                    py: 1.5,
-                    px: 2.5,
-                    borderRadius: '8px',
-                    mx: 1,
-                    my: 0.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-                  }}
-                >
-                  <FaClipboardList size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-                  <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-                    Servicios
-                  </Typography>
-                </MenuItem>
-                <MenuItem
-                  onClick={() => { handleMenuClose(); navigate('/FAQ'); }}
-                  sx={{
-                    py: 1.5,
-                    px: 2.5,
-                    borderRadius: '8px',
-                    mx: 1,
-                    my: 0.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-                  }}
-                >
-                  <FaQuestionCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-                  <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-                    Preguntas Frecuentes
-                  </Typography>
-                </MenuItem>
-                <MenuItem
-                  onClick={() => { handleMenuClose(); navigate('/about'); }}
-                  sx={{
-                    py: 1.5,
-                    px: 2.5,
-                    borderRadius: '8px',
-                    mx: 1,
-                    my: 0.5,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 1.5,
-                    '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-                  }}
-                >
-                  <FaInfoCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-                  <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-                    Acerca de
-                  </Typography>
-                </MenuItem>
-              </Popover>
+              {explorarMenu}
             </Box>
             <Link to="/Contact" style={{ textDecoration: 'none', color: 'inherit' }}>
               <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem', position: 'relative', padding: '4px 0', '&:hover': { color: '#0066cc' }, '&:hover:after': { width: '100%', opacity: 1 }, '&:after': { content: '""', position: 'absolute', bottom: 0, left: 0, width: '0%', height: '2px', backgroundColor: '#0066cc', transition: 'width 0.3s ease, opacity 0.3s ease', opacity: 0 } }}>

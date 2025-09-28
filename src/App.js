@@ -79,7 +79,6 @@ function AppContent({ forceLoading, isOnline }) {
   return (
     <>
       <ScrollToTop />
-      <Suspense fallback={<div aria-live="polite">Loading...</div>}>
         <Routes>
           {/* Rutas públicas */}
           <Route
@@ -634,7 +633,6 @@ function AppContent({ forceLoading, isOnline }) {
           <Route path="/error" element={<ErrorPage />} />
           <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
         </Routes>
-      </Suspense>
       <ServicioDetalleRouteHandler />
     </>
   );
