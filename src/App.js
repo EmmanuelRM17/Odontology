@@ -6,6 +6,7 @@ import PrivateRoute from "./components/Tools/PrivateRoute";
 import ErrorPage from "./components/Tools/ErrorPage";
 import Breadcrumbs from "./pages/_home/tools/Breadcrumbs";
 import ScrollToTop from "./components/Tools/ScrollToTop";
+import LoadingScreen from "./components/Tools/LoadingScreen.jsx";
 
 // Componentes públicos
 const LayoutConEncabezado = lazy(() => import("./components/Layout/LayoutConEncabezado"));
@@ -737,10 +738,17 @@ function App() {
     );
   }
 
-  return (
+
+  if (forceLoading) {
+    return <LoadingScreen tituloPagina={tituloPagina} />;
+  }
+
+ return (
     <ThemeProviderComponent>
       <Router>
-        <AppContent forceLoading={forceLoading} isOnline={isOnline} />
+        <Suspense fallback={<LoadingScreen tituloPagina={tituloPagina} />}>
+          <AppContent forceLoading={forceLoading} isOnline={isOnline} />
+        </Suspense>
       </Router>
     </ThemeProviderComponent>
   );
