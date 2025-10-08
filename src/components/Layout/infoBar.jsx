@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
-  Skeleton,
   Tooltip
 } from '@mui/material';
 import { 
@@ -71,46 +70,36 @@ const InfoBar = () => {
           : "0 4px 20px rgba(30,64,175,0.3)",
         position: "relative",
         overflow: "hidden",
+        filter: loading ? 'blur(3px)' : 'blur(0)',
+        transition: 'filter 0.3s ease',
       }}
     >
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaMapMarkerAlt style={{ color: isDarkTheme ? "#22d3ee" : "#67e8f9" }} size={16} />
-        {loading ? (
-          <Skeleton variant="text" width={150} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
-        ) : error ? (
-          <Typography sx={{ fontFamily: '"Montserrat", sans-serif', fontSize: { xs: "0.75rem", sm: "0.875rem" }, color: "#fca5a5" }}>
-            Error al cargar dirección
+        <Tooltip title={infoData?.direccion || ""} arrow placement="bottom">
+          <Typography
+            sx={{
+              fontFamily: '"Montserrat", sans-serif',
+              fontSize: { xs: "0.75rem", sm: "0.875rem" },
+              letterSpacing: "0.3px",
+              fontWeight: 500,
+              '&:hover': { color: isDarkTheme ? "#67e8f9" : "#a7f3d0", transition: "color 0.2s ease" }
+            }}
+          >
+            {infoData?.direccionCorta || "Cargando..."}
           </Typography>
-        ) : (
-          <Tooltip title={infoData?.direccion || ""} arrow placement="bottom">
-            <Typography
-              sx={{
-                fontFamily: '"Montserrat", sans-serif',
-                fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                letterSpacing: "0.3px",
-                fontWeight: 500,
-                '&:hover': { color: isDarkTheme ? "#67e8f9" : "#a7f3d0", transition: "color 0.2s ease" }
-              }}
-            >
-              {infoData?.direccionCorta || "Cargando..."}
-            </Typography>
-          </Tooltip>
-        )}
+        </Tooltip>
       </Box>
+
       <Box sx={{ display: { xs: "none", sm: "block" }, mx: 2, opacity: 0.4, color: isDarkTheme ? "#94a3b8" : "#e2e8f0" }}>
         |
       </Box>
+
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaClock style={{ color: isDarkTheme ? "#a78bfa" : "#c4b5fd" }} size={14} />
-        {loading ? (
-          <Skeleton variant="text" width={120} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
-        ) : error ? (
-          <Typography sx={{ fontFamily: '"Montserrat", sans-serif', fontSize: { xs: "0.75rem", sm: "0.875rem" }, color: "#fca5a5" }}>
-            Error al cargar horario
-          </Typography>
-        ) : (
-          <Tooltip
-            title={
+        <Tooltip
+          title={
+            infoData?.horarioHoy ? (
               <>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5 }}>
                   Horario de {infoData?.horarioHoy.dia}:
@@ -123,53 +112,47 @@ const InfoBar = () => {
                   <Typography variant="caption">{openStatus ? 'Abierto ahora' : 'Cerrado ahora'}</Typography>
                 </Box>
               </>
-            }
-            arrow
-            placement="bottom"
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography
-                sx={{
-                  fontFamily: '"Montserrat", sans-serif',
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                  letterSpacing: "0.2px",
-                  fontWeight: 500
-                }}
-              >
-                {infoData?.horarioGeneral || "Horario no disponible"}
-              </Typography>
-              <Box sx={{ ml: 1, width: 8, height: 8, borderRadius: '50%', bgcolor: openStatus ? '#22c55e' : '#ef4444' }} />
-            </Box>
-          </Tooltip>
-        )}
+            ) : null
+          }
+          arrow
+          placement="bottom"
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Typography
+              sx={{
+                fontFamily: '"Montserrat", sans-serif',
+                fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                letterSpacing: "0.2px",
+                fontWeight: 500
+              }}
+            >
+              {infoData?.horarioGeneral || "Horario no disponible"}
+            </Typography>
+            <Box sx={{ ml: 1, width: 8, height: 8, borderRadius: '50%', bgcolor: openStatus ? '#22c55e' : '#ef4444' }} />
+          </Box>
+        </Tooltip>
       </Box>
+
       <Box sx={{ display: { xs: "none", sm: "block" }, mx: 2, opacity: 0.4, color: isDarkTheme ? "#94a3b8" : "#e2e8f0" }}>
         |
       </Box>
+
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <FaPhoneAlt style={{ color: isDarkTheme ? "#34d399" : "#6ee7b7" }} size={14} />
-        {loading ? (
-          <Skeleton variant="text" width={90} sx={{ bgcolor: 'rgba(255,255,255,0.15)' }} />
-        ) : error ? (
-          <Typography sx={{ fontFamily: '"Montserrat", sans-serif', fontSize: { xs: "0.75rem", sm: "0.875rem" }, color: "#fca5a5" }}>
-            Error al cargar teléfono
-          </Typography>
-        ) : (
-          <Typography
-            component="a"
-            href={`tel:${infoData?.telefono || ''}`}
-            sx={{
-              textDecoration: "none",
-              color: isDarkTheme ? "#34d399" : "#6ee7b7",
-              fontWeight: "600",
-              fontSize: { xs: "0.75rem", sm: "0.875rem" },
-              transition: "all 0.3s ease",
-              "&:hover": { color: isDarkTheme ? "#6ee7b7" : "#a7f3d0", transform: "scale(1.03)" }
-            }}
-          >
-            {infoData?.telefono || "N/A"}
-          </Typography>
-        )}
+        <Typography
+          component="a"
+          href={`tel:${infoData?.telefono || ''}`}
+          sx={{
+            textDecoration: "none",
+            color: isDarkTheme ? "#34d399" : "#6ee7b7",
+            fontWeight: "600",
+            fontSize: { xs: "0.75rem", sm: "0.875rem" },
+            transition: "all 0.3s ease",
+            "&:hover": { color: isDarkTheme ? "#6ee7b7" : "#a7f3d0", transform: "scale(1.03)" }
+          }}
+        >
+          {infoData?.telefono || "N/A"}
+        </Typography>
       </Box>
     </Box>
   );

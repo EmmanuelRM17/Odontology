@@ -1,14 +1,11 @@
 import React, { useMemo, useState, useEffect, lazy, Suspense } from 'react';
-import { Box, useTheme, IconButton, Fade, CircularProgress } from '@mui/material';
+import { Box, useTheme, IconButton, Fade } from '@mui/material';
 import { KeyboardArrowUp } from '@mui/icons-material';
 import axios from 'axios';
 import { Global } from '@emotion/react';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
-
-// Utilidades
 import { getThemeColors } from '../constants';
 
-// Lazy loading de componentes pesados
 const HomeHero = lazy(() => import('./HomeHero'));
 const HomeServices = lazy(() => import('./HomeServices'));
 const HomeTestimonials = lazy(() => import('./HomeTestimonials'));
@@ -72,7 +69,6 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Obtener datos de la API con caché local y debounce
   useEffect(() => {
     let cachedData = localStorage.getItem('infoData');
     if (cachedData) {
@@ -102,14 +98,12 @@ const Home = () => {
 
     fetchInfoData();
 
-    const intervalId = setInterval(fetchInfoData, 900000); // 15 minutos
+    const intervalId = setInterval(fetchInfoData, 900000);
     return () => clearInterval(intervalId);
   }, []);
 
-  // Calcular colores con memoización
   const colors = useMemo(() => getThemeColors(isDarkTheme), [isDarkTheme]);
 
-  // Reducir animaciones decorativas en móviles con memoización
   const renderDecorations = useMemo(() => {
     if (theme.breakpoints.down('sm')) return null;
     return (
@@ -181,7 +175,7 @@ const Home = () => {
 
       {renderDecorations}
 
-      <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress color="primary" /></Box>}>
+      <Suspense fallback={null}>
         <HomeHero colors={colors} isPaused={isPaused} setIsPaused={setIsPaused} />
         <HomeServices colors={colors} setIsPaused={setIsPaused} />
         <HomeTestimonials colors={colors} infoData={infoData} />
@@ -191,11 +185,6 @@ const Home = () => {
         <ScrollToTopButton colors={colors} />
       </Suspense>
 
-      {loading && (
-        <Box sx={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2000 }}>
-          <CircularProgress color="primary" />
-        </Box>
-      )}
       {error && !infoData && (
         <Box sx={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', zIndex: 2000, color: colors.text, background: colors.cardBg, p: 2, borderRadius: 4 }}>
           {error}

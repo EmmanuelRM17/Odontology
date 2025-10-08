@@ -80,560 +80,560 @@ function AppContent({ forceLoading, isOnline }) {
   return (
     <>
       <ScrollToTop />
-        <Routes>
-          {/* Rutas públicas */}
-          <Route
-            path="/"
-            element={
-              <LayoutConEncabezado>
-                <Home />
-                <Ubicacion />
-                <Preguntas />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route
-            path="/FAQ"
-            element={
-              <LayoutConEncabezado>
-                <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Preguntas Frecuentes" }]} />
-                <Preguntas />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route
-            path="/Contact"
-            element={
-              <LayoutConEncabezado>
-                <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Contacto" }]} />
-                <Contactanos />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route path="/register" element={<Register />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/agendar-cita" element={<Agendar />} />
-          <Route path="/confirmacion" element={<Confirmacion />} />
-          <Route
-            path="/about"
-            element={
-              <LayoutConEncabezado>
-                <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Acerca de" }]} />
-                <Acerca />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route
-            path="/servicios"
-            element={
-              <LayoutConEncabezado>
-                <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios" }]} />
-                <Servicios />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route
-            path="/servicios/detalle/:servicioId"
-            element={
-              <LayoutConEncabezado>
-                <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios", path: "/servicios" }, { name: "Detalle del Servicio" }]} />
-                <ServiciosDetalle />
-              </LayoutConEncabezado>
-            }
-          />
-          <Route path="/recuperacion" element={<Recuperacion />} />
-          <Route path="/resetContra" element={<Reset />} />
+      <Routes>
+        {/* Rutas públicas */}
+        <Route
+          path="/"
+          element={
+            <LayoutConEncabezado>
+              <Home />
+              <Ubicacion />
+              <Preguntas />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route
+          path="/FAQ"
+          element={
+            <LayoutConEncabezado>
+              <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Preguntas Frecuentes" }]} />
+              <Preguntas />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route
+          path="/Contact"
+          element={
+            <LayoutConEncabezado>
+              <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Contacto" }]} />
+              <Contactanos />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/agendar-cita" element={<Agendar />} />
+        <Route path="/confirmacion" element={<Confirmacion />} />
+        <Route
+          path="/about"
+          element={
+            <LayoutConEncabezado>
+              <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Acerca de" }]} />
+              <Acerca />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route
+          path="/servicios"
+          element={
+            <LayoutConEncabezado>
+              <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios" }]} />
+              <Servicios />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route
+          path="/servicios/detalle/:servicioId"
+          element={
+            <LayoutConEncabezado>
+              <Breadcrumbs paths={[{ name: "Inicio", path: "/" }, { name: "Servicios", path: "/servicios" }, { name: "Detalle del Servicio" }]} />
+              <ServiciosDetalle />
+            </LayoutConEncabezado>
+          }
+        />
+        <Route path="/recuperacion" element={<Recuperacion />} />
+        <Route path="/resetContra" element={<Reset />} />
 
-          {/* Rutas protegidas del paciente */}
-          <Route
-            path="/Paciente/principal"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Principal />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/citas"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mis Citas" }]} />
-                  <Citas />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/tratamientos"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mis Tratamientos" }]} />
-                  <Tratamientos />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/progreso"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mi progreso" }]} />
-                  <Progreso />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/perfil"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Perfil de Usuario" }]} />
-                  <Perfil />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/mensajes"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mensajes" }]} />
-                  <Mensajes />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/pagos"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Pagos" }]} />
-                  <Pagos />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/ayuda"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Ayuda" }]} />
-                  <AyudaPaciente />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Paciente/expediente"
-            element={
-              <PrivateRoute>
-                <LayoutPaciente>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Expediente clinico" }]} />
-                  <ExpedientePaciente />
-                </LayoutPaciente>
-              </PrivateRoute>
-            }
-          />
+        {/* Rutas protegidas del paciente */}
+        <Route
+          path="/Paciente/principal"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Principal />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/citas"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mis Citas" }]} />
+                <Citas />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/tratamientos"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mis Tratamientos" }]} />
+                <Tratamientos />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/progreso"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mi progreso" }]} />
+                <Progreso />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/perfil"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Perfil de Usuario" }]} />
+                <Perfil />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/mensajes"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Mensajes" }]} />
+                <Mensajes />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/pagos"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Pagos" }]} />
+                <Pagos />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/ayuda"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Ayuda" }]} />
+                <AyudaPaciente />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Paciente/expediente"
+          element={
+            <PrivateRoute>
+              <LayoutPaciente>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Paciente/principal" }, { name: "Expediente clinico" }]} />
+                <ExpedientePaciente />
+              </LayoutPaciente>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Rutas protegidas del administrador */}
-          <Route
-            path="/Administrador/principal"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <PrincipalAdmin />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/configuracion"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Configuración" }]} />
-                  <Configuracion />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/reportes"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Reportes Generales" }]} />
-                  <Reportes />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/pacientes"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Pacientes" }]} />
-                  <Pacientes />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/empleados"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Empleados" }]} />
-                  <Empleados />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/servicios"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Servicios" }]} />
-                  <ServicioForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/citas"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Citas" }]} />
-                  <CitasForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/citas/nueva"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Citas", path: "/Administrador/citas" }, { name: "Nueva Cita" }]} />
-                  <NuevoAgendamiento />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/tratamientos"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Tratamientos" }]} />
-                  <TratamientosForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/horarios"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Horarios" }]} />
-                  <HorariosForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/PerfilEmpresa"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Perfil Empresarial" }]} />
-                  <PerfilEmpresa />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/imagenes"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Imágenes" }]} />
-                  <ImagenesForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/finanzas"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión Financiera" }]} />
-                  <FinanzasForm />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/Estadisticas"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Estadísticas Operativas" }]} />
-                  <Graficas />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/predicciones"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Predicciones" }]} />
-                  <Predicciones />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/Clostering"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Clostering" }]} />
-                  <Clostering />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/CalendarioCita"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Calendario de Citas" }]} />
-                  <CalendarioCitas />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/Reseñas"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Moderación de Reseñas" }]} />
-                  <ModeracionServicios />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/ayuda"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Ayuda" }]} />
-                  <AyudaAdmin />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Administrador/expedienteClinico"
-            element={
-              <PrivateRoute>
-                <LayoutAdmin>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Expediente Clínico" }]} />
-                  <ExpedienteClinico />
-                </LayoutAdmin>
-              </PrivateRoute>
-            }
-          />
+        {/* Rutas protegidas del administrador */}
+        <Route
+          path="/Administrador/principal"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <PrincipalAdmin />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/configuracion"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Configuración" }]} />
+                <Configuracion />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/reportes"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Reportes Generales" }]} />
+                <Reportes />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/pacientes"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Pacientes" }]} />
+                <Pacientes />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/empleados"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Empleados" }]} />
+                <Empleados />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/servicios"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Servicios" }]} />
+                <ServicioForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/citas"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Citas" }]} />
+                <CitasForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/citas/nueva"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Citas", path: "/Administrador/citas" }, { name: "Nueva Cita" }]} />
+                <NuevoAgendamiento />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/tratamientos"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Tratamientos" }]} />
+                <TratamientosForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/horarios"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Horarios" }]} />
+                <HorariosForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/PerfilEmpresa"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Perfil Empresarial" }]} />
+                <PerfilEmpresa />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/imagenes"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión de Imágenes" }]} />
+                <ImagenesForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/finanzas"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Gestión Financiera" }]} />
+                <FinanzasForm />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/Estadisticas"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Estadísticas Operativas" }]} />
+                <Graficas />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/predicciones"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Predicciones" }]} />
+                <Predicciones />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/Clostering"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Clostering" }]} />
+                <Clostering />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/CalendarioCita"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Calendario de Citas" }]} />
+                <CalendarioCitas />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/Reseñas"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Moderación de Reseñas" }]} />
+                <ModeracionServicios />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/ayuda"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Ayuda" }]} />
+                <AyudaAdmin />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/expedienteClinico"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Expediente Clínico" }]} />
+                <ExpedienteClinico />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
 
-          {/* Rutas protegidas del empleado */}
-          <Route
-            path="/Empleado/principal"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <PrincipalEmpleado />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/configuracion"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Configuración" }]} />
-                  <Configuracion />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/reportes"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Reportes Generales" }]} />
-                  <Reportes />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/pacientes"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Pacientes" }]} />
-                  <Pacientes />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/servicios"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Servicios" }]} />
-                  <ServicioForm />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/citas"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Citas" }]} />
-                  <CitasForm />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/citas/nueva"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Citas", path: "/Empleado/citas" }, { name: "Nueva Cita" }]} />
-                  <NuevoAgendamiento />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/tratamientos"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Tratamientos" }]} />
-                  <TratamientosForm />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/horarios"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Horarios" }]} />
-                  <HorariosForm />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/imagenes"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Imágenes" }]} />
-                  <ImagenesForm />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/estadisticas"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Estadísticas Operativas" }]} />
-                  <Graficas />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/calendarioCita"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Calendario de Citas" }]} />
-                  <CalendarioCitas />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/reseñas"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Moderación de Reseñas" }]} />
-                  <ModeracionServicios />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/expedienteClinico"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Expediente Clínico" }]} />
-                  <ExpedienteClinico />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          <Route
-            path="/Empleado/ayuda"
-            element={
-              <PrivateRoute>
-                <LayoutEmpleado>
-                  <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Ayuda" }]} />
-                  <AyudaAdmin />
-                </LayoutEmpleado>
-              </PrivateRoute>
-            }
-          />
-          {/* Rutas de error */}
-          <Route path="/error" element={<ErrorPage />} />
-          <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
-        </Routes>
+        {/* Rutas protegidas del empleado */}
+        <Route
+          path="/Empleado/principal"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <PrincipalEmpleado />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/configuracion"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Configuración" }]} />
+                <Configuracion />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/reportes"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Reportes Generales" }]} />
+                <Reportes />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/pacientes"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Pacientes" }]} />
+                <Pacientes />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/servicios"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Servicios" }]} />
+                <ServicioForm />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/citas"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Citas" }]} />
+                <CitasForm />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/citas/nueva"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Citas", path: "/Empleado/citas" }, { name: "Nueva Cita" }]} />
+                <NuevoAgendamiento />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/tratamientos"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Tratamientos" }]} />
+                <TratamientosForm />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/horarios"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Horarios" }]} />
+                <HorariosForm />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/imagenes"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Gestión de Imágenes" }]} />
+                <ImagenesForm />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/estadisticas"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Estadísticas Operativas" }]} />
+                <Graficas />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/calendarioCita"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Calendario de Citas" }]} />
+                <CalendarioCitas />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/reseñas"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Moderación de Reseñas" }]} />
+                <ModeracionServicios />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/expedienteClinico"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Expediente Clínico" }]} />
+                <ExpedienteClinico />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Empleado/ayuda"
+          element={
+            <PrivateRoute>
+              <LayoutEmpleado>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Empleado/principal" }, { name: "Ayuda" }]} />
+                <AyudaAdmin />
+              </LayoutEmpleado>
+            </PrivateRoute>
+          }
+        />
+        {/* Rutas de error */}
+        <Route path="/error" element={<ErrorPage />} />
+        <Route path="*" element={<ErrorPage errorCode={404} errorMessage="Página no encontrada" />} />
+      </Routes>
       <ServicioDetalleRouteHandler />
     </>
   );
@@ -743,10 +743,10 @@ function App() {
     return <LoadingScreen tituloPagina={tituloPagina} />;
   }
 
- return (
+  return (
     <ThemeProviderComponent>
       <Router>
-        <Suspense fallback={<LoadingScreen tituloPagina={tituloPagina} />}>
+        <Suspense fallback={null}>
           <AppContent forceLoading={forceLoading} isOnline={isOnline} />
         </Suspense>
       </Router>

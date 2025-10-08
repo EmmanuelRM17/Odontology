@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, memo, useCallback, useMemo, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -15,11 +15,8 @@ import {
   Skeleton,
   ListItemIcon,
   Divider,
-  MenuItem,
   Tooltip,
-  Fade,
   Collapse,
-  Menu,
 } from '@mui/material';
 import {
   FaSignInAlt,
@@ -50,25 +47,40 @@ const BarraNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Estados para menús - optimizados para evitar re-renders
-  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
+  // Estado para menú dropdown personalizado
+  const [menuOpen, setMenuOpen] = useState(false);
   const [mobileSubmenuOpen, setMobileSubmenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
-  // Memoizar handlers para evitar re-creación
-  const handleMenuOpen = useCallback((event) => {
-    setMenuAnchorEl(event.currentTarget);
+  // Handlers del menú
+  const handleMenuToggle = useCallback(() => {
+    setMenuOpen(prev => !prev);
   }, []);
 
   const handleMenuClose = useCallback(() => {
-    setMenuAnchorEl(null);
+    setMenuOpen(false);
   }, []);
 
   const toggleMobileSubmenu = useCallback(() => {
     setMobileSubmenuOpen(prev => !prev);
   }, []);
 
-  // Estabilizar el estado del menú
-  const isMenuOpen = Boolean(menuAnchorEl);
+  // Cerrar menú al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   const fetchTitleAndLogo = useCallback(async (retries = 3) => {
     try {
@@ -100,113 +112,23 @@ const BarraNav = () => {
     fetchTitleAndLogo();
   }, [fetchTitleAndLogo]);
 
-  // Cerrar menús al cambiar de ruta - optimizado
+  // Cerrar menús al cambiar de ruta
   useEffect(() => {
-    setMenuAnchorEl(null);
+    setMenuOpen(false);
     setMobileSubmenuOpen(false);
-  }, [location.pathname]); // Solo escuchar pathname
+  }, [location.pathname]);
 
   const toggleDrawer = useCallback((open) => (event) => {
     if (event.type === 'keydown' && (event.key === 'Tab' || event.key === 'Shift')) return;
     setDrawerOpen(open);
   }, []);
 
-  // Memoizar el menú explorar para desktop - CLAVE para evitar desmontaje
-  const explorarMenu = useMemo(() => (
-    <Menu
-      id="explorar-menu"
-      anchorEl={menuAnchorEl}
-      open={isMenuOpen}
-      onClose={handleMenuClose}
-      TransitionComponent={Fade}
-      transitionDuration={250}
-      anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-      transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-      PaperProps={{
-        sx: {
-          borderRadius: '12px',
-          minWidth: '220px',
-          backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
-          border: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-          paddingY: 1,
-          overflow: 'visible',
-          zIndex: 1300,
-          '&:before': {
-            content: '""',
-            display: 'block',
-            position: 'absolute',
-            top: -5,
-            left: 8,
-            transform: 'translateX(-50%) rotate(45deg)',
-            width: 10,
-            height: 10,
-            backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
-            borderLeft: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-            borderTop: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
-            zIndex: 0
-          }
-        }
-      }}
-    >
-      <MenuItem
-        onClick={() => { handleMenuClose(); navigate('/servicios'); }}
-        sx={{
-          py: 1.5,
-          px: 2.5,
-          borderRadius: '8px',
-          mx: 1,
-          my: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-        }}
-      >
-        <FaClipboardList size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-          Servicios
-        </Typography>
-      </MenuItem>
-      <MenuItem
-        onClick={() => { handleMenuClose(); navigate('/FAQ'); }}
-        sx={{
-          py: 1.5,
-          px: 2.5,
-          borderRadius: '8px',
-          mx: 1,
-          my: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-        }}
-      >
-        <FaQuestionCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-          Preguntas Frecuentes
-        </Typography>
-      </MenuItem>
-      <MenuItem
-        onClick={() => { handleMenuClose(); navigate('/about'); }}
-        sx={{
-          py: 1.5,
-          px: 2.5,
-          borderRadius: '8px',
-          mx: 1,
-          my: 0.5,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 1.5,
-          '&:hover': { backgroundColor: isDarkTheme ? 'rgba(130, 177, 255, 0.1)' : 'rgba(0, 102, 204, 0.05)' }
-        }}
-      >
-        <FaInfoCircle size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
-        <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem' }}>
-          Acerca de
-        </Typography>
-      </MenuItem>
-    </Menu>
-  ), [menuAnchorEl, isMenuOpen, handleMenuClose, navigate, isDarkTheme]);
+  // Opciones del menú
+  const menuItems = useMemo(() => [
+    { label: 'Servicios', icon: FaClipboardList, path: '/servicios' },
+    { label: 'Preguntas Frecuentes', icon: FaQuestionCircle, path: '/FAQ' },
+    { label: 'Acerca de', icon: FaInfoCircle, path: '/about' },
+  ], []);
 
   const drawerList = useMemo(() => (
     <Box
@@ -301,7 +223,7 @@ const BarraNav = () => {
           </ListItemIcon>
           <ListItemText primary="Contáctanos" primaryTypographyProps={{ sx: { color: isDarkTheme ? '#fff' : '#1a2027', fontFamily: '"Montserrat", sans-serif', fontWeight: 500 } }} />
         </ListItem>
-        <Divider sx={{ my: 2, borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } } />
+        <Divider sx={{ my: 2, borderColor: isDarkTheme ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' }} />
         <ListItem button component={Link} to="/agendar-cita" onClick={toggleDrawer(false)} sx={{ py: 1.5, backgroundColor: isDarkTheme ? 'rgba(61, 90, 254, 0.1)' : 'rgba(25, 118, 210, 0.08)', '&:hover': { backgroundColor: isDarkTheme ? 'rgba(61, 90, 254, 0.2)' : 'rgba(25, 118, 210, 0.12)' } }}>
           <ListItemIcon sx={{ color: isDarkTheme ? '#90caf9' : '#1976d2', minWidth: 40 }}>
             <FaCalendarAlt size={20} />
@@ -336,12 +258,11 @@ const BarraNav = () => {
             </Box>
           </Box>
           <Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: 3 }}>
-            <Box>
+            {/* Menú dropdown personalizado */}
+            <Box ref={menuRef} sx={{ position: 'relative' }}>
               <Button
-                aria-controls="explorar-menu"
-                aria-haspopup="true"
-                onClick={handleMenuOpen}
-                endIcon={isMenuOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+                onClick={handleMenuToggle}
+                endIcon={menuOpen ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                 sx={{
                   color: isDarkTheme ? 'white' : '#333',
                   fontFamily: '"Montserrat", sans-serif',
@@ -353,8 +274,67 @@ const BarraNav = () => {
               >
                 Explorar
               </Button>
-              {explorarMenu}
+              
+              {/* Dropdown personalizado */}
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  mt: 1,
+                  minWidth: '220px',
+                  backgroundColor: isDarkTheme ? '#2A3A4A' : '#ffffff',
+                  borderRadius: '12px',
+                  border: `1px solid ${isDarkTheme ? '#3A4A5A' : '#e8e8e8'}`,
+                  boxShadow: isDarkTheme 
+                    ? '0 8px 24px rgba(0,0,0,0.4)' 
+                    : '0 8px 24px rgba(0,0,0,0.1)',
+                  py: 1,
+                  zIndex: 1300,
+                  opacity: menuOpen ? 1 : 0,
+                  visibility: menuOpen ? 'visible' : 'hidden',
+                  transform: menuOpen ? 'translateY(0)' : 'translateY(-10px)',
+                  transition: 'opacity 0.2s ease, transform 0.2s ease, visibility 0.2s',
+                }}
+              >
+                {menuItems.map((item, index) => (
+                  <Box
+                    key={index}
+                    onClick={() => {
+                      navigate(item.path);
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                      py: 1.5,
+                      px: 2.5,
+                      mx: 1,
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      '&:hover': {
+                        backgroundColor: isDarkTheme 
+                          ? 'rgba(130, 177, 255, 0.15)' 
+                          : 'rgba(0, 102, 204, 0.08)'
+                      }
+                    }}
+                  >
+                    <item.icon size={18} style={{ color: isDarkTheme ? '#82B1FF' : '#0066cc' }} />
+                    <Typography sx={{
+                      color: isDarkTheme ? 'white' : '#333',
+                      fontFamily: '"Montserrat", sans-serif',
+                      fontWeight: 500,
+                      fontSize: '0.95rem'
+                    }}>
+                      {item.label}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
             </Box>
+
             <Link to="/Contact" style={{ textDecoration: 'none', color: 'inherit' }}>
               <Typography sx={{ color: isDarkTheme ? 'white' : '#333', fontFamily: '"Montserrat", sans-serif', fontWeight: 500, fontSize: '0.95rem', position: 'relative', padding: '4px 0', '&:hover': { color: '#0066cc' }, '&:hover:after': { width: '100%', opacity: 1 }, '&:after': { content: '""', position: 'absolute', bottom: 0, left: 0, width: '0%', height: '2px', backgroundColor: '#0066cc', transition: 'width 0.3s ease, opacity 0.3s ease', opacity: 0 } }}>
                 Contáctanos
