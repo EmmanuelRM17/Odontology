@@ -55,9 +55,11 @@ const FinanzasForm = lazy(() => import("./pages/administrador/pages/FinanzasForm
 const CalendarioCitas = lazy(() => import("./pages/administrador/pages/CalendarioCitas"));
 const Graficas = lazy(() => import("./pages/administrador/pages/Graficas"));
 const Predicciones = lazy(() => import("./pages/administrador/pages/Predicciones"));
+const Gamificacion = lazy(() => import("./pages/administrador/pages/Gamificacion"));
 const Clostering = lazy(() => import("./pages/administrador/pages/Clostering"));
 const ModeracionServicios = lazy(() => import("./pages/administrador/pages/resenyasModerar"));
 const AyudaAdmin = lazy(() => import("./pages/paciente/pages/Ayuda"));
+
 
 // Componentes empleado
 const LayoutEmpleado = lazy(() => import("./pages/empleado/LayoutEmpleado"));
@@ -405,6 +407,17 @@ function AppContent({ forceLoading, isOnline }) {
               <LayoutAdmin>
                 <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "Predicciones" }]} />
                 <Predicciones />
+              </LayoutAdmin>
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/Administrador/gamificacion"
+          element={
+            <PrivateRoute>
+              <LayoutAdmin>
+                <Breadcrumbs paths={[{ name: "Inicio", path: "/Administrador/principal" }, { name: "gamificacion" }]} />
+                < Gamificacion />
               </LayoutAdmin>
             </PrivateRoute>
           }
