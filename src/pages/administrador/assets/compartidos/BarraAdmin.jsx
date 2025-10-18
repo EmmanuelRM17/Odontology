@@ -102,6 +102,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       items: [
         { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
         { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
+        { icon: MdAssessment, text: 'Gamificacion', path: '/Administrador/Gamificacion' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
         { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' },
