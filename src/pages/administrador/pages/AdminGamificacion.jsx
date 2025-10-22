@@ -6,12 +6,14 @@ import {
     useMediaQuery,
     useTheme,
     Typography,
-    Avatar
+    Avatar,
+    Paper
 } from '@mui/material';
 import {
     EmojiEvents as TrophyIcon,
     LocalHospital as ServiceIcon,
-    Person as PersonIcon
+    People as PeopleIcon,
+    Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
@@ -79,14 +81,15 @@ const AdminGamificacion = () => {
             }}
         >
             {/* Header */}
-            <Box
+            <Paper
+                elevation={0}
                 sx={{
                     mb: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    flexDirection: isMobile ? 'column' : 'row',
-                    justifyContent: 'space-between'
+                    p: isMobile ? 2 : 3,
+                    background: colors.paper,
+                    borderRadius: '20px',
+                    border: `1px solid ${colors.border}`,
+                    boxShadow: colors.shadow
                 }}
             >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -95,36 +98,37 @@ const AdminGamificacion = () => {
                             width: isMobile ? 48 : 64,
                             height: isMobile ? 48 : 64,
                             background: colors.gradient,
-                            fontSize: isMobile ? '1.5rem' : '2rem'
+                            boxShadow: `0 8px 24px rgba(25,118,210,0.3)`
                         }}
                     >
-                        🎮
+                        <DashboardIcon sx={{ fontSize: isMobile ? 28 : 36 }} />
                     </Avatar>
                     <Box>
                         <Typography
                             variant={isMobile ? 'h5' : 'h4'}
-                            fontWeight={800}
+                            fontWeight={700}
                             color={colors.text}
                         >
-                            Administración de Gamificación
+                            Gestión de Gamificación
                         </Typography>
                         <Typography
                             variant="body2"
                             color={colors.secondaryText}
-                            fontWeight={600}
+                            fontWeight={500}
                         >
-                            Gestiona recompensas, servicios y pacientes
+                            Sistema de recompensas y puntos para pacientes
                         </Typography>
                     </Box>
                 </Box>
-            </Box>
+            </Paper>
 
             {/* Tabs Navigation */}
-            <Box
+            <Paper
+                elevation={0}
                 sx={{
                     background: colors.paper,
-                    borderRadius: '24px',
-                    p: 1,
+                    borderRadius: '20px',
+                    p: 0.5,
                     mb: 3,
                     boxShadow: colors.shadow,
                     border: `1px solid ${colors.border}`
@@ -137,41 +141,40 @@ const AdminGamificacion = () => {
                     sx={{
                         '& .MuiTab-root': {
                             borderRadius: '16px',
-                            fontWeight: 700,
-                            fontSize: isMobile ? '0.85rem' : '1rem',
+                            fontWeight: 600,
+                            fontSize: isMobile ? '0.85rem' : '0.95rem',
                             textTransform: 'none',
                             minHeight: isMobile ? 56 : 64,
                             color: colors.secondaryText,
                             transition: 'all 0.3s ease',
+                            mx: 0.5,
                             '&.Mui-selected': {
                                 color: colors.primary,
                                 background: colors.hover
                             }
                         },
                         '& .MuiTabs-indicator': {
-                            height: 4,
-                            borderRadius: '4px 4px 0 0',
-                            background: colors.gradient
+                            display: 'none'
                         }
                     }}
                 >
                     <Tab
                         icon={<TrophyIcon />}
                         iconPosition="start"
-                        label={isMobile ? 'Recompensa' : '🏆 Recompensa'}
+                        label="Recompensas"
                     />
                     <Tab
                         icon={<ServiceIcon />}
                         iconPosition="start"
-                        label={isMobile ? 'Servicios' : '💊 Servicios'}
+                        label="Servicios"
                     />
                     <Tab
-                        icon={<PersonIcon />}
+                        icon={<PeopleIcon />}
                         iconPosition="start"
-                        label={isMobile ? 'Pacientes' : '👥 Pacientes'}
+                        label="Pacientes"
                     />
                 </Tabs>
-            </Box>
+            </Paper>
 
             {/* Tab Content */}
             <Box>
