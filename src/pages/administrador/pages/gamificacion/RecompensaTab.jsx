@@ -19,36 +19,43 @@ import {
     IconButton,
     Chip,
     Switch,
-    FormControlLabel
+    FormControlLabel,
+    Paper,
+    Alert
 } from '@mui/material';
 import {
     Add as AddIcon,
     Edit as EditIcon,
     Delete as DeleteIcon,
     Close as CloseIcon,
-    EmojiEvents as TrophyIcon
+    EmojiEvents as TrophyIcon,
+    CheckCircle as CheckIcon,
+    Cancel as CancelIcon,
+    Stars as StarsIcon,
+    CardGiftcard as GiftIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_URL = 'https://back-end-4803.onrender.com/api/gamificacion';
 
-// 10 iconos disponibles
+// Iconos profesionales disponibles
 const ICONOS_DISPONIBLES = [
-    { emoji: '🎁', label: 'Regalo', color: '#1976d2' },
-    { emoji: '💎', label: 'Diamante', color: '#0288d1' },
-    { emoji: '⭐', label: 'Estrella', color: '#fbc02d' },
-    { emoji: '🏆', label: 'Trofeo', color: '#388e3c' },
-    { emoji: '👑', label: 'Corona', color: '#f57c00' },
-    { emoji: '💰', label: 'Dinero', color: '#689f38' },
-    { emoji: '🎉', label: 'Celebración', color: '#5e35b1' },
-    { emoji: '❤️', label: 'Corazón', color: '#e53935' },
-    { emoji: '✨', label: 'Brillo', color: '#fdd835' },
-    { emoji: '🎯', label: 'Diana', color: '#d32f2f' }
+    { icon: 'gift', label: 'Regalo', color: '#1976d2', component: GiftIcon },
+    { icon: 'diamond', label: 'Diamante', color: '#0288d1', emoji: '💎' },
+    { icon: 'star', label: 'Estrella', color: '#fbc02d', component: StarsIcon },
+    { icon: 'trophy', label: 'Trofeo', color: '#388e3c', component: TrophyIcon },
+    { icon: 'crown', label: 'Corona', color: '#f57c00', emoji: '👑' },
+    { icon: 'money', label: 'Dinero', color: '#689f38', emoji: '💰' },
+    { icon: 'celebration', label: 'Celebración', color: '#5e35b1', emoji: '🎉' },
+    { icon: 'heart', label: 'Favorito', color: '#e53935', emoji: '❤️' },
+    { icon: 'sparkle', label: 'Especial', color: '#fdd835', emoji: '✨' },
+    { icon: 'target', label: 'Objetivo', color: '#d32f2f', emoji: '🎯' }
 ];
 
 const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
     const [recompensa, setRecompensa] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [loadingData, setLoadingData] = useState(true);
     const [openDialog, setOpenDialog] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [formData, setFormData] = useState({
@@ -56,7 +63,7 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
         descripcion: '',
         tipo: 'descuento',
         puntos_requeridos: 100,
-        icono: '🎁',
+        icono: 'gift',
         premio: '',
         estado: 1
     });
@@ -65,22 +72,31 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
         cargarRecompensa();
     }, []);
 
-    // Cargar recompensa única
+    // Cargar recompensa con timeout
     const cargarRecompensa = async () => {
-        setLoading(true);
+        setLoadingData(true);
         try {
-            const { data } = await axios.get(`${API_URL}/recompensa`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            const { data } = await axios.get(`${API_URL}/recompensa`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             setRecompensa(data);
         } catch (error) {
-            if (error.response?.status !== 404) {
+            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
+                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
+            } else if (error.response?.status !== 404) {
                 showNotif('Error al cargar recompensa', 'error');
             }
         } finally {
-            setLoading(false);
+            setLoadingData(false);
         }
     };
 
-    // Abrir dialog para crear
+    // Abrir dialog crear
     const handleOpenCreate = () => {
         setIsEditing(false);
         setFormData({
@@ -88,14 +104,14 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
             descripcion: '',
             tipo: 'descuento',
             puntos_requeridos: 100,
-            icono: '🎁',
+            icono: 'gift',
             premio: '',
             estado: 1
         });
         setOpenDialog(true);
     };
 
-    // Abrir dialog para editar
+    // Abrir dialog editar
     const handleOpenEdit = () => {
         setIsEditing(true);
         setFormData({
@@ -119,17 +135,30 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
 
         setLoading(true);
         try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
             if (isEditing) {
-                await axios.put(`${API_URL}/recompensa/${recompensa.id}`, formData);
+                await axios.put(`${API_URL}/recompensa/${recompensa.id}`, formData, {
+                    signal: controller.signal
+                });
                 showNotif('Recompensa actualizada correctamente', 'success');
             } else {
-                await axios.post(`${API_URL}/recompensa`, formData);
+                await axios.post(`${API_URL}/recompensa`, formData, {
+                    signal: controller.signal
+                });
                 showNotif('Recompensa creada correctamente', 'success');
             }
+            
+            clearTimeout(timeoutId);
             setOpenDialog(false);
             cargarRecompensa();
         } catch (error) {
-            showNotif(error.response?.data?.error || 'Error al guardar', 'error');
+            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
+                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
+            } else {
+                showNotif(error.response?.data?.error || 'Error al guardar', 'error');
+            }
         } finally {
             setLoading(false);
         }
@@ -141,17 +170,40 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
 
         setLoading(true);
         try {
-            await axios.delete(`${API_URL}/recompensa/${recompensa.id}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            await axios.delete(`${API_URL}/recompensa/${recompensa.id}`, {
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
             showNotif('Recompensa eliminada correctamente', 'success');
             setRecompensa(null);
         } catch (error) {
-            showNotif('Error al eliminar recompensa', 'error');
+            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
+                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
+            } else {
+                showNotif('Error al eliminar recompensa', 'error');
+            }
         } finally {
             setLoading(false);
         }
     };
 
-    if (loading && !recompensa) {
+    // Renderizar icono seleccionado
+    const renderIcono = (iconKey, size = 'large') => {
+        const icono = ICONOS_DISPONIBLES.find(i => i.icon === iconKey);
+        if (!icono) return <GiftIcon />;
+        
+        if (icono.component) {
+            const IconComponent = icono.component;
+            return <IconComponent sx={{ fontSize: size === 'large' ? 48 : 24 }} />;
+        }
+        return <Typography fontSize={size === 'large' ? '3rem' : '1.5rem'}>{icono.emoji}</Typography>;
+    };
+
+    if (loadingData) {
         return (
             <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
                 <CircularProgress sx={{ color: colors.primary }} />
@@ -173,25 +225,31 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         gap: 2
                     }}
                 >
-                    <Typography variant={isMobile ? 'h6' : 'h5'} fontWeight={800} color={colors.text}>
-                        🏆 Recompensa del Sistema
-                    </Typography>
+                    <Box>
+                        <Typography variant={isMobile ? 'h6' : 'h5'} fontWeight={700} color={colors.text}>
+                            Recompensa del Sistema
+                        </Typography>
+                        <Typography variant="body2" color={colors.secondaryText}>
+                            Gestiona la recompensa única disponible para canjeos
+                        </Typography>
+                    </Box>
                     {!recompensa && (
                         <Button
                             variant="contained"
                             startIcon={<AddIcon />}
                             onClick={handleOpenCreate}
                             sx={{
-                                borderRadius: '16px',
+                                borderRadius: '12px',
                                 background: colors.gradient,
                                 px: 3,
                                 py: 1.5,
-                                fontWeight: 700,
-                                boxShadow: `0 8px 24px ${alpha(colors.primary, 0.4)}`,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
                                 '&:hover': {
                                     background: colors.gradient,
                                     transform: 'translateY(-2px)',
-                                    boxShadow: `0 12px 32px ${alpha(colors.primary, 0.5)}`
+                                    boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
                                 }
                             }}
                         >
@@ -203,12 +261,12 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                 {/* Card Recompensa */}
                 {recompensa ? (
                     <Card
+                        elevation={0}
                         sx={{
-                            background: colors.cardBg,
-                            borderRadius: '24px',
+                            background: colors.paper,
+                            borderRadius: '20px',
                             border: `1px solid ${colors.border}`,
                             boxShadow: colors.shadow,
-                            backdropFilter: colors.glassBlur,
                             overflow: 'hidden'
                         }}
                     >
@@ -219,70 +277,76 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                         sx={{
                                             width: isMobile ? 80 : 100,
                                             height: isMobile ? 80 : 100,
-                                            borderRadius: '24px',
+                                            borderRadius: '20px',
                                             background: colors.gradient,
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            fontSize: isMobile ? '2.5rem' : '3rem',
-                                            boxShadow: `0 12px 32px ${alpha(colors.primary, 0.4)}`
+                                            boxShadow: `0 8px 24px ${alpha(colors.primary, 0.3)}`
                                         }}
                                     >
-                                        {recompensa.icono}
+                                        {renderIcono(recompensa.icono)}
                                     </Box>
                                 </Grid>
 
                                 <Grid item xs={12} md={7}>
-                                    <Typography variant="h5" fontWeight={800} color={colors.text} gutterBottom>
+                                    <Typography variant="h5" fontWeight={700} color={colors.text} gutterBottom>
                                         {recompensa.nombre}
                                     </Typography>
                                     <Typography variant="body1" color={colors.secondaryText} mb={2}>
                                         {recompensa.descripcion || 'Sin descripción'}
                                     </Typography>
 
-                                    <Stack direction="row" spacing={2} flexWrap="wrap" gap={1}>
+                                    <Stack direction="row" spacing={1.5} flexWrap="wrap" gap={1} mb={2}>
                                         <Chip
+                                            icon={<StarsIcon sx={{ fontSize: 18 }} />}
                                             label={`${recompensa.puntos_requeridos} puntos`}
                                             sx={{
                                                 background: colors.gradient,
                                                 color: 'white',
-                                                fontWeight: 700,
-                                                fontSize: '0.95rem',
-                                                px: 1
+                                                fontWeight: 600,
+                                                fontSize: '0.9rem',
+                                                px: 0.5,
+                                                height: 36
                                             }}
                                         />
                                         <Chip
                                             label={recompensa.tipo}
                                             sx={{
-                                                background: colors.gradientAlt,
-                                                color: 'white',
-                                                fontWeight: 700
+                                                background: alpha(colors.primary, 0.1),
+                                                color: colors.primary,
+                                                fontWeight: 600,
+                                                border: `1px solid ${alpha(colors.primary, 0.3)}`,
+                                                height: 36
                                             }}
                                         />
                                         <Chip
+                                            icon={recompensa.estado === 1 ? <CheckIcon sx={{ fontSize: 18 }} /> : <CancelIcon sx={{ fontSize: 18 }} />}
                                             label={recompensa.estado === 1 ? 'Activa' : 'Inactiva'}
                                             sx={{
-                                                background: recompensa.estado === 1 ? colors.success : colors.error,
-                                                color: 'white',
-                                                fontWeight: 700
+                                                background: recompensa.estado === 1 ? alpha(colors.success, 0.1) : alpha(colors.error, 0.1),
+                                                color: recompensa.estado === 1 ? colors.success : colors.error,
+                                                fontWeight: 600,
+                                                border: `1px solid ${recompensa.estado === 1 ? alpha(colors.success, 0.3) : alpha(colors.error, 0.3)}`,
+                                                height: 36
                                             }}
                                         />
                                     </Stack>
 
                                     {recompensa.premio && (
-                                        <Box
+                                        <Paper
+                                            elevation={0}
                                             sx={{
-                                                mt: 2,
                                                 p: 2,
-                                                borderRadius: '16px',
-                                                background: alpha(colors.primary, 0.1),
-                                                border: `2px solid ${alpha(colors.primary, 0.3)}`
+                                                borderRadius: '12px',
+                                                background: alpha(colors.success, 0.05),
+                                                border: `1px solid ${alpha(colors.success, 0.2)}`
                                             }}
                                         >
-                                            <Typography variant="body2" fontWeight={700} color={colors.text}>
-                                                🎁 Premio: {recompensa.premio}
+                                            <Typography variant="body2" fontWeight={600} color={colors.text}>
+                                                Premio: {recompensa.premio}
                                             </Typography>
-                                        </Box>
+                                        </Paper>
                                     )}
                                 </Grid>
 
@@ -293,9 +357,10 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                         onClick={handleOpenEdit}
                                         fullWidth
                                         sx={{
-                                            borderRadius: '16px',
+                                            borderRadius: '12px',
                                             background: colors.gradient,
-                                            fontWeight: 700,
+                                            fontWeight: 600,
+                                            textTransform: 'none',
                                             py: 1.5
                                         }}
                                     >
@@ -307,14 +372,15 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                         onClick={handleDelete}
                                         fullWidth
                                         sx={{
-                                            borderRadius: '16px',
+                                            borderRadius: '12px',
                                             borderColor: colors.error,
                                             color: colors.error,
-                                            fontWeight: 700,
+                                            fontWeight: 600,
+                                            textTransform: 'none',
                                             py: 1.5,
                                             '&:hover': {
                                                 borderColor: colors.error,
-                                                background: alpha(colors.error, 0.1)
+                                                background: alpha(colors.error, 0.05)
                                             }
                                         }}
                                     >
@@ -325,12 +391,13 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         </CardContent>
                     </Card>
                 ) : (
-                    <Box
+                    <Paper
+                        elevation={0}
                         sx={{
                             textAlign: 'center',
                             py: 8,
                             background: colors.paper,
-                            borderRadius: '24px',
+                            borderRadius: '20px',
                             border: `2px dashed ${colors.border}`
                         }}
                     >
@@ -341,7 +408,7 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         <Typography variant="body2" color={colors.secondaryText}>
                             Crea una recompensa para comenzar
                         </Typography>
-                    </Box>
+                    </Paper>
                 )}
 
                 {/* Dialog Crear/Editar */}
@@ -354,17 +421,17 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                     PaperProps={{
                         sx: {
                             background: colors.paper,
-                            borderRadius: isMobile ? 0 : '28px',
-                            boxShadow: '0 24px 72px rgba(0,0,0,0.3)'
+                            borderRadius: isMobile ? 0 : '24px',
+                            boxShadow: '0 24px 48px rgba(0,0,0,0.2)'
                         }
                     }}
                 >
                     <DialogTitle>
                         <Box display="flex" justifyContent="space-between" alignItems="center">
-                            <Typography variant="h6" fontWeight={800} color={colors.text}>
-                                {isEditing ? '✏️ Editar Recompensa' : '➕ Crear Recompensa'}
+                            <Typography variant="h6" fontWeight={700} color={colors.text}>
+                                {isEditing ? 'Editar Recompensa' : 'Nueva Recompensa'}
                             </Typography>
-                            <IconButton onClick={() => setOpenDialog(false)}>
+                            <IconButton onClick={() => setOpenDialog(false)} size="small">
                                 <CloseIcon />
                             </IconButton>
                         </Box>
@@ -375,11 +442,12 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                     <DialogContent sx={{ pt: 3 }}>
                         <Stack spacing={3}>
                             <TextField
-                                label="Nombre de la Recompensa *"
+                                label="Nombre de la Recompensa"
                                 fullWidth
+                                required
                                 value={formData.nombre}
                                 onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                             />
 
                             <TextField
@@ -389,65 +457,77 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                 rows={3}
                                 value={formData.descripcion}
                                 onChange={(e) => setFormData({ ...formData, descripcion: e.target.value })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                             />
 
-                            <TextField
-                                label="Tipo *"
-                                fullWidth
-                                value={formData.tipo}
-                                onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
-                                helperText="Ejemplo: descuento, servicio gratis, promoción"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
-                            />
-
-                            <TextField
-                                label="Puntos Requeridos *"
-                                type="number"
-                                fullWidth
-                                value={formData.puntos_requeridos}
-                                onChange={(e) => setFormData({ ...formData, puntos_requeridos: parseInt(e.target.value) || 0 })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
-                            />
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label="Tipo"
+                                        fullWidth
+                                        required
+                                        value={formData.tipo}
+                                        onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                                        helperText="Ej: descuento, servicio gratis"
+                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        label="Puntos Requeridos"
+                                        type="number"
+                                        fullWidth
+                                        required
+                                        value={formData.puntos_requeridos}
+                                        onChange={(e) => setFormData({ ...formData, puntos_requeridos: parseInt(e.target.value) || 0 })}
+                                        sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                    />
+                                </Grid>
+                            </Grid>
 
                             <TextField
                                 label="Premio"
                                 fullWidth
                                 value={formData.premio}
                                 onChange={(e) => setFormData({ ...formData, premio: e.target.value })}
-                                helperText="Describe el premio que recibirá el paciente"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '16px' } }}
+                                helperText="Describe el premio que recibirá"
+                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                             />
 
                             {/* Selector de Iconos */}
                             <Box>
-                                <Typography variant="body2" fontWeight={700} color={colors.text} mb={2}>
+                                <Typography variant="body2" fontWeight={600} color={colors.text} mb={2}>
                                     Selecciona un Icono:
                                 </Typography>
                                 <Grid container spacing={2}>
                                     {ICONOS_DISPONIBLES.map((icono) => (
-                                        <Grid item xs={4} sm={3} md={2.4} key={icono.emoji}>
-                                            <Box
-                                                onClick={() => setFormData({ ...formData, icono: icono.emoji })}
+                                        <Grid item xs={4} sm={3} md={2.4} key={icono.icon}>
+                                            <Paper
+                                                elevation={0}
+                                                onClick={() => setFormData({ ...formData, icono: icono.icon })}
                                                 sx={{
                                                     p: 2,
-                                                    borderRadius: '16px',
-                                                    border: `3px solid ${formData.icono === icono.emoji ? colors.primary : colors.border}`,
-                                                    background: formData.icono === icono.emoji ? alpha(colors.primary, 0.1) : 'transparent',
+                                                    borderRadius: '12px',
+                                                    border: `2px solid ${formData.icono === icono.icon ? colors.primary : colors.border}`,
+                                                    background: formData.icono === icono.icon ? alpha(colors.primary, 0.05) : 'transparent',
                                                     cursor: 'pointer',
                                                     textAlign: 'center',
-                                                    transition: 'all 0.3s ease',
+                                                    transition: 'all 0.2s ease',
                                                     '&:hover': {
-                                                        transform: 'scale(1.1)',
+                                                        transform: 'scale(1.05)',
                                                         borderColor: colors.primary
                                                     }
                                                 }}
                                             >
-                                                <Typography fontSize="2rem">{icono.emoji}</Typography>
-                                                <Typography variant="caption" color={colors.secondaryText} fontWeight={600}>
+                                                {icono.component ? (
+                                                    <icono.component sx={{ fontSize: 32, color: formData.icono === icono.icon ? colors.primary : colors.secondaryText }} />
+                                                ) : (
+                                                    <Typography fontSize="2rem">{icono.emoji}</Typography>
+                                                )}
+                                                <Typography variant="caption" color={colors.secondaryText} fontWeight={500} mt={1} display="block">
                                                     {icono.label}
                                                 </Typography>
-                                            </Box>
+                                            </Paper>
                                         </Grid>
                                     ))}
                                 </Grid>
@@ -465,8 +545,8 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                     />
                                 }
                                 label={
-                                    <Typography variant="body2" fontWeight={700} color={colors.text}>
-                                        {formData.estado === 1 ? '✅ Recompensa Activa' : '❌ Recompensa Inactiva'}
+                                    <Typography variant="body2" fontWeight={600} color={colors.text}>
+                                        {formData.estado === 1 ? 'Recompensa Activa' : 'Recompensa Inactiva'}
                                     </Typography>
                                 }
                             />
@@ -479,7 +559,13 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         <Button
                             onClick={() => setOpenDialog(false)}
                             disabled={loading}
-                            sx={{ borderRadius: '16px', px: 3, py: 1.5, fontWeight: 700 }}
+                            sx={{ 
+                                borderRadius: '12px', 
+                                px: 3, 
+                                py: 1.5, 
+                                fontWeight: 600,
+                                textTransform: 'none'
+                            }}
                         >
                             Cancelar
                         </Button>
@@ -488,21 +574,22 @@ const RecompensaTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             variant="contained"
                             disabled={loading}
                             sx={{
-                                borderRadius: '16px',
+                                borderRadius: '12px',
                                 background: colors.gradient,
                                 px: 4,
                                 py: 1.5,
-                                fontWeight: 700,
-                                minWidth: 140,
-                                boxShadow: `0 8px 24px ${alpha(colors.primary, 0.4)}`,
+                                fontWeight: 600,
+                                textTransform: 'none',
+                                minWidth: 120,
+                                boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
                                 '&:hover': {
                                     background: colors.gradient,
                                     transform: 'translateY(-2px)',
-                                    boxShadow: `0 12px 32px ${alpha(colors.primary, 0.5)}`
+                                    boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
                                 }
                             }}
                         >
-                            {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : '💾 Guardar'}
+                            {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Guardar'}
                         </Button>
                     </DialogActions>
                 </Dialog>
