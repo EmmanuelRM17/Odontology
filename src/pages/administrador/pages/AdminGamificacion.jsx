@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, lazy, Suspense } from 'react';
 import {
     Box,
     Tab,
@@ -7,7 +7,8 @@ import {
     useTheme,
     Typography,
     Avatar,
-    Paper
+    Paper,
+    CircularProgress
 } from '@mui/material';
 import {
     EmojiEvents as TrophyIcon,
@@ -17,9 +18,18 @@ import {
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
-import RecompensaTab from './gamificacion/RecompensaTab';
-import ServiciosTab from './gamificacion/ServiciosTab';
-import PacientesTab from './gamificacion/PacientesTab';
+
+// Lazy load de tabs para optimizar carga inicial
+const RecompensaTab = lazy(() => import('./gamificacion/RecompensaTab'));
+const ServiciosTab = lazy(() => import('./gamificacion/ServiciosTab'));
+const PacientesTab = lazy(() => import('./gamificacion/PacientesTab'));
+
+// Componente de loading centralizado
+const TabLoader = () => (
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
+        <CircularProgress size={40} />
+    </Box>
+);
 
 const AdminGamificacion = () => {
     const { isDarkTheme } = useThemeContext();
@@ -34,8 +44,8 @@ const AdminGamificacion = () => {
         type: 'success'
     });
 
-    // Paleta de colores
-    const colors = {
+    // Memoizar colores para evitar recálculo en cada render
+    const colors = useMemo(() => ({
         background: isDarkTheme ? '#0F1419' : '#F0F4F8',
         paper: isDarkTheme ? '#1A1F26' : '#FFFFFF',
         paperLight: isDarkTheme ? '#242B34' : '#F8FAFC',
@@ -65,11 +75,32 @@ const AdminGamificacion = () => {
             ? '0 20px 60px -15px rgba(0,0,0,0.6)'
             : '0 20px 60px -15px rgba(25,118,210,0.15)',
         glassBlur: 'blur(20px)'
-    };
+    }), [isDarkTheme]);
 
     // Mostrar notificación
     const showNotif = (message, type = 'success') => {
         setNotification({ open: true, message, type });
+    };
+
+    // Renderizar solo el tab activo
+    const renderActiveTab = () => {
+        const tabProps = {
+            colors,
+            isMobile,
+            isTablet,
+            showNotif
+        };
+
+        switch (activeTab) {
+            case 0:
+                return <RecompensaTab {...tabProps} />;
+            case 1:
+                return <ServiciosTab {...tabProps} />;
+            case 2:
+                return <PacientesTab {...tabProps} />;
+            default:
+                return null;
+        }
     };
 
     return (
@@ -109,7 +140,7 @@ const AdminGamificacion = () => {
                             fontWeight={700}
                             color={colors.text}
                         >
-                            Gestión de Gamificación
+                            Sistema de Puntos 
                         </Typography>
                         <Typography
                             variant="body2"
@@ -176,33 +207,10 @@ const AdminGamificacion = () => {
                 </Tabs>
             </Paper>
 
-            {/* Tab Content */}
-            <Box>
-                {activeTab === 0 && (
-                    <RecompensaTab
-                        colors={colors}
-                        isMobile={isMobile}
-                        isTablet={isTablet}
-                        showNotif={showNotif}
-                    />
-                )}
-                {activeTab === 1 && (
-                    <ServiciosTab
-                        colors={colors}
-                        isMobile={isMobile}
-                        isTablet={isTablet}
-                        showNotif={showNotif}
-                    />
-                )}
-                {activeTab === 2 && (
-                    <PacientesTab
-                        colors={colors}
-                        isMobile={isMobile}
-                        isTablet={isTablet}
-                        showNotif={showNotif}
-                    />
-                )}
-            </Box>
+            {/* Tab Content con Suspense */}
+            <Suspense fallback={<TabLoader />}>
+                {renderActiveTab()}
+            </Suspense>
 
             {/* Notificaciones */}
             <Notificaciones

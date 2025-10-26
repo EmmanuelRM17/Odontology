@@ -58,7 +58,7 @@ const Predicciones = lazy(() => import("./pages/administrador/pages/Predicciones
 const Gamificacion = lazy(() => import("./pages/administrador/pages/AdminGamificacion"));
 const Clostering = lazy(() => import("./pages/administrador/pages/Clostering"));
 const ModeracionServicios = lazy(() => import("./pages/administrador/pages/resenyasModerar"));
-const AyudaAdmin = lazy(() => import("./pages/paciente/pages/Ayuda"));
+  const AyudaAdmin = lazy(() => import("./pages/paciente/pages/Ayuda"));
 
 
 // Componentes empleado
