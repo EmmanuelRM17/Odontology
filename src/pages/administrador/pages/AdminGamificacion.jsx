@@ -147,7 +147,7 @@ const AdminGamificacion = () => {
                             color={colors.secondaryText}
                             fontWeight={500}
                         >
-                            Sistema de recompensas y puntos para pacientes
+                            Recompensas y puntos para pacientes
                         </Typography>
                     </Box>
                 </Box>
