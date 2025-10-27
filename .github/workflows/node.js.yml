@@ -3,11 +3,9 @@ name: Run Jest Tests and Build
 on:
   push:
     branches: 
-      - main
       - pruebas/gamificacion
   pull_request:
     branches: 
-      - main
       - pruebas/gamificacion
 
 jobs:
