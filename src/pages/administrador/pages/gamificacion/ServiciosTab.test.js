@@ -3,7 +3,7 @@ import axios from 'axios';
 import ServiciosTab from './ServiciosTab.jsx';
 
 // Mock axios
-jest.mock('axios');
+jest.mock('axios'); 
  
 
 // Mock de la prop showNotif
