@@ -49,6 +49,7 @@ import {
   MdCloudUpload,
   MdShowChart,
   MdAssessment,
+  MdEmojiEvents,
   MdDescription,
   MdHistory,
   MdGroupWork,
@@ -102,6 +103,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       items: [
         { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
         { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
+        { icon: MdEmojiEvents, text: 'Sistema de Puntos', path: '/Administrador/Gamificacion' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
         { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' },
