@@ -3,10 +3,11 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-import { AuthProvider } from '../src/components/Tools/AuthContext';
+import { AuthProvider } from './components/Tools/AuthContext';
 import { ThemeProvider } from '@mui/material/styles';
 import { theme } from './theme';
 import ErrorBoundary from './components/Tools/ErrorBoundary';
+import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
@@ -21,18 +22,17 @@ root.render(
   </React.StrictMode>
 );
 
-reportWebVitals(console.log);
+// Registrar PWA con callback de actualización
+serviceWorkerRegistration.register({
+  onUpdate: (registration) => {
+    if (window.confirm('Nueva versión disponible. ¿Actualizar ahora?')) {
+      registration.waiting?.postMessage('SKIP_WAITING');
+      window.location.reload();
+    }
+  },
+  onSuccess: () => {
+    console.log('App lista para uso offline');
+  }
+});
 
-// Registro de Service Worker para PWA
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((registration) => {
-        console.log('Service Worker registrado:', registration.scope);
-      })
-      .catch((error) => {
-        console.log('Error al registrar Service Worker:', error);
-      });
-  });
-}
+reportWebVitals(console.log);

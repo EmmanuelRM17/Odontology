@@ -32,12 +32,12 @@ import {
   WhatsApp,
   CalendarMonth,
   LocationCity,
-  Star
+  Star,
+  MyLocation
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import HorariosAtencion from './Steps/HorariosAtencion';
 
-// Componente principal para ubicación y horarios
 const UbicacionHorarios = () => {
   const { isDarkTheme } = useThemeContext();
   const theme = useTheme();
@@ -52,14 +52,16 @@ const UbicacionHorarios = () => {
   const [mapZoom, setMapZoom] = useState(17);
   const [showPage, setShowPage] = useState(false);
   const [activeTab, setActiveTab] = useState('ubicacion');
+  const [userLocation, setUserLocation] = useState(null);
+  const [distance, setDistance] = useState(null);
+  const [geoError, setGeoError] = useState(null);
+  const [loadingLocation, setLoadingLocation] = useState(false);
 
-  // Mostrar la página con debounce
   useEffect(() => {
     const timer = setTimeout(() => setShowPage(true), 300);
     return () => clearTimeout(timer);
   }, []);
 
-  // Información de la clínica
   const clinicInfo = {
     nombre: "Clínica Dental Carol",
     direccion: "Calle José Maria Pino Suárez N.390, Ixcatlán, Huejutla, Hidalgo.",
@@ -69,13 +71,85 @@ const UbicacionHorarios = () => {
     reseñas: "4.8/5 basado en 45 reseñas"
   };
 
-  // Centro del mapa
   const center = {
     lat: 21.081734,
     lng: -98.536002
   };
 
-  // Cargar la API de Google Maps con optimización
+  const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return (R * c).toFixed(1);
+  };
+
+  const requestUserLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocalización no disponible');
+      alert('Tu navegador no soporta geolocalización');
+      return;
+    }
+
+    setLoadingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const userPos = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        };
+        setUserLocation(userPos);
+
+        const dist = calculateDistance(
+          userPos.lat, userPos.lng,
+          center.lat, center.lng
+        );
+        setDistance(dist);
+        setLoadingLocation(false);
+        setGeoError(null);
+
+        // Centrar mapa en tu ubicación
+        if (map) {
+          setTimeout(() => {
+            map.panTo(userPos);
+            map.setZoom(16);
+          }, 100);
+        }
+      },
+      (error) => {
+        console.error('Error geolocalización:', error);
+        let errorMsg = 'No se pudo obtener tu ubicación';
+
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg = 'Permiso denegado. Actívalo en configuración.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg = 'Ubicación no disponible.';
+            break;
+          case error.TIMEOUT:
+            errorMsg = 'Tiempo agotado.';
+            break;
+          default:
+            errorMsg = 'Error desconocido.';
+        }
+
+        setGeoError(errorMsg);
+        setLoadingLocation(false);
+        alert(errorMsg);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
   const { isLoaded, loadError: apiLoadError } = useJsApiLoader({
     googleMapsApiKey: "AIzaSyCjYgHzkG53-aSTcHJkAPYu98TIkGZ2d-w",
     timeout: 5000,
@@ -83,9 +157,8 @@ const UbicacionHorarios = () => {
       console.error('Error cargando Google Maps:', error);
       setLoadError(error);
     }
-  }, []);
+  });
 
-  // Colores dinámicos
   const colors = {
     background: isDarkTheme
       ? "linear-gradient(90deg, #1C2A38 0%, #2C3E50 100%)"
@@ -157,7 +230,9 @@ const UbicacionHorarios = () => {
   ];
 
   const streetViewLink = `https://www.google.com/maps/@21.0816681,-98.5359763,19.64z`;
-  const directionsLink = `https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}`;
+  const directionsLink = userLocation
+    ? `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${center.lat},${center.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}`;
 
   const onLoad = useCallback((map) => {
     setMap(map);
@@ -249,25 +324,11 @@ const UbicacionHorarios = () => {
     hover: { backgroundColor: colors.tabHover, scale: 1.03 }
   };
 
-  const formatPhoneLink = (phone) => `tel:${phone.replace(/\D/g, '')}`;
-
   if (!isLoaded) {
     return (
-      <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="600px"
-        sx={{ background: colors.background, borderRadius: '12px', boxShadow: colors.cardShadow, position: 'relative', overflow: 'hidden' }}
-      >
+      <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="600px" sx={{ background: colors.background, borderRadius: '12px', boxShadow: colors.cardShadow, position: 'relative', overflow: 'hidden' }}>
         <Box sx={{ position: 'absolute', width: '100%', height: '100%', background: colors.backgroundPattern, opacity: 0.5, zIndex: 0 }} />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: "easeOut" }}
-          style={{ zIndex: 1, textAlign: 'center' }}
-        >
+        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} style={{ zIndex: 1, textAlign: 'center' }}>
           <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 0, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}>
             <CircularProgress size={70} thickness={3.5} sx={{ color: colors.primaryColor, mb: 3 }} />
           </motion.div>
@@ -294,12 +355,7 @@ const UbicacionHorarios = () => {
             No se pudo cargar Google Maps. Por favor, verifica tu conexión a internet o intenta nuevamente más tarde.
           </Typography>
           <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-            <Button
-              variant="contained"
-              size="large"
-              onClick={() => window.location.reload()}
-              sx={{ mt: 2, bgcolor: colors.primaryColor, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)', px: 3, py: 1, borderRadius: '8px', '&:hover': { bgcolor: isDarkTheme ? '#60A5FA' : '#1E40AF' } }}
-            >
+            <Button variant="contained" size="large" onClick={() => window.location.reload()} sx={{ mt: 2, bgcolor: colors.primaryColor, boxShadow: '0 4px 12px rgba(37, 99, 235, 0.25)', px: 3, py: 1, borderRadius: '8px', '&:hover': { bgcolor: isDarkTheme ? '#60A5FA' : '#1E40AF' } }}>
               Reintentar
             </Button>
           </motion.div>
@@ -311,23 +367,11 @@ const UbicacionHorarios = () => {
   return (
     <AnimatePresence>
       {showPage && (
-        <motion.div
-          key="ubicacion-horarios-page"
-          variants={pageAnimationVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          style={{ background: colors.background, minHeight: '90vh', width: '100%', position: 'relative', overflow: 'hidden' }}
-        >
+        <motion.div key="ubicacion-horarios-page" variants={pageAnimationVariants} initial="hidden" animate="visible" exit="exit" style={{ background: colors.background, minHeight: '90vh', width: '100%', position: 'relative', overflow: 'hidden' }}>
           <Box sx={{ position: 'absolute', width: '100%', height: '100%', background: colors.backgroundPattern, opacity: 0.5, top: 0, left: 0, zIndex: 0 }} />
           <Container maxWidth="lg" sx={{ py: 4, position: 'relative', zIndex: 1 }}>
             <motion.div variants={titleAnimationVariants}>
-              <Typography
-                variant={isMobile ? "h4" : "h3"}
-                component="h1"
-                align="center"
-                sx={{ fontWeight: 700, color: colors.primaryText, letterSpacing: '-0.01em', mb: 1, position: 'relative', display: 'inline-block', left: '50%', transform: 'translateX(-50%)' }}
-              >
+              <Typography variant={isMobile ? "h4" : "h3"} component="h1" align="center" sx={{ fontWeight: 700, color: colors.primaryText, letterSpacing: '-0.01em', mb: 1, position: 'relative', display: 'inline-block', left: '50%', transform: 'translateX(-50%)' }}>
                 Encuéntranos
                 <motion.span variants={floatingIconVariants} initial="initial" animate="animate" style={{ display: 'inline-flex', marginLeft: '8px', verticalAlign: 'middle' }}>
                   <LocationOn sx={{ color: colors.secondaryColor, fontSize: isMobile ? 30 : 34 }} />
@@ -368,38 +412,21 @@ const UbicacionHorarios = () => {
                             <LocationCity sx={{ color: colors.primaryColor, fontSize: '1.2rem' }} /> Nuestra ubicación
                           </Typography>
                           <Box sx={{ display: 'flex', gap: 0.5 }}>
+                            <Tooltip title="Mi ubicación" arrow>
+                              <IconButton size="small" onClick={requestUserLocation} disabled={loadingLocation} sx={{ color: colors.primaryColor, bgcolor: colors.chipBackground, '&:hover': { bgcolor: colors.buttonHover } }}>
+                                {loadingLocation ? <CircularProgress size={16} /> : <MyLocation fontSize="small" />}
+                              </IconButton>
+                            </Tooltip>
                             <Tooltip title="Acercar" arrow><IconButton size="small" onClick={zoomIn} sx={{ color: colors.primaryColor, bgcolor: colors.chipBackground, '&:hover': { bgcolor: colors.buttonHover } }}><ZoomIn fontSize="small" /></IconButton></Tooltip>
                             <Tooltip title="Alejar" arrow><IconButton size="small" onClick={zoomOut} sx={{ color: colors.primaryColor, bgcolor: colors.chipBackground, '&:hover': { bgcolor: colors.buttonHover } }}><ZoomOut fontSize="small" /></IconButton></Tooltip>
                             <Tooltip title={mapView === 'roadmap' ? 'Ver satélite' : 'Ver mapa'} arrow>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={toggleMapView}
-                                startIcon={mapView === 'roadmap' ? <Satellite /> : <Map />}
-                                sx={{
-                                  borderColor: alpha(colors.primaryColor, 0.6),
-                                  color: colors.primaryColor,
-                                  textTransform: 'none',
-                                  fontWeight: 500,
-                                  borderRadius: '6px',
-                                  ml: 0.5,
-                                  fontSize: '0.8rem',
-                                  py: 0.5,
-                                  '&:hover': { backgroundColor: colors.buttonHover, borderColor: colors.primaryColor }
-                                }}
-                              >
+                              <Button size="small" variant="outlined" onClick={toggleMapView} startIcon={mapView === 'roadmap' ? <Satellite /> : <Map />} sx={{ borderColor: alpha(colors.primaryColor, 0.6), color: colors.primaryColor, textTransform: 'none', fontWeight: 500, borderRadius: '6px', ml: 0.5, fontSize: '0.8rem', py: 0.5, '&:hover': { backgroundColor: colors.buttonHover, borderColor: colors.primaryColor } }}>
                                 {mapView === 'roadmap' ? 'Satélite' : 'Mapa'}
                               </Button>
                             </Tooltip>
                           </Box>
                         </Box>
-                        <motion.div
-                          onHoverStart={() => setIsHovering(true)}
-                          onHoverEnd={() => setIsHovering(false)}
-                          animate={isHovering ? { scale: 1.005 } : { scale: 1 }}
-                          transition={{ duration: 0.2 }}
-                          whileHover={{ boxShadow: "0 10px 30px rgba(0,0,0,0.12)" }}
-                        >
+                        <motion.div onHoverStart={() => setIsHovering(true)} onHoverEnd={() => setIsHovering(false)} animate={isHovering ? { scale: 1.005 } : { scale: 1 }} transition={{ duration: 0.2 }} whileHover={{ boxShadow: "0 10px 30px rgba(0,0,0,0.12)" }}>
                           <GoogleMap
                             mapContainerStyle={mapStyles}
                             zoom={mapZoom}
@@ -432,6 +459,22 @@ const UbicacionHorarios = () => {
                                 anchor: new window.google.maps.Point(12, 22),
                               }}
                             />
+
+                            {userLocation && (
+                              <Marker
+                                position={userLocation}
+                                title="Tu ubicación"
+                                icon={{
+                                  path: window.google.maps.SymbolPath.CIRCLE,
+                                  fillColor: '#4285F4',
+                                  fillOpacity: 1,
+                                  strokeColor: '#ffffff',
+                                  strokeWeight: 3,
+                                  scale: 10
+                                }}
+                              />
+                            )}
+
                             {showInfoWindow && (
                               <InfoWindow position={center} onCloseClick={() => setShowInfoWindow(false)} options={{ pixelOffset: new window.google.maps.Size(0, -35), maxWidth: 300 }}>
                                 <Box sx={{ p: 1, maxWidth: 280 }}>
@@ -454,40 +497,17 @@ const UbicacionHorarios = () => {
                         </motion.div>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, justifyContent: { xs: 'center', sm: 'flex-start' }, mt: 2.5 }}>
                           <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                            <Button
-                              variant="outlined"
-                              color="primary"
-                              href={streetViewLink}
-                              target="_blank"
-                              startIcon={<OpenInNew />}
-                              size="small"
-                              sx={{ textTransform: 'none', borderColor: alpha(colors.primaryColor, 0.6), color: colors.primaryColor, borderRadius: '8px', px: 2, py: 0.8, '&:hover': { borderColor: colors.primaryColor, backgroundColor: colors.buttonHover, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }, fontWeight: 500 }}
-                            >
+                            <Button variant="outlined" color="primary" href={streetViewLink} target="_blank" startIcon={<OpenInNew />} size="small" sx={{ textTransform: 'none', borderColor: alpha(colors.primaryColor, 0.6), color: colors.primaryColor, borderRadius: '8px', px: 2, py: 0.8, '&:hover': { borderColor: colors.primaryColor, backgroundColor: colors.buttonHover, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }, fontWeight: 500 }}>
                               Street View
                             </Button>
                           </motion.div>
                           <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                            <Button
-                              variant="outlined"
-                              color="primary"
-                              onClick={handleShare}
-                              startIcon={<Share />}
-                              size="small"
-                              sx={{ textTransform: 'none', borderColor: alpha(colors.primaryColor, 0.6), color: colors.primaryColor, borderRadius: '8px', px: 2, py: 0.8, '&:hover': { borderColor: colors.primaryColor, backgroundColor: colors.buttonHover, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }, fontWeight: 500 }}
-                            >
+                            <Button variant="outlined" color="primary" onClick={handleShare} startIcon={<Share />} size="small" sx={{ textTransform: 'none', borderColor: alpha(colors.primaryColor, 0.6), color: colors.primaryColor, borderRadius: '8px', px: 2, py: 0.8, '&:hover': { borderColor: colors.primaryColor, backgroundColor: colors.buttonHover, transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.12)' }, fontWeight: 500 }}>
                               Compartir
                             </Button>
                           </motion.div>
                           <motion.div whileHover="hover" whileTap="tap" variants={buttonVariants}>
-                            <Button
-                              variant="contained"
-                              color="primary"
-                              href={directionsLink}
-                              target="_blank"
-                              startIcon={<Navigation />}
-                              size="small"
-                              sx={{ textTransform: 'none', background: colors.accentGradient, color: 'white', borderRadius: '8px', px: 2, py: 0.8, '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }, fontWeight: 500 }}
-                            >
+                            <Button variant="contained" color="primary" href={directionsLink} target="_blank" startIcon={<Navigation />} size="small" sx={{ textTransform: 'none', background: colors.accentGradient, color: 'white', borderRadius: '8px', px: 2, py: 0.8, '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 12px rgba(37, 99, 235, 0.2)' }, fontWeight: 500 }}>
                               Cómo llegar
                             </Button>
                           </motion.div>
@@ -508,7 +528,12 @@ const UbicacionHorarios = () => {
                           </motion.div>
                           <motion.div variants={staggerItemVariants}>
                             <Box sx={{ mb: 2.5 }}>
-                              <Chip label="Abierto ahora" size="small" sx={{ fontWeight: 600, mb: 2, borderRadius: '4px', backgroundColor: colors.success, color: 'white', fontSize: '0.7rem', height: '24px' }} />
+                              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                                <Chip label="Abierto ahora" size="small" sx={{ fontWeight: 600, borderRadius: '4px', backgroundColor: colors.success, color: 'white', fontSize: '0.7rem', height: '24px' }} />
+                                {distance && (
+                                  <Chip label={`A ${distance} km de ti`} size="small" icon={<Navigation sx={{ fontSize: '0.8rem !important' }} />} sx={{ fontWeight: 600, borderRadius: '4px', backgroundColor: colors.chipBackground, color: colors.primaryColor, fontSize: '0.7rem', height: '24px', '& .MuiChip-icon': { color: colors.primaryColor } }} />
+                                )}
+                              </Box>
                               <Box sx={{ p: 1.8, borderRadius: '10px', bgcolor: isDarkTheme ? alpha('#ffffff', 0.04) : alpha('#2563EB', 0.02), mb: 2, transition: 'all 0.2s ease', '&:hover': { transform: 'translateX(3px)', bgcolor: isDarkTheme ? alpha('#ffffff', 0.06) : alpha('#2563EB', 0.04) } }}>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: colors.primaryText, mb: 0.5, display: 'flex', alignItems: 'center', gap: 1, fontSize: '0.85rem' }}>
                                   <LocationOn color="primary" fontSize="small" /> Dirección
@@ -520,7 +545,7 @@ const UbicacionHorarios = () => {
                                   <Navigation color="primary" fontSize="small" /> Cómo llegar
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: colors.secondaryText, pl: 3.5, lineHeight: 1.5, fontSize: '0.8rem' }}>
-                                  Camino de concreto, casa verde con porche a la derecha. Frente a un arroyo, rodeada de vegetaciónes.
+                                  Camino de concreto, casa verde con porche a la derecha. Frente a un arroyo, rodeada de vegetación.
                                 </Typography>
                               </Box>
                             </Box>
