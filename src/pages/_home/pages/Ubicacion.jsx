@@ -21,7 +21,6 @@ import {
   OpenInNew,
   LocationOn,
   AccessTime,
-  Phone,
   Info,
   Navigation,
   Share,
@@ -29,7 +28,6 @@ import {
   Satellite,
   ZoomIn,
   ZoomOut,
-  WhatsApp,
   CalendarMonth,
   LocationCity,
   Star,
@@ -37,6 +35,12 @@ import {
 } from '@mui/icons-material';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import HorariosAtencion from './Steps/HorariosAtencion';
+
+// Ubicación de la clínica
+const CLINIC_LOCATION = {
+  lat: 21.081734,
+  lng: -98.536002
+};
 
 const UbicacionHorarios = () => {
   const { isDarkTheme } = useThemeContext();
@@ -56,6 +60,7 @@ const UbicacionHorarios = () => {
   const [distance, setDistance] = useState(null);
   const [geoError, setGeoError] = useState(null);
   const [loadingLocation, setLoadingLocation] = useState(false);
+  const [mapCenter, setMapCenter] = useState(CLINIC_LOCATION);
 
   useEffect(() => {
     const timer = setTimeout(() => setShowPage(true), 300);
@@ -69,11 +74,6 @@ const UbicacionHorarios = () => {
     whatsapp: "+52 789 123 4567",
     indicaciones: "Un camino de concreto en Ixcatlán, Hidalgo, rodeado de vegetación y montañas. A la derecha, una casa verde con globos en el porche; a la izquierda, un arroyo junto a árboles. Zona tranquila con construcciones sencillas y poco tráfico.",
     reseñas: "4.8/5 basado en 45 reseñas"
-  };
-
-  const center = {
-    lat: 21.081734,
-    lng: -98.536002
   };
 
   const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -90,7 +90,6 @@ const UbicacionHorarios = () => {
 
   const requestUserLocation = () => {
     if (!navigator.geolocation) {
-      setGeoError('Geolocalización no disponible');
       alert('Tu navegador no soporta geolocalización');
       return;
     }
@@ -103,41 +102,28 @@ const UbicacionHorarios = () => {
           lng: position.coords.longitude
         };
         setUserLocation(userPos);
+        setMapCenter(userPos);
 
         const dist = calculateDistance(
           userPos.lat, userPos.lng,
-          center.lat, center.lng
+          CLINIC_LOCATION.lat, CLINIC_LOCATION.lng
         );
         setDistance(dist);
         setLoadingLocation(false);
         setGeoError(null);
 
-        // Centrar mapa en tu ubicación
         if (map) {
-          setTimeout(() => {
-            map.panTo(userPos);
-            map.setZoom(16);
-          }, 100);
+          map.panTo(userPos);
+          map.setZoom(16);
         }
       },
       (error) => {
-        console.error('Error geolocalización:', error);
-        let errorMsg = 'No se pudo obtener tu ubicación';
-
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMsg = 'Permiso denegado. Actívalo en configuración.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMsg = 'Ubicación no disponible.';
-            break;
-          case error.TIMEOUT:
-            errorMsg = 'Tiempo agotado.';
-            break;
-          default:
-            errorMsg = 'Error desconocido.';
-        }
-
+        const errorMessages = {
+          [error.PERMISSION_DENIED]: 'Permiso denegado. Actívalo en configuración.',
+          [error.POSITION_UNAVAILABLE]: 'Ubicación no disponible.',
+          [error.TIMEOUT]: 'Tiempo agotado.'
+        };
+        const errorMsg = errorMessages[error.code] || 'Error desconocido.';
         setGeoError(errorMsg);
         setLoadingLocation(false);
         alert(errorMsg);
@@ -231,15 +217,11 @@ const UbicacionHorarios = () => {
 
   const streetViewLink = `https://www.google.com/maps/@21.0816681,-98.5359763,19.64z`;
   const directionsLink = userLocation
-    ? `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${center.lat},${center.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${center.lat},${center.lng}`;
+    ? `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${CLINIC_LOCATION.lat},${CLINIC_LOCATION.lng}`
+    : `https://www.google.com/maps/search/?api=1&query=${CLINIC_LOCATION.lat},${CLINIC_LOCATION.lng}`;
 
   const onLoad = useCallback((map) => {
     setMap(map);
-    requestAnimationFrame(() => {
-      map.setZoom(15);
-      requestAnimationFrame(() => map.setZoom(17));
-    });
   }, []);
 
   const onUnmount = useCallback(() => setMap(null), []);
@@ -329,7 +311,7 @@ const UbicacionHorarios = () => {
       <Box display="flex" flexDirection="column" justifyContent="center" alignItems="center" minHeight="600px" sx={{ background: colors.background, borderRadius: '12px', boxShadow: colors.cardShadow, position: 'relative', overflow: 'hidden' }}>
         <Box sx={{ position: 'absolute', width: '100%', height: '100%', background: colors.backgroundPattern, opacity: 0.5, zIndex: 0 }} />
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5, ease: "easeOut" }} style={{ zIndex: 1, textAlign: 'center' }}>
-          <motion.div animate={{ scale: [1, 1.1, 1], rotate: [0, 0, 0] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}>
+          <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}>
             <CircularProgress size={70} thickness={3.5} sx={{ color: colors.primaryColor, mb: 3 }} />
           </motion.div>
           <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2, duration: 0.4 }}>
@@ -430,7 +412,7 @@ const UbicacionHorarios = () => {
                           <GoogleMap
                             mapContainerStyle={mapStyles}
                             zoom={mapZoom}
-                            center={center}
+                            center={mapCenter}
                             onLoad={onLoad}
                             onUnmount={onUnmount}
                             options={{
@@ -445,7 +427,7 @@ const UbicacionHorarios = () => {
                             }}
                           >
                             <Marker
-                              position={center}
+                              position={CLINIC_LOCATION}
                               title={clinicInfo.nombre}
                               onClick={() => setShowInfoWindow(!showInfoWindow)}
                               animation={window.google.maps.Animation.DROP}
@@ -476,7 +458,7 @@ const UbicacionHorarios = () => {
                             )}
 
                             {showInfoWindow && (
-                              <InfoWindow position={center} onCloseClick={() => setShowInfoWindow(false)} options={{ pixelOffset: new window.google.maps.Size(0, -35), maxWidth: 300 }}>
+                              <InfoWindow position={CLINIC_LOCATION} onCloseClick={() => setShowInfoWindow(false)} options={{ pixelOffset: new window.google.maps.Size(0, -35), maxWidth: 300 }}>
                                 <Box sx={{ p: 1, maxWidth: 280 }}>
                                   <Typography variant="subtitle1" fontWeight="bold" sx={{ mb: 1, color: "#1E3A5F", borderBottom: "2px solid #2563EB", pb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <LocationCity fontSize="small" sx={{ color: "#2563EB" }} />{clinicInfo.nombre}
