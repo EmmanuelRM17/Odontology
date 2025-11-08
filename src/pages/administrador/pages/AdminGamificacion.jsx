@@ -1,4 +1,4 @@
-import React, { useState, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useMemo, lazy, Suspense, useEffect, useRef } from 'react';
 import {
     Box,
     Tab,
@@ -19,12 +19,11 @@ import {
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 
-// Lazy load de tabs para optimizar carga inicial
+// Lazy load de tabs
 const RecompensaTab = lazy(() => import('./gamificacion/RecompensaTab'));
 const ServiciosTab = lazy(() => import('./gamificacion/ServiciosTab'));
 const PacientesTab = lazy(() => import('./gamificacion/PacientesTab'));
 
-// Componente de loading centralizado
 const TabLoader = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
         <CircularProgress size={40} />
@@ -38,13 +37,14 @@ const AdminGamificacion = () => {
     const isTablet = useMediaQuery(theme.breakpoints.down('md'));
 
     const [activeTab, setActiveTab] = useState(0);
+    const [loadedTabs, setLoadedTabs] = useState([0]); // Tabs que ya se cargaron
+    const changeTimeout = useRef(null);
     const [notification, setNotification] = useState({
         open: false,
         message: '',
         type: 'success'
     });
 
-    // Memoizar colores para evitar recálculo en cada render
     const colors = useMemo(() => ({
         background: isDarkTheme ? '#0F1419' : '#F0F4F8',
         paper: isDarkTheme ? '#1A1F26' : '#FFFFFF',
@@ -77,31 +77,65 @@ const AdminGamificacion = () => {
         glassBlur: 'blur(20px)'
     }), [isDarkTheme]);
 
-    // Mostrar notificación
     const showNotif = (message, type = 'success') => {
         setNotification({ open: true, message, type });
     };
 
-    // Renderizar solo el tab activo
-    const renderActiveTab = () => {
-        const tabProps = {
-            colors,
-            isMobile,
-            isTablet,
-            showNotif
-        };
-
-        switch (activeTab) {
-            case 0:
-                return <RecompensaTab {...tabProps} />;
-            case 1:
-                return <ServiciosTab {...tabProps} />;
-            case 2:
-                return <PacientesTab {...tabProps} />;
-            default:
-                return null;
+    // Manejar cambio de tab con debounce mínimo
+    const handleTabChange = (e, newValue) => {
+        if (changeTimeout.current) {
+            clearTimeout(changeTimeout.current);
         }
+        
+        changeTimeout.current = setTimeout(() => {
+            setActiveTab(newValue);
+            if (!loadedTabs.includes(newValue)) {
+                setLoadedTabs(prev => [...prev, newValue]);
+            }
+        }, 150);
     };
+
+    useEffect(() => {
+        return () => {
+            if (changeTimeout.current) {
+                clearTimeout(changeTimeout.current);
+            }
+        };
+    }, []);
+
+    const tabProps = {
+        colors,
+        isMobile,
+        isTablet,
+        showNotif
+    };
+
+    // Renderizar tabs cargados y mantenerlos montados
+    const renderTabs = () => (
+        <>
+            {loadedTabs.includes(0) && (
+                <Box sx={{ display: activeTab === 0 ? 'block' : 'none' }}>
+                    <Suspense fallback={<TabLoader />}>
+                        <RecompensaTab {...tabProps} />
+                    </Suspense>
+                </Box>
+            )}
+            {loadedTabs.includes(1) && (
+                <Box sx={{ display: activeTab === 1 ? 'block' : 'none' }}>
+                    <Suspense fallback={<TabLoader />}>
+                        <ServiciosTab {...tabProps} />
+                    </Suspense>
+                </Box>
+            )}
+            {loadedTabs.includes(2) && (
+                <Box sx={{ display: activeTab === 2 ? 'block' : 'none' }}>
+                    <Suspense fallback={<TabLoader />}>
+                        <PacientesTab {...tabProps} />
+                    </Suspense>
+                </Box>
+            )}
+        </>
+    );
 
     return (
         <Box
@@ -111,7 +145,6 @@ const AdminGamificacion = () => {
                 p: isMobile ? 2 : isTablet ? 3 : 4
             }}
         >
-            {/* Header */}
             <Paper
                 elevation={0}
                 sx={{
@@ -153,7 +186,6 @@ const AdminGamificacion = () => {
                 </Box>
             </Paper>
 
-            {/* Tabs Navigation */}
             <Paper
                 elevation={0}
                 sx={{
@@ -167,7 +199,7 @@ const AdminGamificacion = () => {
             >
                 <Tabs
                     value={activeTab}
-                    onChange={(e, newValue) => setActiveTab(newValue)}
+                    onChange={handleTabChange}
                     variant={isMobile ? 'fullWidth' : 'standard'}
                     sx={{
                         '& .MuiTab-root': {
@@ -189,30 +221,14 @@ const AdminGamificacion = () => {
                         }
                     }}
                 >
-                    <Tab
-                        icon={<TrophyIcon />}
-                        iconPosition="start"
-                        label="Recompensas"
-                    />
-                    <Tab
-                        icon={<ServiceIcon />}
-                        iconPosition="start"
-                        label="Servicios"
-                    />
-                    <Tab
-                        icon={<PeopleIcon />}
-                        iconPosition="start"
-                        label="Pacientes"
-                    />
+                    <Tab icon={<TrophyIcon />} iconPosition="start" label="Recompensas" />
+                    <Tab icon={<ServiceIcon />} iconPosition="start" label="Servicios" />
+                    <Tab icon={<PeopleIcon />} iconPosition="start" label="Pacientes" />
                 </Tabs>
             </Paper>
 
-            {/* Tab Content con Suspense */}
-            <Suspense fallback={<TabLoader />}>
-                {renderActiveTab()}
-            </Suspense>
+            {renderTabs()}
 
-            {/* Notificaciones */}
             <Notificaciones
                 open={notification.open}
                 message={notification.message}
