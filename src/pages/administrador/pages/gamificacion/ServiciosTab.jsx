@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
     Box,
     Button,
@@ -22,7 +22,8 @@ import {
     FormControlLabel,
     InputAdornment,
     MenuItem,
-    Paper
+    Paper,
+    Alert
 } from '@mui/material';
 import {
     Add as AddIcon,
@@ -34,16 +35,170 @@ import {
     CheckCircle as CheckIcon,
     Cancel as CancelIcon,
     Stars as StarsIcon,
-    FilterList as FilterIcon
+    FilterList as FilterIcon,
+    Info as InfoIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
 const API_URL = 'https://back-end-4803.onrender.com/api/gamificacion';
 
+const FORM_EDIT_INICIAL = { puntos: 10, estado: 1 };
+const FORM_ASIGNAR_INICIAL = { id_servicio: '', puntos: 10 };
+
+// Hook custom para peticiones con timeout
+const useApiRequest = (showNotif) => {
+    const ejecutarPeticion = useCallback(async (peticion, mensajeExito) => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            
+            const resultado = await peticion(controller.signal);
+            
+            clearTimeout(timeoutId);
+            if (mensajeExito) showNotif(mensajeExito, 'success');
+            return { exito: true, data: resultado };
+        } catch (error) {
+            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
+                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
+            } else if (error.response?.status !== 404) {
+                showNotif(error.response?.data?.error || 'Error en la operación', 'error');
+            }
+            return { exito: false, error };
+        }
+    }, [showNotif]);
+
+    return ejecutarPeticion;
+};
+
+// Componente de card de servicio memoizado
+const ServicioCard = memo(({ servicio, colors, onEdit, onDelete }) => (
+    <Card
+        elevation={0}
+        sx={{
+            background: colors.paper,
+            borderRadius: '20px',
+            border: `1px solid ${colors.border}`,
+            boxShadow: colors.shadow,
+            height: '100%',
+            transition: 'all 0.3s ease',
+            '&:hover': {
+                transform: 'translateY(-4px)',
+                boxShadow: `0 12px 24px ${alpha(colors.primary, 0.15)}`
+            }
+        }}
+    >
+        <CardContent sx={{ p: 2.5 }}>
+            <Box display="flex" justifyContent="space-between" alignItems="start" mb={1.5}>
+                <Box
+                    sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: '12px',
+                        background: colors.gradient,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <ServiceIcon sx={{ color: 'white', fontSize: 22 }} />
+                </Box>
+                <Chip
+                    icon={servicio.estado === 1 ? <CheckIcon sx={{ fontSize: 14 }} /> : <CancelIcon sx={{ fontSize: 14 }} />}
+                    label={servicio.estado === 1 ? 'Activo' : 'Inactivo'}
+                    size="small"
+                    sx={{
+                        background: servicio.estado === 1 ? alpha(colors.success, 0.1) : alpha(colors.error, 0.1),
+                        color: servicio.estado === 1 ? colors.success : colors.error,
+                        fontWeight: 600,
+                        border: `1px solid ${servicio.estado === 1 ? alpha(colors.success, 0.3) : alpha(colors.error, 0.3)}`,
+                        height: 28
+                    }}
+                />
+            </Box>
+
+            <Typography variant="h6" fontWeight={700} color={colors.text} mb={0.5} noWrap>
+                {servicio.nombre_servicio}
+            </Typography>
+
+            <Typography
+                variant="body2"
+                color={colors.secondaryText}
+                mb={1.5}
+                sx={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    minHeight: 36
+                }}
+            >
+                {servicio.descripcion_servicio || 'Sin descripción'}
+            </Typography>
+
+            <Paper
+                elevation={0}
+                sx={{
+                    p: 1.5,
+                    borderRadius: '12px',
+                    background: alpha(colors.primary, 0.05),
+                    border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                    mb: 1.5
+                }}
+            >
+                <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
+                    <StarsIcon sx={{ color: colors.primary, fontSize: 18 }} />
+                    <Typography variant="h5" fontWeight={700} color={colors.primary}>
+                        {servicio.puntos}
+                    </Typography>
+                    <Typography variant="body2" color={colors.secondaryText} fontWeight={600}>
+                        puntos
+                    </Typography>
+                </Box>
+            </Paper>
+
+            <Stack direction="row" spacing={1}>
+                <Button
+                    variant="outlined"
+                    startIcon={<EditIcon />}
+                    onClick={() => onEdit(servicio)}
+                    fullWidth
+                    sx={{
+                        borderRadius: '10px',
+                        borderColor: colors.primary,
+                        color: colors.primary,
+                        fontWeight: 600,
+                        textTransform: 'none',
+                        py: 0.8,
+                        '&:hover': {
+                            borderColor: colors.primary,
+                            background: alpha(colors.primary, 0.05)
+                        }
+                    }}
+                >
+                    Editar
+                </Button>
+                <IconButton
+                    onClick={() => onDelete(servicio)}
+                    sx={{
+                        borderRadius: '10px',
+                        border: `1px solid ${colors.error}`,
+                        color: colors.error,
+                        '&:hover': {
+                            background: alpha(colors.error, 0.05)
+                        }
+                    }}
+                >
+                    <DeleteIcon />
+                </IconButton>
+            </Stack>
+        </CardContent>
+    </Card>
+));
+
 const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
     const [servicios, setServicios] = useState([]);
     const [serviciosDisponibles, setServiciosDisponibles] = useState([]);
-    const [filteredServicios, setFilteredServicios] = useState([]);
+    const [recompensa, setRecompensa] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterEstado, setFilterEstado] = useState('todos');
     const [loading, setLoading] = useState(false);
@@ -52,64 +207,49 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
     const [openDialogAsignar, setOpenDialogAsignar] = useState(false);
     const [openDialogDelete, setOpenDialogDelete] = useState(false);
     const [selectedServicio, setSelectedServicio] = useState(null);
-    const [formEdit, setFormEdit] = useState({ puntos: 10, estado: 1 });
-    const [formAsignar, setFormAsignar] = useState({ id_servicio: '', puntos: 10 });
+    const [formEdit, setFormEdit] = useState(FORM_EDIT_INICIAL);
+    const [formAsignar, setFormAsignar] = useState(FORM_ASIGNAR_INICIAL);
 
+    const ejecutarPeticion = useApiRequest(showNotif);
+
+    // Cargar datos al montar
     useEffect(() => {
-        cargarServicios();
+        cargarDatos();
     }, []);
 
-    useEffect(() => {
-        filtrarServicios();
-    }, [searchTerm, filterEstado, servicios]);
-
-    // Cargar servicios con timeout
-    const cargarServicios = async () => {
+    // Cargar servicios y recompensa
+    const cargarDatos = useCallback(async () => {
         setLoadingData(true);
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+        await Promise.all([cargarServicios(), cargarRecompensa()]);
+        setLoadingData(false);
+    }, []);
 
-            const { data } = await axios.get(`${API_URL}/servicios-gamificacion`, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            setServicios(data);
-        } catch (error) {
-            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
-            } else {
-                showNotif('Error al cargar servicios', 'error');
-            }
-        } finally {
-            setLoadingData(false);
-        }
-    };
+    // Cargar servicios
+    const cargarServicios = useCallback(async () => {
+        const { exito, data } = await ejecutarPeticion(
+            (signal) => axios.get(`${API_URL}/servicios-gamificacion`, { signal }).then(res => res.data)
+        );
+        if (exito) setServicios(data);
+    }, [ejecutarPeticion]);
+
+    // Cargar recompensa para saber puntos requeridos
+    const cargarRecompensa = useCallback(async () => {
+        const { exito, data } = await ejecutarPeticion(
+            (signal) => axios.get(`${API_URL}/recompensa`, { signal }).then(res => res.data)
+        );
+        if (exito) setRecompensa(data);
+    }, [ejecutarPeticion]);
 
     // Cargar servicios disponibles
-    const cargarServiciosDisponibles = async () => {
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const cargarServiciosDisponibles = useCallback(async () => {
+        const { exito, data } = await ejecutarPeticion(
+            (signal) => axios.get(`${API_URL}/servicios/disponibles`, { signal }).then(res => res.data)
+        );
+        if (exito) setServiciosDisponibles(data);
+    }, [ejecutarPeticion]);
 
-            const { data } = await axios.get(`${API_URL}/servicios/disponibles`, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            setServiciosDisponibles(data);
-        } catch (error) {
-            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
-            } else {
-                showNotif('Error al cargar servicios disponibles', 'error');
-            }
-        }
-    };
-
-    // Filtrar servicios
-    const filtrarServicios = () => {
+    // Filtrar servicios con useMemo
+    const filteredServicios = useMemo(() => {
         let filtered = [...servicios];
 
         if (searchTerm) {
@@ -124,119 +264,153 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
             filtered = filtered.filter(s => s.estado === 0);
         }
 
-        setFilteredServicios(filtered);
-    };
+        return filtered;
+    }, [servicios, searchTerm, filterEstado]);
+
+    // Calcular cuántos servicios necesita completar con los puntos actuales
+    const calcularServiciosNecesarios = useCallback((puntos) => {
+        if (!recompensa || !puntos) return null;
+        return Math.ceil(recompensa.puntos_requeridos / puntos);
+    }, [recompensa]);
 
     // Abrir dialog editar
-    const handleOpenEdit = (servicio) => {
+    const handleOpenEdit = useCallback((servicio) => {
         setSelectedServicio(servicio);
         setFormEdit({
             puntos: servicio.puntos,
             estado: servicio.estado
         });
         setOpenDialogEdit(true);
-    };
+    }, []);
 
     // Abrir dialog asignar
-    const handleOpenAsignar = async () => {
+    const handleOpenAsignar = useCallback(async () => {
         await cargarServiciosDisponibles();
-        setFormAsignar({ id_servicio: '', puntos: 10 });
+        setFormAsignar(FORM_ASIGNAR_INICIAL);
         setOpenDialogAsignar(true);
-    };
+    }, [cargarServiciosDisponibles]);
 
     // Abrir dialog eliminar
-    const handleOpenDelete = (servicio) => {
+    const handleOpenDelete = useCallback((servicio) => {
         setSelectedServicio(servicio);
         setOpenDialogDelete(true);
-    };
+    }, []);
 
-    // Guardar edición
-    const handleSaveEdit = async () => {
+    // Cerrar dialogs
+    const handleCloseEdit = useCallback(() => {
+        setOpenDialogEdit(false);
+        setFormEdit(FORM_EDIT_INICIAL);
+    }, []);
+
+    const handleCloseAsignar = useCallback(() => {
+        setOpenDialogAsignar(false);
+        setFormAsignar(FORM_ASIGNAR_INICIAL);
+    }, []);
+
+    const handleCloseDelete = useCallback(() => {
+        setOpenDialogDelete(false);
+    }, []);
+
+    // Validar formulario edición
+    const validarFormEdit = useCallback(() => {
         if (!formEdit.puntos || formEdit.puntos <= 0) {
             showNotif('Los puntos deben ser mayores a 0', 'warning');
-            return;
+            return false;
         }
+        return true;
+    }, [formEdit, showNotif]);
+
+    // Validar formulario asignación
+    const validarFormAsignar = useCallback(() => {
+        if (!formAsignar.id_servicio) {
+            showNotif('Selecciona un servicio', 'warning');
+            return false;
+        }
+        if (!formAsignar.puntos || formAsignar.puntos <= 0) {
+            showNotif('Los puntos deben ser mayores a 0', 'warning');
+            return false;
+        }
+        return true;
+    }, [formAsignar, showNotif]);
+
+    // Guardar edición
+    const handleSaveEdit = useCallback(async () => {
+        if (!validarFormEdit()) return;
 
         setLoading(true);
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            await axios.put(`${API_URL}/servicios-gamificacion/${selectedServicio.id}`, formEdit, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            showNotif('Servicio actualizado correctamente', 'success');
-            setOpenDialogEdit(false);
+        const { exito } = await ejecutarPeticion(
+            (signal) => axios.put(`${API_URL}/servicios-gamificacion/${selectedServicio.id}`, formEdit, { signal }),
+            'Servicio actualizado correctamente'
+        );
+        
+        if (exito) {
+            handleCloseEdit();
             cargarServicios();
-        } catch (error) {
-            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
-            } else {
-                showNotif(error.response?.data?.error || 'Error al actualizar', 'error');
-            }
-        } finally {
-            setLoading(false);
         }
-    };
+        setLoading(false);
+    }, [validarFormEdit, selectedServicio, formEdit, ejecutarPeticion, handleCloseEdit, cargarServicios]);
 
     // Asignar servicio
-    const handleAsignar = async () => {
-        if (!formAsignar.id_servicio || !formAsignar.puntos || formAsignar.puntos <= 0) {
-            showNotif('Completa todos los campos correctamente', 'warning');
-            return;
-        }
+    const handleAsignar = useCallback(async () => {
+        if (!validarFormAsignar()) return;
 
         setLoading(true);
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            await axios.post(`${API_URL}/servicios-gamificacion`, formAsignar, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            showNotif('Servicio asignado correctamente', 'success');
-            setOpenDialogAsignar(false);
+        const { exito } = await ejecutarPeticion(
+            (signal) => axios.post(`${API_URL}/servicios-gamificacion`, formAsignar, { signal }),
+            'Servicio asignado correctamente'
+        );
+        
+        if (exito) {
+            handleCloseAsignar();
             cargarServicios();
-        } catch (error) {
-            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
-            } else {
-                showNotif(error.response?.data?.error || 'Error al asignar', 'error');
-            }
-        } finally {
-            setLoading(false);
         }
-    };
+        setLoading(false);
+    }, [validarFormAsignar, formAsignar, ejecutarPeticion, handleCloseAsignar, cargarServicios]);
 
     // Eliminar servicio
-    const handleDelete = async () => {
+    const handleDelete = useCallback(async () => {
         setLoading(true);
-        try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-            await axios.delete(`${API_URL}/servicios-gamificacion/${selectedServicio.id}`, {
-                signal: controller.signal
-            });
-            
-            clearTimeout(timeoutId);
-            showNotif('Servicio eliminado de gamificación', 'success');
-            setOpenDialogDelete(false);
+        const { exito } = await ejecutarPeticion(
+            (signal) => axios.delete(`${API_URL}/servicios-gamificacion/${selectedServicio.id}`, { signal }),
+            'Servicio eliminado de gamificación'
+        );
+        
+        if (exito) {
+            handleCloseDelete();
             cargarServicios();
-        } catch (error) {
-            if (error.code === 'ECONNABORTED' || error.name === 'AbortError') {
-                showNotif('Tiempo de espera agotado. Intenta nuevamente.', 'error');
-            } else {
-                showNotif('Error al eliminar servicio', 'error');
-            }
-        } finally {
-            setLoading(false);
         }
-    };
+        setLoading(false);
+    }, [selectedServicio, ejecutarPeticion, handleCloseDelete, cargarServicios]);
+
+    // Actualizar campos
+    const actualizarCampoEdit = useCallback((campo, valor) => {
+        setFormEdit(prev => ({ ...prev, [campo]: valor }));
+    }, []);
+
+    const actualizarCampoAsignar = useCallback((campo, valor) => {
+        setFormAsignar(prev => ({ ...prev, [campo]: valor }));
+    }, []);
+
+    // Estilos memoizados
+    const estilos = useMemo(() => ({
+        botonPrimario: {
+            borderRadius: '12px',
+            background: colors.gradient,
+            px: 3,
+            py: 1.5,
+            fontWeight: 600,
+            textTransform: 'none',
+            boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
+            '&:hover': {
+                background: colors.gradient,
+                transform: 'translateY(-2px)',
+                boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
+            }
+        },
+        textField: {
+            '& .MuiOutlinedInput-root': { borderRadius: '12px' }
+        }
+    }), [colors]);
 
     if (loadingData) {
         return (
@@ -249,14 +423,14 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
     return (
         <Fade in timeout={500}>
             <Box>
-                {/* Header con filtros */}
-                <Box sx={{ mb: 3 }}>
+                {/* Header */}
+                <Box sx={{ mb: 2.5 }}>
                     <Box
                         sx={{
                             display: 'flex',
                             justifyContent: 'space-between',
                             alignItems: 'center',
-                            mb: 3,
+                            mb: 2,
                             flexDirection: isMobile ? 'column' : 'row',
                             gap: 2
                         }}
@@ -273,20 +447,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             variant="contained"
                             startIcon={<AddIcon />}
                             onClick={handleOpenAsignar}
-                            sx={{
-                                borderRadius: '12px',
-                                background: colors.gradient,
-                                px: 3,
-                                py: 1.5,
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
-                                '&:hover': {
-                                    background: colors.gradient,
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
-                                }
-                            }}
+                            sx={estilos.botonPrimario}
                         >
                             Asignar Servicio
                         </Button>
@@ -316,11 +477,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                             </InputAdornment>
                                         )
                                     }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '12px'
-                                        }
-                                    }}
+                                    sx={estilos.textField}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={4}>
@@ -336,13 +493,9 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                             </InputAdornment>
                                         )
                                     }}
-                                    sx={{
-                                        '& .MuiOutlinedInput-root': {
-                                            borderRadius: '12px'
-                                        }
-                                    }}
+                                    sx={estilos.textField}
                                 >
-                                    <MenuItem value="todos">Todos los estados</MenuItem>
+                                    <MenuItem value="todos">Todos</MenuItem>
                                     <MenuItem value="activos">Activos</MenuItem>
                                     <MenuItem value="inactivos">Inactivos</MenuItem>
                                 </TextField>
@@ -353,128 +506,15 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
 
                 {/* Grid de servicios */}
                 {filteredServicios.length > 0 ? (
-                    <Grid container spacing={3}>
+                    <Grid container spacing={2.5}>
                         {filteredServicios.map((servicio) => (
                             <Grid item xs={12} sm={6} md={4} key={servicio.id}>
-                                <Card
-                                    elevation={0}
-                                    sx={{
-                                        background: colors.paper,
-                                        borderRadius: '20px',
-                                        border: `1px solid ${colors.border}`,
-                                        boxShadow: colors.shadow,
-                                        height: '100%',
-                                        transition: 'all 0.3s ease',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: `0 12px 24px ${alpha(colors.primary, 0.15)}`
-                                        }
-                                    }}
-                                >
-                                    <CardContent sx={{ p: 3 }}>
-                                        <Box display="flex" justifyContent="space-between" alignItems="start" mb={2}>
-                                            <Box
-                                                sx={{
-                                                    width: 48,
-                                                    height: 48,
-                                                    borderRadius: '12px',
-                                                    background: colors.gradient,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center'
-                                                }}
-                                            >
-                                                <ServiceIcon sx={{ color: 'white', fontSize: 24 }} />
-                                            </Box>
-                                            <Chip
-                                                icon={servicio.estado === 1 ? <CheckIcon sx={{ fontSize: 16 }} /> : <CancelIcon sx={{ fontSize: 16 }} />}
-                                                label={servicio.estado === 1 ? 'Activo' : 'Inactivo'}
-                                                size="small"
-                                                sx={{
-                                                    background: servicio.estado === 1 ? alpha(colors.success, 0.1) : alpha(colors.error, 0.1),
-                                                    color: servicio.estado === 1 ? colors.success : colors.error,
-                                                    fontWeight: 600,
-                                                    border: `1px solid ${servicio.estado === 1 ? alpha(colors.success, 0.3) : alpha(colors.error, 0.3)}`
-                                                }}
-                                            />
-                                        </Box>
-
-                                        <Typography variant="h6" fontWeight={700} color={colors.text} mb={1} noWrap>
-                                            {servicio.nombre_servicio}
-                                        </Typography>
-
-                                        <Typography
-                                            variant="body2"
-                                            color={colors.secondaryText}
-                                            mb={2}
-                                            sx={{
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 2,
-                                                WebkitBoxOrient: 'vertical',
-                                                overflow: 'hidden',
-                                                minHeight: 40
-                                            }}
-                                        >
-                                            {servicio.descripcion_servicio || 'Sin descripción'}
-                                        </Typography>
-
-                                        <Paper
-                                            elevation={0}
-                                            sx={{
-                                                p: 2,
-                                                borderRadius: '12px',
-                                                background: alpha(colors.primary, 0.05),
-                                                border: `1px solid ${alpha(colors.primary, 0.2)}`,
-                                                mb: 2
-                                            }}
-                                        >
-                                            <Box display="flex" alignItems="center" justifyContent="center" gap={1}>
-                                                <StarsIcon sx={{ color: colors.primary, fontSize: 20 }} />
-                                                <Typography variant="h5" fontWeight={700} color={colors.primary}>
-                                                    {servicio.puntos}
-                                                </Typography>
-                                                <Typography variant="body2" color={colors.secondaryText} fontWeight={600}>
-                                                    puntos
-                                                </Typography>
-                                            </Box>
-                                        </Paper>
-
-                                        <Stack direction="row" spacing={1}>
-                                            <Button
-                                                variant="outlined"
-                                                startIcon={<EditIcon />}
-                                                onClick={() => handleOpenEdit(servicio)}
-                                                fullWidth
-                                                sx={{
-                                                    borderRadius: '10px',
-                                                    borderColor: colors.primary,
-                                                    color: colors.primary,
-                                                    fontWeight: 600,
-                                                    textTransform: 'none',
-                                                    '&:hover': {
-                                                        borderColor: colors.primary,
-                                                        background: alpha(colors.primary, 0.05)
-                                                    }
-                                                }}
-                                            >
-                                                Editar
-                                            </Button>
-                                            <IconButton
-                                                onClick={() => handleOpenDelete(servicio)}
-                                                sx={{
-                                                    borderRadius: '10px',
-                                                    border: `1px solid ${colors.error}`,
-                                                    color: colors.error,
-                                                    '&:hover': {
-                                                        background: alpha(colors.error, 0.05)
-                                                    }
-                                                }}
-                                            >
-                                                <DeleteIcon />
-                                            </IconButton>
-                                        </Stack>
-                                    </CardContent>
-                                </Card>
+                                <ServicioCard
+                                    servicio={servicio}
+                                    colors={colors}
+                                    onEdit={handleOpenEdit}
+                                    onDelete={handleOpenDelete}
+                                />
                             </Grid>
                         ))}
                     </Grid>
@@ -483,13 +523,13 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         elevation={0}
                         sx={{
                             textAlign: 'center',
-                            py: 8,
+                            py: 6,
                             background: colors.paper,
                             borderRadius: '20px',
                             border: `2px dashed ${colors.border}`
                         }}
                     >
-                        <ServiceIcon sx={{ fontSize: 64, color: colors.secondaryText, mb: 2 }} />
+                        <ServiceIcon sx={{ fontSize: 56, color: colors.secondaryText, mb: 1.5 }} />
                         <Typography variant="h6" color={colors.secondaryText} fontWeight={600}>
                             No hay servicios {filterEstado === 'activos' ? 'activos' : filterEstado === 'inactivos' ? 'inactivos' : 'asignados'}
                         </Typography>
@@ -502,7 +542,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                 {/* Dialog Editar */}
                 <Dialog
                     open={openDialogEdit}
-                    onClose={() => setOpenDialogEdit(false)}
+                    onClose={handleCloseEdit}
                     maxWidth="sm"
                     fullWidth
                     fullScreen={isMobile}
@@ -519,28 +559,51 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             <Typography variant="h6" fontWeight={700} color={colors.text}>
                                 Editar Servicio
                             </Typography>
-                            <IconButton onClick={() => setOpenDialogEdit(false)} size="small">
+                            <IconButton onClick={handleCloseEdit} size="small">
                                 <CloseIcon />
                             </IconButton>
                         </Box>
-                        <Typography variant="body2" color={colors.secondaryText} mt={1}>
+                        <Typography variant="body2" color={colors.secondaryText} mt={0.5}>
                             {selectedServicio?.nombre_servicio}
                         </Typography>
                     </DialogTitle>
 
                     <Divider sx={{ borderColor: colors.border }} />
 
-                    <DialogContent sx={{ pt: 3 }}>
-                        <Stack spacing={3}>
+                    <DialogContent sx={{ pt: 2.5 }}>
+                        <Stack spacing={2.5}>
+                            {recompensa && (
+                                <Alert
+                                    severity="info"
+                                    icon={<InfoIcon />}
+                                    sx={{
+                                        borderRadius: '12px',
+                                        background: alpha(colors.primary, 0.05),
+                                        border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                                        '& .MuiAlert-icon': { color: colors.primary }
+                                    }}
+                                >
+                                    <Typography variant="body2" fontWeight={600} color={colors.text}>
+                                        Recompensa: {recompensa.puntos_requeridos} puntos
+                                    </Typography>
+                                    {formEdit.puntos > 0 && (
+                                        <Typography variant="caption" color={colors.secondaryText}>
+                                            El paciente necesitará completar {calcularServiciosNecesarios(formEdit.puntos)} servicios como este para canjear
+                                        </Typography>
+                                    )}
+                                </Alert>
+                            )}
+
                             <TextField
                                 label="Puntos"
                                 type="number"
                                 fullWidth
                                 required
                                 value={formEdit.puntos}
-                                onChange={(e) => setFormEdit({ ...formEdit, puntos: parseInt(e.target.value) || 0 })}
+                                onChange={(e) => actualizarCampoEdit('puntos', parseInt(e.target.value) || 0)}
                                 helperText="Puntos que ganará el paciente al completar este servicio"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                inputProps={{ min: 1 }}
+                                sx={estilos.textField}
                             />
 
                             <Paper
@@ -556,7 +619,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                     control={
                                         <Switch
                                             checked={formEdit.estado === 1}
-                                            onChange={(e) => setFormEdit({ ...formEdit, estado: e.target.checked ? 1 : 0 })}
+                                            onChange={(e) => actualizarCampoEdit('estado', e.target.checked ? 1 : 0)}
                                             sx={{
                                                 '& .MuiSwitch-switchBase.Mui-checked': { color: colors.success },
                                                 '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: colors.success }
@@ -580,14 +643,14 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
 
                     <Divider sx={{ borderColor: colors.border }} />
 
-                    <DialogActions sx={{ p: 3, gap: 2 }}>
+                    <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
                         <Button
-                            onClick={() => setOpenDialogEdit(false)}
+                            onClick={handleCloseEdit}
                             disabled={loading}
                             sx={{ 
                                 borderRadius: '12px', 
                                 px: 3, 
-                                py: 1.5, 
+                                py: 1.2, 
                                 fontWeight: 600,
                                 textTransform: 'none'
                             }}
@@ -598,21 +661,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             onClick={handleSaveEdit}
                             variant="contained"
                             disabled={loading}
-                            sx={{
-                                borderRadius: '12px',
-                                background: colors.gradient,
-                                px: 4,
-                                py: 1.5,
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                minWidth: 120,
-                                boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
-                                '&:hover': {
-                                    background: colors.gradient,
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
-                                }
-                            }}
+                            sx={{ ...estilos.botonPrimario, px: 4, minWidth: 120 }}
                         >
                             {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Guardar'}
                         </Button>
@@ -622,7 +671,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                 {/* Dialog Asignar */}
                 <Dialog
                     open={openDialogAsignar}
-                    onClose={() => setOpenDialogAsignar(false)}
+                    onClose={handleCloseAsignar}
                     maxWidth="sm"
                     fullWidth
                     fullScreen={isMobile}
@@ -639,7 +688,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             <Typography variant="h6" fontWeight={700} color={colors.text}>
                                 Asignar Nuevo Servicio
                             </Typography>
-                            <IconButton onClick={() => setOpenDialogAsignar(false)} size="small">
+                            <IconButton onClick={handleCloseAsignar} size="small">
                                 <CloseIcon />
                             </IconButton>
                         </Box>
@@ -647,16 +696,38 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
 
                     <Divider sx={{ borderColor: colors.border }} />
 
-                    <DialogContent sx={{ pt: 3 }}>
-                        <Stack spacing={3}>
+                    <DialogContent sx={{ pt: 2.5 }}>
+                        <Stack spacing={2.5}>
+                            {recompensa && (
+                                <Alert
+                                    severity="info"
+                                    icon={<InfoIcon />}
+                                    sx={{
+                                        borderRadius: '12px',
+                                        background: alpha(colors.primary, 0.05),
+                                        border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                                        '& .MuiAlert-icon': { color: colors.primary }
+                                    }}
+                                >
+                                    <Typography variant="body2" fontWeight={600} color={colors.text}>
+                                        Recompensa: {recompensa.puntos_requeridos} puntos
+                                    </Typography>
+                                    {formAsignar.puntos > 0 && (
+                                        <Typography variant="caption" color={colors.secondaryText}>
+                                            El paciente necesitará completar {calcularServiciosNecesarios(formAsignar.puntos)} servicios como este para canjear
+                                        </Typography>
+                                    )}
+                                </Alert>
+                            )}
+
                             <TextField
                                 select
                                 label="Selecciona un Servicio"
                                 fullWidth
                                 required
                                 value={formAsignar.id_servicio}
-                                onChange={(e) => setFormAsignar({ ...formAsignar, id_servicio: e.target.value })}
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                onChange={(e) => actualizarCampoAsignar('id_servicio', e.target.value)}
+                                sx={estilos.textField}
                             >
                                 {serviciosDisponibles.length === 0 && (
                                     <MenuItem disabled>No hay servicios disponibles</MenuItem>
@@ -674,23 +745,24 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                 fullWidth
                                 required
                                 value={formAsignar.puntos}
-                                onChange={(e) => setFormAsignar({ ...formAsignar, puntos: parseInt(e.target.value) || 0 })}
+                                onChange={(e) => actualizarCampoAsignar('puntos', parseInt(e.target.value) || 0)}
                                 helperText="Puntos que ganará el paciente al completar este servicio"
-                                sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                inputProps={{ min: 1 }}
+                                sx={estilos.textField}
                             />
                         </Stack>
                     </DialogContent>
 
                     <Divider sx={{ borderColor: colors.border }} />
 
-                    <DialogActions sx={{ p: 3, gap: 2 }}>
+                    <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
                         <Button
-                            onClick={() => setOpenDialogAsignar(false)}
+                            onClick={handleCloseAsignar}
                             disabled={loading}
                             sx={{ 
                                 borderRadius: '12px', 
                                 px: 3, 
-                                py: 1.5, 
+                                py: 1.2, 
                                 fontWeight: 600,
                                 textTransform: 'none'
                             }}
@@ -701,21 +773,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                             onClick={handleAsignar}
                             variant="contained"
                             disabled={loading}
-                            sx={{
-                                borderRadius: '12px',
-                                background: colors.gradient,
-                                px: 4,
-                                py: 1.5,
-                                fontWeight: 600,
-                                textTransform: 'none',
-                                minWidth: 120,
-                                boxShadow: `0 4px 14px ${alpha(colors.primary, 0.4)}`,
-                                '&:hover': {
-                                    background: colors.gradient,
-                                    transform: 'translateY(-2px)',
-                                    boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`
-                                }
-                            }}
+                            sx={{ ...estilos.botonPrimario, px: 4, minWidth: 120 }}
                         >
                             {loading ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Asignar'}
                         </Button>
@@ -725,7 +783,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                 {/* Dialog Eliminar */}
                 <Dialog
                     open={openDialogDelete}
-                    onClose={() => setOpenDialogDelete(false)}
+                    onClose={handleCloseDelete}
                     PaperProps={{
                         sx: {
                             background: colors.paper,
@@ -738,8 +796,8 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         <Box display="flex" alignItems="center" gap={2}>
                             <Box
                                 sx={{
-                                    width: 48,
-                                    height: 48,
+                                    width: 44,
+                                    height: 44,
                                     borderRadius: '12px',
                                     backgroundColor: alpha(colors.error, 0.1),
                                     border: `1px solid ${alpha(colors.error, 0.3)}`,
@@ -748,7 +806,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                     justifyContent: 'center'
                                 }}
                             >
-                                <DeleteIcon sx={{ color: colors.error, fontSize: 24 }} />
+                                <DeleteIcon sx={{ color: colors.error, fontSize: 22 }} />
                             </Box>
                             <Typography variant="h6" fontWeight={700} color={colors.text}>
                                 Eliminar Servicio
@@ -756,7 +814,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         </Box>
                     </DialogTitle>
 
-                    <DialogContent sx={{ pt: 2 }}>
+                    <DialogContent sx={{ pt: 1.5 }}>
                         <Typography color={colors.text} gutterBottom fontWeight={600}>
                             ¿Estás seguro de eliminar <strong>"{selectedServicio?.nombre_servicio}"</strong> de la gamificación?
                         </Typography>
@@ -765,14 +823,14 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                         </Typography>
                     </DialogContent>
 
-                    <DialogActions sx={{ p: 3, gap: 2 }}>
+                    <DialogActions sx={{ p: 2.5, gap: 1.5 }}>
                         <Button
-                            onClick={() => setOpenDialogDelete(false)}
+                            onClick={handleCloseDelete}
                             disabled={loading}
                             sx={{ 
                                 borderRadius: '12px', 
                                 px: 3, 
-                                py: 1.5, 
+                                py: 1.2, 
                                 fontWeight: 600,
                                 textTransform: 'none'
                             }}
@@ -787,7 +845,7 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
                                 borderRadius: '12px',
                                 backgroundColor: colors.error,
                                 px: 4,
-                                py: 1.5,
+                                py: 1.2,
                                 fontWeight: 600,
                                 textTransform: 'none',
                                 '&:hover': {
@@ -806,4 +864,4 @@ const ServiciosTab = ({ colors, isMobile, isTablet, showNotif }) => {
     );
 };
 
-export default ServiciosTab;
+export default memo(ServiciosTab);
