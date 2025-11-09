@@ -4,27 +4,27 @@ import { styled } from '@mui/material/styles';
 import { CheckCircle, Error, Info, Warning } from '@mui/icons-material';
 import { useThemeContext } from '../Tools/ThemeContext';
 
-// Contenedor principal con soporte para tema
+// Contenedor principal con responsividad mobile-first
 const NotificationContainer = styled(Box)(({ isdarkmode }) => ({
   position: 'fixed',
-  bottom: '30px',
+  bottom: '16px',
   left: '50%',
   transform: 'translateX(-50%)',
   zIndex: 2000,
-  padding: '16px 20px',
+  padding: '12px 16px',
   borderRadius: '8px',
   boxShadow: isdarkmode 
-    ? '0 4px 20px rgba(0, 0, 0, 0.25)' 
-    : '0 4px 20px rgba(0, 0, 0, 0.12)',
-  backgroundColor: isdarkmode ? '#333' : '#fff',
-  border: `1px solid ${isdarkmode ? '#444' : '#e0e0e0'}`,
-  minWidth: '350px',
-  maxWidth: '90vw',
+    ? '0 4px 20px rgba(0, 0, 0, 0.3)' 
+    : '0 4px 16px rgba(0, 0, 0, 0.1)',
+  backgroundColor: isdarkmode ? '#2a2a2a' : '#ffffff',
+  border: `1px solid ${isdarkmode ? '#3a3a3a' : '#e5e5e5'}`,
+  minWidth: '280px',
+  maxWidth: 'calc(100vw - 32px)',
+  width: '90%',
   display: 'flex',
   alignItems: 'center',
-  overflow: 'hidden',
+  gap: '12px',
   
-  // Animación optimizada con CSS
   '@keyframes slideUp': {
     '0%': {
       opacity: 0,
@@ -47,61 +47,84 @@ const NotificationContainer = styled(Box)(({ isdarkmode }) => ({
     }
   },
   
-  // Animación de entrada
   '&.entering': {
-    animation: 'slideUp 0.3s forwards'
+    animation: 'slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
   },
   
-  // Animación de salida
   '&.exiting': {
-    animation: 'slideDown 0.3s forwards'
+    animation: 'slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards'
   },
   
-  // Media queries para responsividad
-  '@media (min-width: 600px)': {
-    minWidth: '400px',
+  '@media (min-width: 480px)': {
+    bottom: '24px',
+    padding: '14px 18px',
+    minWidth: '320px',
+    width: 'auto',
+  },
+  
+  '@media (min-width: 768px)': {
+    bottom: '30px',
+    padding: '16px 20px',
+    minWidth: '380px',
     maxWidth: '500px',
   },
 }));
 
-// Contenedor del icono
+// Icono optimizado para mobile
 const IconContainer = styled(Box)({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  marginRight: '16px',
+  flexShrink: 0,
   
   '& .MuiSvgIcon-root': {
-    fontSize: '28px',
+    fontSize: '24px',
+  },
+  
+  '@media (min-width: 768px)': {
+    '& .MuiSvgIcon-root': {
+      fontSize: '28px',
+    },
   },
 });
 
-// Botón de cerrar
+// Botón de cerrar con área táctil amplia
 const CloseButton = styled('button')(({ isdarkmode }) => ({
   position: 'absolute',
-  top: '12px',
-  right: '12px',
-  width: '24px',
-  height: '24px',
+  top: '8px',
+  right: '8px',
+  minWidth: '32px',
+  minHeight: '32px',
+  width: '32px',
+  height: '32px',
   padding: 0,
   background: 'transparent',
   border: 'none',
   cursor: 'pointer',
-  opacity: 0.6,
-  transition: 'opacity 0.2s',
+  opacity: 0.5,
+  transition: 'opacity 0.2s ease',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '4px',
   
   '&:hover': {
+    opacity: 0.8,
+    backgroundColor: isdarkmode ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+  },
+  
+  '&:active': {
     opacity: 1,
+    backgroundColor: isdarkmode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
   },
   
   '&::before, &::after': {
     content: '""',
     position: 'absolute',
-    width: '16px',
+    width: '14px',
     height: '2px',
-    backgroundColor: isdarkmode ? '#fff' : '#555',
-    left: '4px',
-    top: '11px',
+    backgroundColor: isdarkmode ? '#e0e0e0' : '#666',
+    borderRadius: '1px',
   },
   
   '&::before': {
@@ -110,6 +133,19 @@ const CloseButton = styled('button')(({ isdarkmode }) => ({
   
   '&::after': {
     transform: 'rotate(-45deg)',
+  },
+  
+  '@media (min-width: 768px)': {
+    top: '12px',
+    right: '12px',
+    minWidth: '28px',
+    minHeight: '28px',
+    width: '28px',
+    height: '28px',
+    
+    '&::before, &::after': {
+      width: '16px',
+    },
   },
 }));
 
@@ -120,105 +156,106 @@ const ProgressBar = styled('div')({
   left: 0,
   height: '3px',
   width: '100%',
+  borderRadius: '0 0 8px 8px',
   
   '@keyframes shrink': {
-    '0%': {
-      width: '100%',
-    },
-    '100%': {
-      width: '0%',
-    }
+    '0%': { width: '100%' },
+    '100%': { width: '0%' }
   },
   
   animation: 'shrink 3s linear forwards',
 });
 
-// Función para obtener colores según tipo y tema
+// Obtener colores según tipo
 const getTypeColors = (type, isDarkMode) => {
   const colors = {
     success: {
-      main: '#4caf50',
-      dark: '#3d8b40',
-      light: isDarkMode ? '#2e7d32' : '#81c784'
+      main: isDarkMode ? '#4caf50' : '#43a047',
+      progress: '#4caf50'
     },
     error: {
-      main: '#f44336',
-      dark: '#d32f2f',
-      light: isDarkMode ? '#c62828' : '#e57373'
+      main: isDarkMode ? '#f44336' : '#e53935',
+      progress: '#f44336'
     },
     warning: {
-      main: '#ff9800',
-      dark: '#f57c00',
-      light: isDarkMode ? '#e65100' : '#ffb74d'
+      main: isDarkMode ? '#ff9800' : '#fb8c00',
+      progress: '#ff9800'
     },
     info: {
-      main: '#2196f3',
-      dark: '#1976d2',
-      light: isDarkMode ? '#0d47a1' : '#64b5f6'
+      main: isDarkMode ? '#4B9FFF' : '#1976d2',
+      progress: '#4B9FFF'
     }
   };
   
   return colors[type] || colors.info;
 };
 
-// Componente de notificaciones
+// Componente principal de notificaciones
 const Notificaciones = memo(({ open, message, type = 'info', handleClose, onClose }) => {
-  // Usar el contexto de tema correctamente
   const { isDarkTheme = false } = useThemeContext() || {};
   
-  // Usar el callback correcto (handleClose o onClose)
+  // Manejar cierre de notificación
   const closeNotification = useCallback(() => {
     if (handleClose) handleClose();
     if (onClose) onClose();
   }, [handleClose, onClose]);
   
-  // Configurar temporizador de cierre
+  // Auto-cierre después de 3 segundos
   useEffect(() => {
-    let timer = null;
+    if (!open) return;
     
-    if (open) {
-      timer = setTimeout(() => {
-        closeNotification();
-      }, 3000);
-    }
-    
-    return () => {
-      if (timer) clearTimeout(timer);
-    };
+    const timer = setTimeout(closeNotification, 3000);
+    return () => clearTimeout(timer);
   }, [open, closeNotification]);
   
-  // Selección de iconos y colores
-  const IconComponent = type === 'success' ? CheckCircle :
-                      type === 'error' ? Error :
-                      type === 'warning' ? Warning : Info;
+  if (!open) return null;
+  
+  const IconComponent = {
+    success: CheckCircle,
+    error: Error,
+    warning: Warning,
+    info: Info
+  }[type] || Info;
   
   const typeColor = getTypeColors(type, isDarkTheme);
   
-  // No renderizar nada si está cerrado
-  if (!open) return null;
-  
   return (
-    <NotificationContainer className={open ? "entering" : "exiting"} isdarkmode={isDarkTheme} role="alert">
+    <NotificationContainer 
+      className={open ? "entering" : "exiting"} 
+      isdarkmode={isDarkTheme} 
+      role="alert"
+      aria-live="polite"
+    >
       <IconContainer sx={{ color: typeColor.main }}>
         <IconComponent />
       </IconContainer>
       
-      <Box sx={{ flex: 1, paddingRight: '20px' }}>
+      <Box sx={{ 
+        flex: 1, 
+        paddingRight: { xs: '32px', sm: '36px' },
+        minWidth: 0
+      }}>
         <Typography 
-          variant="body1" 
+          variant="body2"
           sx={{ 
             fontWeight: 500, 
-            fontSize: '16px',
-            color: isDarkTheme ? '#f5f5f5' : '#333' 
+            fontSize: { xs: '14px', sm: '15px', md: '16px' },
+            lineHeight: 1.4,
+            color: isDarkTheme ? '#f0f0f0' : '#333',
+            wordBreak: 'break-word'
           }}
         >
           {message}
         </Typography>
       </Box>
       
-      <CloseButton onClick={closeNotification} isdarkmode={isDarkTheme} aria-label="cerrar" />
+      <CloseButton 
+        onClick={closeNotification} 
+        isdarkmode={isDarkTheme} 
+        aria-label="Cerrar notificación"
+      />
       
-      <ProgressBar style={{ backgroundColor: typeColor.main }}/>
+      <ProgressBar style={{ backgroundColor: typeColor.progress }} />
     </NotificationContainer>
   );
 });
