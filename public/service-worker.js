@@ -1,9 +1,9 @@
 /* eslint-disable no-restricted-globals */
-const CACHE_VERSION = 'dental-carol-v4.2';
-const RUNTIME_CACHE = 'runtime-cache-v4.2';
-const API_CACHE = 'api-cache-v4.2';
-const IMAGE_CACHE = 'image-cache-v4.2';
-const CHUNK_CACHE = 'chunk-cache-v4.2';
+const CACHE_VERSION = 'dental-carol-v4.3';
+const RUNTIME_CACHE = 'runtime-cache-v4.3';
+const API_CACHE = 'api-cache-v4.3';
+const IMAGE_CACHE = 'image-cache-v4.3';
+const CHUNK_CACHE = 'chunk-cache-v4.3';
 
 const PRECACHE_URLS = [
   '/',
@@ -11,9 +11,12 @@ const PRECACHE_URLS = [
   '/manifest.json'
 ];
 
+const NETWORK_TIMEOUT = 10000; // 10 segundos
+const QUICK_TIMEOUT = 3000; // 3 segundos para navegación
+
 // Instalar
 self.addEventListener('install', (event) => {
-  console.log('[SW] Instalando v4.2...');
+  console.log('[SW] Instalando v4.3...');
   event.waitUntil(
     caches.open(CACHE_VERSION)
       .then(cache => cache.addAll(PRECACHE_URLS))
@@ -21,14 +24,14 @@ self.addEventListener('install', (event) => {
   );
 });
 
-// Activar
+// Activar y limpiar caches antiguos
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activando v4.2...');
+  console.log('[SW] Activando v4.3...');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          if (!cacheName.includes('v4.2')) {
+          if (!cacheName.includes('v4.3')) {
             console.log('[SW] Eliminando cache:', cacheName);
             return caches.delete(cacheName);
           }
@@ -38,12 +41,28 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Determinar tipo de request
+// Verificar si hay conexión real
+async function isOnline() {
+  if (!navigator.onLine) return false;
+  
+  try {
+    const response = await fetch('/manifest.json', { 
+      method: 'HEAD',
+      cache: 'no-cache'
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+// Determinar si es request de API
 function isApiRequest(url) {
   return url.hostname === 'back-end-4803.onrender.com' || 
          (url.hostname === 'localhost' && url.port === '3001');
 }
 
+// Determinar si es navegación
 function isNavigationRequest(request, url) {
   return request.mode === 'navigate' || 
          request.destination === 'document' ||
@@ -52,122 +71,100 @@ function isNavigationRequest(request, url) {
           request.headers.get('accept').includes('text/html'));
 }
 
+// Determinar si es chunk
 function isChunkFile(url) {
   return /\.(chunk|bundle)\.(js|css)$/.test(url.pathname) ||
          /\/static\/(js|css)\/.*\.(js|css)$/.test(url.pathname) ||
          url.pathname.includes('vendors~') ||
-         url.pathname.includes('node_modules') ||
          /\/static\/js\/\d+\.\w+\.chunk\.js$/.test(url.pathname);
 }
 
-// Fetch con auto-cache agresivo de chunks
+// Fetch principal
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
   if (request.method !== 'GET') return;
 
-  // 1. APIs
+  // APIs
   if (isApiRequest(url)) {
-    event.respondWith(networkFirst(request));
+    event.respondWith(networkFirst(request, API_CACHE));
     return;
   }
 
-  // 2. Imágenes
+  // Imágenes
   if (request.destination === 'image' || /\.(jpg|jpeg|png|gif|svg|webp|ico)$/i.test(url.pathname)) {
     event.respondWith(cacheFirst(request, IMAGE_CACHE));
     return;
   }
 
-  // 3. CHUNKS - Cache First AGRESIVO + Auto-cache
+  // Chunks
   if (isChunkFile(url)) {
-    event.respondWith(chunkStrategyAggressive(request));
+    event.respondWith(networkFirst(request, CHUNK_CACHE));
     return;
   }
 
-  // 4. JS/CSS generales
+  // JS/CSS
   if (/\.(js|css)$/i.test(url.pathname)) {
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(staleWhileRevalidate(request, RUNTIME_CACHE));
     return;
   }
 
-  // 5. Navegaciones
+  // Navegaciones
   if (isNavigationRequest(request, url)) {
     event.respondWith(handleNavigation(request));
     return;
   }
 
-  // 6. Otros
+  // Default
   event.respondWith(cacheFirst(request, RUNTIME_CACHE));
 });
 
-// Estrategia agresiva para chunks: siempre intenta descargar Y cachear
-async function chunkStrategyAggressive(request) {
-  const cache = await caches.open(CHUNK_CACHE);
-  const url = new URL(request.url);
+// Network First con timeout inteligente
+async function networkFirst(request, cacheName) {
+  const cache = await caches.open(cacheName);
   
   try {
-    // Siempre intentar red primero para chunks
-    console.log('[SW] Descargando chunk:', url.pathname);
-    const response = await fetch(request);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), NETWORK_TIMEOUT);
+    
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(timeoutId);
     
     if (response && response.ok) {
-      // Cachear inmediatamente
       cache.put(request, response.clone());
-      console.log('[SW] Chunk cacheado:', url.pathname);
       return response;
     }
+    
     return response;
   } catch (error) {
-    // Si falla, buscar en cache
-    console.log('[SW] Red falló, buscando chunk en cache:', url.pathname);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-      console.log('[SW] Chunk encontrado en cache');
-      return cached;
+    // Solo usar cache si realmente no hay red
+    if (error.name === 'AbortError' || !navigator.onLine) {
+      const cached = await cache.match(request);
+      if (cached) {
+        console.log('[SW] Desde cache:', request.url);
+        return cached;
+      }
     }
     
-    console.error('[SW] Chunk no disponible:', url.pathname);
-    return new Response('Chunk no disponible offline', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
+    // Si es API, retornar error JSON
+    if (request.url.includes('back-end')) {
+      return new Response(
+        JSON.stringify({ error: 'Error de conexión', offline: true }), 
+        { 
+          headers: { 'Content-Type': 'application/json' }, 
+          status: 503 
+        }
+      );
+    }
+    
+    throw error;
   }
 }
 
-// Network First para APIs
-async function networkFirst(request) {
-  const cache = await caches.open(API_CACHE);
-  
-  try {
-    const response = await Promise.race([
-      fetch(request),
-      new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('timeout')), 5000)
-      )
-    ]);
-    
-    if (response.ok) {
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch (error) {
-    const cached = await cache.match(request);
-    if (cached) {
-      console.log('[SW] API desde cache:', request.url);
-      return cached;
-    }
-    return new Response(
-      JSON.stringify({ error: 'Sin conexión', offline: true }), 
-      { headers: { 'Content-Type': 'application/json' }, status: 503 }
-    );
-  }
-}
-
-// Stale While Revalidate
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(RUNTIME_CACHE);
+// Stale While Revalidate optimizado
+async function staleWhileRevalidate(request, cacheName) {
+  const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
 
   const fetchPromise = fetch(request)
@@ -177,12 +174,12 @@ async function staleWhileRevalidate(request) {
       }
       return response;
     })
-    .catch(() => null);
+    .catch(() => cached);
 
   return cached || fetchPromise;
 }
 
-// Cache First
+// Cache First con fallback
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
   const cached = await cache.match(request);
@@ -196,50 +193,62 @@ async function cacheFirst(request, cacheName) {
     }
     return response;
   } catch (error) {
+    // Solo para imágenes retornar placeholder
     if (request.destination === 'image') {
       return new Response(
-        '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect fill="#ddd" width="100" height="100"/></svg>',
+        '<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><rect fill="#e0e0e0" width="100" height="100"/></svg>',
         { headers: { 'Content-Type': 'image/svg+xml' } }
       );
     }
-    return new Response('Offline', { status: 503 });
+    throw error;
   }
 }
 
-// Manejo de navegaciones
+// Manejo inteligente de navegaciones
 async function handleNavigation(request) {
   const url = new URL(request.url);
-  console.log('[SW] Navegación:', url.pathname);
-
+  
   try {
-    const response = await fetch(request);
+    // Intentar red con timeout corto
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), QUICK_TIMEOUT);
+    
+    const response = await fetch(request, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    
     if (response && response.ok) {
       const cache = await caches.open(RUNTIME_CACHE);
       cache.put(request, response.clone());
       return response;
     }
   } catch (error) {
-    console.log('[SW] Red falló para:', url.pathname);
+    console.log('[SW] Timeout/Error en navegación, usando cache');
   }
 
-  const runtimeCache = await caches.open(RUNTIME_CACHE);
-  let cached = await runtimeCache.match(request);
-  if (cached) return cached;
+  // Buscar en caches
+  const caches_list = [RUNTIME_CACHE, CACHE_VERSION];
+  
+  for (const cacheName of caches_list) {
+    const cache = await caches.open(cacheName);
+    
+    // Intentar URL exacta
+    let cached = await cache.match(request);
+    if (cached) return cached;
+    
+    // Intentar index.html
+    cached = await cache.match('/index.html');
+    if (cached) return cached;
+    
+    // Intentar root
+    cached = await cache.match('/');
+    if (cached) return cached;
+  }
 
-  const precache = await caches.open(CACHE_VERSION);
-  cached = await precache.match('/index.html');
-  if (cached) return cached;
-
-  cached = await runtimeCache.match('/index.html');
-  if (cached) return cached;
-
-  cached = await runtimeCache.match('/');
-  if (cached) return cached;
-
+  // Solo si realmente no hay nada en cache
   return offlinePage();
 }
 
-// Página offline
+// Página offline simple
 function offlinePage() {
   return new Response(`
     <!DOCTYPE html>
@@ -256,35 +265,39 @@ function offlinePage() {
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #4B9FFF 0%, #1976d2 100%);
             color: white;
             text-align: center;
             padding: 2rem;
           }
           .container { max-width: 500px; }
           .icon { font-size: 5rem; margin-bottom: 1.5rem; }
-          h1 { font-size: 2rem; margin-bottom: 1rem; }
-          p { font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.95; }
+          h1 { font-size: 2rem; margin-bottom: 1rem; font-weight: 600; }
+          p { font-size: 1.1rem; margin-bottom: 2rem; opacity: 0.9; line-height: 1.5; }
           button {
-            padding: 1rem 2rem;
+            padding: 1rem 2.5rem;
             font-size: 1rem;
             background: white;
-            color: #667eea;
+            color: #1976d2;
             border: none;
             border-radius: 8px;
             cursor: pointer;
             font-weight: 600;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            transition: all 0.3s;
+            transition: all 0.3s ease;
           }
-          button:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.3); }
+          button:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3); 
+          }
+          button:active { transform: translateY(0); }
         </style>
       </head>
       <body>
         <div class="container">
-          <div class="icon">🦷📡</div>
-          <h1>Sin conexión a internet</h1>
-          <p>No pudimos cargar esta página. Por favor, verifica tu conexión.</p>
+          <div class="icon">🦷</div>
+          <h1>Sin conexión</h1>
+          <p>No se puede cargar esta página sin conexión a internet. Verifica tu red e intenta nuevamente.</p>
           <button onclick="window.location.reload()">Reintentar</button>
         </div>
       </body>
@@ -295,19 +308,18 @@ function offlinePage() {
   });
 }
 
-// Skip waiting
+// Mensajes del cliente
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
   
-  // NUEVO: Mensaje para precachear chunks manualmente
   if (event.data && event.data.type === 'CACHE_URLS') {
     const urls = event.data.urls || [];
     caches.open(CHUNK_CACHE).then(cache => {
-      console.log('[SW] Precacheando chunks:', urls.length);
-      cache.addAll(urls).catch(err => {
-        console.error('[SW] Error precacheando:', err);
+      console.log('[SW] Precacheando:', urls.length);
+      return cache.addAll(urls).catch(err => {
+        console.warn('[SW] Error precacheando:', err);
       });
     });
   }
