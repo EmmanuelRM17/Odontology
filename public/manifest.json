@@ -1,12 +1,16 @@
 {
   "name": "Clínica Dental Carol",
   "short_name": "Dental Carol",
-  "description": "Sistema de gestión dental",
+  "description": "Sistema de gestión dental con funcionalidad offline",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#03427C",
   "theme_color": "#03427C",
   "orientation": "portrait",
+  "categories": ["health", "medical"],
+  "lang": "es",
+  "dir": "ltr",
   "icons": [
     {
       "src": "/assets/logo192.png",
@@ -19,6 +23,19 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Nueva Cita",
+      "url": "/Paciente/citas/nueva",
+      "description": "Agendar nueva cita"
+    },
+    {
+      "name": "Mis Citas",
+      "url": "/Paciente/citas",
+      "description": "Ver mis citas"
     }
   ]
 }

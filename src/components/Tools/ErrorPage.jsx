@@ -19,7 +19,6 @@ import {
   Refresh,
   Home,
   Security,
-  WifiOff,
   Help,
   ContactSupport,
   ArrowBack,
@@ -50,7 +49,7 @@ const useUrlTracker = () => {
   }, [location.pathname]);
 };
 
-// Configuración de tipos de error con animaciones específicas
+// Configuración de tipos de error
 const errorTypes = {
   400: {
     title: 'Solicitud Incorrecta',
@@ -85,7 +84,7 @@ const errorTypes = {
     animation: 'block',
     actions: [
       { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
-      { label: 'Contactar Soporte', icon: <ContactSupport />, to: '/contactanos', variant: 'contained' }
+      { label: 'Contactar Soporte', icon: <ContactSupport />, to: '/Contact', variant: 'contained' }
     ]
   },
   404: {
@@ -107,18 +106,6 @@ const errorTypes = {
     color: '#10B981',
     gradient: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
     animation: 'glitch',
-    actions: [
-      { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
-      { label: 'Reintentar', icon: <Refresh />, action: 'retry', variant: 'contained' }
-    ]
-  },
-  502: {
-    title: 'Sin Conexión',
-    description: 'No hay conexión a internet. Verifica tu conexión e inténtalo nuevamente.',
-    icon: <WifiOff />,
-    color: '#EF4444',
-    gradient: 'linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)',
-    animation: 'pulse',
     actions: [
       { label: 'Atrás', icon: <ArrowBack />, action: 'back', variant: 'outlined' },
       { label: 'Reintentar', icon: <Refresh />, action: 'retry', variant: 'contained' }
@@ -159,35 +146,24 @@ const getErrorAnimation = (animationType) => {
         opacity: [1, 0.8, 1, 0.9, 1],
         transition: { duration: 0.3, repeat: Infinity, repeatDelay: 2 }
       }
-    },
-    pulse: {
-      animate: {
-        scale: [1, 1.2, 1],
-        opacity: [1, 0.7, 1],
-        transition: { duration: 1.5, repeat: Infinity }
-      }
     }
   };
 
   return animations[animationType] || animations.float;
 };
 
-/**
- * Página de error con diseño minimalista y animaciones específicas
- */
 const ErrorPage = () => {
   useUrlTracker();
   const theme = useTheme();
   const { isDarkTheme } = useThemeContext();
   const location = useLocation();
   const navigate = useNavigate();
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState('');
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   // Determinar el código de error
-  const errorCode = !isOnline ? 502 : location.state?.errorCode || 404;
+  const errorCode = location.state?.errorCode || 404;
   const errorMessage = location.state?.errorMessage || errorTypes[errorCode]?.description;
   const errorInfo = errorTypes[errorCode] || errorTypes[404];
 
@@ -201,28 +177,6 @@ const ErrorPage = () => {
     border: isDarkTheme ? 'rgba(148,163,184,0.1)' : 'rgba(226,232,240,0.8)',
     primary: isDarkTheme ? '#3B82F6' : '#2563EB'
   };
-
-  // Monitoreo de conexión
-  useEffect(() => {
-    const handleOnline = () => {
-      setLoadingMessage('Reconectando...');
-      setIsLoading(true);
-      setTimeout(() => {
-        const redirectUrl = getBestRedirectUrl();
-        navigate(redirectUrl, { replace: true });
-      }, 1000);
-    };
-
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, [navigate]);
 
   const getBestRedirectUrl = () => {
     const userRole = localStorage.getItem('userRole');
@@ -266,22 +220,16 @@ const ErrorPage = () => {
         navigate(redirectUrl, { replace: true });
         setIsLoading(false);
       }, 800);
-    } else if (action.action === 'home') {
-      setLoadingMessage('Redirigiendo al inicio...');
-      setIsLoading(true);
-
-      setTimeout(() => {
-        navigate('/', { replace: true });
-        setIsLoading(false);
-      }, 500);
     } else if (action.to) {
       setLoadingMessage('Redirigiendo...');
       setIsLoading(true);
+      
       setTimeout(() => {
         setIsLoading(false);
       }, 800);
     }
   };
+
   // Animaciones principales
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -521,7 +469,7 @@ const ErrorPage = () => {
                   />
                 </motion.div>
 
-                {/* Botones de acción mejorados */}
+                {/* Botones de acción */}
                 <motion.div variants={itemVariants}>
                   <Box sx={{
                     display: 'flex',
@@ -593,7 +541,7 @@ const ErrorPage = () => {
         </motion.div>
       </Container>
 
-      {/* Overlay de carga mejorado */}
+      {/* Overlay de carga */}
       <Backdrop
         sx={{
           color: '#fff',
