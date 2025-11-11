@@ -37,6 +37,8 @@ const Mensajes = lazy(() => import("./pages/paciente/pages/Mensajes.jsx"));
 const Pagos = lazy(() => import("./pages/paciente/pages/Pagos"));
 const AyudaPaciente = lazy(() => import("./pages/paciente/pages/Ayuda"));
 const ExpedientePaciente = lazy(() => import("./pages/paciente/pages/Expedient"));
+const OdontoPuntos = lazy(() => import("./pages/paciente/pages/OdontoPuntos"));
+
 
 // Lazy imports - Admin
 const LayoutAdmin = lazy(() => import("./pages/administrador/assets/compartidos/LayoutAdmin"));
@@ -48,8 +50,9 @@ const Pacientes = lazy(() => import("./pages/administrador/pages/PatientsReport"
 const Empleados = lazy(() => import("./pages/administrador/pages/EmpleadosReport"));
 const ServicioForm = lazy(() => import("./pages/administrador/pages/ServicioForm"));
 const CitasForm = lazy(() => import("./pages/administrador/pages/CitasForm"));
+const MiAgenda = lazy(() => import("./pages/administrador/pages/citas/MiAgenda"));
 const NuevoAgendamiento = lazy(() => import("./pages/administrador/pages/citas/nuevaCita"));
-const TratamientosForm = lazy(() => import("./pages/administrador/pages/TratamientosForm.jsx"));
+const TratamientosForm = lazy(() => import("./pages/administrador/pages/TratamientosForm"));
 const HorariosForm = lazy(() => import("./pages/administrador/pages/HorariosForm"));
 const ImagenesForm = lazy(() => import("./pages/administrador/pages/ImagenesForm"));
 const FinanzasForm = lazy(() => import("./pages/administrador/pages/FinanzasForm.jsx"));
@@ -74,6 +77,8 @@ const routeConfig = {
     { path: "tratamientos", component: Tratamientos, breadcrumb: "Mis Tratamientos" },
     { path: "progreso", component: Progreso, breadcrumb: "Mi progreso" },
     { path: "perfil", component: Perfil, breadcrumb: "Perfil de Usuario" },
+    { path: "puntos", component: OdontoPuntos, breadcrumb: "Mis OdontoPuntos" },
+
     { path: "mensajes", component: Mensajes, breadcrumb: "Mensajes" },
     { path: "pagos", component: Pagos, breadcrumb: "Pagos" },
     { path: "ayuda", component: AyudaPaciente, breadcrumb: "Ayuda" },
@@ -87,6 +92,7 @@ const routeConfig = {
     { path: "empleados", component: Empleados, breadcrumb: "Gestión de Empleados" },
     { path: "servicios", component: ServicioForm, breadcrumb: "Gestión de Servicios" },
     { path: "citas", component: CitasForm, breadcrumb: "Gestión de Citas" },
+    { path: "mi-agenda", component: MiAgenda, breadcrumb: "Gestión de Agenda" },
     { path: "citas/nueva", component: NuevoAgendamiento, breadcrumb: "Nueva Cita", parentPath: "/Administrador/citas", parentName: "Citas" },
     { path: "tratamientos", component: TratamientosForm, breadcrumb: "Gestión de Tratamientos" },
     { path: "horarios", component: HorariosForm, breadcrumb: "Gestión de Horarios" },
@@ -109,6 +115,7 @@ const routeConfig = {
     { path: "pacientes", component: Pacientes, breadcrumb: "Gestión de Pacientes" },
     { path: "servicios", component: ServicioForm, breadcrumb: "Gestión de Servicios" },
     { path: "citas", component: CitasForm, breadcrumb: "Gestión de Citas" },
+    { path: "mi-agenda", component: MiAgenda, breadcrumb: "Gestión de Agenda" },
     { path: "citas/nueva", component: NuevoAgendamiento, breadcrumb: "Nueva Cita", parentPath: "/Empleado/citas", parentName: "Citas" },
     { path: "tratamientos", component: TratamientosForm, breadcrumb: "Gestión de Tratamientos" },
     { path: "horarios", component: HorariosForm, breadcrumb: "Gestión de Horarios" },
@@ -273,20 +280,20 @@ function App() {
   }, [isOnline]);
 
 
-if (forceLoading) return <LoadingScreen tituloPagina={tituloPagina} />;
+  if (forceLoading) return <LoadingScreen tituloPagina={tituloPagina} />;
 
-return (
-  <ThemeProviderComponent>
-    <Router>
-      {!isOnline && showOfflineMsg && <OfflineBanner />}
-      <div style={!isOnline && showOfflineMsg ? { marginTop: '48px' } : undefined}>
-        <Suspense fallback={<LoadingScreen tituloPagina={tituloPagina} />}>
-          <AppContent />
-        </Suspense>
-      </div>
-    </Router>
-  </ThemeProviderComponent>
-);
+  return (
+    <ThemeProviderComponent>
+      <Router>
+        {!isOnline && showOfflineMsg && <OfflineBanner />}
+        <div style={!isOnline && showOfflineMsg ? { marginTop: '48px' } : undefined}>
+          <Suspense fallback={<LoadingScreen tituloPagina={tituloPagina} />}>
+            <AppContent />
+          </Suspense>
+        </div>
+      </Router>
+    </ThemeProviderComponent>
+  );
 }
 
 export default App;
