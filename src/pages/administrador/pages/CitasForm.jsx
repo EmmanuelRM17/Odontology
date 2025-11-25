@@ -1,608 +1,260 @@
 import {
     Avatar, Box, Button, Card, CardContent,
-    Chip, CircularProgress, Dialog, DialogActions,
+    Chip, Dialog, DialogActions,
     DialogContent, DialogTitle, FormControl, Grid, IconButton,
     InputAdornment, MenuItem, Paper, Select, Table,
     TableBody, TableCell, TableContainer, TableHead, TableRow,
-    TextField, Typography, Tooltip, Tabs, Tab, Alert, AlertTitle, Divider
+    TextField, Typography, Tooltip, Alert, AlertTitle, Divider, Pagination
 } from '@mui/material';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, memo } from 'react';
 import {
     Add, BorderColor, CalendarMonth, Close, Description,
     Event, HealthAndSafety, MenuBook, CheckCircle,
     MedicalServices, LocalHospital, PersonOff, Visibility,
-    Search, FilterList, Sort, ViewList, ViewModule, ViewStream,
-    ArrowDownward, ArrowUpward
+    Search, ViewList, ViewModule, ViewStream
 } from '@mui/icons-material';
-import {
-    FaSortAmountDown,
-    FaSortAmountUp,
-} from 'react-icons/fa';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
 import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import EditCita from './citas/editarCita.jsx';
 
+// Paleta de colores suaves y modernos
+const getColors = (isDarkTheme) => ({
+    background: isDarkTheme ? '#1a1f2e' : '#f5f7fa',
+    paper: isDarkTheme ? '#242b3d' : '#ffffff',
+    tableBackground: isDarkTheme ? '#1e2838' : '#f8fafc',
+    text: isDarkTheme ? '#e8eaf0' : '#2c3e50',
+    secondaryText: isDarkTheme ? '#a8b2c1' : '#64748b',
+    primary: isDarkTheme ? '#5b8fd9' : '#4a7eb8',
+    hover: isDarkTheme ? 'rgba(91,143,217,0.08)' : 'rgba(74,126,184,0.06)',
+    inputBorder: isDarkTheme ? '#3d4758' : '#e2e8f0',
+    divider: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+    titleColor: isDarkTheme ? '#7ba4dd' : '#2d3748',
+    tratamiento: '#66b566',
+    consulta: '#8a94a6',
+    noRegistrado: '#f29f67',
+    details: '#4a9fd9',
+    archive: '#e89a5c',
+    cancel: '#d66464',
+    edit: '#66b566',
+    confirm: '#70c470',
+    complete: '#5b9fd9'
+});
+
+const STATUS_COLORS = {
+    Pendiente: '#f29f67',
+    Confirmada: '#70c470',
+    Cancelada: '#d66464',
+    Completada: '#5b9fd9',
+    'PRE-REGISTRO': '#9575cd'
+};
+
+// Tarjeta de cita memoizada
+const CitaCard = memo(({ cita, colors, onViewDetails, onEdit, onConfirm, onComplete, onArchive, onCancel, canCancel, canConfirm }) => {
+    const esTratamiento = cita?.es_tratamiento === 1;
+    const estaRegistrado = cita?.paciente_id != null;
+    const citaCompletada = cita?.estado === 'Completada';
+    
+    const avatarColor = useMemo(() => {
+        if (!cita?.paciente_id) return colors.noRegistrado;
+        const colorPool = ['#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#7E57C2', '#42A5F5', '#29B6F6', '#26C6DA'];
+        return colorPool[cita.paciente_id % colorPool.length];
+    }, [cita?.paciente_id, colors.noRegistrado]);
+
+    const formatDate = useCallback((dateString) => {
+        if (!dateString) return "N/A";
+        const date = new Date(dateString);
+        date.setHours(date.getHours() + 6);
+        const dia = date.toLocaleString('es-MX', { weekday: 'short' });
+        const diaMes = date.toLocaleString('es-MX', { day: 'numeric', month: 'short' });
+        const hora = date.toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
+        return `${dia.charAt(0).toUpperCase() + dia.slice(1)} ${diaMes}, ${hora}`;
+    }, []);
+
+    return (
+        <Card
+            sx={{
+                backgroundColor: colors.paper,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                borderRadius: '16px',
+                overflow: 'hidden',
+                borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`,
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.12)',
+                }
+            }}
+        >
+            <CardContent sx={{ p: 2, flexGrow: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5, alignItems: 'flex-start' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', flex: 1, minWidth: 0 }}>
+                        <Avatar
+                            sx={{
+                                bgcolor: avatarColor,
+                                width: 38,
+                                height: 38,
+                                mr: 1.5,
+                                border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`,
+                                fontSize: '0.95rem',
+                                fontWeight: 600
+                            }}
+                        >
+                            {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
+                        </Avatar>
+                        <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography 
+                                variant="subtitle2" 
+                                sx={{ 
+                                    fontWeight: 600, 
+                                    color: colors.text, 
+                                    lineHeight: 1.3,
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                {cita?.paciente_nombre ? `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''}`.trim() : "No registrado"}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: colors.secondaryText, fontSize: '0.7rem' }}>
+                                {estaRegistrado ? 'Registrado' : 'No registrado'}
+                            </Typography>
+                        </Box>
+                    </Box>
+                    <Chip
+                        label={cita?.estado || "Pendiente"}
+                        size="small"
+                        sx={{
+                            backgroundColor: STATUS_COLORS[cita?.estado] || '#bdbdbd',
+                            color: '#FFF',
+                            fontWeight: '600',
+                            fontSize: '0.7rem',
+                            height: '22px',
+                            borderRadius: '11px',
+                            ml: 1
+                        }}
+                    />
+                </Box>
+
+                <Box sx={{ mb: 1.5, pl: 0.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
+                        {esTratamiento ? (
+                            <MedicalServices sx={{ color: colors.tratamiento, fontSize: 16, mr: 1 }} />
+                        ) : (
+                            <LocalHospital sx={{ color: colors.consulta, fontSize: 16, mr: 1 }} />
+                        )}
+                        <Typography variant="body2" sx={{ color: colors.text, fontWeight: 500, fontSize: '0.85rem' }}>
+                            {cita?.servicio_nombre || "N/A"}
+                        </Typography>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: colors.secondaryText, ml: 3, fontSize: '0.7rem' }}>
+                        {esTratamiento ? `Tratamiento (cita ${cita.numero_cita_calculado || 1})` : cita?.categoria_servicio || "Consulta"}
+                    </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pl: 0.5 }}>
+                    <Event sx={{ color: colors.primary, fontSize: 14, mr: 1 }} />
+                    <Typography variant="caption" sx={{ color: colors.text, fontSize: '0.75rem' }}>
+                        {formatDate(cita?.fecha_consulta)}
+                    </Typography>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, flexWrap: 'wrap' }}>
+                    <Tooltip title="Ver detalles" arrow>
+                        <IconButton onClick={() => onViewDetails(cita)} size="small" sx={{ bgcolor: colors.details, '&:hover': { bgcolor: alpha(colors.details, 0.85) }, color: 'white', width: 30, height: 30, borderRadius: '8px' }}>
+                            <Visibility sx={{ fontSize: '1rem' }} />
+                        </IconButton>
+                    </Tooltip>
+
+                    {!citaCompletada && (
+                        <Tooltip title="Editar" arrow>
+                            <IconButton onClick={() => onEdit(cita)} size="small" sx={{ bgcolor: colors.edit, '&:hover': { bgcolor: alpha(colors.edit, 0.85) }, color: 'white', width: 30, height: 30, borderRadius: '8px' }}>
+                                <BorderColor sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    {cita?.estado === 'Pendiente' && canConfirm && (
+                        <Tooltip title="Confirmar" arrow>
+                            <IconButton onClick={() => onConfirm(cita)} size="small" sx={{ bgcolor: colors.confirm, '&:hover': { bgcolor: alpha(colors.confirm, 0.85) }, color: 'white', width: 30, height: 30, borderRadius: '8px' }}>
+                                <CheckCircle sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    {cita?.estado === 'Confirmada' && (
+                        <Tooltip title="Completar" arrow>
+                            <IconButton onClick={() => onComplete(cita)} size="small" sx={{ bgcolor: colors.complete, '&:hover': { bgcolor: alpha(colors.complete, 0.85) }, color: 'white', width: 30, height: 30, borderRadius: '8px' }}>
+                                <CheckCircle sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+
+                    {canCancel && !citaCompletada && (
+                        <Tooltip title="Cancelar" arrow>
+                            <IconButton onClick={() => onCancel(cita)} size="small" sx={{ bgcolor: colors.cancel, '&:hover': { bgcolor: alpha(colors.cancel, 0.85) }, color: 'white', width: 30, height: 30, borderRadius: '8px' }}>
+                                <Close sx={{ fontSize: '1rem' }} />
+                            </IconButton>
+                        </Tooltip>
+                    )}
+                </Box>
+            </CardContent>
+        </Card>
+    );
+});
+
 const CitasForm = () => {
-    // Estados existentes
     const { isDarkTheme } = useThemeContext();
-    const [openDialog, setOpenDialog] = useState(false);
-    const [openNewAppointmentForm, setOpenNewAppointmentForm] = useState(false);
-    const [selectedCita, setSelectedCita] = useState(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const colors = useMemo(() => getColors(isDarkTheme), [isDarkTheme]);
+    const navigate = useNavigate();
+
+    // Estados principales
     const [citas, setCitas] = useState([]);
-    const [openEditDialog, setOpenEditDialog] = useState(false);
-    const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
-    const [citaToDelete, setCitaToDelete] = useState(null);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [notification, setNotification] = useState({ open: false, message: '', type: '' });
-
-    // Estados para la cancelación de citas
-    const [openCancelDialog, setOpenCancelDialog] = useState(false);
-    const [citaToCancel, setCitaToCancel] = useState(null);
-    const [cancelReason, setCancelReason] = useState('');
-    const [isCancelling, setIsCancelling] = useState(false);
-
-    // Estados para confirmar cita
-    const [openConfirmCitaDialog, setOpenConfirmCitaDialog] = useState(false);
-    const [citaToConfirm, setCitaToConfirm] = useState(null);
-    const [confirmMessage, setConfirmMessage] = useState('');
-    const [isConfirming, setIsConfirming] = useState(false);
-
-    // Estados para completar cita
-    const [openCompleteCitaDialog, setOpenCompleteCitaDialog] = useState(false);
-    const [citaToComplete, setCitaToComplete] = useState(null);
-    const [completeMessage, setCompleteMessage] = useState('');
-    const [isCompleting, setIsCompleting] = useState(false);
-
-    // Nuevos estados para filtros (similar a PatientsReport)
+    const [tratamientos, setTratamientos] = useState({});
+    const [searchQuery, setSearchQuery] = useState('');
     const [statusFilter, setStatusFilter] = useState('todos');
     const [tipoFilter, setTipoFilter] = useState('todos');
     const [viewMode, setViewMode] = useState('table');
-    const [filteredCitas, setFilteredCitas] = useState([]);
-    const [showDoctorView, setShowDoctorView] = useState(false);
-    // Estado para ordenamiento
-    const [sortOrder, setSortOrder] = useState('asc');
-    const [sortField, setSortField] = useState('fecha_consulta');
-
-    // Mapa para asignar colores consistentes a pacientes
-    const [pacienteColores, setPacienteColores] = useState({});
-
-    // Estado para almacenar la información de tratamientos
-    const [tratamientos, setTratamientos] = useState({});
-
-
-    useEffect(() => {
-        fetchCitas();
-        fetchTratamientos();
-    }, []);
-
-    // Actualizar citas filtradas cuando cambian los filtros o el ordenamiento
-    useEffect(() => {
-        applyFilters();
-    }, [citas, searchQuery, statusFilter, tipoFilter, sortOrder, sortField]);
-
-    // Colores del tema - Simplificados 
-    const colors = {
-        background: isDarkTheme ? '#1B2A3A' : '#F9FDFF',
-        paper: isDarkTheme ? '#243447' : '#ffffff',
-        tableBackground: isDarkTheme ? '#1E2A3A' : '#e3f2fd',
-        text: isDarkTheme ? '#FFFFFF' : '#333333',
-        secondaryText: isDarkTheme ? '#E8F1FF' : '#666666',
-        primary: isDarkTheme ? '#4B9FFF' : '#1976d2',
-        secondary: isDarkTheme ? '#ff4081' : '#f50057', // Añadido color secundario
-        hover: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
-        inputBorder: isDarkTheme ? '#4B9FFF' : '#1976d2',
-        inputLabel: isDarkTheme ? '#E8F1FF' : '#666666',
-        cardBackground: isDarkTheme ? '#1D2B3A' : '#F8FAFC',
-        divider: isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
-        titleColor: isDarkTheme ? '#4B9FFF' : '#0052A3',
-        tratamiento: isDarkTheme ? '#4CAF50' : '#4CAF50',
-        consulta: isDarkTheme ? '#9E9E9E' : '#9E9E9E',
-        noRegistrado: '#FFA726',
-        registrado: '#42A5F5',
-        details: '#03A9F4',
-        archive: '#FF9800',
-        cancel: '#E53935',
-        edit: '#4CAF50',
-        confirm: '#66BB6A',
-        complete: '#42A5F5'
-    };
-
-    // Función para cambiar el modo de vista
-    const handleViewChange = (mode) => {
-        setViewMode(mode);
-        setShowDoctorView(false);
-    };
-    // Función para cambiar el orden de clasificación
-    const handleSortChange = (field) => {
-        // Si hacemos clic en el mismo campo, invertimos el orden
-        const newOrder = field === sortField && sortOrder === 'asc' ? 'desc' : 'asc';
-        setSortField(field);
-        setSortOrder(newOrder);
-    };
-
-    // Función para ordenar las citas
-    const sortCitas = (citas) => {
-        const ahora = new Date();
-        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-
-        return [...citas].sort((a, b) => {
-            const fechaA = new Date(a.fecha_consulta);
-            const fechaB = new Date(b.fecha_consulta);
-
-            // Determinar si las citas son del pasado
-            const aEsPasado = fechaA < hoyInicio;
-            const bEsPasado = fechaB < hoyInicio;
-
-            // Si una es pasada y otra no, las futuras van primero
-            if (aEsPasado && !bEsPasado) return 1;
-            if (!aEsPasado && bEsPasado) return -1;
-
-            // Si ambas son del mismo tipo (pasadas o futuras)
-            if (aEsPasado && bEsPasado) {
-                // Para citas pasadas: más recientes primero
-                return fechaB - fechaA;
-            } else {
-                // Para citas futuras: más próximas primero
-                const estadoA = getEstadoPrioridad(a.estado);
-                const estadoB = getEstadoPrioridad(b.estado);
-
-                // Primero por estado, luego por fecha
-                if (estadoA !== estadoB) {
-                    return estadoA - estadoB;
-                }
-                return fechaA - fechaB;
-            }
-        });
-    };
-    // Función para obtener la prioridad del estado para ordenamiento
-    const getEstadoPrioridad = (estado) => {
-        switch (estado) {
-            case 'Confirmada':
-                return 1; // Prioridad más alta para hoy/futuras
-            case 'Pendiente':
-            case 'PRE-REGISTRO':
-                return 2;
-            case 'Completada':
-                return 3;
-            case 'Cancelada':
-                return 4; // Prioridad más baja
-            default:
-                return 5;
-        }
-    };
-
-    // Función para verificar si una cita es del pasado
-    const esCitaPasada = (fecha) => {
-        const ahora = new Date();
-        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-        const fechaCita = new Date(fecha);
-        return fechaCita < hoyInicio;
-    };
-
-    const applyFilters = () => {
-        let filtered = citas.filter(cita => {
-            const matchesSearch =
-                searchQuery === '' ||
-                (cita.paciente_nombre && cita.paciente_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (cita.servicio_nombre && cita.servicio_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (cita.odontologo_nombre && cita.odontologo_nombre.toLowerCase().includes(searchQuery.toLowerCase()));
-
-            // Filtro por estado mejorado
-            let matchesStatus = true;
-            if (statusFilter === 'hoy_futuras') {
-                matchesStatus = !esCitaPasada(cita.fecha_consulta);
-            } else if (statusFilter === 'pasadas') {
-                matchesStatus = esCitaPasada(cita.fecha_consulta) &&
-                    (cita.estado === 'Pendiente' || cita.estado === 'Confirmada');
-            } else if (statusFilter !== 'todos') {
-                matchesStatus = cita.estado === statusFilter;
-            }
-
-            const esTratamiento = isTratamiento(cita);
-            const matchesTipo = tipoFilter === 'todos' ||
-                (tipoFilter === 'tratamiento' && esTratamiento) ||
-                (tipoFilter === 'consulta' && !esTratamiento);
-
-            return matchesSearch && matchesStatus && matchesTipo;
-        });
-
-        filtered = sortCitas(filtered);
-        setFilteredCitas(filtered);
-    };
-
-    // Función para cargar los tratamientos y mapearlos por ID
-    const fetchTratamientos = async () => {
-        try {
-            const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/all");
-            if (!response.ok) throw new Error("Error al obtener los tratamientos");
-
-            const data = await response.json();
-            const tratamientosMap = {};
-
-            data.forEach(tratamiento => {
-                tratamientosMap[tratamiento.id] = tratamiento;
-            });
-
-            setTratamientos(tratamientosMap);
-        } catch (error) {
-            console.error("Error cargando tratamientos:", error);
-            setNotification({
-                open: true,
-                message: 'Error al cargar los tratamientos.',
-                type: 'error',
-            });
-        }
-    };
-
-    // Función para generar un color para un paciente específico
-    const getPatientColor = (patientId, pacienteName) => {
-        // Si el paciente no tiene ID, está no registrado
-        if (!patientId) {
-            return colors.noRegistrado;
-        }
-
-        // Si ya tiene un color asignado, usarlo
-        if (pacienteColores[patientId]) {
-            return pacienteColores[patientId];
-        }
-
-        // Generar un nuevo color
-        const colorPool = [
-            '#5C6BC0', '#26A69A', '#EC407A',
-            '#AB47BC', '#7E57C2', '#5C6BC0',
-            '#42A5F5', '#29B6F6', '#26C6DA'
-        ];
-
-        // Asignar un color basado en ID o alfabéticamente
-        const colorIndex = patientId % colorPool.length;
-        const newColor = colorPool[colorIndex];
-
-        // Actualizar el mapa de colores
-        setPacienteColores(prev => ({
-            ...prev,
-            [patientId]: newColor
-        }));
-
-        return newColor;
-    };
-
-    const handleNotificationClose = () => {
-        setNotification(prev => ({ ...prev, open: false }));
-    };
-
-    const handleAppointmentCreated = (newAppointment) => {
-        setOpenNewAppointmentForm(false);
-        fetchCitas(); // Vuelve a cargar la lista de citas después de agregar una nueva
-    };
-
-    // Función para verificar si se puede cambiar a un estado específico
-    const canChangeToState = (currentState, newState) => {
-        switch (currentState) {
-            case 'PRE-REGISTRO':
-                return newState === 'Confirmada' || newState === 'Cancelada';
-            case 'Pendiente':
-                return newState === 'Confirmada' || newState === 'Cancelada';
-            case 'Confirmada':
-                return newState === 'Completada' || newState === 'Cancelada';
-            case 'Completada':
-                return false; // No se puede cambiar desde Completada
-            case 'Cancelada':
-                return false; // No se puede cambiar desde Cancelada
-            default:
-                return false;
-        }
-    };
-
-    // Función para verificar si una cita puede ser confirmada directamente
-    const canConfirmAppointment = (cita) => {
-        // Si es una consulta normal (no es tratamiento), siempre se puede confirmar
-        if (!isTratamiento(cita)) {
-            return true;
-        }
-
-        // Si es un tratamiento, verificar estado del tratamiento
-        const tratamiento = tratamientos[cita.tratamiento_id];
-        return tratamiento && tratamiento.estado === 'Activo';
-    };
-
-    // Función genérica para cambiar el estado de una cita
-    const handleChangeState = async (cita, newState, message = '') => {
-        if (!cita || !canChangeToState(cita.estado, newState)) {
-            setNotification({
-                open: true,
-                message: `No se puede cambiar de "${cita?.estado}" a "${newState}"`,
-                type: 'error',
-            });
-            return;
-        }
-
-        // Verificación adicional para confirmar citas de tratamientos
-        if (newState === 'Confirmada' && cita.tratamiento_id && !canConfirmAppointment(cita)) {
-            setNotification({
-                open: true,
-                message: 'Las citas de tratamientos en estado "Pre-Registro" o "Pendiente" deben activarse desde la gestión de tratamientos.',
-                type: 'warning',
-            });
-            return;
-        }
-
-        setIsProcessing(true);
-        try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/updateStatus/${cita.consulta_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    estado: newState,
-                    mensaje: message // Agregar mensaje para notificación si existe
-                }),
-            });
-
-            if (!response.ok) throw new Error("Error al actualizar el estado");
-
-            setNotification({
-                open: true,
-                message: `La cita ha sido actualizada a estado ${newState}.`,
-                type: 'success',
-            });
-
-            fetchCitas(); // Recargar citas
-
-        } catch (error) {
-            console.error("Error al actualizar el estado:", error);
-            setNotification({
-                open: true,
-                message: "Hubo un error al actualizar el estado de la cita.",
-                type: 'error',
-            });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    // Funciones específicas para cada cambio de estado
-    const confirmCita = (cita) => {
-        // Verificar nuevamente si la cita puede ser confirmada
-        if (!canConfirmAppointment(cita)) {
-            setNotification({
-                open: true,
-                message: 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos.',
-                type: 'warning',
-            });
-            return;
-        }
-
-        setCitaToConfirm(cita);
-        setConfirmMessage('');
-        setOpenConfirmCitaDialog(true);
-    };
-
-    const processConfirmCita = async () => {
-        setIsConfirming(true);
-        await handleChangeState(citaToConfirm, 'Confirmada', confirmMessage);
-        setOpenConfirmCitaDialog(false);
-        setCitaToConfirm(null);
-        setIsConfirming(false);
-    };
-
-    const completeCita = (cita) => {
-        setCitaToComplete(cita);
-        setCompleteMessage('');
-        setOpenCompleteCitaDialog(true);
-    };
-
-    const processCompleteCita = async () => {
-        setIsCompleting(true);
-        try {
-            console.log("OBJETO CITA COMPLETO:", citaToComplete);
-            console.log("tratamiento_id está presente:", citaToComplete.tratamiento_id ? "SÍ" : "NO");
-
-            // 1. Primero actualizar el estado de la cita a completada
-            await handleChangeState(citaToComplete, 'Completada', completeMessage);
-            console.log("Cita marcada como completada. ID:", citaToComplete.consulta_id || citaToComplete.id);
-
-            // 2. Determinar el ID del tratamiento
-            // Intentar primero obtener directamente de la propiedad
-            let tratamientoId = citaToComplete.tratamiento_id;
-
-            // Si no está disponible directamente, intentar extraerlo de las notas
-            if (!tratamientoId && citaToComplete.notas) {
-                const match = citaToComplete.notas.match(/tratamiento #(\d+)/i);
-                if (match && match[1]) {
-                    tratamientoId = parseInt(match[1]);
-                    console.log("Tratamiento ID extraído de las notas:", tratamientoId);
-                }
-            }
-
-            // Si tenemos tratamiento_id (de cualquier fuente), proceder con la actualización
-            if (tratamientoId) {
-                const citaId = citaToComplete.consulta_id || citaToComplete.id;
-                console.log(`Actualizando tratamiento ${tratamientoId} para cita ${citaId}`);
-
-                try {
-                    // Usar el endpoint en router de tratamientos (no el de citas)
-                    const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/actualizarProgreso", {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            tratamiento_id: tratamientoId,
-                            cita_id: citaId
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        const errorText = await response.text();
-                        throw new Error(`Error HTTP ${response.status}: ${errorText}`);
-                    }
-
-                    const data = await response.json();
-                    console.log("Respuesta del servidor:", data);
-
-                    setNotification({
-                        open: true,
-                        message: data.tratamiento_completado
-                            ? `Tratamiento finalizado. Todas las citas han sido completadas.`
-                            : `Cita completada. Contador actualizado a ${data.citas_completadas}/${data.total_citas}. Se ha programado la siguiente cita.`,
-                        type: 'success',
-                    });
-                } catch (error) {
-                    console.error("Error al actualizar progreso:", error);
-                    throw new Error("Error al actualizar el progreso del tratamiento: " + error.message);
-                }
-            } else {
-                console.warn("No se encontró tratamiento_id para esta cita");
-                setNotification({
-                    open: true,
-                    message: "Cita completada con éxito.",
-                    type: 'success',
-                });
-            }
-
-            // Cerrar diálogo y actualizar datos
-            setOpenCompleteCitaDialog(false);
-            setCitaToComplete(null);
-            await fetchCitas();
-
-            // También recargar tratamientos si la función existe
-            if (typeof fetchTratamientos === 'function') {
-                setTimeout(() => {
-                    fetchTratamientos();
-                }, 1000);
-            }
-
-        } catch (error) {
-            console.error("Error al completar cita:", error);
-            setNotification({
-                open: true,
-                message: "Error al procesar la cita completada: " + error.message,
-                type: 'error',
-            });
-        } finally {
-            setIsCompleting(false);
-        }
-    };
-
-    // Función para abrir el diálogo de confirmación de archivado
-    const openArchiveConfirmation = (cita) => {
-        setCitaToDelete(cita);
-        setOpenConfirmDialog(true);
-    };
-
-    // Función para archivar cita
-    const handleArchiveAppointment = async () => {
-        if (!citaToDelete) return;
-
-        setIsProcessing(true);
-        try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/archive/${citaToDelete.consulta_id}`, {
-                method: 'PUT',
-            });
-
-            if (!response.ok) {
-                throw new Error('Error al archivar la cita');
-            }
-
-            setNotification({
-                open: true,
-                message: `La cita ha sido archivada correctamente.`,
-                type: 'success',
-            });
-
-            setOpenConfirmDialog(false);
-            setCitaToDelete(null);
-            fetchCitas(); // Recargar la lista de citas para que desaparezca
-        } catch (error) {
-            console.error('Error al archivar la cita:', error);
-            setNotification({
-                open: true,
-                message: 'Hubo un error al archivar la cita.',
-                type: 'error',
-            });
-        } finally {
-            setIsProcessing(false);
-        }
-    };
-
-    // Función para abrir el diálogo de cancelación
-    const handleCancelAppointment = (cita) => {
-        // Verificar si se puede cancelar según las reglas actualizadas
-        if (!canCancelAppointment(cita)) {
-            let mensaje = `No se puede cancelar una cita en estado "${cita.estado}"`;
-
-            // Si es un tratamiento no activado
-            if ((cita.tratamiento_id || cita.es_tratamiento === 1) &&
-                tratamientos[cita.tratamiento_id] &&
-                tratamientos[cita.tratamiento_id].estado !== 'Activo') {
-                mensaje = 'Esta cita pertenece a un tratamiento que debe ser activado desde la gestión de tratamientos antes de poder ser cancelada.';
-            }
-
-            setNotification({
-                open: true,
-                message: mensaje,
-                type: 'warning',
-            });
-            return;
-        }
-
-        setCitaToCancel(cita);
-        setOpenCancelDialog(true);
-        setCancelReason(''); // Reiniciar el motivo de cancelación
-    };
-
-    // Función para procesar la cancelación con el motivo
-    const processCancelAppointment = async () => {
-        if (!citaToCancel) return;
-
-        setIsCancelling(true);
-        try {
-            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${citaToCancel.consulta_id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    motivo: cancelReason
-                }),
-            });
-
-            if (!response.ok) throw new Error("Error al cancelar la cita");
-
-            setNotification({
-                open: true,
-                message: `La cita ha sido cancelada. Se notificará al paciente.`,
-                type: 'warning',
-            });
-
-            setOpenCancelDialog(false);
-            setCitaToCancel(null);
-            fetchCitas(); // Vuelve a cargar la lista de citas para actualizar el estado
-
-        } catch (error) {
-            console.error("Error al cancelar la cita:", error);
-            setNotification({
-                open: true,
-                message: "Hubo un error al cancelar la cita.",
-                type: 'error',
-            });
-        } finally {
-            setIsCancelling(false);
-        }
-    };
-
-    const handleViewDetails = (cita) => {
-        const updatedCita = citas.find(c => c.consulta_id === cita.consulta_id);
-        setSelectedCita(updatedCita || cita);
-        setOpenDialog(true);
-    };
-
-    // Función para obtener citas
+    
+    // Paginación
+    const [page, setPage] = useState(1);
+    const [rowsPerPage] = useState(50);
+
+    // Estados de diálogos
+    const [openDialog, setOpenDialog] = useState(false);
+    const [openEditDialog, setOpenEditDialog] = useState(false);
+    const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
+    const [openCancelDialog, setOpenCancelDialog] = useState(false);
+    const [openConfirmCitaDialog, setOpenConfirmCitaDialog] = useState(false);
+    const [openCompleteCitaDialog, setOpenCompleteCitaDialog] = useState(false);
+
+    // Estados de datos seleccionados
+    const [selectedCita, setSelectedCita] = useState(null);
+    const [citaToDelete, setCitaToDelete] = useState(null);
+    const [citaToCancel, setCitaToCancel] = useState(null);
+    const [citaToConfirm, setCitaToConfirm] = useState(null);
+    const [citaToComplete, setCitaToComplete] = useState(null);
+
+    // Estados de proceso
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [isCompleting, setIsCompleting] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+
+    // Estados de mensajes
+    const [cancelReason, setCancelReason] = useState('');
+    const [confirmMessage, setConfirmMessage] = useState('');
+    const [completeMessage, setCompleteMessage] = useState('');
+    const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+
+    // Cargar citas
     const fetchCitas = useCallback(async () => {
+        setIsLoading(true);
         try {
             const response = await fetch("https://back-end-4803.onrender.com/api/citas/all");
             if (!response.ok) throw new Error("Error al obtener las citas");
@@ -610,13 +262,7 @@ const CitasForm = () => {
             const data = await response.json();
             const citasFiltradas = data.filter(cita => !cita.archivado);
 
-            // Añadir este log para verificar qué datos están llegando
-            console.log("Datos de citas recibidos:", citasFiltradas);
-
-            // Agrupar las citas por tratamiento para verificar y asignar números
             const citasPorTratamiento = {};
-
-            // Primero agrupar todas las citas por tratamiento_id
             citasFiltradas.forEach(cita => {
                 if (cita.tratamiento_id) {
                     if (!citasPorTratamiento[cita.tratamiento_id]) {
@@ -626,1882 +272,965 @@ const CitasForm = () => {
                 }
             });
 
-            // Ordenar las citas de cada tratamiento por fecha y asignar número
             Object.keys(citasPorTratamiento).forEach(tratamientoId => {
-                // Ordenar por fecha de consulta
-                citasPorTratamiento[tratamientoId].sort((a, b) => {
-                    return new Date(a.fecha_consulta) - new Date(b.fecha_consulta);
-                });
-
-                // Asignar número de cita secuencial (1, 2, 3...) en el orden de las fechas
+                citasPorTratamiento[tratamientoId].sort((a, b) => new Date(a.fecha_consulta) - new Date(b.fecha_consulta));
                 citasPorTratamiento[tratamientoId].forEach((cita, index) => {
                     cita.numero_cita_calculado = index + 1;
                 });
             });
 
-            // Actualizar las citas con los números calculados
             const citasActualizadas = citasFiltradas.map(cita => {
                 if (cita.tratamiento_id && citasPorTratamiento[cita.tratamiento_id]) {
-                    const citaEnGrupo = citasPorTratamiento[cita.tratamiento_id].find(
-                        c => c.consulta_id === cita.consulta_id
-                    );
-                    if (citaEnGrupo) {
-                        return { ...cita, numero_cita_calculado: citaEnGrupo.numero_cita_calculado };
-                    }
+                    const citaEnGrupo = citasPorTratamiento[cita.tratamiento_id].find(c => c.consulta_id === cita.consulta_id);
+                    if (citaEnGrupo) return { ...cita, numero_cita_calculado: citaEnGrupo.numero_cita_calculado };
                 }
                 return cita;
             });
 
             setCitas(citasActualizadas);
-            // No establecer filteredCitas aquí, dejamos que el efecto de applyFilters maneje esto
         } catch (error) {
             console.error("Error cargando citas:", error);
             setCitas([]);
-            setFilteredCitas([]);
-            setNotification({
-                open: true,
-                message: 'Error al cargar las citas.',
-                type: 'error',
-            });
+            setNotification({ open: true, message: 'Error al cargar las citas.', type: 'error' });
+        } finally {
+            setIsLoading(false);
         }
     }, []);
 
-    // Función para formatear la fecha de manera amigable
-    const formatDate = (dateString) => {
+    const fetchTratamientos = useCallback(async () => {
+        try {
+            const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/all");
+            if (!response.ok) throw new Error("Error al obtener los tratamientos");
+
+            const data = await response.json();
+            const tratamientosMap = {};
+            data.forEach(tratamiento => {
+                tratamientosMap[tratamiento.id] = tratamiento;
+            });
+            setTratamientos(tratamientosMap);
+        } catch (error) {
+            console.error("Error cargando tratamientos:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchCitas();
+        fetchTratamientos();
+    }, [fetchCitas, fetchTratamientos]);
+
+    // Verificar si una cita es del pasado
+    const esCitaPasada = useCallback((fecha) => {
+        const ahora = new Date();
+        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+        const fechaCita = new Date(fecha);
+        return fechaCita < hoyInicio;
+    }, []);
+
+    // Ordenar citas
+    const sortCitas = useCallback((citasArray) => {
+        const ahora = new Date();
+        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+
+        const getEstadoPrioridad = (estado) => {
+            switch (estado) {
+                case 'Confirmada': return 1;
+                case 'Pendiente':
+                case 'PRE-REGISTRO': return 2;
+                case 'Completada': return 3;
+                case 'Cancelada': return 4;
+                default: return 5;
+            }
+        };
+
+        return [...citasArray].sort((a, b) => {
+            const fechaA = new Date(a.fecha_consulta);
+            const fechaB = new Date(b.fecha_consulta);
+            const aEsPasado = fechaA < hoyInicio;
+            const bEsPasado = fechaB < hoyInicio;
+
+            if (aEsPasado && !bEsPasado) return 1;
+            if (!aEsPasado && bEsPasado) return -1;
+
+            if (aEsPasado && bEsPasado) {
+                return fechaB - fechaA;
+            } else {
+                const estadoA = getEstadoPrioridad(a.estado);
+                const estadoB = getEstadoPrioridad(b.estado);
+                if (estadoA !== estadoB) return estadoA - estadoB;
+                return fechaA - fechaB;
+            }
+        });
+    }, []);
+
+    // Filtrar citas
+    const filteredCitas = useMemo(() => {
+        let filtered = citas.filter(cita => {
+            const matchesSearch =
+                searchQuery === '' ||
+                (cita.paciente_nombre && cita.paciente_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (cita.servicio_nombre && cita.servicio_nombre.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                (cita.odontologo_nombre && cita.odontologo_nombre.toLowerCase().includes(searchQuery.toLowerCase()));
+
+            let matchesStatus = true;
+            if (statusFilter === 'hoy_futuras') {
+                matchesStatus = !esCitaPasada(cita.fecha_consulta);
+            } else if (statusFilter === 'pasadas') {
+                matchesStatus = esCitaPasada(cita.fecha_consulta) && (cita.estado === 'Pendiente' || cita.estado === 'Confirmada');
+            } else if (statusFilter !== 'todos') {
+                matchesStatus = cita.estado === statusFilter;
+            }
+
+            const esTratamiento = cita?.es_tratamiento === 1;
+            const matchesTipo = tipoFilter === 'todos' || (tipoFilter === 'tratamiento' && esTratamiento) || (tipoFilter === 'consulta' && !esTratamiento);
+
+            return matchesSearch && matchesStatus && matchesTipo;
+        });
+
+        return sortCitas(filtered);
+    }, [citas, searchQuery, statusFilter, tipoFilter, sortCitas, esCitaPasada]);
+
+    // Citas paginadas
+    const paginatedCitas = useMemo(() => {
+        const startIndex = (page - 1) * rowsPerPage;
+        return filteredCitas.slice(startIndex, startIndex + rowsPerPage);
+    }, [filteredCitas, page, rowsPerPage]);
+
+    // Handlers
+    const canConfirmAppointment = useCallback((cita) => {
+        if (!cita?.es_tratamiento) return true;
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        return tratamiento && tratamiento.estado === 'Activo';
+    }, [tratamientos]);
+
+    const canCancelAppointment = useCallback((cita) => {
+        const estadoPermiteCancelar = cita.estado === 'PRE-REGISTRO' || cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+        if (!estadoPermiteCancelar) return false;
+        if (!cita?.es_tratamiento) return true;
+        const tratamiento = tratamientos[cita.tratamiento_id];
+        return tratamiento && tratamiento.estado === 'Activo';
+    }, [tratamientos]);
+
+    const handleViewDetails = useCallback((cita) => {
+        setSelectedCita(cita);
+        setOpenDialog(true);
+    }, []);
+
+    const handleEdit = useCallback((cita) => {
+        setSelectedCita(cita);
+        setOpenEditDialog(true);
+    }, []);
+
+    const handleConfirm = useCallback((cita) => {
+        if (!canConfirmAppointment(cita)) {
+            setNotification({ open: true, message: 'Esta cita debe ser activada desde la gestión de tratamientos.', type: 'warning' });
+            return;
+        }
+        setCitaToConfirm(cita);
+        setConfirmMessage('');
+        setOpenConfirmCitaDialog(true);
+    }, [canConfirmAppointment]);
+
+    const handleComplete = useCallback((cita) => {
+        setCitaToComplete(cita);
+        setCompleteMessage('');
+        setOpenCompleteCitaDialog(true);
+    }, []);
+
+    const handleCancel = useCallback((cita) => {
+        if (!canCancelAppointment(cita)) {
+            setNotification({ open: true, message: 'No se puede cancelar esta cita.', type: 'warning' });
+            return;
+        }
+        setCitaToCancel(cita);
+        setCancelReason('');
+        setOpenCancelDialog(true);
+    }, [canCancelAppointment]);
+
+    const handleArchive = useCallback((cita) => {
+        setCitaToDelete(cita);
+        setOpenConfirmDialog(true);
+    }, []);
+
+    const handleChangeState = useCallback(async (cita, newState, message = '') => {
+        setIsProcessing(true);
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/updateStatus/${cita.consulta_id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ estado: newState, mensaje: message }),
+            });
+
+            if (!response.ok) throw new Error("Error al actualizar el estado");
+
+            setNotification({ open: true, message: `La cita ha sido actualizada a estado ${newState}.`, type: 'success' });
+            fetchCitas();
+        } catch (error) {
+            console.error("Error al actualizar el estado:", error);
+            setNotification({ open: true, message: "Hubo un error al actualizar el estado de la cita.", type: 'error' });
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [fetchCitas]);
+
+    const processConfirmCita = useCallback(async () => {
+        setIsConfirming(true);
+        await handleChangeState(citaToConfirm, 'Confirmada', confirmMessage);
+        setOpenConfirmCitaDialog(false);
+        setCitaToConfirm(null);
+        setIsConfirming(false);
+    }, [citaToConfirm, confirmMessage, handleChangeState]);
+
+    const processCompleteCita = useCallback(async () => {
+        setIsCompleting(true);
+        try {
+            await handleChangeState(citaToComplete, 'Completada', completeMessage);
+
+            let tratamientoId = citaToComplete.tratamiento_id;
+            if (!tratamientoId && citaToComplete.notas) {
+                const match = citaToComplete.notas.match(/tratamiento #(\d+)/i);
+                if (match && match[1]) tratamientoId = parseInt(match[1]);
+            }
+
+            if (tratamientoId) {
+                const citaId = citaToComplete.consulta_id || citaToComplete.id;
+                const response = await fetch("https://back-end-4803.onrender.com/api/tratamientos/actualizarProgreso", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tratamiento_id: tratamientoId, cita_id: citaId }),
+                });
+
+                if (!response.ok) throw new Error(`Error HTTP ${response.status}`);
+
+                const data = await response.json();
+                setNotification({
+                    open: true,
+                    message: data.tratamiento_completado ? `Tratamiento finalizado.` : `Cita completada. Progreso: ${data.citas_completadas}/${data.total_citas}`,
+                    type: 'success',
+                });
+            } else {
+                setNotification({ open: true, message: "Cita completada con éxito.", type: 'success' });
+            }
+
+            setOpenCompleteCitaDialog(false);
+            setCitaToComplete(null);
+            await fetchCitas();
+            setTimeout(() => fetchTratamientos(), 1000);
+        } catch (error) {
+            console.error("Error al completar cita:", error);
+            setNotification({ open: true, message: "Error al procesar la cita.", type: 'error' });
+        } finally {
+            setIsCompleting(false);
+        }
+    }, [citaToComplete, completeMessage, handleChangeState, fetchCitas, fetchTratamientos]);
+
+    const processCancelAppointment = useCallback(async () => {
+        if (!citaToCancel) return;
+        setIsCancelling(true);
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/cancel/${citaToCancel.consulta_id}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motivo: cancelReason }),
+            });
+
+            if (!response.ok) throw new Error("Error al cancelar la cita");
+
+            setNotification({ open: true, message: `La cita ha sido cancelada.`, type: 'warning' });
+            setOpenCancelDialog(false);
+            setCitaToCancel(null);
+            fetchCitas();
+        } catch (error) {
+            console.error("Error al cancelar la cita:", error);
+            setNotification({ open: true, message: "Hubo un error al cancelar la cita.", type: 'error' });
+        } finally {
+            setIsCancelling(false);
+        }
+    }, [citaToCancel, cancelReason, fetchCitas]);
+
+    const handleArchiveAppointment = useCallback(async () => {
+        if (!citaToDelete) return;
+        setIsProcessing(true);
+        try {
+            const response = await fetch(`https://back-end-4803.onrender.com/api/citas/archive/${citaToDelete.consulta_id}`, {
+                method: 'PUT',
+            });
+
+            if (!response.ok) throw new Error('Error al archivar la cita');
+
+            setNotification({ open: true, message: `La cita ha sido archivada.`, type: 'success' });
+            setOpenConfirmDialog(false);
+            setCitaToDelete(null);
+            fetchCitas();
+        } catch (error) {
+            console.error('Error al archivar la cita:', error);
+            setNotification({ open: true, message: 'Hubo un error al archivar la cita.', type: 'error' });
+        } finally {
+            setIsProcessing(false);
+        }
+    }, [citaToDelete, fetchCitas]);
+
+    const formatDate = useCallback((dateString) => {
         if (!dateString) return "N/A";
         try {
             const date = new Date(dateString);
-            date.setHours(date.getHours() + 6); // 6 horas mas 
-
-            // Formato de día y mes
+            date.setHours(date.getHours() + 6);
             const dia = date.toLocaleString('es-MX', { weekday: 'long' });
             const diaMes = date.toLocaleString('es-MX', { day: 'numeric', month: 'long' });
-
-            // Formato de hora
-            const hora = date.toLocaleString('es-MX', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true,
-            });
-
-            // Primer letra mayúscula para el día de la semana
+            const hora = date.toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
             const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
-
             return `${diaCapitalizado} ${diaMes}, ${hora}`;
         } catch (error) {
-            console.error("Error formateando fecha:", error);
             return "Fecha inválida";
         }
-    };
+    }, []);
 
-    // Función para obtener el color del estado
-    const getStatusColor = (status) => {
-        switch (status) {
-            case "Pendiente": return '#FFA726';
-            case "Confirmada": return '#66BB6A';
-            case "Cancelada": return '#EF5350';
-            case "Completada": return '#42A5F5';
-            case "PRE-REGISTRO": return '#9C27B0'; // Añadido para distinguir pre-registros
-            default: return '#BDBDBD';
-        }
-    };
-
-    // Función para determinar si es un tratamiento o no
-    const isTratamiento = (cita) => {
-        return cita?.es_tratamiento === 1;
-    };
-
-    // Obtener el número de cita dentro del tratamiento
-    const getNumeroCitaTratamiento = (cita) => {
-        // Usar el número calculado si existe
-        if (cita?.numero_cita_calculado) {
-            return cita.numero_cita_calculado;
-        }
-
-        // Verificar si hay otros campos que indiquen el número
-        if (cita?.numero_cita_tratamiento) {
-            return cita.numero_cita_tratamiento;
-        }
-
-        if (cita?.numero_cita) {
-            return cita.numero_cita;
-        }
-
-        // Si no hay información, devolver 1 como valor predeterminado
-        return 1;
-    };
-
-    // Verificar si un paciente está registrado (tiene paciente_id)
-    const isRegistered = (cita) => {
-        return cita?.paciente_id != null;
-    };
-
-    // Obtener el estado del tratamiento asociado a una cita
-    const getTratamientoEstado = (cita) => {
-        if (!cita?.tratamiento_id) return null;
-
-        const tratamiento = tratamientos[cita.tratamiento_id];
-        return tratamiento?.estado || null;
-    };
-
-    // Verificar si una cita está completada
-    const isCitaCompletada = (cita) => {
-        return cita?.estado === 'Completada';
-    };
-
-    // Renderizar botones de acción según el estado de la cita
-    const renderStateActionButtons = (cita) => {
-        // Verificamos si la cita se puede confirmar según las reglas
-        const puedeConfirmar = canConfirmAppointment(cita);
-
-        switch (cita.estado) {
-            case 'PRE-REGISTRO': // Agregamos este caso para manejar el PRE-REGISTRO
-            case 'Pendiente':
-                // Mostrar botón de confirmar si la cita puede confirmarse
-                return puedeConfirmar ? (
-                    <Tooltip title="Confirmar cita" arrow>
-                        <IconButton
-                            onClick={() => confirmCita(cita)}
-                            size="small"
-                            sx={{
-                                backgroundColor: colors.confirm,
-                                '&:hover': { backgroundColor: '#388E3C' },
-                                color: 'white',
-                                width: { xs: 28, sm: 32 },
-                                height: { xs: 28, sm: 32 },
-                                '& .MuiSvgIcon-root': {
-                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                }
-                            }}
-                        >
-                            <CheckCircle />
-                        </IconButton>
-                    </Tooltip>
-                ) : null;
-            case 'Confirmada':
-                return (
-                    <Tooltip title="Completar cita" arrow>
-                        <IconButton
-                            onClick={() => completeCita(cita)}
-                            size="small"
-                            sx={{
-                                backgroundColor: colors.complete,
-                                '&:hover': { backgroundColor: '#1976D2' },
-                                color: 'white',
-                                width: { xs: 28, sm: 32 },
-                                height: { xs: 28, sm: 32 },
-                                '& .MuiSvgIcon-root': {
-                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                }
-                            }}
-                        >
-                            <CheckCircle />
-                        </IconButton>
-                    </Tooltip>
-                );
-            default:
-                return null;
-        }
-    };
-
-    // Verificar si una cita se puede cancelar
-    const canCancelAppointment = (cita) => {
-        // Primero verificar si está en un estado que permita cancelación
-        const estadoPermiteCancelar = cita.estado === 'PRE-REGISTRO' || cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
-
-        if (!estadoPermiteCancelar) {
-            return false;
-        }
-
-        // Si es una consulta normal (no es tratamiento), siempre se puede cancelar
-        if (!isTratamiento(cita)) {
-            return true;
-        }
-
-        // Si es un tratamiento, verificar estado del tratamiento
-        const tratamiento = tratamientos[cita.tratamiento_id];
-        return tratamiento && tratamiento.estado === 'Activo';
-    };
-
-    // Manejador para el filtro de estado
-    const handleStatusFilter = (event) => {
-        setStatusFilter(event.target.value);
-    };
-
-    // Manejador para el filtro de tipo
-    const handleTipoFilter = (event) => {
-        setTipoFilter(event.target.value);
-    };
-
-    // Manejador para la búsqueda
-    const handleSearchChange = (event) => {
-        setSearchQuery(event.target.value);
-    };
-
-    // Limpiar todos los filtros
-    const handleClearFilters = () => {
-        setSearchQuery('');
-        setStatusFilter('todos');
-        setTipoFilter('todos');
-    };
-
-    // Vista de Tarjetas (Grid)
-    const renderGridView = () => {
+    // Vista de tabla mejorada
+    const renderTableView = useMemo(() => {
         return (
-            <Grid container spacing={2} sx={{ mt: 2 }}>
-                {filteredCitas.length > 0 ? (
-                    filteredCitas.map((cita, index) => {
-                        const esTratamiento = isTratamiento(cita);
-                        const estaRegistrado = isRegistered(cita);
-                        const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
-                        const citaCompletada = isCitaCompletada(cita);
+            <TableContainer 
+                component={Paper} 
+                sx={{ 
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.06)', 
+                    backgroundColor: colors.paper, 
+                    borderRadius: '20px', 
+                    overflow: 'hidden',
+                    border: `1px solid ${colors.divider}`
+                }}
+            >
+                <Table>
+                    <TableHead>
+                        <TableRow sx={{ backgroundColor: colors.tableBackground }}>
+                            <TableCell sx={{ color: colors.text, fontWeight: 600, py: 2.5, fontSize: '0.9rem', borderBottom: `2px solid ${colors.divider}` }}>Paciente</TableCell>
+                            <TableCell sx={{ color: colors.text, fontWeight: 600, py: 2.5, fontSize: '0.9rem', display: { xs: 'none', sm: 'table-cell' }, borderBottom: `2px solid ${colors.divider}` }}>Servicio</TableCell>
+                            <TableCell sx={{ color: colors.text, fontWeight: 600, py: 2.5, fontSize: '0.9rem', display: { xs: 'none', md: 'table-cell' }, borderBottom: `2px solid ${colors.divider}` }}>Fecha y Hora</TableCell>
+                            <TableCell sx={{ color: colors.text, fontWeight: 600, py: 2.5, fontSize: '0.9rem', borderBottom: `2px solid ${colors.divider}` }}>Estado</TableCell>
+                            <TableCell sx={{ color: colors.text, fontWeight: 600, py: 2.5, fontSize: '0.9rem', borderBottom: `2px solid ${colors.divider}` }}>Acciones</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
+                        {paginatedCitas.length > 0 ? (
+                            paginatedCitas.map((cita) => {
+                                const esTratamiento = cita?.es_tratamiento === 1;
+                                const estaRegistrado = cita?.paciente_id != null;
+                                const citaCompletada = cita?.estado === 'Completada';
+                                const avatarColor = (() => {
+                                    if (!cita?.paciente_id) return colors.noRegistrado;
+                                    const colorPool = ['#5C6BC0', '#26A69A', '#EC407A', '#AB47BC', '#7E57C2', '#42A5F5', '#29B6F6', '#26C6DA'];
+                                    return colorPool[cita.paciente_id % colorPool.length];
+                                })();
 
-                        return (
-                            <Grid item xs={12} sm={6} md={4} lg={3} key={cita?.consulta_id || index}>
-                                <Card
-                                    sx={{
-                                        backgroundColor: colors.paper,
-                                        boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
-                                        borderRadius: '12px',
-                                        overflow: 'hidden',
-                                        borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`,
-                                        height: '100%',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        transition: 'all 0.2s ease',
-                                        '&:hover': {
-                                            transform: 'translateY(-4px)',
-                                            boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
-                                        }
-                                    }}
-                                >
-                                    <CardContent sx={{ p: 2, flexGrow: 1 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, alignItems: 'flex-start' }}>
+                                return (
+                                    <TableRow
+                                        key={cita?.consulta_id}
+                                        sx={{
+                                            height: '70px',
+                                            '&:hover': { 
+                                                backgroundColor: colors.hover,
+                                                transform: 'scale(1.001)',
+                                                transition: 'all 0.2s ease'
+                                            },
+                                            borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`,
+                                            borderBottom: `1px solid ${colors.divider}`
+                                        }}
+                                    >
+                                        <TableCell sx={{ py: 2 }}>
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                <Avatar
-                                                    sx={{
-                                                        bgcolor: avatarColor,
-                                                        width: 40,
-                                                        height: 40,
-                                                        mr: 1.5,
-                                                        border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`
+                                                <Avatar 
+                                                    sx={{ 
+                                                        bgcolor: avatarColor, 
+                                                        width: 40, 
+                                                        height: 40, 
+                                                        mr: 2, 
+                                                        border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`, 
+                                                        fontSize: '0.95rem',
+                                                        fontWeight: 600,
+                                                        boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                                                     }}
                                                 >
                                                     {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
                                                 </Avatar>
                                                 <Box>
-                                                    <Typography
-                                                        variant="subtitle1"
-                                                        sx={{
-                                                            fontWeight: 'medium',
-                                                            color: colors.text,
-                                                            lineHeight: 1.2
-                                                        }}
-                                                    >
-                                                        {cita?.paciente_nombre ?
-                                                            `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''}`.trim() :
-                                                            "No registrado"}
+                                                    <Typography variant="body2" fontWeight={600} sx={{ color: colors.text, fontSize: '0.9rem', lineHeight: 1.3 }}>
+                                                        {cita?.paciente_nombre ? `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''} ${cita.paciente_apellido_materno || ''}`.trim() : "No registrado"}
                                                     </Typography>
-                                                    <Typography variant="caption" sx={{ color: colors.secondaryText }}>
+                                                    <Typography variant="caption" sx={{ color: colors.secondaryText, fontSize: '0.75rem' }}>
                                                         {estaRegistrado ? 'Registrado' : 'No registrado'}
                                                     </Typography>
                                                 </Box>
                                             </Box>
-                                            <Chip
-                                                label={cita?.estado || "Pendiente"}
-                                                size="small"
-                                                sx={{
-                                                    backgroundColor: getStatusColor(cita?.estado),
-                                                    color: '#FFF',
-                                                    fontWeight: '500',
-                                                    fontSize: '0.7rem',
-                                                    height: '22px',
-                                                }}
-                                            />
-                                        </Box>
-
-                                        <Box sx={{ mb: 1.5 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.75 }}>
-                                                {esTratamiento ? (
-                                                    <MedicalServices sx={{ color: colors.tratamiento, fontSize: 16, mr: 1 }} />
-                                                ) : (
-                                                    <LocalHospital sx={{ color: colors.consulta, fontSize: 16, mr: 1 }} />
-                                                )}
-                                                <Typography variant="body2" sx={{ color: colors.text, fontWeight: 'medium' }}>
-                                                    {cita?.servicio_nombre || "N/A"}
-                                                </Typography>
+                                        </TableCell>
+                                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, py: 2 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                <Box 
+                                                    sx={{ 
+                                                        bgcolor: alpha(esTratamiento ? colors.tratamiento : colors.consulta, 0.1),
+                                                        borderRadius: '10px',
+                                                        p: 0.8,
+                                                        mr: 1.5,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center'
+                                                    }}
+                                                >
+                                                    {esTratamiento ? (
+                                                        <MedicalServices sx={{ color: colors.tratamiento, fontSize: 18 }} />
+                                                    ) : (
+                                                        <LocalHospital sx={{ color: colors.consulta, fontSize: 18 }} />
+                                                    )}
+                                                </Box>
+                                                <Box>
+                                                    <Typography variant="body2" sx={{ color: colors.text, fontSize: '0.875rem', fontWeight: 500, lineHeight: 1.3 }}>
+                                                        {cita?.servicio_nombre || "N/A"}
+                                                    </Typography>
+                                                    <Typography variant="caption" sx={{ color: colors.secondaryText, fontSize: '0.75rem' }}>
+                                                        {esTratamiento ? `Tratamiento (cita ${cita.numero_cita_calculado || 1})` : cita?.categoria_servicio || "General"}
+                                                    </Typography>
+                                                </Box>
                                             </Box>
-                                            <Typography variant="caption" sx={{ color: colors.secondaryText, ml: 3.5 }}>
-                                                {esTratamiento ? `Tratamiento (cita ${getNumeroCitaTratamiento(cita)})` : cita?.categoria_servicio || "Consulta"}
-                                            </Typography>
-                                        </Box>
-
-                                        <Box sx={{ mb: 1.5 }}>
+                                        </TableCell>
+                                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, py: 2 }}>
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                 <Event sx={{ color: colors.primary, fontSize: 16, mr: 1 }} />
-                                                <Typography variant="body2" sx={{ color: colors.text }}>
+                                                <Typography variant="body2" sx={{ fontSize: '0.875rem', color: colors.text }}>
                                                     {formatDate(cita?.fecha_consulta)}
                                                 </Typography>
                                             </Box>
-                                        </Box>
-
-                                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, gap: 1 }}>
-                                            <Tooltip title="Ver detalles" arrow>
-                                                <IconButton
-                                                    onClick={() => handleViewDetails(cita)}
-                                                    size="small"
-                                                    sx={{
-                                                        backgroundColor: colors.details,
-                                                        '&:hover': { backgroundColor: '#0277bd' },
-                                                        color: 'white',
-                                                        width: 32,
-                                                        height: 32
-                                                    }}
-                                                >
-                                                    <Visibility fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-
-                                            {!citaCompletada && (
-                                                <Tooltip title="Editar cita" arrow>
-                                                    <IconButton
-                                                        onClick={() => {
-                                                            setSelectedCita(cita);
-                                                            setOpenEditDialog(true);
-                                                        }}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: colors.edit,
-                                                            '&:hover': { backgroundColor: '#388e3c' },
-                                                            color: 'white',
-                                                            width: 32,
-                                                            height: 32
+                                        </TableCell>
+                                        <TableCell sx={{ py: 2 }}>
+                                            <Chip 
+                                                label={cita?.estado || "Pendiente"} 
+                                                sx={{ 
+                                                    backgroundColor: STATUS_COLORS[cita?.estado] || '#bdbdbd', 
+                                                    color: '#FFF', 
+                                                    fontWeight: '600', 
+                                                    fontSize: '0.75rem', 
+                                                    height: '26px',
+                                                    borderRadius: '13px',
+                                                    px: 1.5
+                                                }} 
+                                            />
+                                        </TableCell>
+                                        <TableCell sx={{ py: 2 }}>
+                                            <Box sx={{ display: 'flex', gap: 0.75, flexWrap: { xs: 'wrap', md: 'nowrap' }, justifyContent: 'flex-start' }}>
+                                                <Tooltip title="Ver detalles" arrow>
+                                                    <IconButton 
+                                                        onClick={() => handleViewDetails(cita)} 
+                                                        size="small" 
+                                                        sx={{ 
+                                                            backgroundColor: colors.details, 
+                                                            '&:hover': { backgroundColor: alpha(colors.details, 0.85), transform: 'scale(1.1)' }, 
+                                                            color: 'white', 
+                                                            width: 32, 
+                                                            height: 32,
+                                                            borderRadius: '10px',
+                                                            transition: 'all 0.2s ease'
                                                         }}
                                                     >
-                                                        <BorderColor fontSize="small" />
+                                                        <Visibility sx={{ fontSize: '1rem' }} />
                                                     </IconButton>
                                                 </Tooltip>
-                                            )}
-
-                                            {renderStateActionButtons(cita)}
-
-                                            {canCancelAppointment(cita) && !citaCompletada && (
-                                                <Tooltip title="Cancelar cita" arrow>
-                                                    <IconButton
-                                                        onClick={() => handleCancelAppointment(cita)}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: colors.cancel,
-                                                            '&:hover': { backgroundColor: '#c62828' },
-                                                            color: 'white',
-                                                            width: 32,
-                                                            height: 32
+                                                {!citaCompletada && (
+                                                    <Tooltip title="Editar cita" arrow>
+                                                        <IconButton 
+                                                            onClick={() => handleEdit(cita)} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                backgroundColor: colors.edit, 
+                                                                '&:hover': { backgroundColor: alpha(colors.edit, 0.85), transform: 'scale(1.1)' }, 
+                                                                color: 'white', 
+                                                                width: 32, 
+                                                                height: 32,
+                                                                borderRadius: '10px',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                        >
+                                                            <BorderColor sx={{ fontSize: '1rem' }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                                {cita?.estado === 'Pendiente' && canConfirmAppointment(cita) && (
+                                                    <Tooltip title="Confirmar cita" arrow>
+                                                        <IconButton 
+                                                            onClick={() => handleConfirm(cita)} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                backgroundColor: colors.confirm, 
+                                                                '&:hover': { backgroundColor: alpha(colors.confirm, 0.85), transform: 'scale(1.1)' }, 
+                                                                color: 'white', 
+                                                                width: 32, 
+                                                                height: 32,
+                                                                borderRadius: '10px',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                        >
+                                                            <CheckCircle sx={{ fontSize: '1rem' }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                                {cita?.estado === 'Confirmada' && (
+                                                    <Tooltip title="Completar cita" arrow>
+                                                        <IconButton 
+                                                            onClick={() => handleComplete(cita)} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                backgroundColor: colors.complete, 
+                                                                '&:hover': { backgroundColor: alpha(colors.complete, 0.85), transform: 'scale(1.1)' }, 
+                                                                color: 'white', 
+                                                                width: 32, 
+                                                                height: 32,
+                                                                borderRadius: '10px',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                        >
+                                                            <CheckCircle sx={{ fontSize: '1rem' }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                                <Tooltip title="Archivar cita" arrow>
+                                                    <IconButton 
+                                                        onClick={() => handleArchive(cita)} 
+                                                        size="small" 
+                                                        sx={{ 
+                                                            backgroundColor: colors.archive, 
+                                                            '&:hover': { backgroundColor: alpha(colors.archive, 0.85), transform: 'scale(1.1)' }, 
+                                                            color: 'white', 
+                                                            width: 32, 
+                                                            height: 32,
+                                                            borderRadius: '10px',
+                                                            transition: 'all 0.2s ease'
                                                         }}
                                                     >
-                                                        <Close fontSize="small" />
+                                                        <MenuBook sx={{ fontSize: '1rem' }} />
                                                     </IconButton>
                                                 </Tooltip>
-                                            )}
-                                        </Box>
-                                    </CardContent>
-                                </Card>
-                            </Grid>
-                        );
-                    })
+                                                {canCancelAppointment(cita) && !citaCompletada && (
+                                                    <Tooltip title="Cancelar cita" arrow>
+                                                        <IconButton 
+                                                            onClick={() => handleCancel(cita)} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                backgroundColor: colors.cancel, 
+                                                                '&:hover': { backgroundColor: alpha(colors.cancel, 0.85), transform: 'scale(1.1)' }, 
+                                                                color: 'white', 
+                                                                width: 32, 
+                                                                height: 32,
+                                                                borderRadius: '10px',
+                                                                transition: 'all 0.2s ease'
+                                                            }}
+                                                        >
+                                                            <Close sx={{ fontSize: '1rem' }} />
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                            </Box>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })
+                        ) : (
+                            <TableRow>
+                                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                                    <Typography color={colors.secondaryText} sx={{ fontSize: '0.95rem' }}>
+                                        {isLoading ? 'Cargando citas...' : 'No hay citas disponibles'}
+                                    </Typography>
+                                </TableCell>
+                            </TableRow>
+                        )}
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        );
+    }, [paginatedCitas, colors, formatDate, handleViewDetails, handleEdit, handleConfirm, handleComplete, handleArchive, handleCancel, canConfirmAppointment, canCancelAppointment, isLoading]);
+
+    // Vista de cuadrícula
+    const renderGridView = useMemo(() => {
+        return (
+            <Grid container spacing={2.5}>
+                {paginatedCitas.length > 0 ? (
+                    paginatedCitas.map((cita) => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={cita?.consulta_id}>
+                            <CitaCard
+                                cita={cita}
+                                colors={colors}
+                                onViewDetails={handleViewDetails}
+                                onEdit={handleEdit}
+                                onConfirm={handleConfirm}
+                                onComplete={handleComplete}
+                                onArchive={handleArchive}
+                                onCancel={handleCancel}
+                                canCancel={canCancelAppointment(cita)}
+                                canConfirm={canConfirmAppointment(cita)}
+                            />
+                        </Grid>
+                    ))
                 ) : (
                     <Grid item xs={12}>
-                        <Paper sx={{ p: 3, textAlign: 'center', backgroundColor: colors.paper }}>
-                            <Typography color={colors.secondaryText}>No hay citas disponibles</Typography>
+                        <Paper sx={{ p: 4, textAlign: 'center', backgroundColor: colors.paper, borderRadius: '20px' }}>
+                            <Typography color={colors.secondaryText}>
+                                {isLoading ? 'Cargando citas...' : 'No hay citas disponibles'}
+                            </Typography>
                         </Paper>
                     </Grid>
                 )}
             </Grid>
         );
-    };
-
-    // Vista Compacta
-    const renderCompactView = () => {
-        return (
-            <TableContainer
-                component={Paper}
-                sx={{
-                    boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
-                    backgroundColor: colors.paper,
-                    borderRadius: '12px',
-                    overflow: 'auto',
-                    transition: 'all 0.3s ease'
-                }}
-            >
-                <Table size="small">
-                    <TableHead sx={{ backgroundColor: colors.tableBackground }}>
-                        <TableRow>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold', py: 1.5 }}>Paciente</TableCell>
-                            <TableCell
-                                sx={{ color: colors.text, fontWeight: 'bold', py: 1.5, cursor: 'pointer' }}
-                                onClick={() => handleSortChange('fecha_consulta')}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                    Fecha
-                                    {sortField === 'fecha_consulta' && (
-                                        sortOrder === 'asc' ?
-                                            <ArrowUpward fontSize="small" sx={{ ml: 0.5 }} /> :
-                                            <ArrowDownward fontSize="small" sx={{ ml: 0.5 }} />
-                                    )}
-                                </Box>
-                            </TableCell>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold', py: 1.5 }}>Estado</TableCell>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold', py: 1.5, width: '120px' }}>Acciones</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {filteredCitas.length > 0 ? (
-                            filteredCitas.map((cita, index) => {
-                                const esTratamiento = isTratamiento(cita);
-                                const estaRegistrado = isRegistered(cita);
-                                const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
-                                const citaCompletada = isCitaCompletada(cita);
-
-                                return (
-                                    <TableRow
-                                        key={cita?.consulta_id || index}
-                                        sx={{
-                                            height: '48px',
-                                            '&:hover': { backgroundColor: colors.hover },
-                                            transition: 'background-color 0.2s ease',
-                                            borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`
-                                        }}
-                                    >
-                                        <TableCell sx={{ py: 1 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                <Avatar
-                                                    sx={{
-                                                        bgcolor: avatarColor,
-                                                        width: 28,
-                                                        height: 28,
-                                                        mr: 1,
-                                                        border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`,
-                                                        fontSize: '0.8rem'
-                                                    }}
-                                                >
-                                                    {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
-                                                </Avatar>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: colors.text,
-                                                        fontWeight: 'medium',
-                                                        fontSize: '0.8rem'
-                                                    }}
-                                                >
-                                                    {cita?.paciente_nombre ?
-                                                        `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''}`.trim() :
-                                                        "No registrado"}
-                                                </Typography>
-                                            </Box>
-                                        </TableCell>
-                                        <TableCell sx={{ color: colors.text, py: 1, fontSize: '0.8rem' }}>
-                                            {formatDate(cita?.fecha_consulta).split(',')[0]}
-                                        </TableCell>
-                                        <TableCell sx={{ py: 1 }}>
-                                            <Chip
-                                                label={cita?.estado || "Pendiente"}
-                                                size="small"
-                                                sx={{
-                                                    backgroundColor: getStatusColor(cita?.estado),
-                                                    color: '#FFF',
-                                                    fontWeight: '500',
-                                                    fontSize: '0.65rem',
-                                                    height: '20px',
-                                                }}
-                                            />
-                                        </TableCell>
-                                        <TableCell sx={{ py: 1 }}>
-                                            <Box sx={{
-                                                display: 'flex',
-                                                gap: 0.5
-                                            }}>
-                                                <Tooltip title="Ver detalles" arrow>
-                                                    <IconButton
-                                                        onClick={() => handleViewDetails(cita)}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: colors.details,
-                                                            '&:hover': { backgroundColor: '#0277bd' },
-                                                            color: 'white',
-                                                            width: 24,
-                                                            height: 24,
-                                                            '& .MuiSvgIcon-root': {
-                                                                fontSize: '0.85rem'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Visibility />
-                                                    </IconButton>
-                                                </Tooltip>
-
-                                                {!citaCompletada && renderStateActionButtons(cita) ? (
-                                                    renderStateActionButtons(cita)
-                                                ) : (
-                                                    <Tooltip title="Editar cita" arrow>
-                                                        <IconButton
-                                                            onClick={() => {
-                                                                setSelectedCita(cita);
-                                                                setOpenEditDialog(true);
-                                                            }}
-                                                            size="small"
-                                                            sx={{
-                                                                backgroundColor: colors.edit,
-                                                                '&:hover': { backgroundColor: '#388e3c' },
-                                                                color: 'white',
-                                                                width: 24,
-                                                                height: 24,
-                                                                '& .MuiSvgIcon-root': {
-                                                                    fontSize: '0.85rem'
-                                                                }
-                                                            }}
-                                                        >
-                                                            <BorderColor />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                    <Typography color={colors.secondaryText}>No hay citas disponibles</Typography>
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        );
-    };
-
-    // Vista de Tabla (predeterminada)
-    const renderTableView = () => {
-        return (
-            <TableContainer
-                component={Paper}
-                sx={{
-                    boxShadow: isDarkTheme ? '0px 4px 20px rgba(0, 0, 0, 0.3)' : '0px 4px 20px rgba(0, 0, 0, 0.1)',
-                    backgroundColor: colors.paper,
-                    borderRadius: '12px',
-                    overflow: 'auto',
-                    transition: 'all 0.3s ease'
-                }}
-            >
-                <Table>
-                    {/* Encabezado de la tabla */}
-                    <TableHead sx={{ backgroundColor: colors.tableBackground }}>
-                        <TableRow>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Paciente</TableCell>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold', display: { xs: 'none', sm: 'table-cell' } }}>Servicio</TableCell>
-                            <TableCell
-                                sx={{
-                                    color: colors.text,
-                                    fontWeight: 'bold',
-                                    display: { xs: 'none', md: 'table-cell' },
-                                    cursor: 'pointer'
-                                }}
-                                onClick={() => handleSortChange('fecha_consulta')}
-                            >
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                    Fecha y Hora
-                                    {sortField === 'fecha_consulta' && (
-                                        sortOrder === 'asc' ?
-                                            <FaSortAmountUp fontSize="small" sx={{ ml: .5 }} /> :
-                                            <FaSortAmountDown fontSize="small" sx={{ ml: .5 }} />
-                                    )}
-                                </Box>
-                            </TableCell>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Estado</TableCell>
-                            <TableCell sx={{ color: colors.text, fontWeight: 'bold' }}>Acciones</TableCell>
-                        </TableRow>
-                    </TableHead>
-
-                    {/* Cuerpo de la tabla */}
-                    <TableBody>
-                        {filteredCitas.length > 0 ? (
-                            filteredCitas.map((cita, index) => {
-                                const esTratamiento = isTratamiento(cita);
-                                const estaRegistrado = isRegistered(cita);
-                                const numCita = getNumeroCitaTratamiento(cita);
-                                const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
-                                const tratamientoEstado = getTratamientoEstado(cita);
-                                const citaCompletada = isCitaCompletada(cita);
-
-                                // Determinar si mostrar indicador especial cuando es tratamiento no activado
-                                const esTratamientoNoActivado = esTratamiento &&
-                                    tratamientoEstado &&
-                                    (tratamientoEstado === 'Pre-Registro' || tratamientoEstado === 'Pendiente');
-
-                                return (
-                                    <TableRow
-                                        key={cita?.consulta_id || index}
-                                        sx={{
-                                            height: '65px',
-                                            '&:hover': { backgroundColor: colors.hover },
-                                            transition: 'background-color 0.2s ease',
-                                            borderLeft: `4px solid ${esTratamiento ? colors.tratamiento : colors.consulta}`
-                                        }}
-                                    >
-                                        {/* Paciente con avatar e indicador de registro */}
-                                        <TableCell>
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                <Avatar
-                                                    sx={{
-                                                        bgcolor: avatarColor,
-                                                        width: { xs: 32, sm: 36 },
-                                                        height: { xs: 32, sm: 36 },
-                                                        mr: { xs: 1, sm: 2 },
-                                                        border: estaRegistrado ? 'none' : `2px solid ${colors.noRegistrado}`
-                                                    }}
-                                                >
-                                                    {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
-                                                </Avatar>
-                                                <Box>
-                                                    <Typography
-                                                        variant="body2"
-                                                        fontWeight="medium"
-                                                        sx={{
-                                                            fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                                                            maxWidth: { xs: '110px', sm: '100%' },
-                                                            overflow: 'hidden',
-                                                            textOverflow: 'ellipsis',
-                                                            whiteSpace: 'nowrap',
-                                                            color: colors.text
-                                                        }}
-                                                    >
-                                                        {cita?.paciente_nombre ?
-                                                            `${cita.paciente_nombre} ${cita.paciente_apellido_paterno || ''} ${cita.paciente_apellido_materno || ''}`.trim() :
-                                                            "No registrado"}
-                                                    </Typography>
-                                                    <Box
-                                                        sx={{
-                                                            display: 'flex',
-                                                            alignItems: 'center',
-                                                            gap: 0.5
-                                                        }}
-                                                    >
-                                                        {esTratamiento && (
-                                                            <Chip
-                                                                size="small"
-                                                                label={`Cita ${numCita}`}
-                                                                sx={{
-                                                                    height: 18,
-                                                                    fontSize: '0.65rem',
-                                                                    bgcolor: colors.tratamiento,
-                                                                    color: 'white',
-                                                                    display: { xs: 'flex', md: 'none' }
-                                                                }}
-                                                            />
-                                                        )}
-                                                        <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                                fontSize: { xs: '0.65rem', sm: '0.7rem' },
-                                                                color: colors.secondaryText
-                                                            }}
-                                                        >
-                                                            {estaRegistrado ? 'Registrado' : 'No registrado'}
-                                                        </Typography>
-                                                    </Box>
-                                                </Box>
-                                            </Box>
-                                        </TableCell>
-
-                                        {/* Servicio con icono según tipo */}
-                                        <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, color: colors.text }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                {esTratamiento ? (
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <MedicalServices
-                                                            sx={{
-                                                                color: colors.tratamiento,
-                                                                fontSize: 18,
-                                                                mr: 1
-                                                            }}
-                                                        />
-                                                        <Box>
-                                                            <Typography variant="body2" sx={{ color: colors.text }}>
-                                                                {cita?.servicio_nombre || "N/A"}
-                                                            </Typography>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                <Typography variant="caption"
-                                                                    sx={{
-                                                                        color: colors.tratamiento,
-                                                                    }}
-                                                                >
-                                                                    Tratamiento (cita {numCita})
-                                                                </Typography>
-
-                                                                {/* Agregar insignia si el tratamiento no está activado */}
-                                                                {esTratamientoNoActivado && (
-                                                                    <Chip
-                                                                        size="small"
-                                                                        label={tratamientoEstado}
-                                                                        sx={{
-                                                                            height: 16,
-                                                                            fontSize: '0.6rem',
-                                                                            ml: 0.5,
-                                                                            bgcolor: tratamientoEstado === 'Pre-Registro' ? '#9C27B0' : '#FF9800',
-                                                                            color: 'white'
-                                                                        }}
-                                                                    />
-                                                                )}
-                                                            </Box>
-                                                        </Box>
-                                                    </Box>
-                                                ) : (
-                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                        <LocalHospital
-                                                            sx={{
-                                                                color: colors.consulta,
-                                                                fontSize: 18,
-                                                                mr: 1
-                                                            }}
-                                                        />
-                                                        <Box>
-                                                            <Typography variant="body2" sx={{ color: colors.text }}>
-                                                                {cita?.servicio_nombre || "N/A"}
-                                                            </Typography>
-                                                            <Typography variant="caption" sx={{ color: colors.secondaryText }}>
-                                                                {cita?.categoria_servicio || "General"}
-                                                            </Typography>
-                                                        </Box>
-                                                    </Box>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-
-                                        {/* Fecha de Consulta */}
-                                        <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, color: colors.text }}>
-                                            <Typography variant="body2">{formatDate(cita?.fecha_consulta)}</Typography>
-                                        </TableCell>
-
-                                        {/* Estado con Chip de colores */}
-                                        <TableCell>
-                                            <Chip
-                                                label={cita?.estado || "Pendiente"}
-                                                sx={{
-                                                    backgroundColor: getStatusColor(cita?.estado),
-                                                    color: '#FFF',
-                                                    fontWeight: '500',
-                                                    fontSize: '0.75rem',
-                                                    height: '24px',
-                                                }}
-                                            />
-                                        </TableCell>
-
-                                        {/* Acciones */}
-                                        <TableCell>
-                                            <Box sx={{
-                                                display: 'flex',
-                                                gap: { xs: 0.5, sm: 1 },
-                                                flexWrap: { xs: 'wrap', md: 'nowrap' },
-                                                justifyContent: 'center'
-                                            }}>
-                                                {/* Ver Detalles - Siempre visible */}
-                                                <Tooltip title="Ver detalles" arrow>
-                                                    <IconButton
-                                                        onClick={() => handleViewDetails(cita)}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: colors.details,
-                                                            '&:hover': { backgroundColor: '#0277bd' },
-                                                            color: 'white',
-                                                            width: { xs: 28, sm: 32 },
-                                                            height: { xs: 28, sm: 32 },
-                                                            '& .MuiSvgIcon-root': {
-                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <Visibility />
-                                                    </IconButton>
-                                                </Tooltip>
-
-                                                {/* Editar Cita - Solo si NO está completada */}
-                                                {!citaCompletada && (
-                                                    <Tooltip title="Editar cita" arrow>
-                                                        <IconButton
-                                                            onClick={() => {
-                                                                setSelectedCita(cita);
-                                                                setOpenEditDialog(true);
-                                                            }}
-                                                            size="small"
-                                                            sx={{
-                                                                backgroundColor: colors.edit,
-                                                                '&:hover': { backgroundColor: '#388e3c' },
-                                                                color: 'white',
-                                                                width: { xs: 28, sm: 32 },
-                                                                height: { xs: 28, sm: 32 },
-                                                                '& .MuiSvgIcon-root': {
-                                                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                                                }
-                                                            }}
-                                                        >
-                                                            <BorderColor />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-
-                                                {/* Botón de acción según estado (Confirmar o Completar) */}
-                                                {!isTratamiento(cita) || (tratamientos[cita.tratamiento_id] && tratamientos[cita.tratamiento_id].estado === 'Activo') ?
-                                                    renderStateActionButtons(cita) : null}
-
-                                                {/* Archivar Cita - Siempre disponible */}
-                                                <Tooltip title="Archivar cita" arrow>
-                                                    <IconButton
-                                                        onClick={() => openArchiveConfirmation(cita)}
-                                                        size="small"
-                                                        sx={{
-                                                            backgroundColor: colors.archive,
-                                                            '&:hover': { backgroundColor: '#f57c00' },
-                                                            color: 'white',
-                                                            width: { xs: 28, sm: 32 },
-                                                            height: { xs: 28, sm: 32 },
-                                                            '& .MuiSvgIcon-root': {
-                                                                fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                                            }
-                                                        }}
-                                                    >
-                                                        <MenuBook />
-                                                    </IconButton>
-                                                </Tooltip>
-
-                                                {/* Cancelar Cita - Solo si se puede cancelar según la lógica y NO está completada */}
-                                                {canCancelAppointment(cita) && !citaCompletada && (
-                                                    <Tooltip title="Cancelar cita" arrow>
-                                                        <IconButton
-                                                            onClick={() => handleCancelAppointment(cita)}
-                                                            size="small"
-                                                            sx={{
-                                                                backgroundColor: colors.cancel,
-                                                                '&:hover': { backgroundColor: '#c62828' },
-                                                                color: 'white',
-                                                                width: { xs: 28, sm: 32 },
-                                                                height: { xs: 28, sm: 32 },
-                                                                '& .MuiSvgIcon-root': {
-                                                                    fontSize: { xs: '0.9rem', sm: '1.1rem' }
-                                                                }
-                                                            }}
-                                                        >
-                                                            <Close />
-                                                        </IconButton>
-                                                    </Tooltip>
-                                                )}
-                                            </Box>
-                                        </TableCell>
-                                    </TableRow>
-                                );
-                            })
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={5} align="center">
-                                    <Typography color={colors.secondaryText}>No hay citas disponibles</Typography>
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
-            </TableContainer>
-        );
-    };
-
-    // Vista profesional para odontólogo - citas del día y próximas
-    const renderDoctorView = () => {
-        const ahora = new Date();
-        const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
-        const mañana = new Date(hoyInicio.getTime() + 24 * 60 * 60 * 1000);
-
-        // Citas de hoy ordenadas por hora
-        const citasHoy = filteredCitas.filter(cita => {
-            const fechaCita = new Date(cita.fecha_consulta);
-            return fechaCita >= hoyInicio && fechaCita < mañana;
-        }).sort((a, b) => new Date(a.fecha_consulta) - new Date(b.fecha_consulta));
-
-        // Próximas citas (siguientes 7 días)
-        const proximaSemana = new Date(hoyInicio.getTime() + 7 * 24 * 60 * 60 * 1000);
-        const citasProximas = filteredCitas.filter(cita => {
-            const fechaCita = new Date(cita.fecha_consulta);
-            return fechaCita >= mañana && fechaCita < proximaSemana;
-        }).slice(0, 8);
-
-        // Citas atrasadas
-        const citasAtrasadas = filteredCitas.filter(cita => {
-            const fechaCita = new Date(cita.fecha_consulta);
-            return fechaCita < hoyInicio && (cita.estado === 'Pendiente' || cita.estado === 'Confirmada');
-        }).slice(0, 4);
-
-        return (
-            <Box>
-                {/* Header profesional con estadísticas */}
-                <Paper
-                    elevation={0}
-                    sx={{
-                        p: 3,
-                        mb: 3,
-                        background: `linear-gradient(135deg, ${colors.primary} 0%, ${alpha(colors.primary, 0.8)} 100%)`,
-                        borderRadius: '16px',
-                        color: 'white'
-                    }}
-                >
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                        <Box>
-                            <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5 }}>
-                                Panel de Agenda
-                            </Typography>
-                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                {new Date().toLocaleDateString('es-ES', {
-                                    weekday: 'long',
-                                    day: 'numeric',
-                                    month: 'long',
-                                    year: 'numeric'
-                                })}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <CalendarMonth sx={{ fontSize: 40, opacity: 0.8 }} />
-                        </Box>
-                    </Box>
-
-                    {/* Métricas rápidas */}
-                    <Grid container spacing={2}>
-                        <Grid item xs={12} sm={4}>
-                            <Box sx={{
-                                bgcolor: 'rgba(255,255,255,0.15)',
-                                p: 2,
-                                borderRadius: '12px',
-                                backdropFilter: 'blur(10px)'
-                            }}>
-                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                    {citasHoy.length}
-                                </Typography>
-                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                    Citas de Hoy
-                                </Typography>
-                            </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                            <Box sx={{
-                                bgcolor: 'rgba(255,255,255,0.15)',
-                                p: 2,
-                                borderRadius: '12px',
-                                backdropFilter: 'blur(10px)'
-                            }}>
-                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                    {citasProximas.length}
-                                </Typography>
-                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                    Esta Semana
-                                </Typography>
-                            </Box>
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                            <Box sx={{
-                                bgcolor: citasAtrasadas.length > 0 ? 'rgba(255,152,0,0.2)' : 'rgba(76,175,80,0.2)',
-                                p: 2,
-                                borderRadius: '12px',
-                                backdropFilter: 'blur(10px)'
-                            }}>
-                                <Typography variant="h4" sx={{ fontWeight: 'bold', mb: 0.5 }}>
-                                    {citasAtrasadas.length}
-                                </Typography>
-                                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                    Pendientes
-                                </Typography>
-                            </Box>
-                        </Grid>
-                    </Grid>
-                </Paper>
-
-                <Grid container spacing={3}>
-                    {/* Sección: Citas de Hoy */}
-                    <Grid item xs={12} lg={6}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                height: '600px',
-                                borderRadius: '16px',
-                                border: `1px solid ${colors.divider}`,
-                                overflow: 'hidden'
-                            }}
-                        >
-                            {/* Header de sección */}
-                            <Box sx={{
-                                p: 2.5,
-                                borderBottom: `1px solid ${colors.divider}`,
-                                bgcolor: alpha(colors.primary, 0.05)
-                            }}>
-                                <Typography variant="h6" sx={{
-                                    color: colors.primary,
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}>
-                                    <Event sx={{ mr: 1.5, fontSize: 24 }} />
-                                    Citas de Hoy
-                                    <Chip
-                                        label={citasHoy.length}
-                                        size="small"
-                                        sx={{
-                                            ml: 2,
-                                            bgcolor: colors.primary,
-                                            color: 'white',
-                                            fontWeight: 'bold'
-                                        }}
-                                    />
-                                </Typography>
-                            </Box>
-
-                            {/* Contenido scrolleable */}
-                            <Box sx={{ height: 'calc(100% - 73px)', overflow: 'auto', p: 1.5 }}>
-                                {citasHoy.length > 0 ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                        {citasHoy.map((cita, index) => renderCitaCardProfesional(cita, index, 'hoy'))}
-                                    </Box>
-                                ) : (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: '100%',
-                                        color: colors.secondaryText
-                                    }}>
-                                        <CalendarMonth sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-                                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
-                                            Sin citas programadas
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            No hay citas programadas para hoy
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        </Paper>
-                    </Grid>
-
-                    {/* Sección: Próximas Citas */}
-                    <Grid item xs={12} lg={6}>
-                        <Paper
-                            elevation={0}
-                            sx={{
-                                height: '600px',
-                                borderRadius: '16px',
-                                border: `1px solid ${colors.divider}`,
-                                overflow: 'hidden'
-                            }}
-                        >
-                            {/* Header de sección */}
-                            <Box sx={{
-                                p: 2.5,
-                                borderBottom: `1px solid ${colors.divider}`,
-                                bgcolor: alpha('#2196F3', 0.05)
-                            }}>
-                                <Typography variant="h6" sx={{
-                                    color: '#2196F3',
-                                    fontWeight: 600,
-                                    display: 'flex',
-                                    alignItems: 'center'
-                                }}>
-                                    <CalendarMonth sx={{ mr: 1.5, fontSize: 24 }} />
-                                    Próximas Citas
-                                    <Chip
-                                        label={citasProximas.length}
-                                        size="small"
-                                        sx={{
-                                            ml: 2,
-                                            bgcolor: '#2196F3',
-                                            color: 'white',
-                                            fontWeight: 'bold'
-                                        }}
-                                    />
-                                </Typography>
-                            </Box>
-
-                            {/* Contenido scrolleable */}
-                            <Box sx={{ height: 'calc(100% - 73px)', overflow: 'auto', p: 1.5 }}>
-                                {citasProximas.length > 0 ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                        {citasProximas.map((cita, index) => renderCitaCardProfesional(cita, index, 'proximas'))}
-                                    </Box>
-                                ) : (
-                                    <Box sx={{
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        height: '100%',
-                                        color: colors.secondaryText
-                                    }}>
-                                        <Event sx={{ fontSize: 48, mb: 2, opacity: 0.5 }} />
-                                        <Typography variant="h6" sx={{ fontWeight: 500, mb: 1 }}>
-                                            Agenda libre
-                                        </Typography>
-                                        <Typography variant="body2">
-                                            No hay citas próximas programadas
-                                        </Typography>
-                                    </Box>
-                                )}
-                            </Box>
-                        </Paper>
-                    </Grid>
-
-                    {/* Sección: Citas Pendientes (solo si existen) */}
-                    {citasAtrasadas.length > 0 && (
-                        <Grid item xs={12}>
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    borderRadius: '16px',
-                                    border: '1px solid #ff9800',
-                                    bgcolor: alpha('#ff9800', 0.02)
-                                }}
-                            >
-                                <Box sx={{
-                                    p: 2.5,
-                                    borderBottom: '1px solid #ff9800',
-                                    bgcolor: alpha('#ff9800', 0.08)
-                                }}>
-                                    <Typography variant="h6" sx={{
-                                        color: '#ff9800',
-                                        fontWeight: 600,
-                                        display: 'flex',
-                                        alignItems: 'center'
-                                    }}>
-                                        <PersonOff sx={{ mr: 1.5, fontSize: 24 }} />
-                                        Citas Pendientes de Reagendar
-                                        <Chip
-                                            label={citasAtrasadas.length}
-                                            size="small"
-                                            sx={{
-                                                ml: 2,
-                                                bgcolor: '#ff9800',
-                                                color: 'white',
-                                                fontWeight: 'bold'
-                                            }}
-                                        />
-                                    </Typography>
-                                    <Typography variant="body2" sx={{ color: '#e65100', mt: 0.5 }}>
-                                        Estas citas requieren reagendamiento o seguimiento
-                                    </Typography>
-                                </Box>
-
-                                <Box sx={{ p: 2 }}>
-                                    <Grid container spacing={2}>
-                                        {citasAtrasadas.map((cita, index) => (
-                                            <Grid item xs={12} sm={6} md={3} key={cita.consulta_id || index}>
-                                                {renderCitaCardProfesional(cita, index, 'atrasadas')}
-                                            </Grid>
-                                        ))}
-                                    </Grid>
-                                </Box>
-                            </Paper>
-                        </Grid>
-                    )}
-                </Grid>
-            </Box>
-        );
-    };
-
-    // Función para renderizar tarjetas profesionales
-    const renderCitaCardProfesional = (cita, index, tipo) => {
-        const esTratamiento = isTratamiento(cita);
-        const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
-        const fechaCita = new Date(cita.fecha_consulta);
-        const esHoy = tipo === 'hoy';
-        const esAtrasada = tipo === 'atrasadas';
-
-        return (
-            <Card
-                key={cita.consulta_id || index}
-                elevation={0}
-                sx={{
-                    border: esHoy ? `2px solid ${colors.primary}` :
-                        esAtrasada ? '1px solid #ff9800' : `1px solid ${colors.divider}`,
-                    borderRadius: '12px',
-                    bgcolor: esAtrasada ? alpha('#ff9800', 0.02) : colors.paper,
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: `0 8px 24px ${alpha(colors.primary, 0.15)}`,
-                        borderColor: colors.primary
-                    }
-                }}
-            >
-                <CardContent sx={{ p: 2.5 }}>
-                    {/* Header de la tarjeta */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar
-                                sx={{
-                                    bgcolor: avatarColor,
-                                    width: 38,
-                                    height: 38,
-                                    mr: 1.5,
-                                    fontSize: '1rem',
-                                    fontWeight: 600,
-                                    border: `2px solid ${alpha(avatarColor, 0.2)}`
-                                }}
-                            >
-                                {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
-                            </Avatar>
-                            <Box>
-                                <Typography variant="subtitle1" sx={{
-                                    fontWeight: 600,
-                                    lineHeight: 1.2,
-                                    color: colors.text
-                                }}>
-                                    {cita.paciente_nombre} {cita.paciente_apellido_paterno}
-                                </Typography>
-                                <Typography variant="body2" sx={{
-                                    color: colors.secondaryText,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 0.5
-                                }}>
-                                    <Event sx={{ fontSize: 14 }} />
-                                    {esHoy ?
-                                        fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) :
-                                        fechaCita.toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) +
-                                        ' - ' + fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
-                                    }
-                                </Typography>
-                            </Box>
-                        </Box>
-
-                        <Chip
-                            label={cita.estado}
-                            size="small"
-                            sx={{
-                                bgcolor: getStatusColor(cita.estado),
-                                color: 'white',
-                                fontWeight: 600,
-                                fontSize: '0.75rem',
-                                height: '24px',
-                                boxShadow: `0 2px 4px ${alpha(getStatusColor(cita.estado), 0.3)}`
-                            }}
-                        />
-                    </Box>
-
-                    {/* Información del servicio */}
-                    <Box sx={{ mb: 2.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 0.5 }}>
-                            {esTratamiento ? (
-                                <MedicalServices sx={{
-                                    color: colors.tratamiento,
-                                    fontSize: 18,
-                                    mr: 1,
-                                    p: 0.5,
-                                    bgcolor: alpha(colors.tratamiento, 0.1),
-                                    borderRadius: 1
-                                }} />
-                            ) : (
-                                <LocalHospital sx={{
-                                    color: colors.consulta,
-                                    fontSize: 18,
-                                    mr: 1,
-                                    p: 0.5,
-                                    bgcolor: alpha(colors.consulta, 0.1),
-                                    borderRadius: 1
-                                }} />
-                            )}
-                            <Typography variant="body2" sx={{
-                                fontWeight: 500,
-                                color: colors.text,
-                                flex: 1
-                            }}>
-                                {cita.servicio_nombre}
-                            </Typography>
-                        </Box>
-
-                        {esTratamiento && (
-                            <Typography variant="caption" sx={{
-                                color: colors.tratamiento,
-                                ml: 4.5,
-                                fontWeight: 500
-                            }}>
-                                Tratamiento - Cita {getNumeroCitaTratamiento(cita)}
-                            </Typography>
-                        )}
-                    </Box>
-
-                    {/* Acciones */}
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                        <IconButton
-                            size="small"
-                            onClick={() => handleViewDetails(cita)}
-                            sx={{
-                                bgcolor: colors.details,
-                                color: 'white',
-                                width: 32,
-                                height: 32,
-                                '&:hover': {
-                                    bgcolor: '#0277bd',
-                                    transform: 'scale(1.05)'
-                                },
-                                transition: 'all 0.2s ease'
-                            }}
-                        >
-                            <Visibility fontSize="small" />
-                        </IconButton>
-
-                        {renderStateActionButtons(cita)}
-
-                        {canCancelAppointment(cita) && (
-                            <IconButton
-                                size="small"
-                                onClick={() => handleCancelAppointment(cita)}
-                                sx={{
-                                    bgcolor: colors.cancel,
-                                    color: 'white',
-                                    width: 32,
-                                    height: 32,
-                                    '&:hover': {
-                                        bgcolor: '#c62828',
-                                        transform: 'scale(1.05)'
-                                    },
-                                    transition: 'all 0.2s ease'
-                                }}
-                            >
-                                <Close fontSize="small" />
-                            </IconButton>
-                        )}
-                    </Box>
-                </CardContent>
-            </Card>
-        );
-    };
-
-    // Función helper para renderizar cada tarjeta de cita
-    const renderCitaCard = (cita, index, tipo) => {
-        const esTratamiento = isTratamiento(cita);
-        const avatarColor = getPatientColor(cita.paciente_id, cita.paciente_nombre);
-        const fechaCita = new Date(cita.fecha_consulta);
-        const esHoy = tipo === 'hoy';
-        const esAtrasada = tipo === 'atrasadas';
-
-        return (
-            <Card
-                key={cita.consulta_id || index}
-                sx={{
-                    mb: 2,
-                    border: esHoy ? `2px solid ${colors.primary}` : 'none',
-                    bgcolor: esAtrasada ? alpha('#ff9800', 0.05) : colors.paper,
-                    '&:hover': {
-                        transform: 'translateY(-2px)',
-                        boxShadow: 3
-                    },
-                    transition: 'all 0.2s ease'
-                }}
-            >
-                <CardContent sx={{ p: 2 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <Avatar
-                                sx={{
-                                    bgcolor: avatarColor,
-                                    width: 35,
-                                    height: 35,
-                                    mr: 1.5,
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {cita.paciente_nombre ? cita.paciente_nombre.charAt(0).toUpperCase() : '?'}
-                            </Avatar>
-                            <Box>
-                                <Typography variant="subtitle2" sx={{ fontWeight: 'bold', lineHeight: 1.2 }}>
-                                    {cita.paciente_nombre} {cita.paciente_apellido_paterno}
-                                </Typography>
-                                <Typography variant="caption" color={colors.secondaryText}>
-                                    {fechaCita.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                                </Typography>
-                            </Box>
-                        </Box>
-                        <Chip
-                            label={cita.estado}
-                            size="small"
-                            sx={{
-                                bgcolor: getStatusColor(cita.estado),
-                                color: 'white',
-                                fontSize: '0.7rem'
-                            }}
-                        />
-                    </Box>
-
-                    <Box sx={{ mb: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 'medium', display: 'flex', alignItems: 'center' }}>
-                            {esTratamiento ? (
-                                <MedicalServices sx={{ fontSize: 16, mr: 0.5, color: colors.tratamiento }} />
-                            ) : (
-                                <LocalHospital sx={{ fontSize: 16, mr: 0.5, color: colors.consulta }} />
-                            )}
-                            {cita.servicio_nombre}
-                        </Typography>
-                        {esTratamiento && (
-                            <Typography variant="caption" color={colors.tratamiento}>
-                                Cita {getNumeroCitaTratamiento(cita)} del tratamiento
-                            </Typography>
-                        )}
-                    </Box>
-
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5, mt: 1 }}>
-                        <IconButton
-                            size="small"
-                            onClick={() => handleViewDetails(cita)}
-                            sx={{
-                                bgcolor: colors.details,
-                                color: 'white',
-                                width: 28,
-                                height: 28,
-                                '&:hover': { bgcolor: '#0277bd' }
-                            }}
-                        >
-                            <Visibility fontSize="small" />
-                        </IconButton>
-
-                        {renderStateActionButtons(cita)}
-
-                        {canCancelAppointment(cita) && (
-                            <IconButton
-                                size="small"
-                                onClick={() => handleCancelAppointment(cita)}
-                                sx={{
-                                    bgcolor: colors.cancel,
-                                    color: 'white',
-                                    width: 28,
-                                    height: 28,
-                                    '&:hover': { bgcolor: '#c62828' }
-                                }}
-                            >
-                                <Close fontSize="small" />
-                            </IconButton>
-                        )}
-                    </Box>
-                </CardContent>
-            </Card>
-        );
-    };
+    }, [paginatedCitas, colors, handleViewDetails, handleEdit, handleConfirm, handleComplete, handleArchive, handleCancel, canCancelAppointment, canConfirmAppointment, isLoading]);
 
     return (
-        <Card
-            sx={{
-                minHeight: '100vh',
-                backgroundColor: colors.background,
-                borderRadius: '16px',
-                boxShadow: isDarkTheme ?
-                    '0 2px 12px rgba(0,0,0,0.3)' :
-                    '0 2px 12px rgba(0,0,0,0.08)',
-                transition: 'all 0.3s ease'
-            }}
-        >
+        <Card sx={{ minHeight: '100vh', backgroundColor: colors.background, borderRadius: '24px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)' }}>
             <Box sx={{ padding: { xs: 2, sm: 3, md: 4 } }}>
-                {/* Cabecera con título, iconos de visualización y opción en línea con tratamientos */}
-                <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: { xs: 2, sm: 3 }
-                }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <CalendarMonth sx={{ color: colors.primary, mr: 1.5, fontSize: 28 }} />
-                        <Typography
-                            variant="h5"
-                            sx={{
-                                fontWeight: 600,
-                                color: colors.titleColor,
-                                fontFamily: 'Roboto, sans-serif'
-                            }}
-                        >
+                {/* Header compacto */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                        <Box sx={{ 
+                            bgcolor: alpha(colors.primary, 0.1), 
+                            borderRadius: '14px', 
+                            p: 1.2, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center' 
+                        }}>
+                            <CalendarMonth sx={{ color: colors.primary, fontSize: 26 }} />
+                        </Box>
+                        <Typography variant="h5" sx={{ fontWeight: 700, color: colors.titleColor }}>
                             Gestión de Citas
                         </Typography>
                     </Box>
-
                     <Box sx={{ display: 'flex', gap: 1 }}>
                         <Button
-                            variant={showDoctorView ? "contained" : "outlined"}
-                            onClick={() => {
-                                setShowDoctorView(!showDoctorView);
-                                if (!showDoctorView) {
-                                    // Si vamos a mostrar doctor view, desactivar otros modos
-                                    setViewMode('');
-                                }
-                            }}
+                            variant="outlined"
                             startIcon={<HealthAndSafety />}
+                            onClick={() => navigate('/Administrador/mi-agenda')}
                             sx={{
-                                color: showDoctorView ? 'white' : colors.text,
-                                backgroundColor: showDoctorView ? colors.primary : 'transparent',
+                                borderRadius: '12px',
                                 borderColor: colors.primary,
+                                color: colors.primary,
                                 '&:hover': {
-                                    backgroundColor: showDoctorView ? colors.primary : alpha(colors.primary, 0.1)
-                                }
+                                    borderColor: colors.primary,
+                                    bgcolor: alpha(colors.primary, 0.05)
+                                },
+                                display: { xs: 'none', sm: 'flex' }
                             }}
                         >
                             Mi Agenda
                         </Button>
                         <Tooltip title="Vista de tabla">
-                            <IconButton
-                                onClick={() => handleViewChange('table')}
-                                sx={{
-                                    color: viewMode === 'table' ? 'white' : colors.text,
-                                    backgroundColor: viewMode === 'table' ? colors.primary : 'transparent'
+                            <IconButton 
+                                onClick={() => setViewMode('table')} 
+                                sx={{ 
+                                    color: viewMode === 'table' ? 'white' : colors.text, 
+                                    backgroundColor: viewMode === 'table' ? colors.primary : alpha(colors.primary, 0.1),
+                                    borderRadius: '12px',
+                                    '&:hover': {
+                                        backgroundColor: viewMode === 'table' ? colors.primary : alpha(colors.primary, 0.15)
+                                    }
                                 }}
                             >
                                 <ViewList />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Vista de cuadrícula">
-                            <IconButton
-                                onClick={() => handleViewChange('grid')}
-                                sx={{
-                                    color: viewMode === 'grid' ? 'white' : colors.text,
-                                    backgroundColor: viewMode === 'grid' ? colors.primary : 'transparent'
+                            <IconButton 
+                                onClick={() => setViewMode('grid')} 
+                                sx={{ 
+                                    color: viewMode === 'grid' ? 'white' : colors.text, 
+                                    backgroundColor: viewMode === 'grid' ? colors.primary : alpha(colors.primary, 0.1),
+                                    borderRadius: '12px',
+                                    '&:hover': {
+                                        backgroundColor: viewMode === 'grid' ? colors.primary : alpha(colors.primary, 0.15)
+                                    }
                                 }}
                             >
                                 <ViewModule />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Vista compacta">
-                            <IconButton
-                                onClick={() => handleViewChange('compact')}
-                                sx={{
-                                    color: viewMode === 'compact' ? 'white' : colors.text,
-                                    backgroundColor: viewMode === 'compact' ? colors.primary : 'transparent'
-                                }}
-                            >
-                                <ViewStream />
-                            </IconButton>
-                        </Tooltip>
                     </Box>
                 </Box>
 
-                {/* Filtros y Búsqueda - etiquetas sobre los campos */}
-                <Box sx={{ mb: 3 }}>
-                    <Grid container spacing={3}>
-                        {/* Buscador */}
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: colors.secondaryText }}>
-                                Buscar cita o paciente
-                            </Typography>
-                            <TextField
-                                fullWidth
-                                variant="outlined"
-                                placeholder="Buscar..."
-                                size="small"
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Search sx={{ color: colors.primary }} />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                sx={{
-                                    backgroundColor: colors.paper,
-                                    borderRadius: '8px',
-                                    '& .MuiOutlinedInput-root': {
-                                        color: colors.text,
-                                        borderRadius: '8px',
-                                        '& fieldset': {
-                                            borderColor: colors.inputBorder,
-                                        }
-                                    }
-                                }}
-                            />
-                        </Grid>
-
-                        {/* Filtro por Estado */}
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: colors.secondaryText }}>
-                                Filtrar por estado
-                            </Typography>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={statusFilter}
-                                    onChange={handleStatusFilter}
-                                    displayEmpty
-                                    sx={{
-                                        backgroundColor: colors.paper,
-                                        color: colors.text,
-                                        borderRadius: '8px',
-                                        '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: colors.inputBorder,
-                                        }
-                                    }}
-                                    MenuProps={{
-                                        PaperProps: {
-                                            sx: { maxHeight: 200 }
-                                        }
-                                    }}
-                                >
-                                    <MenuItem value="todos">Todos</MenuItem>
-                                    <MenuItem value="hoy_futuras">Hoy y Futuras</MenuItem>
-                                    <MenuItem value="pasadas">Pasadas (No asistió)</MenuItem>
-                                    <Divider />
-                                    <MenuItem value="PRE-REGISTRO">Pre-Registro</MenuItem>
-                                    <MenuItem value="Pendiente">Pendiente</MenuItem>
-                                    <MenuItem value="Confirmada">Confirmada</MenuItem>
-                                    <MenuItem value="Completada">Completada</MenuItem>
-                                    <MenuItem value="Cancelada">Cancelada</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-
-                        {/* Filtro por Tipo */}
-                        <Grid item xs={12} md={4}>
-                            <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: colors.secondaryText }}>
-                                Filtrar por tipo
-                            </Typography>
-                            <FormControl fullWidth size="small">
-                                <Select
-                                    value={tipoFilter}
-                                    onChange={handleTipoFilter}
-                                    displayEmpty
-                                    sx={{
-                                        backgroundColor: colors.paper,
-                                        color: colors.text,
-                                        borderRadius: '8px',
-                                        '& .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: colors.inputBorder,
-                                        }
-                                    }}
-                                >
-                                    <MenuItem value="todos">Todos</MenuItem>
-                                    <MenuItem value="tratamiento">Tratamiento</MenuItem>
-                                    <MenuItem value="consulta">Consulta</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Grid>
-                    </Grid>
-                </Box>
-
-                {/* Parte inferior con contador de resultados y botón nueva cita */}
-                <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    mb: 2
+                {/* Filtros compactos en una línea */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    gap: 1.5, 
+                    mb: 2.5,
+                    flexWrap: { xs: 'wrap', md: 'nowrap' },
+                    alignItems: 'center'
                 }}>
-                    {/* Información de resultados */}
-                    <Typography sx={{ color: colors.secondaryText }}>
-                        {filteredCitas.length} {filteredCitas.length === 1 ? 'cita' : 'citas'} encontradas
-                    </Typography>
-
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-
-                        {/* Botón para limpiar filtros - si hay filtros activos */}
-                        {(searchQuery || statusFilter !== 'todos' || tipoFilter !== 'todos') && (
-                            <Button
-                                variant="text"
-                                onClick={handleClearFilters}
-                                sx={{
-                                    color: colors.secondaryText
-                                }}
-                            >
-                                Limpiar filtros
-                            </Button>
-                        )}
-
-                        {/* Botón para nueva cita */}
-                        <Button
-                            variant="contained"
-                            startIcon={<Add />}
-                            component={Link}
-                            to="/Administrador/citas/nueva"
-                            state={{ from: "/Administrador/citas" }}
-                            sx={{
-                                backgroundColor: colors.primary,
-                                '&:hover': { backgroundColor: alpha(colors.primary, 0.8) }
+                    <TextField
+                        fullWidth
+                        size="small"
+                        placeholder="Buscar..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        InputProps={{ 
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <Search sx={{ color: colors.primary, fontSize: 20 }} />
+                                </InputAdornment>
+                            )
+                        }}
+                        sx={{ 
+                            flex: { xs: '1 1 100%', md: 2 },
+                            backgroundColor: colors.paper, 
+                            borderRadius: '14px',
+                            '& .MuiOutlinedInput-root': { 
+                                borderRadius: '14px',
+                                color: colors.text, 
+                                '& fieldset': { borderColor: colors.inputBorder },
+                                '&:hover fieldset': { borderColor: colors.primary },
+                                '&.Mui-focused fieldset': { borderColor: colors.primary }
+                            }
+                        }}
+                    />
+                    <FormControl size="small" sx={{ flex: { xs: '1 1 45%', md: 1 }, minWidth: 120 }}>
+                        <Select 
+                            value={statusFilter} 
+                            onChange={(e) => setStatusFilter(e.target.value)} 
+                            sx={{ 
+                                backgroundColor: colors.paper, 
+                                color: colors.text, 
+                                borderRadius: '14px',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: colors.inputBorder },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary }
                             }}
                         >
-                            Nueva Cita
+                            <MenuItem value="todos">Todos</MenuItem>
+                            <MenuItem value="hoy_futuras">Hoy y Futuras</MenuItem>
+                            <MenuItem value="pasadas">Pasadas</MenuItem>
+                            <Divider />
+                            <MenuItem value="PRE-REGISTRO">Pre-Registro</MenuItem>
+                            <MenuItem value="Pendiente">Pendiente</MenuItem>
+                            <MenuItem value="Confirmada">Confirmada</MenuItem>
+                            <MenuItem value="Completada">Completada</MenuItem>
+                            <MenuItem value="Cancelada">Cancelada</MenuItem>
+                        </Select>
+                    </FormControl>
+                    <FormControl size="small" sx={{ flex: { xs: '1 1 45%', md: 1 }, minWidth: 120 }}>
+                        <Select 
+                            value={tipoFilter} 
+                            onChange={(e) => setTipoFilter(e.target.value)} 
+                            sx={{ 
+                                backgroundColor: colors.paper, 
+                                color: colors.text, 
+                                borderRadius: '14px',
+                                '& .MuiOutlinedInput-notchedOutline': { borderColor: colors.inputBorder },
+                                '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary },
+                                '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: colors.primary }
+                            }}
+                        >
+                            <MenuItem value="todos">Todos</MenuItem>
+                            <MenuItem value="tratamiento">Tratamiento</MenuItem>
+                            <MenuItem value="consulta">Consulta</MenuItem>
+                        </Select>
+                    </FormControl>
+                    {(searchQuery || statusFilter !== 'todos' || tipoFilter !== 'todos') && (
+                        <Button 
+                            variant="text" 
+                            onClick={() => { 
+                                setSearchQuery(''); 
+                                setStatusFilter('todos'); 
+                                setTipoFilter('todos'); 
+                            }} 
+                            sx={{ 
+                                color: colors.secondaryText, 
+                                fontSize: '0.8rem',
+                                borderRadius: '12px',
+                                whiteSpace: 'nowrap',
+                                display: { xs: 'none', md: 'flex' }
+                            }}
+                        >
+                            Limpiar
                         </Button>
-                    </Box>
+                    )}
                 </Box>
 
-                {/* Leyenda simplificada */}
-                <Box sx={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    alignItems: 'center',
-                    mb: 2,
-                    p: 1,
-                    backgroundColor: isDarkTheme ? alpha('#f5f5f5', 0.05) : '#f5f5f5',
-                    borderRadius: '8px'
+                {/* Contador y botón nueva cita */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                    <Typography sx={{ color: colors.secondaryText, fontSize: '0.9rem', fontWeight: 500 }}>
+                        {filteredCitas.length} {filteredCitas.length === 1 ? 'cita' : 'citas'}
+                    </Typography>
+                    <Button 
+                        variant="contained" 
+                        startIcon={<Add />} 
+                        component={Link} 
+                        to="/Administrador/citas/nueva" 
+                        sx={{ 
+                            backgroundColor: colors.primary, 
+                            '&:hover': { backgroundColor: alpha(colors.primary, 0.9) }, 
+                            fontSize: '0.85rem',
+                            borderRadius: '12px',
+                            px: 2.5,
+                            py: 1,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            boxShadow: `0 4px 12px ${alpha(colors.primary, 0.3)}`
+                        }}
+                    >
+                        Nueva Cita
+                    </Button>
+                </Box>
+
+                {/* Leyenda compacta */}
+                <Box sx={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    alignItems: 'center', 
+                    mb: 2.5, 
+                    gap: 2.5,
+                    p: 1.5, 
+                    backgroundColor: alpha(colors.tableBackground, 0.4), 
+                    borderRadius: '14px' 
                 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
-                        <MedicalServices sx={{ color: colors.tratamiento, fontSize: 16, mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: colors.text }}>Tratamiento</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <MedicalServices sx={{ color: colors.tratamiento, fontSize: 16 }} />
+                        <Typography variant="caption" sx={{ color: colors.text, fontSize: '0.8rem', fontWeight: 500 }}>
+                            Tratamiento
+                        </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', mr: 3 }}>
-                        <LocalHospital sx={{ color: colors.consulta, fontSize: 16, mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: colors.text }}>Consulta</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <LocalHospital sx={{ color: colors.consulta, fontSize: 16 }} />
+                        <Typography variant="caption" sx={{ color: colors.text, fontSize: '0.8rem', fontWeight: 500 }}>
+                            Consulta
+                        </Typography>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <PersonOff sx={{ color: colors.noRegistrado, fontSize: 16, mr: 1 }} />
-                        <Typography variant="body2" sx={{ color: colors.text }}>No Registrado</Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <PersonOff sx={{ color: colors.noRegistrado, fontSize: 16 }} />
+                        <Typography variant="caption" sx={{ color: colors.text, fontSize: '0.8rem', fontWeight: 500 }}>
+                            No Registrado
+                        </Typography>
                     </Box>
                 </Box>
 
-                {/* Renderizar vista según el modo seleccionado */}
-                {showDoctorView ? (
-                    renderDoctorView()
-                ) : (
-                    <>
-                        {viewMode === 'table' && renderTableView()}
-                        {viewMode === 'grid' && renderGridView()}
-                        {viewMode === 'compact' && renderCompactView()}
-                    </>
+                {/* Vistas */}
+                {viewMode === 'table' && renderTableView}
+                {viewMode === 'grid' && renderGridView}
+
+                {/* Paginación */}
+                {filteredCitas.length > rowsPerPage && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                        <Pagination 
+                            count={Math.ceil(filteredCitas.length / rowsPerPage)} 
+                            page={page} 
+                            onChange={(e, value) => setPage(value)}
+                            color="primary"
+                            size="large"
+                            sx={{
+                                '& .MuiPaginationItem-root': {
+                                    borderRadius: '12px',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem'
+                                },
+                                '& .Mui-selected': {
+                                    backgroundColor: colors.primary,
+                                    color: 'white',
+                                    '&:hover': {
+                                        backgroundColor: alpha(colors.primary, 0.9)
+                                    }
+                                }
+                            }}
+                        />
+                    </Box>
                 )}
             </Box>
 
-            {/* Diálogo de detalles de la cita */}
-            <Dialog
-                open={openDialog}
-                onClose={() => setOpenDialog(false)}
-                maxWidth="md"
-                fullWidth
-            >
+            {/* Diálogos (sin cambios en funcionalidad) */}
+            <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: '20px' } }}>
                 {selectedCita && (
                     <>
-                        <DialogTitle sx={{
-                            backgroundColor: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
-                            color: 'white'
-                        }}>
+                        <DialogTitle sx={{ backgroundColor: selectedCita?.es_tratamiento === 1 ? colors.tratamiento : colors.primary, color: 'white', borderRadius: '20px 20px 0 0' }}>
                             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                     <Event sx={{ mr: 2 }} />
-                                    {isTratamiento(selectedCita) ? (
-                                        `Detalles del Tratamiento (Cita ${getNumeroCitaTratamiento(selectedCita)})`
-                                    ) : (
-                                        `Detalles de la Cita`
-                                    )}
+                                    {selectedCita?.es_tratamiento === 1 ? `Detalles del Tratamiento (Cita ${selectedCita.numero_cita_calculado || 1})` : `Detalles de la Cita`}
                                 </Box>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
-                                    {/* Mostrar estado del tratamiento si aplica */}
-                                    {isTratamiento(selectedCita) && getTratamientoEstado(selectedCita) && (
-                                        <Chip
-                                            label={`Tratamiento: ${getTratamientoEstado(selectedCita)}`}
-                                            size="small"
-                                            sx={{
-                                                backgroundColor: 'rgba(255,255,255,0.9)',
-                                                color: getStatusColor(getTratamientoEstado(selectedCita)),
-                                                fontWeight: 'bold',
-                                            }}
-                                        />
-                                    )}
-                                    <Chip
-                                        label={isTratamiento(selectedCita) ? 'Tratamiento' : 'Consulta'}
-                                        size="small"
-                                        sx={{
-                                            backgroundColor: 'white',
-                                            color: isTratamiento(selectedCita) ? colors.tratamiento : colors.primary,
-                                            fontWeight: 'bold',
-                                        }}
-                                    />
-                                </Box>
+                                <Chip 
+                                    label={selectedCita?.es_tratamiento === 1 ? 'Tratamiento' : 'Consulta'} 
+                                    size="small" 
+                                    sx={{ 
+                                        backgroundColor: 'white', 
+                                        color: selectedCita?.es_tratamiento === 1 ? colors.tratamiento : colors.primary, 
+                                        fontWeight: 'bold',
+                                        borderRadius: '12px'
+                                    }} 
+                                />
                             </Box>
                         </DialogTitle>
                         <DialogContent sx={{ mt: 2 }}>
                             <Grid container spacing={3}>
-                                {/* Información del Paciente */}
                                 <Grid item xs={12} md={6}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                                        <Avatar
-                                            sx={{
-                                                bgcolor: getPatientColor(selectedCita.paciente_id, selectedCita.paciente_nombre),
-                                                width: 40,
-                                                height: 40,
-                                                mr: 2,
-                                                border: isRegistered(selectedCita) ? 'none' : `2px solid ${colors.noRegistrado}`
-                                            }}
-                                        >
-                                            {selectedCita.paciente_nombre ? selectedCita.paciente_nombre.charAt(0).toUpperCase() : '?'}
-                                        </Avatar>
-                                        <Typography variant="h6" color={colors.primary}>
-                                            Información del Paciente
-                                        </Typography>
-                                    </Box>
-                                    <Box sx={{ ml: 4, mt: 1 }}>
-                                        <Typography><strong>Nombre:</strong> {selectedCita.paciente_nombre} {selectedCita.paciente_apellido_paterno} {selectedCita.paciente_apellido_materno}</Typography>
-                                        <Typography><strong>Género:</strong> {selectedCita.paciente_genero || "No especificado"}</Typography>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
+                                        Información del Paciente
+                                    </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography sx={{ mb: 1 }}><strong>Nombre:</strong> {selectedCita.paciente_nombre} {selectedCita.paciente_apellido_paterno} {selectedCita.paciente_apellido_materno}</Typography>
+                                        <Typography sx={{ mb: 1 }}><strong>Género:</strong> {selectedCita.paciente_genero || "No especificado"}</Typography>
                                         {selectedCita.paciente_fecha_nacimiento && (
-                                            <Typography><strong>Fecha de Nacimiento:</strong> {new Date(selectedCita.paciente_fecha_nacimiento).toLocaleDateString()}</Typography>
+                                            <Typography sx={{ mb: 1 }}><strong>Fecha de Nacimiento:</strong> {new Date(selectedCita.paciente_fecha_nacimiento).toLocaleDateString()}</Typography>
                                         )}
-                                        <Typography><strong>Correo:</strong> {selectedCita.paciente_correo || "No especificado"}</Typography>
+                                        <Typography sx={{ mb: 1 }}><strong>Correo:</strong> {selectedCita.paciente_correo || "No especificado"}</Typography>
                                         <Typography><strong>Teléfono:</strong> {selectedCita.paciente_telefono || "No especificado"}</Typography>
-                                        <Typography><strong>Estado:</strong> {isRegistered(selectedCita) ? 'Registrado' : 'No registrado'}</Typography>
                                     </Box>
                                 </Grid>
-
-                                {/* Información de la Cita */}
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="h6" color={colors.primary}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
                                         <CalendarMonth sx={{ mr: 1, verticalAlign: 'middle' }} />
                                         Información de la Cita
                                     </Typography>
-                                    <Box sx={{ ml: 4, mt: 1 }}>
-                                        <Typography><strong>Servicio:</strong> {selectedCita.servicio_nombre}</Typography>
-                                        <Typography><strong>Tipo:</strong> {isTratamiento(selectedCita) ? "Tratamiento" : "Consulta Regular"}</Typography>
-                                        {isTratamiento(selectedCita) && (
-                                            <Typography><strong>Número de cita:</strong> {getNumeroCitaTratamiento(selectedCita)}</Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography sx={{ mb: 1 }}><strong>Servicio:</strong> {selectedCita.servicio_nombre}</Typography>
+                                        <Typography sx={{ mb: 1 }}><strong>Tipo:</strong> {selectedCita?.es_tratamiento === 1 ? "Tratamiento" : "Consulta Regular"}</Typography>
+                                        {selectedCita?.es_tratamiento === 1 && (
+                                            <Typography sx={{ mb: 1 }}><strong>Número de cita:</strong> {selectedCita.numero_cita_calculado || 1}</Typography>
                                         )}
-                                        <Typography><strong>Categoría:</strong> {selectedCita.categoria_servicio || "No especificada"}</Typography>
-                                        <Typography><strong>Precio:</strong> ${selectedCita.precio_servicio || "0.00"}</Typography>
-                                        <Typography><strong>Fecha de Consulta:</strong> {formatDate(selectedCita.fecha_consulta)}</Typography>
-                                        <Typography><strong>Estado:</strong>
-                                            <Chip
-                                                label={selectedCita.estado || "Pendiente"}
-                                                size="small"
-                                                sx={{
-                                                    ml: 1,
-                                                    backgroundColor: getStatusColor(selectedCita.estado),
-                                                    color: '#FFF',
-                                                    fontWeight: '500',
-                                                    fontSize: '0.75rem',
+                                        <Typography sx={{ mb: 1 }}><strong>Precio:</strong> ${selectedCita.precio_servicio || "0.00"}</Typography>
+                                        <Typography sx={{ mb: 1 }}><strong>Fecha de Consulta:</strong> {formatDate(selectedCita.fecha_consulta)}</Typography>
+                                        <Typography sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                                            <strong>Estado:</strong> 
+                                            <Chip 
+                                                label={selectedCita.estado || "Pendiente"} 
+                                                size="small" 
+                                                sx={{ 
+                                                    ml: 1, 
+                                                    backgroundColor: STATUS_COLORS[selectedCita.estado] || '#bdbdbd', 
+                                                    color: '#FFF', 
+                                                    fontWeight: '600', 
+                                                    fontSize: '0.75rem', 
                                                     height: '24px',
-                                                }}
+                                                    borderRadius: '12px'
+                                                }} 
                                             />
                                         </Typography>
-                                        <Typography><strong>Fecha de Solicitud:</strong> {formatDate(selectedCita.fecha_solicitud)}</Typography>
                                     </Box>
                                 </Grid>
-
-                                {/* Información del Odontólogo */}
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="h6" color={colors.primary}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
                                         <HealthAndSafety sx={{ mr: 1, verticalAlign: 'middle' }} />
-                                        Odontólogo Asignado
+                                        Odontólogo
                                     </Typography>
-                                    <Box sx={{ ml: 4, mt: 1 }}>
+                                    <Box sx={{ ml: 1 }}>
                                         <Typography><strong>Nombre:</strong> {selectedCita.odontologo_nombre || "No asignado"}</Typography>
                                     </Box>
                                 </Grid>
-
-                                {/* Notas */}
                                 <Grid item xs={12} md={6}>
-                                    <Typography variant="h6" color={colors.primary}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
                                         <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
                                         Notas
                                     </Typography>
-                                    <Box sx={{ ml: 4, mt: 1 }}>
-                                        <Typography>
-                                            {selectedCita.notas || "Sin notas adicionales"}
-                                        </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography>{selectedCita.notas || "Sin notas adicionales"}</Typography>
                                     </Box>
                                 </Grid>
                             </Grid>
                         </DialogContent>
-                        <DialogActions>
-                            <Button onClick={() => setOpenDialog(false)} color="primary">
+                        <DialogActions sx={{ p: 2 }}>
+                            <Button 
+                                onClick={() => setOpenDialog(false)} 
+                                sx={{ 
+                                    color: colors.primary,
+                                    borderRadius: '12px',
+                                    px: 3
+                                }}
+                            >
                                 Cerrar
                             </Button>
                         </DialogActions>
@@ -2509,397 +1238,282 @@ const CitasForm = () => {
                 )}
             </Dialog>
 
-            {/* Diálogo de archivar la cita */}
-            <Dialog
-                open={openConfirmDialog}
-                onClose={() => !isProcessing && setOpenConfirmDialog(false)}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: colors.paper,
-                        color: colors.text,
-                        maxWidth: '600px',
-                        width: '100%'
-                    }
-                }}
+            {/* Diálogo de archivar */}
+            <Dialog 
+                open={openConfirmDialog} 
+                onClose={() => !isProcessing && setOpenConfirmDialog(false)} 
+                PaperProps={{ sx: { backgroundColor: colors.paper, borderRadius: '20px', maxWidth: '500px' } }}
             >
-                <DialogTitle
-                    sx={{
-                        color: colors.primary,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        borderBottom: `1px solid ${colors.divider}`
-                    }}
-                >
+                <DialogTitle sx={{ color: colors.primary, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
                     <MenuBook sx={{ color: colors.archive }} />
-                    Confirmar Archivado de Cita
+                    Archivar Cita
                 </DialogTitle>
-
                 <DialogContent sx={{ mt: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                        ¿Estás seguro de que deseas archivar la cita #{citaToDelete?.consulta_id}?
+                    <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
+                        ¿Archivar la cita #{citaToDelete?.consulta_id}?
                     </Typography>
-
                     {citaToDelete && (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography><strong>Paciente:</strong> {citaToDelete.paciente_nombre} {citaToDelete.paciente_apellido_paterno} {citaToDelete.paciente_apellido_materno}</Typography>
-                            <Typography><strong>Servicio:</strong> {citaToDelete.servicio_nombre}</Typography>
+                        <Box sx={{ mt: 2, p: 2, bgcolor: alpha(colors.tableBackground, 0.5), borderRadius: '12px' }}>
+                            <Typography sx={{ mb: 1 }}><strong>Paciente:</strong> {citaToDelete.paciente_nombre} {citaToDelete.paciente_apellido_paterno}</Typography>
+                            <Typography sx={{ mb: 1 }}><strong>Servicio:</strong> {citaToDelete.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToDelete.fecha_consulta)}</Typography>
-                            <Typography><strong>Estado actual:</strong> <Chip
-                                label={citaToDelete.estado || "Pendiente"}
-                                size="small"
-                                sx={{
-                                    backgroundColor: getStatusColor(citaToDelete.estado),
-                                    color: '#FFF',
-                                    fontWeight: '500',
-                                    fontSize: '0.75rem',
-                                    height: '24px',
-                                    ml: 1
-                                }}
-                            /></Typography>
                         </Box>
                     )}
-
-                    <Alert
-                        severity="info"
-                        sx={{
-                            mt: 2
-                        }}
-                    >
+                    <Alert severity="info" sx={{ mt: 2, borderRadius: '12px' }}>
                         <AlertTitle>Información</AlertTitle>
-                        Las citas archivadas no aparecerán en la lista principal, pero se mantendrán en la base de datos para consultas futuras.
+                        Las citas archivadas se mantendrán en la base de datos.
                     </Alert>
                 </DialogContent>
-
-                <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
-                    <Button
-                        onClick={() => setOpenConfirmDialog(false)}
-                        disabled={isProcessing}
-                        sx={{
-                            color: colors.secondary,
-                            '&:hover': {
-                                backgroundColor: alpha(colors.secondary, 0.1)
-                            }
-                        }}
+                <DialogActions sx={{ p: 2 }}>
+                    <Button 
+                        onClick={() => setOpenConfirmDialog(false)} 
+                        disabled={isProcessing} 
+                        sx={{ color: colors.secondaryText, borderRadius: '12px' }}
                     >
                         Cancelar
                     </Button>
-                    <Button
-                        variant="contained"
-                        onClick={handleArchiveAppointment}
-                        disabled={isProcessing}
-                        sx={{
-                            bgcolor: colors.archive,
-                            '&:hover': { bgcolor: '#f57c00' },
-                            '&:disabled': { bgcolor: alpha(colors.archive, 0.5) }
+                    <Button 
+                        variant="contained" 
+                        onClick={handleArchiveAppointment} 
+                        disabled={isProcessing} 
+                        sx={{ 
+                            bgcolor: colors.archive, 
+                            '&:hover': { bgcolor: alpha(colors.archive, 0.9) },
+                            borderRadius: '12px',
+                            px: 3
                         }}
                     >
-                        {isProcessing ? 'Archivando...' : 'Confirmar Archivado'}
+                        {isProcessing ? 'Archivando...' : 'Confirmar'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Diálogo de cancelación de cita */}
-            <Dialog
-                open={openCancelDialog}
-                onClose={() => !isCancelling && setOpenCancelDialog(false)}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: colors.paper,
-                        color: colors.text,
-                        maxWidth: '600px',
-                        width: '100%'
-                    }
-                }}
+            {/* Diálogo de cancelar */}
+            <Dialog 
+                open={openCancelDialog} 
+                onClose={() => !isCancelling && setOpenCancelDialog(false)} 
+                PaperProps={{ sx: { backgroundColor: colors.paper, borderRadius: '20px', maxWidth: '500px' } }}
             >
-                <DialogTitle
-                    sx={{
-                        color: '#d32f2f',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        borderBottom: `1px solid ${colors.divider}`
-                    }}
-                >
-                    <Close sx={{ color: '#d32f2f' }} />
-                    Confirmar Cancelación de Cita
+                <DialogTitle sx={{ color: colors.cancel, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                    <Close sx={{ color: colors.cancel }} />
+                    Cancelar Cita
                 </DialogTitle>
-
                 <DialogContent sx={{ mt: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                        ¿Estás seguro de que deseas cancelar la cita #{citaToCancel?.consulta_id}?
+                    <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
+                        ¿Cancelar la cita #{citaToCancel?.consulta_id}?
                     </Typography>
-
                     {citaToCancel && (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography><strong>Paciente:</strong> {citaToCancel.paciente_nombre} {citaToCancel.paciente_apellido_paterno} {citaToCancel.paciente_apellido_materno}</Typography>
-                            <Typography><strong>Servicio:</strong> {citaToCancel.servicio_nombre}</Typography>
+                        <Box sx={{ mt: 2, p: 2, bgcolor: alpha(colors.tableBackground, 0.5), borderRadius: '12px' }}>
+                            <Typography sx={{ mb: 1 }}><strong>Paciente:</strong> {citaToCancel.paciente_nombre} {citaToCancel.paciente_apellido_paterno}</Typography>
+                            <Typography sx={{ mb: 1 }}><strong>Servicio:</strong> {citaToCancel.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToCancel.fecha_consulta)}</Typography>
-                            <Typography><strong>Odontólogo:</strong> {citaToCancel.odontologo_nombre || "No asignado"}</Typography>
                         </Box>
                     )}
-
-                    <TextField
-                        label="Motivo de la cancelación"
-                        placeholder="Indique el motivo por el cual se cancela la cita..."
-                        multiline
-                        rows={3}
-                        fullWidth
-                        value={cancelReason}
-                        onChange={(e) => setCancelReason(e.target.value)}
-                        margin="normal"
-                        variant="outlined"
-                        required
-                        helperText="Este mensaje será enviado al paciente como notificación"
-                        sx={{ mt: 3 }}
-                    />
-
-                    <Alert
-                        severity="warning"
-                        sx={{
+                    <TextField 
+                        label="Motivo de cancelación" 
+                        placeholder="Indique el motivo..." 
+                        multiline 
+                        rows={3} 
+                        fullWidth 
+                        value={cancelReason} 
+                        onChange={(e) => setCancelReason(e.target.value)} 
+                        margin="normal" 
+                        variant="outlined" 
+                        required 
+                        helperText="Este mensaje será enviado al paciente" 
+                        sx={{ 
                             mt: 2,
-                            '& .MuiAlert-icon': {
-                                color: '#d32f2f'
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px'
                             }
-                        }}
-                    >
+                        }} 
+                    />
+                    <Alert severity="warning" sx={{ mt: 2, borderRadius: '12px' }}>
                         <AlertTitle>Importante</AlertTitle>
-                        Esta acción cambiará el estado de la cita a "Cancelada" y enviará una notificación al paciente.
+                        Se notificará al paciente sobre la cancelación.
                     </Alert>
                 </DialogContent>
-
-                <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
-                    <Button
-                        onClick={() => setOpenCancelDialog(false)}
-                        disabled={isCancelling}
-                        sx={{
-                            color: colors.secondary,
-                            '&:hover': {
-                                backgroundColor: alpha(colors.secondary, 0.1)
-                            }
-                        }}
+                <DialogActions sx={{ p: 2 }}>
+                    <Button 
+                        onClick={() => setOpenCancelDialog(false)} 
+                        disabled={isCancelling} 
+                        sx={{ color: colors.secondaryText, borderRadius: '12px' }}
                     >
                         Volver
                     </Button>
-                    <Button
-                        variant="contained"
-                        onClick={processCancelAppointment}
-                        disabled={isCancelling || !cancelReason.trim()}
-                        sx={{
-                            bgcolor: colors.cancel,
-                            '&:hover': { bgcolor: '#c62828' },
-                            '&:disabled': { bgcolor: alpha(colors.cancel, 0.5) }
+                    <Button 
+                        variant="contained" 
+                        onClick={processCancelAppointment} 
+                        disabled={isCancelling || !cancelReason.trim()} 
+                        sx={{ 
+                            bgcolor: colors.cancel, 
+                            '&:hover': { bgcolor: alpha(colors.cancel, 0.9) },
+                            borderRadius: '12px',
+                            px: 3
                         }}
                     >
-                        {isCancelling ? 'Procesando...' : 'Confirmar Cancelación'}
+                        {isCancelling ? 'Procesando...' : 'Confirmar'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Diálogo de confirmación de cita */}
-            <Dialog
-                open={openConfirmCitaDialog}
-                onClose={() => !isConfirming && setOpenConfirmCitaDialog(false)}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: colors.paper,
-                        color: colors.text,
-                        maxWidth: '600px',
-                        width: '100%'
-                    }
-                }}
+            {/* Diálogo de confirmar */}
+            <Dialog 
+                open={openConfirmCitaDialog} 
+                onClose={() => !isConfirming && setOpenConfirmCitaDialog(false)} 
+                PaperProps={{ sx: { backgroundColor: colors.paper, borderRadius: '20px', maxWidth: '500px' } }}
             >
-                <DialogTitle
-                    sx={{
-                        color: '#388e3c',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        borderBottom: `1px solid ${colors.divider}`
-                    }}
-                >
-                    <CheckCircle sx={{ color: '#388e3c' }} />
+                <DialogTitle sx={{ color: colors.confirm, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                    <CheckCircle sx={{ color: colors.confirm }} />
                     Confirmar Cita
                 </DialogTitle>
-
                 <DialogContent sx={{ mt: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                    <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
                         ¿Confirmar la cita #{citaToConfirm?.consulta_id}?
                     </Typography>
-
                     {citaToConfirm && (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography><strong>Paciente:</strong> {citaToConfirm.paciente_nombre} {citaToConfirm.paciente_apellido_paterno} {citaToConfirm.paciente_apellido_materno}</Typography>
-                            <Typography><strong>Servicio:</strong> {citaToConfirm.servicio_nombre}</Typography>
+                        <Box sx={{ mt: 2, p: 2, bgcolor: alpha(colors.tableBackground, 0.5), borderRadius: '12px' }}>
+                            <Typography sx={{ mb: 1 }}><strong>Paciente:</strong> {citaToConfirm.paciente_nombre} {citaToConfirm.paciente_apellido_paterno}</Typography>
+                            <Typography sx={{ mb: 1 }}><strong>Servicio:</strong> {citaToConfirm.servicio_nombre}</Typography>
                             <Typography><strong>Fecha:</strong> {formatDate(citaToConfirm.fecha_consulta)}</Typography>
-                            <Typography><strong>Odontólogo:</strong> {citaToConfirm.odontologo_nombre || "No asignado"}</Typography>
                         </Box>
                     )}
-
-                    <TextField
-                        label="Mensaje para el paciente (opcional)"
-                        placeholder="Añada algún mensaje o indicación para el paciente..."
-                        multiline
-                        rows={3}
-                        fullWidth
-                        value={confirmMessage}
-                        onChange={(e) => setConfirmMessage(e.target.value)}
-                        margin="normal"
-                        variant="outlined"
-                        helperText="Este mensaje se enviará al paciente como confirmación"
-                        sx={{ mt: 3 }}
+                    <TextField 
+                        label="Mensaje (opcional)" 
+                        placeholder="Añada algún mensaje..." 
+                        multiline 
+                        rows={3} 
+                        fullWidth 
+                        value={confirmMessage} 
+                        onChange={(e) => setConfirmMessage(e.target.value)} 
+                        margin="normal" 
+                        variant="outlined" 
+                        helperText="Este mensaje se enviará al paciente" 
+                        sx={{ 
+                            mt: 2,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px'
+                            }
+                        }} 
                     />
-
-                    <Alert
-                        severity="info"
-                        sx={{ mt: 2 }}
-                    >
+                    <Alert severity="info" sx={{ mt: 2, borderRadius: '12px' }}>
                         <AlertTitle>Información</AlertTitle>
-                        Esta acción cambiará el estado de la cita a "Confirmada" y notificará al paciente.
+                        Se notificará al paciente sobre la confirmación.
                     </Alert>
                 </DialogContent>
-
-                <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
-                    <Button
-                        onClick={() => setOpenConfirmCitaDialog(false)}
-                        disabled={isConfirming}
-                        sx={{
-                            color: colors.secondary,
-                            '&:hover': {
-                                backgroundColor: alpha(colors.secondary, 0.1)
-                            }
-                        }}
+                <DialogActions sx={{ p: 2 }}>
+                    <Button 
+                        onClick={() => setOpenConfirmCitaDialog(false)} 
+                        disabled={isConfirming} 
+                        sx={{ color: colors.secondaryText, borderRadius: '12px' }}
                     >
                         Volver
                     </Button>
-                    <Button
-                        variant="contained"
-                        onClick={processConfirmCita}
-                        disabled={isConfirming}
-                        sx={{
-                            bgcolor: colors.confirm,
-                            '&:hover': { bgcolor: '#388e3c' },
-                            '&:disabled': { bgcolor: alpha(colors.confirm, 0.5) }
+                    <Button 
+                        variant="contained" 
+                        onClick={processConfirmCita} 
+                        disabled={isConfirming} 
+                        sx={{ 
+                            bgcolor: colors.confirm, 
+                            '&:hover': { bgcolor: alpha(colors.confirm, 0.9) },
+                            borderRadius: '12px',
+                            px: 3
                         }}
                     >
-                        {isConfirming ? 'Procesando...' : 'Confirmar Cita'}
+                        {isConfirming ? 'Procesando...' : 'Confirmar'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Diálogo para marcar la cita como Completada */}
-            <Dialog
-                open={openCompleteCitaDialog}
-                onClose={() => !isCompleting && setOpenCompleteCitaDialog(false)}
-                PaperProps={{
-                    sx: {
-                        backgroundColor: colors.paper,
-                        color: colors.text,
-                        maxWidth: '600px',
-                        width: '100%'
-                    }
-                }}
+            {/* Diálogo de completar */}
+            <Dialog 
+                open={openCompleteCitaDialog} 
+                onClose={() => !isCompleting && setOpenCompleteCitaDialog(false)} 
+                PaperProps={{ sx: { backgroundColor: colors.paper, borderRadius: '20px', maxWidth: '500px' } }}
             >
-                <DialogTitle
-                    sx={{
-                        color: '#1976d2',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1,
-                        borderBottom: `1px solid ${colors.divider}`
-                    }}
-                >
-                    <CheckCircle sx={{ color: '#1976d2' }} />
+                <DialogTitle sx={{ color: colors.complete, display: 'flex', alignItems: 'center', gap: 1, fontWeight: 600 }}>
+                    <CheckCircle sx={{ color: colors.complete }} />
                     Completar Cita
                 </DialogTitle>
-
                 <DialogContent sx={{ mt: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 500 }}>
-                        ¿Marcar la cita #{citaToComplete?.consulta_id} como completada?
+                    <Typography variant="h6" sx={{ fontWeight: 500, mb: 2 }}>
+                        ¿Completar la cita #{citaToComplete?.consulta_id}?
                     </Typography>
-
                     {citaToComplete && (
-                        <Box sx={{ mt: 2 }}>
-                            <Typography><strong>Paciente:</strong> {citaToComplete.paciente_nombre} {citaToComplete.paciente_apellido_paterno} {citaToComplete.paciente_apellido_materno}</Typography>
-                            <Typography><strong>Servicio:</strong> {citaToComplete.servicio_nombre}</Typography>
-                            <Typography><strong>Fecha:</strong> {formatDate(citaToComplete.fecha_consulta)}</Typography>
-                            <Typography><strong>Odontólogo:</strong> {citaToComplete.odontologo_nombre || "No asignado"}</Typography>
-
-                            {/* Mostrar información adicional si es tratamiento */}
+                        <Box sx={{ mt: 2, p: 2, bgcolor: alpha(colors.tableBackground, 0.5), borderRadius: '12px' }}>
+                            <Typography sx={{ mb: 1 }}><strong>Paciente:</strong> {citaToComplete.paciente_nombre} {citaToComplete.paciente_apellido_paterno}</Typography>
+                            <Typography sx={{ mb: 1 }}><strong>Servicio:</strong> {citaToComplete.servicio_nombre}</Typography>
+                            <Typography sx={{ mb: 1 }}><strong>Fecha:</strong> {formatDate(citaToComplete.fecha_consulta)}</Typography>
                             {citaToComplete.tratamiento_id && (
-                                <Box sx={{ mt: 1, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                                    <Typography><strong>Tratamiento ID:</strong> {citaToComplete.tratamiento_id}</Typography>
-                                    <Typography><strong>Número de cita:</strong> {getNumeroCitaTratamiento(citaToComplete)}</Typography>
-                                    <Typography><strong>Al completar:</strong> Se programará automáticamente la siguiente cita para el próximo mes</Typography>
+                                <Box sx={{ mt: 1.5, p: 1.5, bgcolor: alpha(colors.primary, 0.1), borderRadius: '10px' }}>
+                                    <Typography fontSize="0.85rem"><strong>Tratamiento ID:</strong> {citaToComplete.tratamiento_id}</Typography>
+                                    <Typography fontSize="0.85rem"><strong>Número de cita:</strong> {citaToComplete.numero_cita_calculado || 1}</Typography>
+                                    <Typography fontSize="0.8rem" sx={{ mt: 0.5, color: colors.secondaryText }}>
+                                        Se programará la siguiente cita automáticamente
+                                    </Typography>
                                 </Box>
                             )}
                         </Box>
                     )}
-
-                    <TextField
-                        label="Notas del tratamiento (opcional)"
-                        placeholder="Añada notas sobre el tratamiento realizado..."
-                        multiline
-                        rows={3}
-                        fullWidth
-                        value={completeMessage}
-                        onChange={(e) => setCompleteMessage(e.target.value)}
-                        margin="normal"
-                        variant="outlined"
-                        helperText="Estas notas se guardarán en el historial del paciente"
-                        sx={{ mt: 3 }}
+                    <TextField 
+                        label="Notas (opcional)" 
+                        placeholder="Añada notas..." 
+                        multiline 
+                        rows={3} 
+                        fullWidth 
+                        value={completeMessage} 
+                        onChange={(e) => setCompleteMessage(e.target.value)} 
+                        margin="normal" 
+                        variant="outlined" 
+                        helperText="Estas notas se guardarán en el historial" 
+                        sx={{ 
+                            mt: 2,
+                            '& .MuiOutlinedInput-root': {
+                                borderRadius: '12px'
+                            }
+                        }} 
                     />
-
-                    <Alert
-                        severity="success"
-                        sx={{ mt: 2 }}
-                    >
+                    <Alert severity="success" sx={{ mt: 2, borderRadius: '12px' }}>
                         <AlertTitle>Información</AlertTitle>
-                        Esta acción marcará la cita como "Completada" y no podrá ser cancelada posteriormente.
-                        {citaToComplete?.tratamiento_id && " También se registrará el progreso en el tratamiento asociado."}
+                        La cita se marcará como completada.{citaToComplete?.tratamiento_id && " Se registrará el progreso del tratamiento."}
                     </Alert>
                 </DialogContent>
-
-                <DialogActions sx={{ p: 2, borderTop: `1px solid ${colors.divider}` }}>
-                    <Button
-                        onClick={() => setOpenCompleteCitaDialog(false)}
-                        disabled={isCompleting}
-                        sx={{
-                            color: colors.secondary,
-                            '&:hover': {
-                                backgroundColor: alpha(colors.secondary, 0.1)
-                            }
-                        }}
+                <DialogActions sx={{ p: 2 }}>
+                    <Button 
+                        onClick={() => setOpenCompleteCitaDialog(false)} 
+                        disabled={isCompleting} 
+                        sx={{ color: colors.secondaryText, borderRadius: '12px' }}
                     >
                         Volver
                     </Button>
-                    <Button
-                        variant="contained"
-                        onClick={processCompleteCita}
-                        disabled={isCompleting}
-                        sx={{
-                            bgcolor: colors.complete,
-                            '&:hover': { bgcolor: '#1976d2' },
-                            '&:disabled': { bgcolor: alpha(colors.complete, 0.5) }
+                    <Button 
+                        variant="contained" 
+                        onClick={processCompleteCita} 
+                        disabled={isCompleting} 
+                        sx={{ 
+                            bgcolor: colors.complete, 
+                            '&:hover': { bgcolor: alpha(colors.complete, 0.9) },
+                            borderRadius: '12px',
+                            px: 3
                         }}
                     >
-                        {isCompleting ? 'Procesando...' : 'Completar Cita'}
+                        {isCompleting ? 'Procesando...' : 'Completar'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
-            <EditCita
-                open={openEditDialog}
-                handleClose={() => setOpenEditDialog(false)}
-                appointmentData={selectedCita}
-                onUpdate={fetchCitas}
+            <EditCita 
+                open={openEditDialog} 
+                handleClose={() => setOpenEditDialog(false)} 
+                appointmentData={selectedCita} 
+                onUpdate={fetchCitas} 
             />
-
-            <Notificaciones
-                open={notification.open}
-                message={notification.message}
-                type={notification.type}
-                onClose={handleNotificationClose}
+            
+            <Notificaciones 
+                open={notification.open} 
+                message={notification.message} 
+                type={notification.type} 
+                onClose={() => setNotification(prev => ({ ...prev, open: false }))} 
             />
         </Card>
     );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -21,8 +21,6 @@ import {
   Tooltip
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-
-// Importa los iconos de FontAwesome
 import {
   FaHome,
   FaCalendarAlt,
@@ -37,8 +35,6 @@ import {
   FaChevronRight,
   FaFileMedical
 } from 'react-icons/fa';
-
-// Iconos de Material Design
 import {
   MdPeople,
   MdMedicalServices,
@@ -49,6 +45,7 @@ import {
   MdCloudUpload,
   MdShowChart,
   MdAssessment,
+  MdEmojiEvents,
   MdDescription,
   MdHistory,
   MdGroupWork,
@@ -56,7 +53,6 @@ import {
   MdRateReview,
   MdSettings,
 } from 'react-icons/md';
-
 import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material';
 import { motion } from 'framer-motion';
 import Notificaciones from '../../../../components/Layout/Notificaciones';
@@ -64,7 +60,7 @@ import { useAuth } from '../../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../../components/Tools/ThemeContext';
 import { clearAuthCache } from '../../../../components/Tools/PrivateRoute';
 
-const BarraAdmin = ({ onDrawerChange }) => {
+const BarraAdmin = memo(({ onDrawerChange }) => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [openNotification, setOpenNotification] = useState(false);
@@ -79,33 +75,45 @@ const BarraAdmin = ({ onDrawerChange }) => {
   const { isDarkTheme, toggleTheme } = useThemeContext();
   const { setUser, user } = useAuth();
 
-  // Estructura de menú organizada por grupos
-  const menuGroups = [
+  // Memoizar menuGroups reorganizados
+  const menuGroups = useMemo(() => [
     {
-      id: 'gestion',
-      title: 'Gestión',
+      id: 'gestionPacientes',
+      title: 'Gestión de Pacientes',
       items: [
         { icon: MdPeople, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
-        { icon: MdPeople, text: 'Gestión de Empleados', path: '/Administrador/empleados' },
-        { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
+        { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Administrador/expedienteClinico' },
         { icon: MdEvent, text: 'Gestión de Citas', path: '/Administrador/citas' },
         { icon: MdLocalHospital, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
-        { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
-        { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Administrador/expedienteClinico' },
+      ]
+    },
+    {
+      id: 'gestionClinica',
+      title: 'Gestión Clínica',
+      items: [
+        { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
+
+        { icon: MdPeople, text: 'Gestión de Empleados', path: '/Administrador/empleados' },
         { icon: MdSchedule, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
         { icon: MdCloudUpload, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
       ]
     },
     {
-      id: 'reportes',
-      title: 'Informes y Análisis',
+      id: 'finanzasAnalisis',
+      title: 'Finanzas y Análisis',
       items: [
+        { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
         { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
-        { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
-        { icon: MdAssessment, text: 'Gamificacion', path: '/Administrador/Gamificacion' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
+        { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' }
+      ]
+    },
+    {
+      id: 'engagement',
+      title: 'Gamificación y Engagement',
+      items: [
+        { icon: MdEmojiEvents, text: 'Sistema de Puntos', path: '/Administrador/Gamificacion' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
-        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' },
         { icon: MdGroupWork, text: 'Segmentación de Pacientes', path: '/Administrador/Clostering' }
       ]
     },
@@ -114,32 +122,34 @@ const BarraAdmin = ({ onDrawerChange }) => {
       title: 'Sistema',
       items: [
         { icon: MdNotifications, text: 'Notificaciones', path: '/Administrador/notificaciones' },
-        { icon: MdSettings, text: 'Configuración', path: '/Administrador/configuracion' }
+        { icon: MdSettings, text: 'Configuración', path: '/Administrador/configuracion' },
+        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' }
       ]
     }
-  ];
+  ], []);
 
-  // Función para determinar a qué grupo pertenece la ruta actual
-  const getGroupIdFromPath = (path) => {
+  // Función para determinar grupo de la ruta
+  const getGroupIdFromPath = useCallback((path) => {
     for (const group of menuGroups) {
       if (group.items.some(item => item.path === path)) {
         return group.id;
       }
     }
     return null;
-  };
+  }, [menuGroups]);
 
-  // Estados para los submenús tipo acordeón - inicializado basado en la ruta actual
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const currentGroupId = getGroupIdFromPath(location.pathname);
     return {
-      gestion: currentGroupId === 'gestion',
-      reportes: currentGroupId === 'reportes',
+      gestionPacientes: currentGroupId === 'gestionPacientes',
+      gestionClinica: currentGroupId === 'gestionClinica',
+      finanzasAnalisis: currentGroupId === 'finanzasAnalisis',
+      engagement: currentGroupId === 'engagement',
       sistema: currentGroupId === 'sistema'
     };
   });
 
-  // Actualizar menús expandidos cuando cambia la ruta
+  // Actualizar menús solo cuando cambia la ruta
   useEffect(() => {
     const currentGroupId = getGroupIdFromPath(location.pathname);
     if (currentGroupId) {
@@ -148,9 +158,8 @@ const BarraAdmin = ({ onDrawerChange }) => {
         [currentGroupId]: true
       }));
     }
-  }, [location.pathname]);
+  }, [location.pathname, getGroupIdFromPath]);
 
-  // Función para comunicar el cambio de estado del drawer al componente padre
   const updateDrawerState = useCallback((isOpen) => {
     setDrawerOpen(isOpen);
     if (onDrawerChange) {
@@ -158,18 +167,19 @@ const BarraAdmin = ({ onDrawerChange }) => {
     }
   }, [onDrawerChange]);
 
-  // Ajustar el estado inicial según el dispositivo
   useEffect(() => {
     if (!isMobile) {
-      updateDrawerState(true); // En escritorio, drawer abierto por defecto
-      setMobileOpen(false);    // Asegurar que el drawer móvil esté cerrado
+      updateDrawerState(true);
+      setMobileOpen(false);
     } else {
-      updateDrawerState(false); // En móvil, drawer cerrado por defecto
+      updateDrawerState(false);
     }
   }, [isMobile, updateDrawerState]);
 
-  // Verificar autenticación
+  // Verificar autenticación solo al montar componente
   useEffect(() => {
+    if (user) return;
+
     const checkAuthStatus = async () => {
       try {
         const response = await fetch('https://back-end-4803.onrender.com/api/users/check-auth', {
@@ -182,24 +192,19 @@ const BarraAdmin = ({ onDrawerChange }) => {
 
         const data = await response.json();
 
-        // NUEVO: Usar allAuthenticatedUsers para obtener el admin
-        if (data.authenticated && data.allAuthenticatedUsers && data.allAuthenticatedUsers.administrador) {
+        if (data.authenticated && data.allAuthenticatedUsers?.administrador) {
           setUser(data.allAuthenticatedUsers.administrador);
-          console.log('✅ Administrador autenticado correctamente');
-        } else {
-          console.log('❌ No hay sesión de administrador activa');
-          setUser(null);
         }
       } catch (error) {
         console.error("Error al verificar autenticación:", error);
-        setUser(null);
       }
     };
-    checkAuthStatus();
-  }, [setUser]);
 
-  // Paleta de colores basada en el tema
-  const colors = {
+    checkAuthStatus();
+  }, []);
+
+  // Memoizar colores
+  const colors = useMemo(() => ({
     background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
     primary: isDarkTheme ? '#3B82F6' : '#2563EB',
     secondary: isDarkTheme ? '#4ADE80' : '#10B981',
@@ -213,31 +218,28 @@ const BarraAdmin = ({ onDrawerChange }) => {
     divider: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
     error: isDarkTheme ? '#F87171' : '#EF4444',
     boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
-  };
+  }), [isDarkTheme]);
 
-  // Maneja la expansión y colapso de grupos de menú
-  const toggleGroup = (groupId) => {
+  const toggleGroup = useCallback((groupId) => {
     setExpandedGroups((prev) => ({
       ...prev,
       [groupId]: !prev[groupId]
     }));
-  };
+  }, []);
 
-  // Maneja la navegación al hacer clic en elementos del menú
-  const handleItemClick = (item) => {
+  const handleItemClick = useCallback((item) => {
     if (item.text === 'Cerrar Sesión') {
       handleLogout();
     } else if (item.path) {
       navigate(item.path);
-      // En móvil, cerrar el drawer después de seleccionar una opción
       if (isMobile) {
         setMobileOpen(false);
         updateDrawerState(false);
       }
     }
-  };
+  }, [isMobile, navigate]);
 
-  // Función para manejar el cierre de sesión
+  // Función logout
   const handleLogout = async () => {
     clearAuthCache();
     if (isLoggingOut) return;
@@ -268,21 +270,68 @@ const BarraAdmin = ({ onDrawerChange }) => {
     }
   };
 
-  // Función para alternar el estado del drawer
-  const toggleDrawer = () => {
+  const toggleDrawer = useCallback(() => {
     if (isMobile) {
       setMobileOpen(!mobileOpen);
     } else {
       updateDrawerState(!drawerOpen);
     }
-  };
+  }, [isMobile, mobileOpen, drawerOpen, updateDrawerState]);
 
-  // Ancho del drawer según estado y dispositivo
-  const drawerWidth = drawerOpen ? 280 : 0; // Ancho en desktop
-  const mobileDrawerWidth = '85%'; // Ancho en móvil
+  const drawerWidth = drawerOpen ? 280 : 0;
+  const mobileDrawerWidth = '85%';
 
-  // Contenido común del drawer (utilizado tanto en móvil como en escritorio)
-  const drawerContent = (
+  // Renderizar items del menú
+  const renderMenuItem = useCallback((item, index) => {
+    const isActive = location.pathname === item.path;
+    return (
+      <Paper
+        key={index}
+        elevation={0}
+        sx={{
+          backgroundColor: isActive ? colors.activeItem : 'transparent',
+          borderRadius: 1.5,
+          overflow: 'hidden',
+          transition: 'background-color 0.2s ease',
+          mb: 0.5,
+          '&:hover': {
+            backgroundColor: isActive ? colors.activeItem : colors.hover
+          }
+        }}
+      >
+        <ListItem
+          button
+          onClick={() => handleItemClick(item)}
+          disableRipple
+          sx={{
+            py: 1.2,
+            pl: 2,
+            pr: 1
+          }}
+        >
+          <ListItemIcon
+            sx={{
+              color: isActive ? colors.primary : colors.iconColor,
+              minWidth: 36
+            }}
+          >
+            <item.icon size={16} />
+          </ListItemIcon>
+          <ListItemText
+            primary={item.text}
+            primaryTypographyProps={{
+              fontSize: '0.875rem',
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? colors.primary : colors.text
+            }}
+          />
+        </ListItem>
+      </Paper>
+    );
+  }, [location.pathname, colors, handleItemClick]);
+
+  // Memoizar drawerContent
+  const drawerContent = useMemo(() => (
     <>
       {/* Cabecera del Drawer */}
       <Box
@@ -330,7 +379,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Botón de cambio de tema en drawer móvil */}
           {isMobile && (
             <IconButton
               onClick={(e) => {
@@ -363,7 +411,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
             </IconButton>
           )}
 
-          {/* Botón cerrar */}
           <IconButton
             onClick={isMobile ? () => setMobileOpen(false) : () => updateDrawerState(false)}
             sx={{
@@ -487,6 +534,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
             </ListItem>
           </Paper>
           <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
+
           {menuGroups.map((group) => (
             <React.Fragment key={group.id}>
               <ListItem
@@ -524,58 +572,13 @@ const BarraAdmin = ({ onDrawerChange }) => {
               </ListItem>
               <Collapse in={expandedGroups[group.id]} timeout="auto" unmountOnExit>
                 <List component="div" disablePadding>
-                  {group.items.map((item, index) => {
-                    const isActive = location.pathname === item.path;
-                    return (
-                      <Paper
-                        key={index}
-                        elevation={0}
-                        sx={{
-                          backgroundColor: isActive ? colors.activeItem : 'transparent',
-                          borderRadius: 1.5,
-                          overflow: 'hidden',
-                          transition: 'background-color 0.2s ease',
-                          mb: 0.5,
-                          '&:hover': {
-                            backgroundColor: isActive ? colors.activeItem : colors.hover
-                          }
-                        }}
-                      >
-                        <ListItem
-                          button
-                          onClick={() => handleItemClick(item)}
-                          disableRipple
-                          sx={{
-                            py: 1.2,
-                            pl: 2,
-                            pr: 1
-                          }}
-                        >
-                          <ListItemIcon
-                            sx={{
-                              color: isActive ? colors.primary : colors.iconColor,
-                              minWidth: 36
-                            }}
-                          >
-                            <item.icon size={16} />
-                          </ListItemIcon>
-                          <ListItemText
-                            primary={item.text}
-                            primaryTypographyProps={{
-                              fontSize: '0.875rem',
-                              fontWeight: isActive ? 600 : 400,
-                              color: isActive ? colors.primary : colors.text
-                            }}
-                          />
-                        </ListItem>
-                      </Paper>
-                    );
-                  })}
+                  {group.items.map((item, index) => renderMenuItem(item, index))}
                 </List>
               </Collapse>
               <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
             </React.Fragment>
           ))}
+
           <Paper
             elevation={0}
             sx={{
@@ -631,6 +634,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
           </Paper>
         </List>
       </Box>
+
       {/* Cerrar sesión */}
       <Box
         sx={{
@@ -680,9 +684,9 @@ const BarraAdmin = ({ onDrawerChange }) => {
         </Paper>
       </Box>
     </>
-  );
+  ), [colors, user, location.pathname, expandedGroups, isMobile, isDarkTheme, toggleTheme, handleItemClick, toggleGroup, handleLogout, menuGroups, renderMenuItem, updateDrawerState]);
 
-  // Renderizado específico para móvil con SwipeableDrawer
+  // Drawer móvil
   const renderMobileDrawer = () => (
     <SwipeableDrawer
       disableBackdropTransition={false}
@@ -691,7 +695,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
       onOpen={() => setMobileOpen(true)}
       onClose={() => setMobileOpen(false)}
       ModalProps={{
-        keepMounted: true, // Mejor rendimiento en móvil
+        keepMounted: true,
       }}
       sx={{
         display: { xs: 'block', md: 'none' },
@@ -707,7 +711,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
     </SwipeableDrawer>
   );
 
-  // Renderizado para escritorio
+  // Drawer escritorio
   const renderDesktopDrawer = () => (
     <Drawer
       variant="persistent"
@@ -733,7 +737,7 @@ const BarraAdmin = ({ onDrawerChange }) => {
     </Drawer>
   );
 
-  // Botón flotante para expandir el menú en escritorio cuando está contraído
+  // Botón expandir
   const renderExpandButton = () => {
     if (drawerOpen || isMobile) return null;
     return (
@@ -775,7 +779,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
       >
         <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            {/* Ícono hamburguesa en móvil o cuando el drawer está cerrado en desktop */}
             {(isMobile || !drawerOpen) && (
               <IconButton
                 color="inherit"
@@ -851,7 +854,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
               <FaCalendarAlt size={18} />
             </IconButton>
 
-            {/* Botón de Cambio de Tema - Nueva funcionalidad agregada */}
             <Tooltip title={isDarkTheme ? "Modo claro" : "Modo oscuro"} arrow placement="bottom">
               <IconButton
                 onClick={toggleTheme}
@@ -899,7 +901,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
         </Toolbar>
       </AppBar>
 
-      {/* Render diferente para móvil y escritorio */}
       {renderMobileDrawer()}
       {renderDesktopDrawer()}
       {renderExpandButton()}
@@ -912,6 +913,6 @@ const BarraAdmin = ({ onDrawerChange }) => {
       />
     </>
   );
-};
+});
 
 export default BarraAdmin;

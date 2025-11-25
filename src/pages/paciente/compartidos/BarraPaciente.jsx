@@ -18,14 +18,16 @@ import {
     useTheme,
     useMediaQuery,
     Paper,
-    Tooltip
+    Tooltip,
+    Chip
 } from '@mui/material';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import {
     FaHome, FaUserCircle, FaCalendarAlt, FaFileMedical, FaPills,
     FaFileAlt, FaWallet, FaChartLine, FaComments, FaBell,
     FaQuestionCircle, FaCog, FaSignOutAlt, FaTooth,
-    FaAngleDown, FaAngleRight, FaBars, FaChevronLeft, FaChevronRight
+    FaAngleDown, FaAngleRight, FaBars, FaChevronLeft, FaChevronRight,
+    FaStar
 } from 'react-icons/fa';
 import { WbSunnyRounded, NightsStayRounded } from '@mui/icons-material';
 import { motion } from 'framer-motion';
@@ -33,6 +35,9 @@ import Notificaciones from '../../../components/Layout/Notificaciones';
 import { useAuth } from '../../../components/Tools/AuthContext';
 import { useThemeContext } from '../../../components/Tools/ThemeContext';
 import { clearAuthCache } from '../../../components/Tools/PrivateRoute';
+import axios from 'axios';
+
+const API_URL = 'https://back-end-4803.onrender.com/api/gamificacion';
 
 const BarraPaciente = ({ onDrawerChange }) => {
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -41,6 +46,7 @@ const BarraPaciente = ({ onDrawerChange }) => {
     const [drawerOpen, setDrawerOpen] = useState(true);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
+    const [puntosDisponibles, setPuntosDisponibles] = useState(0);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -49,13 +55,31 @@ const BarraPaciente = ({ onDrawerChange }) => {
     const { isDarkTheme, toggleTheme } = useThemeContext();
     const { setUser, user } = useAuth();
 
-    // Organizamos los menús en grupos lógicos
+    // Cargar puntos del paciente
+    const cargarPuntosPaciente = useCallback(async () => {
+        if (!user?.id) return;
+        
+        try {
+            const response = await axios.get(`${API_URL}/paciente/${user.id}`);
+            setPuntosDisponibles(response.data.puntos_disponibles || 0);
+        } catch (error) {
+            if (error.response?.status !== 404) {
+                console.error('Error al cargar puntos:', error);
+            }
+        }
+    }, [user?.id]);
+
+    useEffect(() => {
+        cargarPuntosPaciente();
+    }, [cargarPuntosPaciente]);
+
     const menuGroups = [
         {
             id: 'personal',
             title: 'Personal',
             items: [
                 { icon: FaUserCircle, text: 'Mi Perfil', path: '/Paciente/perfil' },
+                { icon: FaStar, text: 'OdontoPuntos', path: '/Paciente/puntos' },
                 { icon: FaCalendarAlt, text: 'Mis Citas', path: '/Paciente/citas' }
             ]
         },
@@ -80,7 +104,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     ];
 
-    // Función para determinar a qué grupo pertenece la ruta actual
     const getGroupIdFromPath = (path) => {
         for (const group of menuGroups) {
             if (group.items.some(item => item.path === path)) {
@@ -90,7 +113,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         return null;
     };
 
-    // Estado para manejar los grupos expandidos/colapsados - inicializado basado en la ruta actual
     const [expandedGroups, setExpandedGroups] = useState(() => {
         const currentGroupId = getGroupIdFromPath(location.pathname);
         return {
@@ -100,7 +122,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         };
     });
 
-    // Actualizar menús expandidos cuando cambia la ruta
     useEffect(() => {
         const currentGroupId = getGroupIdFromPath(location.pathname);
         if (currentGroupId) {
@@ -111,24 +132,22 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     }, [location.pathname]);
 
-    // Configuración de colores basados en el tema (adoptando los de BarraAdmin)
     const colors = {
         background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
-        primary: isDarkTheme ? '#3B82F6' : '#2563EB', // Azul más vibrante como BarraAdmin
+        primary: isDarkTheme ? '#4B9FFF' : '#1976d2',
         secondary: isDarkTheme ? '#4ADE80' : '#10B981',
         text: isDarkTheme ? '#F3F4F6' : '#1F2937',
         secondaryText: isDarkTheme ? '#94A3B8' : '#64748B',
-        hover: isDarkTheme ? 'rgba(59,130,246,0.15)' : 'rgba(37,99,235,0.08)', // Hover mejorado
+        hover: isDarkTheme ? 'rgba(75,159,255,0.12)' : 'rgba(25,118,210,0.08)',
         menuBg: isDarkTheme ? '#111827' : '#F9FAFB',
         sidebarHeader: isDarkTheme ? '#0F172A' : '#EFF6FF',
         iconColor: isDarkTheme ? '#E5E7EB' : '#4B5563',
-        activeItem: isDarkTheme ? 'rgba(59,130,246,0.2)' : 'rgba(37,99,235,0.1)', // Activo mejorado
+        activeItem: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.1)',
         divider: isDarkTheme ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
         error: isDarkTheme ? '#F87171' : '#EF4444',
         boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.05)'
     };
 
-    // Función para comunicar el cambio de estado del drawer al componente padre
     const updateDrawerState = useCallback((isOpen) => {
         setDrawerOpen(isOpen);
         if (onDrawerChange) {
@@ -136,7 +155,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     }, [onDrawerChange]);
 
-    // Ajustar el estado inicial según el dispositivo
     useEffect(() => {
         if (!isMobile) {
             updateDrawerState(true);
@@ -146,7 +164,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     }, [isMobile, updateDrawerState]);
 
-    // Verificar autenticación al cargar
     useEffect(() => {
         const checkAuthStatus = async () => {
             try {
@@ -165,12 +182,9 @@ const BarraPaciente = ({ onDrawerChange }) => {
 
                 const data = await response.json();
 
-                // NUEVO: Usar allAuthenticatedUsers para obtener el paciente
                 if (data.authenticated && data.allAuthenticatedUsers && data.allAuthenticatedUsers.paciente) {
                     setUser(data.allAuthenticatedUsers.paciente);
-                    console.log('✅ Paciente autenticado correctamente');
                 } else {
-                    console.log('❌ No hay sesión de paciente activa');
                     setUser(null);
                 }
             } catch (error) {
@@ -182,7 +196,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         checkAuthStatus();
     }, [setUser]);
 
-    // Manejar expansión/colapso de grupos
     const toggleGroup = (groupId) => {
         setExpandedGroups(prev => ({
             ...prev,
@@ -190,13 +203,11 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }));
     };
 
-    // Manejar clic en elementos del menú
     const handleItemClick = (item) => {
         if (item.text === 'Cerrar Sesión') {
             handleLogout();
         } else if (item.path) {
             navigate(item.path);
-            // En móvil, cerrar el drawer después de seleccionar una opción
             if (isMobile) {
                 setMobileOpen(false);
                 updateDrawerState(false);
@@ -204,7 +215,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     };
 
-    // Función para alternar el estado del drawer
     const toggleDrawer = () => {
         if (isMobile) {
             setMobileOpen(!mobileOpen);
@@ -213,9 +223,8 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     };
 
-    // Manejar cierre de sesión
     const handleLogout = async () => {
-         clearAuthCache();
+        clearAuthCache();
         if (isLoggingOut) return;
         setIsLoggingOut(true);
 
@@ -256,14 +265,11 @@ const BarraPaciente = ({ onDrawerChange }) => {
         }
     };
 
-    // Ancho del drawer según estado y dispositivo
-    const drawerWidth = drawerOpen ? 280 : 0; // Cambiado para consistencia con BarraAdmin
+    const drawerWidth = drawerOpen ? 280 : 0;
     const mobileDrawerWidth = '85%';
 
-    // Contenido común del drawer (utilizado tanto en móvil como en escritorio)
     const drawerContent = (
         <>
-            {/* Cabecera del Drawer - Logo y Nombre */}
             <Box sx={{
                 display: 'flex',
                 alignItems: 'center',
@@ -305,7 +311,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                     </Typography>
                 </Box>
 
-                {/* Botón cerrar en móvil o escritorio */}
                 <IconButton
                     onClick={isMobile ? () => setMobileOpen(false) : () => updateDrawerState(false)}
                     sx={{
@@ -317,7 +322,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 </IconButton>
             </Box>
 
-            {/* Área de usuario */}
             <Box sx={{
                 py: 2,
                 px: 2,
@@ -336,21 +340,40 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 >
                     <FaUserCircle size={32} />
                 </Avatar>
-                <Typography variant="subtitle1" fontWeight="bold">
+                <Typography variant="subtitle1" fontWeight="bold" color={colors.text}>
                     {user?.nombre || 'Paciente'}
                 </Typography>
-                <Typography
-                    variant="caption"
-                    sx={{ color: colors.secondaryText, fontWeight: 'medium', mb: 0.5 }}
-                >
-                    Paciente
-                </Typography>
-                <Typography variant="body2" color={colors.secondaryText}>
+                <Typography variant="body2" color={colors.secondaryText} sx={{ mb: 1.5 }}>
                     {user?.email || 'paciente@odontologiacarol.com'}
                 </Typography>
+
+                <Paper
+                    elevation={0}
+                    onClick={() => navigate('/Paciente/puntos')}
+                    sx={{
+                        px: 2,
+                        py: 1,
+                        borderRadius: '12px',
+                        background: isDarkTheme ? 'rgba(75,159,255,0.1)' : 'rgba(25,118,210,0.08)',
+                        border: `1px solid ${isDarkTheme ? 'rgba(75,159,255,0.3)' : 'rgba(25,118,210,0.2)'}`,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            transform: 'translateY(-2px)',
+                            background: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.12)',
+                            boxShadow: `0 4px 12px ${isDarkTheme ? 'rgba(75,159,255,0.2)' : 'rgba(25,118,210,0.15)'}`
+                        }
+                    }}
+                >
+                    <Box display="flex" alignItems="center" gap={1}>
+                        <FaStar style={{ fontSize: 16, color: colors.primary }} />
+                        <Typography variant="body2" fontWeight={700} color={colors.primary}>
+                            {puntosDisponibles} puntos
+                        </Typography>
+                    </Box>
+                </Paper>
             </Box>
 
-            {/* Contenido del Drawer */}
             <Box sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -358,7 +381,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 flexGrow: 1,
                 overflow: 'hidden'
             }}>
-                {/* Menú de navegación */}
                 <List sx={{
                     px: 1.5,
                     py: 2,
@@ -373,7 +395,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                         borderRadius: '6px'
                     }
                 }}>
-                    {/* Panel Principal - Nuevo elemento agregado */}
                     <Paper
                         elevation={0}
                         sx={{
@@ -430,10 +451,8 @@ const BarraPaciente = ({ onDrawerChange }) => {
 
                     <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
 
-                    {/* Grupos de menú */}
                     {menuGroups.map((group) => (
                         <React.Fragment key={group.id}>
-                            {/* Encabezado de Grupo */}
                             <ListItem
                                 button
                                 onClick={() => toggleGroup(group.id)}
@@ -464,7 +483,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                                 </Box>
                             </ListItem>
 
-                            {/* Items del grupo */}
                             <Collapse in={expandedGroups[group.id]} timeout="auto" unmountOnExit>
                                 <List component="div" disablePadding>
                                     {group.items.map((item, index) => {
@@ -523,7 +541,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                         </React.Fragment>
                     ))}
 
-                    {/* Ayuda y Configuración (fuera de grupos) */}
                     <Paper
                         elevation={0}
                         sx={{
@@ -626,7 +643,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                     </Paper>
                 </List>
 
-                {/* Cerrar Sesión (separado al final) */}
                 <Box sx={{
                     p: 1.5,
                     mt: 'auto',
@@ -678,7 +694,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         </>
     );
 
-    // Renderizado específico para móvil con SwipeableDrawer
     const renderMobileDrawer = () => (
         <SwipeableDrawer
             disableBackdropTransition={false}
@@ -687,7 +702,7 @@ const BarraPaciente = ({ onDrawerChange }) => {
             onOpen={() => setMobileOpen(true)}
             onClose={() => setMobileOpen(false)}
             ModalProps={{
-                keepMounted: true, // Mejor rendimiento en móvil
+                keepMounted: true,
             }}
             sx={{
                 display: { xs: 'block', md: 'none' },
@@ -703,7 +718,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         </SwipeableDrawer>
     );
 
-    // Renderizado para escritorio
     const renderDesktopDrawer = () => (
         <Drawer
             variant="persistent"
@@ -729,7 +743,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         </Drawer>
     );
 
-    // Botón flotante para expandir el menú en escritorio cuando está contraído
     const renderExpandButton = () => {
         if (drawerOpen || isMobile) return null;
         return (
@@ -771,7 +784,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
             >
                 <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {/* Ícono hamburguesa en móvil o cuando el drawer está cerrado en desktop */}
                         {(isMobile || !drawerOpen) && (
                             <IconButton
                                 color="inherit"
@@ -788,7 +800,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                             </IconButton>
                         )}
 
-                        {/* Título de Página con icono de diente */}
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <FaTooth style={{
                                 fontSize: 22,
@@ -809,7 +820,35 @@ const BarraPaciente = ({ onDrawerChange }) => {
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                        {/* Botón de notificaciones */}
+                        <Tooltip title="Mis OdontoPuntos" arrow placement="bottom">
+                            <Paper
+                                elevation={0}
+                                onClick={() => navigate('/Paciente/puntos')}
+                                sx={{
+                                    px: 1.5,
+                                    py: 0.5,
+                                    borderRadius: '10px',
+                                    background: isDarkTheme ? 'rgba(75,159,255,0.1)' : 'rgba(25,118,210,0.08)',
+                                    border: `1px solid ${isDarkTheme ? 'rgba(75,159,255,0.3)' : 'rgba(25,118,210,0.2)'}`,
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    display: { xs: 'none', sm: 'flex' },
+                                    alignItems: 'center',
+                                    gap: 0.8,
+                                    '&:hover': {
+                                        transform: 'translateY(-2px)',
+                                        background: isDarkTheme ? 'rgba(75,159,255,0.15)' : 'rgba(25,118,210,0.12)',
+                                        boxShadow: `0 4px 12px ${isDarkTheme ? 'rgba(75,159,255,0.2)' : 'rgba(25,118,210,0.15)'}`
+                                    }
+                                }}
+                            >
+                                <FaStar style={{ fontSize: 14, color: colors.primary }} />
+                                <Typography variant="body2" fontWeight={700} color={colors.primary}>
+                                    {puntosDisponibles}
+                                </Typography>
+                            </Paper>
+                        </Tooltip>
+
                         <IconButton
                             size="medium"
                             sx={{
@@ -839,7 +878,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                             </Badge>
                         </IconButton>
 
-                        {/* Botón de calendario - Nueva funcionalidad agregada */}
                         <IconButton
                             component={Link}
                             to="/Paciente/citas"
@@ -854,7 +892,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                             <FaCalendarAlt size={18} />
                         </IconButton>
 
-                        {/* Botón de Cambio de Tema - Nueva funcionalidad agregada */}
                         <Tooltip title={isDarkTheme ? "Modo claro" : "Modo oscuro"} arrow placement="bottom">
                             <IconButton
                                 onClick={toggleTheme}
@@ -885,7 +922,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
                             </IconButton>
                         </Tooltip>
 
-                        {/* Botón de inicio/casa */}
                         <IconButton
                             component={Link}
                             to="/Paciente/principal"
@@ -905,12 +941,10 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 </Toolbar>
             </AppBar>
 
-            {/* Renderizado diferenciado para móvil y escritorio */}
             {renderMobileDrawer()}
             {renderDesktopDrawer()}
             {renderExpandButton()}
 
-            {/* Componente de notificaciones */}
             <Notificaciones
                 open={openNotification}
                 message={notificationMessage}
