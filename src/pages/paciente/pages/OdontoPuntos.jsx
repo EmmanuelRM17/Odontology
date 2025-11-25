@@ -30,7 +30,6 @@ import {
 } from '@mui/material';
 import {
     Stars as StarsIcon,
-    EmojiEvents as TrophyIcon,
     CardGiftcard as GiftIcon,
     History as HistoryIcon,
     Close as CloseIcon,
@@ -238,9 +237,9 @@ const OdontoPuntos = () => {
                     </Alert>
                 )}
 
-                {/* Estadísticas principales */}
+                {/* ✅ Estadísticas principales - SOLO 2 TARJETAS */}
                 <Grid container spacing={2.5} sx={{ mb: 3 }}>
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6}>
                         <StatCard
                             icon={StarsIcon}
                             title="Puntos Disponibles"
@@ -250,22 +249,12 @@ const OdontoPuntos = () => {
                             gradient={`linear-gradient(135deg, ${alpha(colors.primary, 0.05)} 0%, ${alpha(colors.primary, 0.1)} 100%)`}
                         />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            icon={TrophyIcon}
-                            title="Nivel Actual"
-                            value={datosGamificacion?.nivel || 1}
-                            subtitle={`${datosGamificacion?.puntos_totales || 0} puntos totales`}
-                            color={colors.warning}
-                            gradient={`linear-gradient(135deg, ${alpha(colors.warning, 0.05)} 0%, ${alpha(colors.warning, 0.1)} 100%)`}
-                        />
-                    </Grid>
-                    <Grid item xs={12} sm={12} md={4}>
+                    <Grid item xs={12} sm={6}>
                         <StatCard
                             icon={TrendingIcon}
-                            title="Puntos Ganados"
+                            title="Puntos Totales"
                             value={datosGamificacion?.puntos_totales || 0}
-                            subtitle="Total acumulado"
+                            subtitle="Acumulados desde el inicio"
                             color={colors.success}
                             gradient={`linear-gradient(135deg, ${alpha(colors.success, 0.05)} 0%, ${alpha(colors.success, 0.1)} 100%)`}
                         />

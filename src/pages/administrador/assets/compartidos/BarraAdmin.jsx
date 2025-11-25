@@ -75,33 +75,45 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
   const { isDarkTheme, toggleTheme } = useThemeContext();
   const { setUser, user } = useAuth();
 
-  // Memoizar menuGroups
+  // Memoizar menuGroups reorganizados
   const menuGroups = useMemo(() => [
     {
-      id: 'gestion',
-      title: 'Gestión',
+      id: 'gestionPacientes',
+      title: 'Gestión de Pacientes',
       items: [
         { icon: MdPeople, text: 'Gestión de Pacientes', path: '/Administrador/pacientes' },
-        { icon: MdPeople, text: 'Gestión de Empleados', path: '/Administrador/empleados' },
-        { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
+        { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Administrador/expedienteClinico' },
         { icon: MdEvent, text: 'Gestión de Citas', path: '/Administrador/citas' },
         { icon: MdLocalHospital, text: 'Gestión de Tratamientos', path: '/Administrador/tratamientos' },
-        { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
-        { icon: FaFileMedical, text: 'Expediente Clínico', path: '/Administrador/expedienteClinico' },
+      ]
+    },
+    {
+      id: 'gestionClinica',
+      title: 'Gestión Clínica',
+      items: [
+        { icon: MdMedicalServices, text: 'Gestión de Servicios', path: '/Administrador/servicios' },
+
+        { icon: MdPeople, text: 'Gestión de Empleados', path: '/Administrador/empleados' },
         { icon: MdSchedule, text: 'Gestión de Horarios', path: '/Administrador/horarios' },
         { icon: MdCloudUpload, text: 'Subida de Imágenes', path: '/Administrador/imagenes' }
       ]
     },
     {
-      id: 'reportes',
-      title: 'Informes y Análisis',
+      id: 'finanzasAnalisis',
+      title: 'Finanzas y Análisis',
       items: [
+        { icon: MdAttachMoney, text: 'Finanzas', path: '/Administrador/finanzas' },
         { icon: MdShowChart, text: 'Estadísticas', path: '/Administrador/Estadisticas' },
-        { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' },
-        { icon: MdEmojiEvents, text: 'Sistema de Puntos', path: '/Administrador/Gamificacion' },
         { icon: MdDescription, text: 'Reportes', path: '/Administrador/reportes' },
+        { icon: MdAssessment, text: 'Predicciónes', path: '/Administrador/predicciones' }
+      ]
+    },
+    {
+      id: 'engagement',
+      title: 'Gamificación y Engagement',
+      items: [
+        { icon: MdEmojiEvents, text: 'Sistema de Puntos', path: '/Administrador/Gamificacion' },
         { icon: MdRateReview, text: 'Reseñas', path: '/Administrador/Reseñas' },
-        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' },
         { icon: MdGroupWork, text: 'Segmentación de Pacientes', path: '/Administrador/Clostering' }
       ]
     },
@@ -110,7 +122,8 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
       title: 'Sistema',
       items: [
         { icon: MdNotifications, text: 'Notificaciones', path: '/Administrador/notificaciones' },
-        { icon: MdSettings, text: 'Configuración', path: '/Administrador/configuracion' }
+        { icon: MdSettings, text: 'Configuración', path: '/Administrador/configuracion' },
+        { icon: MdHistory, text: 'Historial', path: '/Administrador/historial' }
       ]
     }
   ], []);
@@ -128,8 +141,10 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const currentGroupId = getGroupIdFromPath(location.pathname);
     return {
-      gestion: currentGroupId === 'gestion',
-      reportes: currentGroupId === 'reportes',
+      gestionPacientes: currentGroupId === 'gestionPacientes',
+      gestionClinica: currentGroupId === 'gestionClinica',
+      finanzasAnalisis: currentGroupId === 'finanzasAnalisis',
+      engagement: currentGroupId === 'engagement',
       sistema: currentGroupId === 'sistema'
     };
   });
@@ -161,9 +176,9 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
     }
   }, [isMobile, updateDrawerState]);
 
-  // CRÍTICO: Verificar autenticación solo al montar componente
+  // Verificar autenticación solo al montar componente
   useEffect(() => {
-    if (user) return; // Si ya hay usuario, no hacer fetch
+    if (user) return;
 
     const checkAuthStatus = async () => {
       try {
@@ -186,7 +201,7 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
     };
 
     checkAuthStatus();
-  }, []); // Sin dependencias
+  }, []);
 
   // Memoizar colores
   const colors = useMemo(() => ({
@@ -519,7 +534,7 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
             </ListItem>
           </Paper>
           <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
-          
+
           {menuGroups.map((group) => (
             <React.Fragment key={group.id}>
               <ListItem
@@ -563,7 +578,7 @@ const BarraAdmin = memo(({ onDrawerChange }) => {
               <Divider sx={{ my: 1.5, borderColor: colors.divider }} />
             </React.Fragment>
           ))}
-          
+
           <Paper
             elevation={0}
             sx={{

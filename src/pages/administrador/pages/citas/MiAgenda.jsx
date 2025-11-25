@@ -1,12 +1,13 @@
 import {
     Avatar, Box, Button, Card, CardContent, Chip, Grid, 
-    IconButton, Paper, Typography, Tooltip, Alert, AlertTitle
+    IconButton, Paper, Typography, Tooltip, Dialog, DialogTitle,
+    DialogContent, DialogActions
 } from '@mui/material';
 import React, { useCallback, useEffect, useState, useMemo, memo } from 'react';
 import {
     CalendarMonth, Event, HealthAndSafety, CheckCircle,
     MedicalServices, LocalHospital, PersonOff, Visibility,
-    Close, BorderColor, ArrowBack, TrendingUp
+    ArrowBack, Description
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
@@ -46,7 +47,7 @@ const STATUS_COLORS = {
 };
 
 // Componente de tarjeta separado
-const CitaCard = memo(({ cita, tipo, colors, formatDate, navigate, canConfirmAppointment, handleConfirm, handleComplete }) => {
+const CitaCard = memo(({ cita, tipo, colors, formatDate, onViewDetails, canConfirmAppointment, handleConfirm, handleComplete }) => {
     const esTratamiento = cita?.es_tratamiento === 1;
     const estaRegistrado = cita?.paciente_id != null;
     const citaCompletada = cita?.estado === 'Completada';
@@ -171,7 +172,7 @@ const CitaCard = memo(({ cita, tipo, colors, formatDate, navigate, canConfirmApp
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.75, flexWrap: 'wrap' }}>
                     <Tooltip title="Ver detalles" arrow>
                         <IconButton
-                            onClick={() => navigate('/Administrador/citas')}
+                            onClick={() => onViewDetails(cita)}
                             size="small"
                             sx={{
                                 bgcolor: colors.details,
@@ -242,6 +243,10 @@ const MiAgenda = () => {
     const [tratamientos, setTratamientos] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [notification, setNotification] = useState({ open: false, message: '', type: '' });
+    
+    // Estado para diálogo de detalles
+    const [openDialog, setOpenDialog] = useState(false);
+    const [selectedCita, setSelectedCita] = useState(null);
 
     // Cargar datos
     const fetchCitas = useCallback(async () => {
@@ -343,10 +348,11 @@ const MiAgenda = () => {
         } else if (formato === 'fecha-corta') {
             return date.toLocaleString('es-MX', { day: 'numeric', month: 'short' });
         } else {
-            const dia = date.toLocaleString('es-MX', { weekday: 'short' });
-            const diaMes = date.toLocaleString('es-MX', { day: 'numeric', month: 'short' });
+            const dia = date.toLocaleString('es-MX', { weekday: 'long' });
+            const diaMes = date.toLocaleString('es-MX', { day: 'numeric', month: 'long' });
             const hora = date.toLocaleString('es-MX', { hour: '2-digit', minute: '2-digit', hour12: true });
-            return `${dia.charAt(0).toUpperCase() + dia.slice(1)} ${diaMes}, ${hora}`;
+            const diaCapitalizado = dia.charAt(0).toUpperCase() + dia.slice(1);
+            return `${diaCapitalizado} ${diaMes}, ${hora}`;
         }
     }, []);
 
@@ -356,6 +362,12 @@ const MiAgenda = () => {
         const tratamiento = tratamientos[cita.tratamiento_id];
         return tratamiento && tratamiento.estado === 'Activo';
     }, [tratamientos]);
+
+    // Handler para ver detalles
+    const handleViewDetails = useCallback((cita) => {
+        setSelectedCita(cita);
+        setOpenDialog(true);
+    }, []);
 
     // Cambiar estado de cita
     const handleChangeState = useCallback(async (cita, newState) => {
@@ -412,7 +424,7 @@ const MiAgenda = () => {
                             Mi Agenda
                         </Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ color: colors.secondaryText, fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: colors.secondaryText, fontWeight: 500, display: { xs: 'none', sm: 'block' } }}>
                         {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                     </Typography>
                 </Box>
@@ -486,7 +498,7 @@ const MiAgenda = () => {
                                             tipo="hoy" 
                                             colors={colors}
                                             formatDate={formatDate}
-                                            navigate={navigate}
+                                            onViewDetails={handleViewDetails}
                                             canConfirmAppointment={canConfirmAppointment}
                                             handleConfirm={handleConfirm}
                                             handleComplete={handleComplete}
@@ -523,7 +535,7 @@ const MiAgenda = () => {
                                             tipo="proximas" 
                                             colors={colors}
                                             formatDate={formatDate}
-                                            navigate={navigate}
+                                            onViewDetails={handleViewDetails}
                                             canConfirmAppointment={canConfirmAppointment}
                                             handleConfirm={handleConfirm}
                                             handleComplete={handleComplete}
@@ -563,7 +575,7 @@ const MiAgenda = () => {
                                             tipo="atrasadas" 
                                             colors={colors}
                                             formatDate={formatDate}
-                                            navigate={navigate}
+                                            onViewDetails={handleViewDetails}
                                             canConfirmAppointment={canConfirmAppointment}
                                             handleConfirm={handleConfirm}
                                             handleComplete={handleComplete}
@@ -575,6 +587,147 @@ const MiAgenda = () => {
                     </Paper>
                 )}
             </Box>
+
+            {/* Diálogo de detalles */}
+            <Dialog 
+                open={openDialog} 
+                onClose={() => setOpenDialog(false)} 
+                maxWidth="md" 
+                fullWidth 
+                PaperProps={{ sx: { borderRadius: '20px' } }}
+            >
+                {selectedCita && (
+                    <>
+                        <DialogTitle 
+                            sx={{ 
+                                backgroundColor: selectedCita?.es_tratamiento === 1 ? colors.tratamiento : colors.primary, 
+                                color: 'white', 
+                                borderRadius: '20px 20px 0 0' 
+                            }}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <Event sx={{ mr: 2 }} />
+                                    {selectedCita?.es_tratamiento === 1 ? 
+                                        `Detalles del Tratamiento (Cita ${selectedCita.numero_cita_calculado || 1})` : 
+                                        `Detalles de la Cita`}
+                                </Box>
+                                <Chip 
+                                    label={selectedCita?.es_tratamiento === 1 ? 'Tratamiento' : 'Consulta'} 
+                                    size="small" 
+                                    sx={{ 
+                                        backgroundColor: 'white', 
+                                        color: selectedCita?.es_tratamiento === 1 ? colors.tratamiento : colors.primary, 
+                                        fontWeight: 'bold',
+                                        borderRadius: '12px'
+                                    }} 
+                                />
+                            </Box>
+                        </DialogTitle>
+                        <DialogContent sx={{ mt: 2 }}>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
+                                        Información del Paciente
+                                    </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Nombre:</strong> {selectedCita.paciente_nombre} {selectedCita.paciente_apellido_paterno} {selectedCita.paciente_apellido_materno}
+                                        </Typography>
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Género:</strong> {selectedCita.paciente_genero || "No especificado"}
+                                        </Typography>
+                                        {selectedCita.paciente_fecha_nacimiento && (
+                                            <Typography sx={{ mb: 1 }}>
+                                                <strong>Fecha de Nacimiento:</strong> {new Date(selectedCita.paciente_fecha_nacimiento).toLocaleDateString()}
+                                            </Typography>
+                                        )}
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Correo:</strong> {selectedCita.paciente_correo || "No especificado"}
+                                        </Typography>
+                                        <Typography>
+                                            <strong>Teléfono:</strong> {selectedCita.paciente_telefono || "No especificado"}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
+                                        <CalendarMonth sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Información de la Cita
+                                    </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Servicio:</strong> {selectedCita.servicio_nombre}
+                                        </Typography>
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Tipo:</strong> {selectedCita?.es_tratamiento === 1 ? "Tratamiento" : "Consulta Regular"}
+                                        </Typography>
+                                        {selectedCita?.es_tratamiento === 1 && (
+                                            <Typography sx={{ mb: 1 }}>
+                                                <strong>Número de cita:</strong> {selectedCita.numero_cita_calculado || 1}
+                                            </Typography>
+                                        )}
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Precio:</strong> ${selectedCita.precio_servicio || "0.00"}
+                                        </Typography>
+                                        <Typography sx={{ mb: 1 }}>
+                                            <strong>Fecha de Consulta:</strong> {formatDate(selectedCita.fecha_consulta)}
+                                        </Typography>
+                                        <Typography sx={{ mb: 1, display: 'flex', alignItems: 'center' }}>
+                                            <strong>Estado:</strong> 
+                                            <Chip 
+                                                label={selectedCita.estado || "Pendiente"} 
+                                                size="small" 
+                                                sx={{ 
+                                                    ml: 1, 
+                                                    backgroundColor: STATUS_COLORS[selectedCita.estado] || '#bdbdbd', 
+                                                    color: '#FFF', 
+                                                    fontWeight: '600', 
+                                                    fontSize: '0.75rem', 
+                                                    height: '24px',
+                                                    borderRadius: '12px'
+                                                }} 
+                                            />
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
+                                        <HealthAndSafety sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Odontólogo
+                                    </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography>
+                                            <strong>Nombre:</strong> {selectedCita.odontologo_nombre || "No asignado"}
+                                        </Typography>
+                                    </Box>
+                                </Grid>
+                                <Grid item xs={12} md={6}>
+                                    <Typography variant="h6" color={colors.primary} sx={{ mb: 2, fontWeight: 600 }}>
+                                        <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
+                                        Notas
+                                    </Typography>
+                                    <Box sx={{ ml: 1 }}>
+                                        <Typography>{selectedCita.notas || "Sin notas adicionales"}</Typography>
+                                    </Box>
+                                </Grid>
+                            </Grid>
+                        </DialogContent>
+                        <DialogActions sx={{ p: 2 }}>
+                            <Button 
+                                onClick={() => setOpenDialog(false)} 
+                                sx={{ 
+                                    color: colors.primary,
+                                    borderRadius: '12px',
+                                    px: 3
+                                }}
+                            >
+                                Cerrar
+                            </Button>
+                        </DialogActions>
+                    </>
+                )}
+            </Dialog>
 
             <Notificaciones
                 open={notification.open}

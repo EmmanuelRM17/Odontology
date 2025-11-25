@@ -47,7 +47,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [isLoggingOut, setIsLoggingOut] = useState(false);
     const [puntosDisponibles, setPuntosDisponibles] = useState(0);
-    const [nivelPaciente, setNivelPaciente] = useState(1);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -63,7 +62,6 @@ const BarraPaciente = ({ onDrawerChange }) => {
         try {
             const response = await axios.get(`${API_URL}/paciente/${user.id}`);
             setPuntosDisponibles(response.data.puntos_disponibles || 0);
-            setNivelPaciente(response.data.nivel || 1);
         } catch (error) {
             if (error.response?.status !== 404) {
                 console.error('Error al cargar puntos:', error);
@@ -345,10 +343,7 @@ const BarraPaciente = ({ onDrawerChange }) => {
                 <Typography variant="subtitle1" fontWeight="bold" color={colors.text}>
                     {user?.nombre || 'Paciente'}
                 </Typography>
-                <Typography variant="caption" sx={{ color: colors.secondaryText, fontWeight: 'medium', mb: 0.5 }}>
-                    Nivel {nivelPaciente}
-                </Typography>
-                <Typography variant="body2" color={colors.secondaryText} sx={{ mb: 1 }}>
+                <Typography variant="body2" color={colors.secondaryText} sx={{ mb: 1.5 }}>
                     {user?.email || 'paciente@odontologiacarol.com'}
                 </Typography>
 

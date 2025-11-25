@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import {
   Table,
@@ -17,25 +17,18 @@ import {
   Card,
   CardContent,
   Chip,
-  Divider,
   Alert,
   CircularProgress,
   TextField,
   InputAdornment,
   List,
-  ListItem,
   ListItemText,
   ListItemAvatar,
   Avatar,
   Button,
-  Fade,
   Tabs,
   Tab,
   LinearProgress,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  IconButton,
   Accordion,
   AccordionSummary,
   AccordionDetails,
@@ -49,10 +42,8 @@ import {
   ToggleButtonGroup,
   CardHeader,
   ListItemButton,
-  ListItemIcon,
   Skeleton,
-  TablePagination,
-  Collapse
+  TablePagination
 } from '@mui/material';
 import {
   Person,
@@ -65,31 +56,19 @@ import {
   Search,
   Clear,
   AttachMoney,
-  Receipt,
   TrendingUp,
-  Schedule,
   Analytics,
-  Close,
   ExpandMore,
   Warning,
   CheckCircle,
-  Cancel,
-  AccessTime,
   MonetizationOn,
   CreditCard,
   AccountBalance,
   FilterList,
   ViewList,
   ViewModule,
-  SortByAlpha,
-  DateRange,
-  Timeline,
-  History,
-  Info,
-  Error,
-  KeyboardArrowUp,
-  KeyboardArrowDown,
-  Refresh
+  Refresh,
+  History
 } from '@mui/icons-material';
 import axios from 'axios';
 import Notificaciones from '../../../components/Layout/Notificaciones';
@@ -104,43 +83,44 @@ const ExpedienteClinico = () => {
   const { isDarkTheme } = useThemeContext();
   const { user } = useAuth();
   
-  // Estados para selección de paciente
+  // Estados consolidados
   const [pacienteSeleccionado, setPacienteSeleccionado] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   
-  // Estados para datos del expediente
-  const [historialCitas, setHistorialCitas] = useState([]);
-  const [tratamientos, setTratamientos] = useState([]);
-  const [historialPagos, setHistorialPagos] = useState([]);
-  const [serviciosPendientes, setServiciosPendientes] = useState([]);
-  const [saldoTotal, setSaldoTotal] = useState(0);
-  const [estadisticasPaciente, setEstadisticasPaciente] = useState({});
-  
-  // Estados de control y UI
-  const [loading, setLoading] = useState(false);
-  const [tabValue, setTabValue] = useState(0);
-  const [viewMode, setViewMode] = useState('table'); // table, cards
-  const [sortBy, setSortBy] = useState('fecha_desc');
-  const [filterBy, setFilterBy] = useState('todos');
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [expandedSections, setExpandedSections] = useState({
-    resumen: true,
-    alertas: true,
-    filtros: false
+  const [expedienteData, setExpedienteData] = useState({
+    historialCitas: [],
+    tratamientos: [],
+    historialPagos: [],
+    serviciosPendientes: [],
+    saldoTotal: 0,
+    estadisticas: {}
   });
   
-  // Estados para notificaciones
+  const [uiState, setUiState] = useState({
+    loading: false,
+    tabValue: 0,
+    viewMode: 'table',
+    sortBy: 'fecha_desc',
+    filterBy: 'todos',
+    page: 0,
+    rowsPerPage: 10,
+    expandedSections: {
+      resumen: true,
+      alertas: true,
+      filtros: false
+    }
+  });
+  
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     type: 'success',
   });
 
-  // Paleta de colores profesional
-  const colors = {
+  // Paleta de colores memoizada
+  const colors = useMemo(() => ({
     background: isDarkTheme ? '#1A1F2C' : '#FFFFFF',
     cardBg: isDarkTheme ? '#111827' : '#FFFFFF',
     cardBgHover: isDarkTheme ? '#1E293B' : '#F8FAFC',
@@ -150,199 +130,18 @@ const ExpedienteClinico = () => {
     secondary: isDarkTheme ? '#4ADE80' : '#10B981',
     accent: isDarkTheme ? '#F59E0B' : '#F59E0B',
     divider: isDarkTheme ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
-    boxShadow: isDarkTheme
-      ? '0 4px 12px rgba(0,0,0,0.3)'
-      : '0 2px 6px rgba(0,0,0,0.05)',
-    boxShadowHover: isDarkTheme
-      ? '0 8px 24px rgba(0,0,0,0.4)'
-      : '0 4px 12px rgba(0,0,0,0.1)',
+    boxShadow: isDarkTheme ? '0 4px 12px rgba(0,0,0,0.3)' : '0 2px 6px rgba(0,0,0,0.05)',
+    boxShadowHover: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : '0 4px 12px rgba(0,0,0,0.1)',
     error: '#EF4444',
     warning: '#F59E0B',
     success: '#10B981',
     info: '#06B6D4'
-  };
+  }), [isDarkTheme]);
 
-  // Verificar si viene con datos de location.state
-  useEffect(() => {
-    const { id, nombre, telefono, correo } = location.state || {};
-    if (id && nombre) {
-      setPacienteSeleccionado({
-        id,
-        nombre,
-        telefono,
-        correo,
-        email: correo
-      });
-    }
-  }, [location.state]);
-
-  // Buscar pacientes con debounce
-  const handleSearchPatient = async (query) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      const response = await axios.get('https://back-end-4803.onrender.com/api/pacientes/all');
-      const pacientes = response.data || [];
-      
-      const filtered = pacientes.filter(paciente =>
-        paciente.nombre?.toLowerCase().includes(query.toLowerCase()) ||
-        paciente.aPaterno?.toLowerCase().includes(query.toLowerCase()) ||
-        paciente.aMaterno?.toLowerCase().includes(query.toLowerCase()) ||
-        paciente.email?.toLowerCase().includes(query.toLowerCase()) ||
-        paciente.telefono?.includes(query)
-      );
-      
-      setSearchResults(filtered);
-    } catch (err) {
-      console.error('Error buscando pacientes:', err);
-      setNotification({
-        open: true,
-        message: 'Error al buscar pacientes',
-        type: 'error'
-      });
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  // Manejar cambio en búsqueda con debounce
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchQuery) {
-        handleSearchPatient(searchQuery);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
-
-  // Seleccionar paciente
-  const handleSelectPatient = (paciente) => {
-    setPacienteSeleccionado({
-      id: paciente.id,
-      nombre: `${paciente.nombre} ${paciente.aPaterno} ${paciente.aMaterno || ''}`.trim(),
-      telefono: paciente.telefono,
-      correo: paciente.email,
-      email: paciente.email
-    });
-    setSearchQuery('');
-    setSearchResults([]);
-    setPage(0); // Reset pagination
-    setNotification({
-      open: true,
-      message: `Expediente cargado: ${paciente.nombre} ${paciente.aPaterno}`,
-      type: 'success'
-    });
-  };
-
-  // Limpiar selección
-  const handleClearSelection = () => {
-    setPacienteSeleccionado(null);
-    setHistorialCitas([]);
-    setTratamientos([]);
-    setHistorialPagos([]);
-    setServiciosPendientes([]);
-    setTabValue(0);
-    setPage(0);
-  };
-
-  // Cargar datos completos del expediente
-  useEffect(() => {
-    const fetchExpedienteCompleto = async () => {
-      if (!pacienteSeleccionado?.id) return;
-
-      setLoading(true);
-
-      try {
-        // Cargar datos usando los endpoints correctos
-        const [
-          citasResponse,
-          tratamientosResponse,
-          pagosResponse
-        ] = await Promise.all([
-          // Citas del paciente - endpoint correcto
-          axios.get(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteSeleccionado.id}`),
-          // Todos los tratamientos 
-          axios.get('https://back-end-4803.onrender.com/api/tratamientos/all'),
-          // Pagos del paciente - endpoint correcto  
-          axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/?paciente_id=${pacienteSeleccionado.id}`).catch(() => ({ data: [] }))
-        ]);
-
-        // Procesar citas
-        const citas = citasResponse.data || [];
-        setHistorialCitas(citas);
-
-        // Procesar tratamientos del paciente específico
-        const todosTratamientos = tratamientosResponse.data || [];
-        const tratamientosPaciente = todosTratamientos.filter(t => 
-          parseInt(t.paciente_id) === parseInt(pacienteSeleccionado.id)
-        );
-        setTratamientos(tratamientosPaciente);
-
-        // Procesar pagos
-        const pagos = Array.isArray(pagosResponse.data) ? pagosResponse.data : [];
-        setHistorialPagos(pagos);
-
-        // Calcular servicios pendientes de pago
-        const pendientes = citas
-          .filter(cita => !['Pagada', 'Cancelada'].includes(cita.estado))
-          .map(cita => ({
-            id: cita.consulta_id || cita.id,
-            servicio: cita.servicio_nombre,
-            precio: parseFloat(cita.precio_servicio || 0),
-            fecha: new Date(cita.fecha_consulta),
-            estado: cita.estado
-          }));
-        
-        setServiciosPendientes(pendientes);
-        setSaldoTotal(pendientes.reduce((sum, item) => sum + item.precio, 0));
-
-        // Calcular estadísticas del paciente
-        const totalCitas = citas.length;
-        const citasCompletadas = citas.filter(c => c.estado === 'Completada').length;
-        const citasCanceladas = citas.filter(c => c.estado === 'Cancelada').length;
-        const totalGastado = pagos.reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
-        
-        setEstadisticasPaciente({
-          totalCitas,
-          citasCompletadas,
-          citasCanceladas,
-          totalGastado,
-          tasaCompletitud: totalCitas > 0 ? ((citasCompletadas / totalCitas) * 100).toFixed(1) : 0,
-          tratamientosActivos: tratamientosPaciente.filter(t => t.estado === 'Activo').length,
-          proximaCita: citas
-            .filter(c => new Date(c.fecha_consulta) > new Date())
-            .sort((a, b) => new Date(a.fecha_consulta) - new Date(b.fecha_consulta))[0]
-        });
-
-        setNotification({
-          open: true,
-          message: `Expediente cargado exitosamente: ${totalCitas} citas, ${tratamientosPaciente.length} tratamientos`,
-          type: 'success'
-        });
-
-      } catch (err) {
-        console.error('Error al cargar expediente:', err);
-        setNotification({
-          open: true,
-          message: 'Error al cargar los datos del expediente',
-          type: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchExpedienteCompleto();
-  }, [pacienteSeleccionado]);
-
-  // Función para obtener color del estado
-  const getEstadoColor = (estado) => {
-    switch (estado?.toLowerCase()) {
+  // Obtener color del estado
+  const getEstadoColor = useCallback((estado) => {
+    const estadoLower = estado?.toLowerCase();
+    switch (estadoLower) {
       case 'completada':
       case 'finalizado':
       case 'pagada':
@@ -358,19 +157,19 @@ const ExpedienteClinico = () => {
       default:
         return colors.subtext;
     }
-  };
+  }, [colors]);
 
   // Formatear fecha
-  const formatFecha = (fecha) => {
+  const formatFecha = useCallback((fecha) => {
     return new Date(fecha).toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
     });
-  };
+  }, []);
 
   // Formatear fecha y hora
-  const formatFechaHora = (fecha) => {
+  const formatFechaHora = useCallback((fecha) => {
     const date = new Date(fecha);
     return {
       fecha: date.toLocaleDateString('es-MX', {
@@ -383,52 +182,231 @@ const ExpedienteClinico = () => {
         minute: '2-digit'
       })
     };
-  };
+  }, []);
 
   // Formatear moneda
-  const formatCurrency = (amount) => {
+  const formatCurrency = useCallback((amount) => {
     return new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN'
     }).format(amount || 0);
-  };
+  }, []);
 
-  // Manejo de tabs
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
-    setPage(0); // Reset pagination al cambiar tab
-  };
-
-  // Manejar cambio de página
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
-
-  // Manejar cambio de filas por página
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
-
-  // Toggle secciones expandibles
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  // Datos filtrados y ordenados para citas
-  const citasFiltradas = useMemo(() => {
-    let filtered = [...historialCitas];
-
-    // Filtrar por estado
-    if (filterBy !== 'todos') {
-      filtered = filtered.filter(cita => cita.estado === filterBy);
+  // Buscar pacientes
+  const handleSearchPatient = useCallback(async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
     }
 
-    // Ordenar
-    switch (sortBy) {
+    setIsSearching(true);
+    try {
+      const response = await axios.get('https://back-end-4803.onrender.com/api/pacientes/all');
+      const pacientes = response.data || [];
+      
+      const queryLower = query.toLowerCase();
+      const filtered = pacientes.filter(paciente =>
+        paciente.nombre?.toLowerCase().includes(queryLower) ||
+        paciente.aPaterno?.toLowerCase().includes(queryLower) ||
+        paciente.aMaterno?.toLowerCase().includes(queryLower) ||
+        paciente.email?.toLowerCase().includes(queryLower) ||
+        paciente.telefono?.includes(query)
+      );
+      
+      setSearchResults(filtered);
+    } catch (err) {
+      console.error('Error buscando pacientes:', err);
+      setNotification({
+        open: true,
+        message: 'Error al buscar pacientes',
+        type: 'error'
+      });
+    } finally {
+      setIsSearching(false);
+    }
+  }, []);
+
+  // Debounce para búsqueda
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery) {
+        handleSearchPatient(searchQuery);
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery, handleSearchPatient]);
+
+  // Seleccionar paciente
+  const handleSelectPatient = useCallback((paciente) => {
+    setPacienteSeleccionado({
+      id: paciente.id,
+      nombre: `${paciente.nombre} ${paciente.aPaterno} ${paciente.aMaterno || ''}`.trim(),
+      telefono: paciente.telefono,
+      correo: paciente.email,
+      email: paciente.email
+    });
+    setSearchQuery('');
+    setSearchResults([]);
+    setUiState(prev => ({ ...prev, page: 0 }));
+    setNotification({
+      open: true,
+      message: `Expediente cargado: ${paciente.nombre} ${paciente.aPaterno}`,
+      type: 'success'
+    });
+  }, []);
+
+  // Limpiar selección
+  const handleClearSelection = useCallback(() => {
+    setPacienteSeleccionado(null);
+    setExpedienteData({
+      historialCitas: [],
+      tratamientos: [],
+      historialPagos: [],
+      serviciosPendientes: [],
+      saldoTotal: 0,
+      estadisticas: {}
+    });
+    setUiState(prev => ({ ...prev, tabValue: 0, page: 0 }));
+  }, []);
+
+  // Cargar paciente desde location.state
+  useEffect(() => {
+    const { id, nombre, telefono, correo } = location.state || {};
+    if (id && nombre) {
+      setPacienteSeleccionado({
+        id,
+        nombre,
+        telefono,
+        correo,
+        email: correo
+      });
+    }
+  }, [location.state]);
+
+  // Cargar expediente completo
+  useEffect(() => {
+    const fetchExpedienteCompleto = async () => {
+      if (!pacienteSeleccionado?.id) return;
+
+      setUiState(prev => ({ ...prev, loading: true }));
+
+      try {
+        const [citasResponse, tratamientosResponse, pagosResponse] = await Promise.all([
+          axios.get(`https://back-end-4803.onrender.com/api/citas/paciente/${pacienteSeleccionado.id}`),
+          axios.get('https://back-end-4803.onrender.com/api/tratamientos/all'),
+          axios.get(`https://back-end-4803.onrender.com/api/Finanzas/Pagos/?paciente_id=${pacienteSeleccionado.id}`).catch(() => ({ data: [] }))
+        ]);
+
+        const citas = citasResponse.data || [];
+        const todosTratamientos = tratamientosResponse.data || [];
+        const tratamientosPaciente = todosTratamientos.filter(t => 
+          parseInt(t.paciente_id) === parseInt(pacienteSeleccionado.id)
+        );
+        const pagos = Array.isArray(pagosResponse.data) ? pagosResponse.data : [];
+
+        const pendientes = citas
+          .filter(cita => !['Pagada', 'Cancelada'].includes(cita.estado))
+          .map(cita => ({
+            id: cita.consulta_id || cita.id,
+            servicio: cita.servicio_nombre,
+            precio: parseFloat(cita.precio_servicio || 0),
+            fecha: new Date(cita.fecha_consulta),
+            estado: cita.estado
+          }));
+        
+        const saldoTotal = pendientes.reduce((sum, item) => sum + item.precio, 0);
+        
+        const totalCitas = citas.length;
+        const citasCompletadas = citas.filter(c => c.estado === 'Completada').length;
+        const citasCanceladas = citas.filter(c => c.estado === 'Cancelada').length;
+        const totalGastado = pagos.reduce((sum, p) => sum + parseFloat(p.total || 0), 0);
+        
+        const estadisticas = {
+          totalCitas,
+          citasCompletadas,
+          citasCanceladas,
+          totalGastado,
+          tasaCompletitud: totalCitas > 0 ? ((citasCompletadas / totalCitas) * 100).toFixed(1) : 0,
+          tratamientosActivos: tratamientosPaciente.filter(t => t.estado === 'Activo').length,
+          proximaCita: citas
+            .filter(c => new Date(c.fecha_consulta) > new Date())
+            .sort((a, b) => new Date(a.fecha_consulta) - new Date(b.fecha_consulta))[0]
+        };
+
+        setExpedienteData({
+          historialCitas: citas,
+          tratamientos: tratamientosPaciente,
+          historialPagos: pagos,
+          serviciosPendientes: pendientes,
+          saldoTotal,
+          estadisticas
+        });
+
+        setNotification({
+          open: true,
+          message: `Expediente cargado: ${totalCitas} citas, ${tratamientosPaciente.length} tratamientos`,
+          type: 'success'
+        });
+
+      } catch (err) {
+        console.error('Error al cargar expediente:', err);
+        setNotification({
+          open: true,
+          message: 'Error al cargar los datos del expediente',
+          type: 'error'
+        });
+      } finally {
+        setUiState(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    fetchExpedienteCompleto();
+  }, [pacienteSeleccionado]);
+
+  // Manejo de tabs
+  const handleTabChange = useCallback((event, newValue) => {
+    setUiState(prev => ({ ...prev, tabValue: newValue, page: 0 }));
+  }, []);
+
+  // Manejo de paginación
+  const handleChangePage = useCallback((event, newPage) => {
+    setUiState(prev => ({ ...prev, page: newPage }));
+  }, []);
+
+  const handleChangeRowsPerPage = useCallback((event) => {
+    setUiState(prev => ({
+      ...prev,
+      rowsPerPage: parseInt(event.target.value, 10),
+      page: 0
+    }));
+  }, []);
+
+  // Toggle secciones
+  const toggleSection = useCallback((section) => {
+    setUiState(prev => ({
+      ...prev,
+      expandedSections: {
+        ...prev.expandedSections,
+        [section]: !prev.expandedSections[section]
+      }
+    }));
+  }, []);
+
+  // Actualizar UI state
+  const updateUiState = useCallback((updates) => {
+    setUiState(prev => ({ ...prev, ...updates }));
+  }, []);
+
+  // Datos filtrados y ordenados
+  const citasFiltradas = useMemo(() => {
+    let filtered = [...expedienteData.historialCitas];
+
+    if (uiState.filterBy !== 'todos') {
+      filtered = filtered.filter(cita => cita.estado === uiState.filterBy);
+    }
+
+    switch (uiState.sortBy) {
       case 'fecha_desc':
         filtered.sort((a, b) => new Date(b.fecha_consulta) - new Date(a.fecha_consulta));
         break;
@@ -446,22 +424,65 @@ const ExpedienteClinico = () => {
     }
 
     return filtered;
-  }, [historialCitas, filterBy, sortBy]);
+  }, [expedienteData.historialCitas, uiState.filterBy, uiState.sortBy]);
 
-  // Estados únicos para filtros
+  // Estados únicos
   const estadosUnicos = useMemo(() => {
-    const estados = [...new Set(historialCitas.map(cita => cita.estado))].filter(Boolean);
-    return estados.sort();
-  }, [historialCitas]);
+    return [...new Set(expedienteData.historialCitas.map(cita => cita.estado))].filter(Boolean).sort();
+  }, [expedienteData.historialCitas]);
 
   // Datos paginados
   const citasPaginadas = useMemo(() => {
-    const startIndex = page * rowsPerPage;
-    return citasFiltradas.slice(startIndex, startIndex + rowsPerPage);
-  }, [citasFiltradas, page, rowsPerPage]);
+    const startIndex = uiState.page * uiState.rowsPerPage;
+    return citasFiltradas.slice(startIndex, startIndex + uiState.rowsPerPage);
+  }, [citasFiltradas, uiState.page, uiState.rowsPerPage]);
 
-  // Componente de Skeleton para carga
-  const SkeletonTable = () => (
+  // Servicios más utilizados
+  const serviciosMasUtilizados = useMemo(() => {
+    if (expedienteData.historialCitas.length === 0) return [];
+    
+    const serviciosCount = expedienteData.historialCitas.reduce((acc, cita) => {
+      const servicio = cita.servicio_nombre;
+      acc[servicio] = (acc[servicio] || 0) + 1;
+      return acc;
+    }, {});
+    
+    return Object.entries(serviciosCount)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5);
+  }, [expedienteData.historialCitas]);
+
+  // Timeline de eventos
+  const timelineEventos = useMemo(() => {
+    const eventos = [];
+    
+    expedienteData.historialCitas.slice(0, 10).forEach(cita => {
+      eventos.push({
+        fecha: new Date(cita.fecha_consulta),
+        tipo: 'cita',
+        titulo: cita.servicio_nombre,
+        descripcion: `Estado: ${cita.estado}`,
+        icono: <MedicalServices />,
+        color: getEstadoColor(cita.estado)
+      });
+    });
+    
+    expedienteData.historialPagos.slice(0, 5).forEach(pago => {
+      eventos.push({
+        fecha: new Date(pago.fecha_pago),
+        tipo: 'pago',
+        titulo: `Pago: ${formatCurrency(pago.total)}`,
+        descripcion: pago.concepto || 'Pago de servicios',
+        icono: <AttachMoney />,
+        color: colors.success
+      });
+    });
+    
+    return eventos.sort((a, b) => b.fecha - a.fecha).slice(0, 8);
+  }, [expedienteData.historialCitas, expedienteData.historialPagos, getEstadoColor, formatCurrency, colors.success]);
+
+  // Componente Skeleton
+  const SkeletonTable = useCallback(() => (
     <Box>
       {[...Array(5)].map((_, index) => (
         <Skeleton 
@@ -476,13 +497,12 @@ const ExpedienteClinico = () => {
         />
       ))}
     </Box>
-  );
+  ), [isDarkTheme]);
 
   if (!pacienteSeleccionado) {
     return (
       <Container maxWidth="xl" sx={{ py: 2 }}>
         <Box sx={{ mt: 10 }}>
-          {/* Header de búsqueda */}
           <Paper
             sx={{
               backgroundColor: colors.cardBg,
@@ -494,14 +514,7 @@ const ExpedienteClinico = () => {
             }}
           >
             <Assignment sx={{ color: colors.primary, fontSize: 64, mb: 2 }} />
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 700,
-                color: colors.text,
-                mb: 1
-              }}
-            >
+            <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text, mb: 1 }}>
               Expediente Clínico Digital
             </Typography>
             <Typography variant="body1" sx={{ color: colors.subtext, mb: 4 }}>
@@ -531,7 +544,6 @@ const ExpedienteClinico = () => {
                 }}
               />
 
-              {/* Resultados de búsqueda */}
               {searchResults.length > 0 && (
                 <Paper
                   sx={{
@@ -547,11 +559,7 @@ const ExpedienteClinico = () => {
                       <ListItemButton
                         key={paciente.id}
                         onClick={() => handleSelectPatient(paciente)}
-                        sx={{
-                          '&:hover': {
-                            backgroundColor: colors.cardBg
-                          }
-                        }}
+                        sx={{ '&:hover': { backgroundColor: colors.cardBg } }}
                       >
                         <ListItemAvatar>
                           <Avatar sx={{ bgcolor: colors.primary }}>
@@ -598,28 +606,13 @@ const ExpedienteClinico = () => {
   return (
     <Container maxWidth="xl" sx={{ py: 2 }}>
       <Box sx={{ mt: 10 }}>
-        {/* Header del expediente */}
-        <Paper
-          sx={{
-            backgroundColor: colors.cardBg,
-            borderRadius: 3,
-            p: 3,
-            mb: 3,
-            boxShadow: colors.boxShadow
-          }}
-        >
+        {/* Header */}
+        <Paper sx={{ backgroundColor: colors.cardBg, borderRadius: 3, p: 3, mb: 3, boxShadow: colors.boxShadow }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <Assignment sx={{ color: colors.primary, mr: 2, fontSize: 32 }} />
               <Box>
-                <Typography
-                  variant="h5"
-                  sx={{
-                    fontWeight: 700,
-                    color: colors.text,
-                    fontSize: { xs: '1.4rem', md: '1.6rem' }
-                  }}
-                >
+                <Typography variant="h5" sx={{ fontWeight: 700, color: colors.text, fontSize: { xs: '1.4rem', md: '1.6rem' } }}>
                   Expediente Clínico - {pacienteSeleccionado.nombre}
                 </Typography>
                 <Typography variant="body2" sx={{ color: colors.subtext }}>
@@ -633,13 +626,7 @@ const ExpedienteClinico = () => {
                 variant="outlined"
                 startIcon={<Refresh />}
                 onClick={() => window.location.reload()}
-                sx={{
-                  color: colors.primary,
-                  borderColor: colors.primary,
-                  '&:hover': {
-                    backgroundColor: colors.primary + '10'
-                  }
-                }}
+                sx={{ color: colors.primary, borderColor: colors.primary, '&:hover': { backgroundColor: colors.primary + '10' } }}
               >
                 Actualizar
               </Button>
@@ -647,29 +634,20 @@ const ExpedienteClinico = () => {
                 variant="outlined"
                 startIcon={<Clear />}
                 onClick={handleClearSelection}
-                sx={{
-                  color: colors.subtext,
-                  borderColor: colors.divider,
-                  '&:hover': {
-                    backgroundColor: colors.cardBgHover
-                  }
-                }}
+                sx={{ color: colors.subtext, borderColor: colors.divider, '&:hover': { backgroundColor: colors.cardBgHover } }}
               >
                 Cambiar Paciente
               </Button>
             </Box>
           </Box>
 
-          {/* Información básica del paciente */}
           <Box sx={{ bgcolor: colors.cardBgHover, p: 2, borderRadius: 2, mb: 2 }}>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={4}>
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Person sx={{ color: colors.primary, mr: 1 }} />
                   <Box>
-                    <Typography variant="caption" sx={{ color: colors.subtext }}>
-                      Paciente
-                    </Typography>
+                    <Typography variant="caption" sx={{ color: colors.subtext }}>Paciente</Typography>
                     <Typography variant="body1" sx={{ color: colors.text, fontWeight: 600 }}>
                       {pacienteSeleccionado.nombre}
                     </Typography>
@@ -681,9 +659,7 @@ const ExpedienteClinico = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Email sx={{ color: colors.secondary, mr: 1 }} />
                   <Box>
-                    <Typography variant="caption" sx={{ color: colors.subtext }}>
-                      Correo
-                    </Typography>
+                    <Typography variant="caption" sx={{ color: colors.subtext }}>Correo</Typography>
                     <Typography variant="body1" sx={{ color: colors.text, fontWeight: 600 }}>
                       {pacienteSeleccionado.correo || 'No disponible'}
                     </Typography>
@@ -695,9 +671,7 @@ const ExpedienteClinico = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                   <Phone sx={{ color: colors.accent, mr: 1 }} />
                   <Box>
-                    <Typography variant="caption" sx={{ color: colors.subtext }}>
-                      Teléfono
-                    </Typography>
+                    <Typography variant="caption" sx={{ color: colors.subtext }}>Teléfono</Typography>
                     <Typography variant="body1" sx={{ color: colors.text, fontWeight: 600 }}>
                       {pacienteSeleccionado.telefono || 'No disponible'}
                     </Typography>
@@ -708,9 +682,9 @@ const ExpedienteClinico = () => {
           </Box>
         </Paper>
 
-        {/* Dashboard de métricas */}
+        {/* Resumen */}
         <Accordion 
-          expanded={expandedSections.resumen}
+          expanded={uiState.expandedSections.resumen}
           onChange={() => toggleSection('resumen')}
           sx={{ mb: 2, bgcolor: colors.cardBg, boxShadow: colors.boxShadow }}
         >
@@ -728,11 +702,9 @@ const ExpedienteClinico = () => {
                 <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 2 }}>
                   <CalendarToday sx={{ color: colors.primary, fontSize: 32, mb: 1 }} />
                   <Typography variant="h5" sx={{ color: colors.primary, fontWeight: 700 }}>
-                    {estadisticasPaciente.totalCitas || 0}
+                    {expedienteData.estadisticas.totalCitas || 0}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: colors.subtext }}>
-                    Total Citas
-                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.subtext }}>Total Citas</Typography>
                 </Card>
               </Grid>
               
@@ -740,11 +712,9 @@ const ExpedienteClinico = () => {
                 <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 2 }}>
                   <CheckCircle sx={{ color: colors.success, fontSize: 32, mb: 1 }} />
                   <Typography variant="h5" sx={{ color: colors.success, fontWeight: 700 }}>
-                    {estadisticasPaciente.tasaCompletitud || 0}%
+                    {expedienteData.estadisticas.tasaCompletitud || 0}%
                   </Typography>
-                  <Typography variant="caption" sx={{ color: colors.subtext }}>
-                    Completitud
-                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.subtext }}>Completitud</Typography>
                 </Card>
               </Grid>
               
@@ -752,11 +722,9 @@ const ExpedienteClinico = () => {
                 <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 2 }}>
                   <MonetizationOn sx={{ color: colors.accent, fontSize: 32, mb: 1 }} />
                   <Typography variant="h5" sx={{ color: colors.accent, fontWeight: 700, fontSize: '1.2rem' }}>
-                    {formatCurrency(estadisticasPaciente.totalGastado)}
+                    {formatCurrency(expedienteData.estadisticas.totalGastado)}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: colors.subtext }}>
-                    Total Gastado
-                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.subtext }}>Total Gastado</Typography>
                 </Card>
               </Grid>
               
@@ -764,21 +732,19 @@ const ExpedienteClinico = () => {
                 <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 2 }}>
                   <LocalHospital sx={{ color: colors.secondary, fontSize: 32, mb: 1 }} />
                   <Typography variant="h5" sx={{ color: colors.secondary, fontWeight: 700 }}>
-                    {estadisticasPaciente.tratamientosActivos || 0}
+                    {expedienteData.estadisticas.tratamientosActivos || 0}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: colors.subtext }}>
-                    Tratamientos Activos
-                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.subtext }}>Tratamientos Activos</Typography>
                 </Card>
               </Grid>
             </Grid>
           </AccordionDetails>
         </Accordion>
 
-        {/* Alertas importantes */}
-        {(saldoTotal > 0 || estadisticasPaciente.proximaCita) && (
+        {/* Alertas */}
+        {(expedienteData.saldoTotal > 0 || expedienteData.estadisticas.proximaCita) && (
           <Accordion 
-            expanded={expandedSections.alertas}
+            expanded={uiState.expandedSections.alertas}
             onChange={() => toggleSection('alertas')}
             sx={{ mb: 2, bgcolor: colors.cardBg, boxShadow: colors.boxShadow }}
           >
@@ -792,18 +758,14 @@ const ExpedienteClinico = () => {
             </AccordionSummary>
             <AccordionDetails>
               <Grid container spacing={2}>
-                {saldoTotal > 0 && (
+                {expedienteData.estadisticas.proximaCita && (
                   <Grid item xs={12} md={6}>
-                    <Alert 
-                      severity="warning" 
-                      icon={<Warning />}
-                      sx={{ backgroundColor: colors.warning + '20' }}
-                    >
+                    <Alert severity="warning" icon={<Warning />} sx={{ backgroundColor: colors.warning + '20' }}>
                       <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                        Próxima cita: {formatFecha(estadisticasPaciente.proximaCita.fecha_consulta)}
+                        Próxima cita: {formatFecha(expedienteData.estadisticas.proximaCita.fecha_consulta)}
                       </Typography>
                       <Typography variant="caption">
-                        {estadisticasPaciente.proximaCita.servicio_nombre}
+                        {expedienteData.estadisticas.proximaCita.servicio_nombre}
                       </Typography>
                     </Alert>
                   </Grid>
@@ -813,87 +775,54 @@ const ExpedienteClinico = () => {
           </Accordion>
         )}
 
-        {/* Loading State */}
-        {loading && (
+        {/* Loading */}
+        {uiState.loading && (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress size={40} sx={{ color: colors.primary }} />
           </Box>
         )}
 
-        {/* Tabs principales con filtros */}
-        {!loading && (
-          <Paper
-            sx={{
-              backgroundColor: colors.cardBg,
-              borderRadius: 3,
-              overflow: 'hidden',
-              boxShadow: colors.boxShadow
-            }}
-          >
-            {/* Header de tabs con contadores */}
+        {/* Tabs */}
+        {!uiState.loading && (
+          <Paper sx={{ backgroundColor: colors.cardBg, borderRadius: 3, overflow: 'hidden', boxShadow: colors.boxShadow }}>
             <Tabs
-              value={tabValue}
+              value={uiState.tabValue}
               onChange={handleTabChange}
               variant={isMobile ? "scrollable" : "standard"}
               scrollButtons="auto"
               sx={{
                 borderBottom: `1px solid ${colors.divider}`,
-                '& .MuiTab-root': {
-                  color: colors.subtext,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  minHeight: 60
-                },
-                '& .Mui-selected': {
-                  color: colors.primary
-                }
+                '& .MuiTab-root': { color: colors.subtext, fontWeight: 600, textTransform: 'none', minHeight: 60 },
+                '& .Mui-selected': { color: colors.primary }
               }}
             >
-              <Tab 
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <CalendarToday sx={{ fontSize: 18 }} />
-                    <span>Consultas</span>
-                    <Badge badgeContent={historialCitas.length} color="primary" max={99} />
-                  </Box>
-                } 
-              />
-              <Tab 
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <LocalHospital sx={{ fontSize: 18 }} />
-                    <span>Tratamientos</span>
-                    <Badge badgeContent={tratamientos.length} color="secondary" max={99} />
-                  </Box>
-                } 
-              />
-              <Tab 
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <AttachMoney sx={{ fontSize: 18 }} />
-                    <span>Finanzas</span>
-                    <Badge badgeContent={historialPagos.length} color="warning" max={99} />
-                  </Box>
-                } 
-              />
-              <Tab 
-                label={
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Analytics sx={{ fontSize: 18 }} />
-                    <span>Reportes</span>
-                  </Box>
-                } 
-              />
+              <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CalendarToday sx={{ fontSize: 18 }} />
+                <span>Consultas</span>
+                <Badge badgeContent={expedienteData.historialCitas.length} color="primary" max={99} />
+              </Box>} />
+              <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <LocalHospital sx={{ fontSize: 18 }} />
+                <span>Tratamientos</span>
+                <Badge badgeContent={expedienteData.tratamientos.length} color="secondary" max={99} />
+              </Box>} />
+              <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <AttachMoney sx={{ fontSize: 18 }} />
+                <span>Finanzas</span>
+                <Badge badgeContent={expedienteData.historialPagos.length} color="warning" max={99} />
+              </Box>} />
+              <Tab label={<Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Analytics sx={{ fontSize: 18 }} />
+                <span>Reportes</span>
+              </Box>} />
             </Tabs>
 
-            {/* Contenido de las tabs */}
             <Box sx={{ p: 3 }}>
-              {/* Tab 0: Historial de Consultas con filtros avanzados */}
-              {tabValue === 0 && (
+              {/* Tab 0: Consultas */}
+              {uiState.tabValue === 0 && (
                 <Box>
-                  {/* Filtros y controles */}
                   <Accordion 
-                    expanded={expandedSections.filtros}
+                    expanded={uiState.expandedSections.filtros}
                     onChange={() => toggleSection('filtros')}
                     sx={{ mb: 3, bgcolor: colors.cardBgHover }}
                   >
@@ -911,15 +840,13 @@ const ExpedienteClinico = () => {
                           <FormControl fullWidth size="small">
                             <InputLabel>Filtrar por Estado</InputLabel>
                             <Select
-                              value={filterBy}
+                              value={uiState.filterBy}
                               label="Filtrar por Estado"
-                              onChange={(e) => setFilterBy(e.target.value)}
+                              onChange={(e) => updateUiState({ filterBy: e.target.value, page: 0 })}
                             >
                               <MenuItem value="todos">Todos los Estados</MenuItem>
                               {estadosUnicos.map(estado => (
-                                <MenuItem key={estado} value={estado}>
-                                  {estado}
-                                </MenuItem>
+                                <MenuItem key={estado} value={estado}>{estado}</MenuItem>
                               ))}
                             </Select>
                           </FormControl>
@@ -929,9 +856,9 @@ const ExpedienteClinico = () => {
                           <FormControl fullWidth size="small">
                             <InputLabel>Ordenar por</InputLabel>
                             <Select
-                              value={sortBy}
+                              value={uiState.sortBy}
                               label="Ordenar por"
-                              onChange={(e) => setSortBy(e.target.value)}
+                              onChange={(e) => updateUiState({ sortBy: e.target.value })}
                             >
                               <MenuItem value="fecha_desc">Fecha (Más reciente)</MenuItem>
                               <MenuItem value="fecha_asc">Fecha (Más antigua)</MenuItem>
@@ -943,31 +870,26 @@ const ExpedienteClinico = () => {
                         
                         <Grid item xs={12} sm={6} md={3}>
                           <ToggleButtonGroup
-                            value={viewMode}
+                            value={uiState.viewMode}
                             exclusive
-                            onChange={(e, newMode) => newMode && setViewMode(newMode)}
+                            onChange={(e, newMode) => newMode && updateUiState({ viewMode: newMode })}
                             size="small"
                           >
-                            <ToggleButton value="table">
-                              <ViewList />
-                            </ToggleButton>
-                            <ToggleButton value="cards">
-                              <ViewModule />
-                            </ToggleButton>
+                            <ToggleButton value="table"><ViewList /></ToggleButton>
+                            <ToggleButton value="cards"><ViewModule /></ToggleButton>
                           </ToggleButtonGroup>
                         </Grid>
                         
                         <Grid item xs={12} sm={6} md={3}>
                           <Typography variant="body2" sx={{ color: colors.text, fontWeight: 600 }}>
-                            {citasFiltradas.length} resultado(s) de {historialCitas.length} total
+                            {citasFiltradas.length} resultado(s) de {expedienteData.historialCitas.length} total
                           </Typography>
                         </Grid>
                       </Grid>
                     </AccordionDetails>
                   </Accordion>
 
-                  {/* Contenido principal de consultas */}
-                  {historialCitas.length === 0 ? (
+                  {expedienteData.historialCitas.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 6 }}>
                       <CalendarToday sx={{ fontSize: 64, color: colors.subtext, mb: 2 }} />
                       <Typography variant="h6" sx={{ color: colors.subtext, mb: 1 }}>
@@ -979,8 +901,7 @@ const ExpedienteClinico = () => {
                     </Box>
                   ) : (
                     <>
-                      {viewMode === 'table' ? (
-                        // Vista de tabla
+                      {uiState.viewMode === 'table' ? (
                         <>
                           <TableContainer>
                             <Table>
@@ -1006,9 +927,7 @@ const ExpedienteClinico = () => {
                                       </Box>
                                     </TableCell>
                                   )}
-                                  <TableCell sx={{ fontWeight: 700, color: colors.text }}>
-                                    Estado
-                                  </TableCell>
+                                  <TableCell sx={{ fontWeight: 700, color: colors.text }}>Estado</TableCell>
                                   {!isMobile && (
                                     <TableCell sx={{ fontWeight: 700, color: colors.text }}>
                                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1017,11 +936,7 @@ const ExpedienteClinico = () => {
                                       </Box>
                                     </TableCell>
                                   )}
-                                  {!isMobile && (
-                                    <TableCell sx={{ fontWeight: 700, color: colors.text }}>
-                                      Observaciones
-                                    </TableCell>
-                                  )}
+                                  {!isMobile && <TableCell sx={{ fontWeight: 700, color: colors.text }}>Observaciones</TableCell>}
                                 </TableRow>
                               </TableHead>
                               <TableBody>
@@ -1029,9 +944,7 @@ const ExpedienteClinico = () => {
                                   <TableRow
                                     key={cita.consulta_id || cita.id || index}
                                     sx={{
-                                      '&:hover': {
-                                        backgroundColor: colors.cardBgHover
-                                      },
+                                      '&:hover': { backgroundColor: colors.cardBgHover },
                                       borderLeft: `4px solid ${getEstadoColor(cita.estado)}`
                                     }}
                                   >
@@ -1120,13 +1033,12 @@ const ExpedienteClinico = () => {
                             </Table>
                           </TableContainer>
                           
-                          {/* Paginación */}
                           <TablePagination
                             component="div"
                             count={citasFiltradas.length}
-                            page={page}
+                            page={uiState.page}
                             onPageChange={handleChangePage}
-                            rowsPerPage={rowsPerPage}
+                            rowsPerPage={uiState.rowsPerPage}
                             onRowsPerPageChange={handleChangeRowsPerPage}
                             rowsPerPageOptions={[5, 10, 25, 50]}
                             labelRowsPerPage="Filas por página:"
@@ -1135,9 +1047,7 @@ const ExpedienteClinico = () => {
                             }
                             sx={{
                               borderTop: `1px solid ${colors.divider}`,
-                              '& .MuiTablePagination-toolbar': {
-                                color: colors.text
-                              },
+                              '& .MuiTablePagination-toolbar': { color: colors.text },
                               '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
                                 color: colors.subtext
                               }
@@ -1145,7 +1055,6 @@ const ExpedienteClinico = () => {
                           />
                         </>
                       ) : (
-                        // Vista de cards
                         <Grid container spacing={3}>
                           {citasPaginadas.map((cita, index) => (
                             <Grid item xs={12} sm={6} md={4} key={cita.consulta_id || cita.id || index}>
@@ -1224,13 +1133,13 @@ const ExpedienteClinico = () => {
               )}
 
               {/* Tab 1: Tratamientos */}
-              {tabValue === 1 && (
+              {uiState.tabValue === 1 && (
                 <Box>
                   <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 3 }}>
                     Tratamientos del Paciente
                   </Typography>
                   
-                  {tratamientos.length === 0 ? (
+                  {expedienteData.tratamientos.length === 0 ? (
                     <Box sx={{ textAlign: 'center', py: 6 }}>
                       <LocalHospital sx={{ fontSize: 64, color: colors.subtext, mb: 2 }} />
                       <Typography variant="h6" sx={{ color: colors.subtext, mb: 1 }}>
@@ -1242,7 +1151,7 @@ const ExpedienteClinico = () => {
                     </Box>
                   ) : (
                     <Grid container spacing={3}>
-                      {tratamientos.map((tratamiento) => (
+                      {expedienteData.tratamientos.map((tratamiento) => (
                         <Grid item xs={12} md={6} key={tratamiento.id}>
                           <Card
                             sx={{
@@ -1352,25 +1261,22 @@ const ExpedienteClinico = () => {
               )}
 
               {/* Tab 2: Finanzas */}
-              {tabValue === 2 && (
+              {uiState.tabValue === 2 && (
                 <Box>
                   <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 3 }}>
                     Gestión Financiera del Paciente
                   </Typography>
                   
-                  {/* Resumen financiero */}
                   <Grid container spacing={3} mb={4}>
                     <Grid item xs={12} md={4}>
                       <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 3 }}>
                         <MonetizationOn sx={{ color: colors.success, fontSize: 48, mb: 2 }} />
                         <Typography variant="h4" sx={{ color: colors.success, fontWeight: 700, mb: 1 }}>
-                          {formatCurrency(estadisticasPaciente.totalGastado)}
+                          {formatCurrency(expedienteData.estadisticas.totalGastado)}
                         </Typography>
-                        <Typography variant="body1" sx={{ color: colors.subtext }}>
-                          Total Gastado
-                        </Typography>
+                        <Typography variant="body1" sx={{ color: colors.subtext }}>Total Gastado</Typography>
                         <Typography variant="caption" sx={{ color: colors.subtext }}>
-                          {historialPagos.length} pagos realizados
+                          {expedienteData.historialPagos.length} pagos realizados
                         </Typography>
                       </Card>
                     </Grid>
@@ -1379,13 +1285,11 @@ const ExpedienteClinico = () => {
                       <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 3 }}>
                         <Warning sx={{ color: colors.warning, fontSize: 48, mb: 2 }} />
                         <Typography variant="h4" sx={{ color: colors.warning, fontWeight: 700, mb: 1 }}>
-                          {formatCurrency(saldoTotal)}
+                          {formatCurrency(expedienteData.saldoTotal)}
                         </Typography>
-                        <Typography variant="body1" sx={{ color: colors.subtext }}>
-                          Saldo Pendiente
-                        </Typography>
+                        <Typography variant="body1" sx={{ color: colors.subtext }}>Saldo Pendiente</Typography>
                         <Typography variant="caption" sx={{ color: colors.subtext }}>
-                          {serviciosPendientes.length} servicios pendientes
+                          {expedienteData.serviciosPendientes.length} servicios pendientes
                         </Typography>
                       </Card>
                     </Grid>
@@ -1394,20 +1298,15 @@ const ExpedienteClinico = () => {
                       <Card sx={{ textAlign: 'center', bgcolor: colors.cardBgHover, p: 3 }}>
                         <AccountBalance sx={{ color: colors.primary, fontSize: 48, mb: 2 }} />
                         <Typography variant="h4" sx={{ color: colors.primary, fontWeight: 700, mb: 1 }}>
-                          {formatCurrency((estadisticasPaciente.totalGastado || 0) + saldoTotal)}
+                          {formatCurrency((expedienteData.estadisticas.totalGastado || 0) + expedienteData.saldoTotal)}
                         </Typography>
-                        <Typography variant="body1" sx={{ color: colors.subtext }}>
-                          Total General
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: colors.subtext }}>
-                          Pagado + Pendiente
-                        </Typography>
+                        <Typography variant="body1" sx={{ color: colors.subtext }}>Total General</Typography>
+                        <Typography variant="caption" sx={{ color: colors.subtext }}>Pagado + Pendiente</Typography>
                       </Card>
                     </Grid>
                   </Grid>
 
                   <Grid container spacing={3}>
-                    {/* Servicios pendientes */}
                     <Grid item xs={12} md={6}>
                       <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 2 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1416,7 +1315,7 @@ const ExpedienteClinico = () => {
                         </Box>
                       </Typography>
                       
-                      {serviciosPendientes.length === 0 ? (
+                      {expedienteData.serviciosPendientes.length === 0 ? (
                         <Alert severity="success" icon={<CheckCircle />}>
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
                             ¡Excelente! No hay servicios pendientes de pago
@@ -1424,7 +1323,7 @@ const ExpedienteClinico = () => {
                         </Alert>
                       ) : (
                         <Box>
-                          {serviciosPendientes.map((servicio, index) => (
+                          {expedienteData.serviciosPendientes.map((servicio, index) => (
                             <Card key={index} sx={{ mb: 2, bgcolor: colors.cardBgHover }}>
                               <CardContent sx={{ p: 2 }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1459,7 +1358,7 @@ const ExpedienteClinico = () => {
                           <Card sx={{ bgcolor: colors.warning + '20', borderLeft: `4px solid ${colors.warning}` }}>
                             <CardContent sx={{ p: 2 }}>
                               <Typography variant="h6" sx={{ color: colors.warning, fontWeight: 700 }}>
-                                Total Pendiente: {formatCurrency(saldoTotal)}
+                                Total Pendiente: {formatCurrency(expedienteData.saldoTotal)}
                               </Typography>
                             </CardContent>
                           </Card>
@@ -1467,7 +1366,6 @@ const ExpedienteClinico = () => {
                       )}
                     </Grid>
 
-                    {/* Historial de pagos */}
                     <Grid item xs={12} md={6}>
                       <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 2 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1476,7 +1374,7 @@ const ExpedienteClinico = () => {
                         </Box>
                       </Typography>
                       
-                      {historialPagos.length === 0 ? (
+                      {expedienteData.historialPagos.length === 0 ? (
                         <Box sx={{ textAlign: 'center', py: 4 }}>
                           <CreditCard sx={{ fontSize: 48, color: colors.subtext, mb: 2 }} />
                           <Typography variant="body1" sx={{ color: colors.subtext }}>
@@ -1485,7 +1383,7 @@ const ExpedienteClinico = () => {
                         </Box>
                       ) : (
                         <Box sx={{ maxHeight: 400, overflow: 'auto' }}>
-                          {historialPagos
+                          {expedienteData.historialPagos
                             .sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
                             .map((pago, index) => (
                             <Card key={index} sx={{ mb: 2, bgcolor: colors.cardBgHover }}>
@@ -1528,8 +1426,8 @@ const ExpedienteClinico = () => {
                 </Box>
               )}
 
-              {/* Tab 3: Reportes y Analytics */}
-              {tabValue === 3 && (
+              {/* Tab 3: Reportes */}
+              {uiState.tabValue === 3 && (
                 <Box>
                   <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 3 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1538,7 +1436,6 @@ const ExpedienteClinico = () => {
                     </Box>
                   </Typography>
                   
-                  {/* Métricas generales */}
                   <Grid container spacing={3} mb={4}>
                     <Grid item xs={12} md={6}>
                       <Card sx={{ bgcolor: colors.cardBgHover, p: 3 }}>
@@ -1553,7 +1450,7 @@ const ExpedienteClinico = () => {
                           <Grid item xs={6}>
                             <Box sx={{ textAlign: 'center', p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
                               <Typography variant="h4" sx={{ color: colors.primary, fontWeight: 700 }}>
-                                {estadisticasPaciente.citasCompletadas || 0}
+                                {expedienteData.estadisticas.citasCompletadas || 0}
                               </Typography>
                               <Typography variant="caption" sx={{ color: colors.subtext }}>
                                 Citas Completadas
@@ -1563,7 +1460,7 @@ const ExpedienteClinico = () => {
                           <Grid item xs={6}>
                             <Box sx={{ textAlign: 'center', p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
                               <Typography variant="h4" sx={{ color: colors.error, fontWeight: 700 }}>
-                                {estadisticasPaciente.citasCanceladas || 0}
+                                {expedienteData.estadisticas.citasCanceladas || 0}
                               </Typography>
                               <Typography variant="caption" sx={{ color: colors.subtext }}>
                                 Citas Canceladas
@@ -1573,7 +1470,7 @@ const ExpedienteClinico = () => {
                           <Grid item xs={6}>
                             <Box sx={{ textAlign: 'center', p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
                               <Typography variant="h4" sx={{ color: colors.secondary, fontWeight: 700 }}>
-                                {estadisticasPaciente.tratamientosActivos || 0}
+                                {expedienteData.estadisticas.tratamientosActivos || 0}
                               </Typography>
                               <Typography variant="caption" sx={{ color: colors.subtext }}>
                                 Tratamientos Activos
@@ -1583,7 +1480,7 @@ const ExpedienteClinico = () => {
                           <Grid item xs={6}>
                             <Box sx={{ textAlign: 'center', p: 2, bgcolor: colors.cardBg, borderRadius: 2 }}>
                               <Typography variant="h4" sx={{ color: colors.success, fontWeight: 700 }}>
-                                {estadisticasPaciente.tasaCompletitud || 0}%
+                                {expedienteData.estadisticas.tasaCompletitud || 0}%
                               </Typography>
                               <Typography variant="caption" sx={{ color: colors.subtext }}>
                                 Tasa de Completitud
@@ -1603,21 +1500,11 @@ const ExpedienteClinico = () => {
                           </Box>
                         </Typography>
                         
-                        {historialCitas.length > 0 ? (
+                        {serviciosMasUtilizados.length > 0 ? (
                           <Box>
-                            {(() => {
-                              // Calcular servicios más utilizados
-                              const serviciosCount = historialCitas.reduce((acc, cita) => {
-                                const servicio = cita.servicio_nombre;
-                                acc[servicio] = (acc[servicio] || 0) + 1;
-                                return acc;
-                              }, {});
-                              
-                              const serviciosOrdenados = Object.entries(serviciosCount)
-                                .sort(([,a], [,b]) => b - a)
-                                .slice(0, 5);
-                              
-                              return serviciosOrdenados.map(([servicio, count], index) => (
+                            {serviciosMasUtilizados.map(([servicio, count], index) => {
+                              const maxCount = Math.max(...serviciosMasUtilizados.map(([, c]) => c));
+                              return (
                                 <Box key={index} sx={{ mb: 2 }}>
                                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                                     <Typography variant="body2" sx={{ color: colors.text, fontWeight: 600 }}>
@@ -1629,7 +1516,7 @@ const ExpedienteClinico = () => {
                                   </Box>
                                   <LinearProgress
                                     variant="determinate"
-                                    value={(count / Math.max(...Object.values(serviciosCount))) * 100}
+                                    value={(count / maxCount) * 100}
                                     sx={{
                                       height: 6,
                                       borderRadius: 3,
@@ -1641,8 +1528,8 @@ const ExpedienteClinico = () => {
                                     }}
                                   />
                                 </Box>
-                              ));
-                            })()}
+                              );
+                            })}
                           </Box>
                         ) : (
                           <Typography variant="body2" sx={{ color: colors.subtext, textAlign: 'center', py: 2 }}>
@@ -1653,7 +1540,6 @@ const ExpedienteClinico = () => {
                     </Grid>
                   </Grid>
                   
-                  {/* Timeline simplificado */}
                   <Card sx={{ bgcolor: colors.cardBgHover, p: 3 }}>
                     <Typography variant="h6" sx={{ color: colors.text, fontWeight: 600, mb: 3 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -1662,63 +1548,24 @@ const ExpedienteClinico = () => {
                       </Box>
                     </Typography>
                     
-                    {(() => {
-                      // Crear timeline combinando citas y pagos
-                      const eventos = [];
-                      
-                      // Agregar citas
-                      historialCitas.slice(0, 10).forEach(cita => {
-                        eventos.push({
-                          fecha: new Date(cita.fecha_consulta),
-                          tipo: 'cita',
-                          titulo: cita.servicio_nombre,
-                          descripcion: `Estado: ${cita.estado}`,
-                          icono: <MedicalServices />,
-                          color: getEstadoColor(cita.estado)
-                        });
-                      });
-                      
-                      // Agregar pagos
-                      historialPagos.slice(0, 5).forEach(pago => {
-                        eventos.push({
-                          fecha: new Date(pago.fecha_pago),
-                          tipo: 'pago',
-                          titulo: `Pago: ${formatCurrency(pago.total)}`,
-                          descripcion: pago.concepto || 'Pago de servicios',
-                          icono: <AttachMoney />,
-                          color: colors.success
-                        });
-                      });
-                      
-                      // Ordenar por fecha (más reciente primero)
-                      eventos.sort((a, b) => b.fecha - a.fecha);
-                      
-                      return eventos.slice(0, 8).map((evento, index) => (
-                        <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
-                          <Avatar
-                            sx={{
-                              bgcolor: evento.color,
-                              width: 40,
-                              height: 40,
-                              mr: 2
-                            }}
-                          >
-                            {evento.icono}
-                          </Avatar>
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="body1" sx={{ color: colors.text, fontWeight: 600 }}>
-                              {evento.titulo}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: colors.subtext, mb: 0.5 }}>
-                              {evento.descripcion}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: colors.subtext }}>
-                              {formatFecha(evento.fecha)}
-                            </Typography>
-                          </Box>
+                    {timelineEventos.map((evento, index) => (
+                      <Box key={index} sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
+                        <Avatar sx={{ bgcolor: evento.color, width: 40, height: 40, mr: 2 }}>
+                          {evento.icono}
+                        </Avatar>
+                        <Box sx={{ flex: 1 }}>
+                          <Typography variant="body1" sx={{ color: colors.text, fontWeight: 600 }}>
+                            {evento.titulo}
+                          </Typography>
+                          <Typography variant="body2" sx={{ color: colors.subtext, mb: 0.5 }}>
+                            {evento.descripcion}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: colors.subtext }}>
+                            {formatFecha(evento.fecha)}
+                          </Typography>
                         </Box>
-                      ));
-                    })()}
+                      </Box>
+                    ))}
                   </Card>
                 </Box>
               )}
@@ -1726,7 +1573,6 @@ const ExpedienteClinico = () => {
           </Paper>
         )}
 
-        {/* Componente de Notificaciones */}
         <Notificaciones
           open={notification.open}
           message={notification.message}
@@ -1738,4 +1584,4 @@ const ExpedienteClinico = () => {
   );
 };
 
-export default ExpedienteClinico; 
+export default ExpedienteClinico;
